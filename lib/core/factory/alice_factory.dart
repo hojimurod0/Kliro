@@ -1,0 +1,3 @@
+class AliceFactory {
+  AliceFactory._();
+}

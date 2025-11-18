@@ -1,0 +1,3 @@
+class SystemBar {
+  SystemBar._();
+}

@@ -1,0 +1,3 @@
+class DioClient {
+  DioClient._();
+}
