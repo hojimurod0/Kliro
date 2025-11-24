@@ -16,7 +16,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   static const locales = [
     Locale('uz'),
-    Locale('uz', 'CYR'),
+    Locale('uz', 'UZ'),
     Locale('ru'),
     Locale('en'),
   ];

@@ -1,50 +1,31 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import '../widgets/onboarding_slide.dart';
 
 class OnboardingThreePage extends StatelessWidget {
-  const OnboardingThreePage({super.key});
+  const OnboardingThreePage({
+    super.key,
+    required this.onNext,
+    required this.onSkip,
+  });
+
+  final VoidCallback onNext;
+  final VoidCallback onSkip;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SizedBox(height: 16),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  color: Colors.teal.shade50,
-                  child: Center(
-                    child: SvgPicture.asset(
-                      'assets/images/pilot.svg',
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Text(
-              'Tez Parvoz va Mehmonxona Bron Qiling',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              'Sayohatingiz uchun eng yaxshi takliflarni toping.',
-            ),
-          ),
-          const SizedBox(height: 20),
-        ],
+    return OnboardingSlide(
+      image: Image.asset(
+        'assets/images/pilot.png',
+        fit: BoxFit.cover,
+        alignment: Alignment.topCenter,
       ),
+      title: 'auth.onboarding.three_title'.tr(),
+      description: 'auth.onboarding.three_desc'.tr(),
+      onNext: onNext,
+      onSkip: onSkip,
+      activeIndex: 2,
+      total: 3,
     );
   }
 }

@@ -1,10 +1,17 @@
 import 'dart:async';
 
+import 'package:auto_route/auto_route.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:video_player/video_player.dart';
 
-import '../../../register/presentation/pages/register_page.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_typography.dart';
+import '../../../../core/navigation/app_router.dart';
 
+@RoutePage()
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
@@ -13,7 +20,7 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> {
-  late final VideoPlayerController _controller;
+  VideoPlayerController? _controller;
   bool _initialized = false;
   bool _navigated = false;
   String? _error;
@@ -22,35 +29,85 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
-    _controller =
-        VideoPlayerController.asset('assets/videos/kliro_intro.mp4')
-          ..setLooping(false)
-          ..addListener(_handleTick);
+    _loadVideo();
+  }
 
-    _controller
-        .initialize()
-        .then((_) {
-          if (!mounted) return;
-          setState(() => _initialized = true);
-          _controller.play();
-          _fallbackTimer = Timer(
-            _controller.value.duration + const Duration(milliseconds: 500),
-            _goNext,
-          );
-        })
-        .catchError((Object error) {
-          if (!mounted) return;
-          setState(() => _error = error.toString());
-          _fallbackTimer = Timer(const Duration(seconds: 2), _goNext);
-        });
+  Future<void> _loadVideo() async {
+    try {
+      _controller = VideoPlayerController.asset('assets/videos/kliro_introo.mp4')
+        ..setLooping(false)
+        ..addListener(_handleTick);
+
+      await _controller!.initialize().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Video initialization timeout');
+        },
+      );
+      
+      if (!mounted) {
+        _controller?.dispose();
+        return;
+      }
+      
+      if (!_controller!.value.isInitialized) {
+        throw Exception('Video controller not initialized');
+      }
+      
+      setState(() {
+        _initialized = true;
+      });
+      
+      await _controller!.play();
+      
+      _fallbackTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted && !_navigated) {
+          _controller?.pause();
+          _goNext();
+        }
+      });
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Platform error: ${e.message}\nCode: ${e.code}';
+        _initialized = false;
+      });
+      _fallbackTimer = Timer(const Duration(seconds: 2), () {
+        if (mounted && !_navigated) {
+          _goNext();
+        }
+      });
+    } on TimeoutException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Timeout: ${e.message}';
+        _initialized = false;
+      });
+      _fallbackTimer = Timer(const Duration(seconds: 2), () {
+        if (mounted && !_navigated) {
+          _goNext();
+        }
+      });
+    } catch (error, stackTrace) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Error: $error\n${stackTrace.toString().split('\n').take(3).join('\n')}';
+        _initialized = false;
+      });
+      _fallbackTimer = Timer(const Duration(seconds: 2), () {
+        if (mounted && !_navigated) {
+          _goNext();
+        }
+      });
+    }
   }
 
   void _handleTick() {
-    if (!mounted || _navigated) return;
-    final value = _controller.value;
-    if (value.isInitialized &&
-        !value.isPlaying &&
-        value.position >= value.duration) {
+    if (!mounted || _navigated || _controller == null) return;
+    final value = _controller!.value;
+    // Video 3 soniyadan oshib ketmasligi uchun tekshirish
+    if (value.isInitialized && value.position >= const Duration(seconds: 3)) {
+      _controller?.pause();
       _goNext();
     }
   }
@@ -58,47 +115,78 @@ class _SplashPageState extends State<SplashPage> {
   void _goNext() {
     if (_navigated || !mounted) return;
     _navigated = true;
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => const RegisterPage()));
+    context.router.replace(const OnboardingRoute());
   }
 
   @override
   void dispose() {
     _fallbackTimer?.cancel();
-    _controller
-      ..removeListener(_handleTick)
-      ..dispose();
+    if (_controller != null) {
+      _controller!
+        ..removeListener(_handleTick)
+        ..dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (_error != null)
-            Center(
-              child: Text(
-                'Video yuklanmadi:\n$_error',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white),
+      backgroundColor: isDark ? AppColors.charcoal : Colors.black,
+      body: MouseRegion(
+        cursor: SystemMouseCursors.none,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (_error != null)
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24.w),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64.sp,
+                        color: AppColors.white,
+                      ),
+                      SizedBox(height: 16.h),
+                      Text(
+                        tr('splash.video_error'),
+                        textAlign: TextAlign.center,
+                        style: AppTypography.bodyPrimary.copyWith(
+                          fontSize: 16.sp,
+                          color: AppColors.white,
+                        ),
+                      ),
+                      if (_error != null) ...[
+                        SizedBox(height: 8.h),
+                        Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.white.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              )
+            else if (_initialized && _controller != null)
+              FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _controller!.value.size.width,
+                  height: _controller!.value.size.height,
+                  child: VideoPlayer(_controller!),
+                ),
               ),
-            )
-          else if (_initialized)
-            FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: _controller.value.size.width,
-                height: _controller.value.size.height,
-                child: VideoPlayer(_controller),
-              ),
-            )
-          else
-            const Center(child: CircularProgressIndicator(color: Colors.white)),
-        ],
+          ],
+        ),
       ),
     );
   }

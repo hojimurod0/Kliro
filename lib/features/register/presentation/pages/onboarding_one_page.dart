@@ -1,61 +1,43 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import '../widgets/onboarding_slide.dart';
 
 class OnboardingOnePage extends StatelessWidget {
-  const OnboardingOnePage({super.key});
+  const OnboardingOnePage({
+    super.key,
+    required this.onNext,
+    required this.onSkip,
+  });
+
+  final VoidCallback onNext;
+  final VoidCallback onSkip;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SizedBox(height: 16),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  color: Colors.blueGrey.shade50,
-                  width: double.infinity,
-                  height: double.infinity,
-                  child: Image.asset(
-                    'assets/images/image.png',
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                            const SizedBox(height: 8),
-                            Text('Error: ${error.toString()}'),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
+    return OnboardingSlide(
+      image: Image.asset(
+        'assets/images/image.png',
+        fit: BoxFit.cover,
+        alignment: Alignment.topCenter,
+        errorBuilder: (context, error, stackTrace) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 8),
+                Text('Error: ${error.toString()}'),
+              ],
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Text(
-              'Moliyangizni Oson Boshqaring',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              'Valyuta kurslarini kuzating va eng yaxshi bank takliflarini toping.',
-            ),
-          ),
-          const SizedBox(height: 20),
-        ],
+          );
+        },
       ),
+      title: 'auth.onboarding.one_title'.tr(),
+      description: 'auth.onboarding.one_desc'.tr(),
+      onNext: onNext,
+      onSkip: onSkip,
+      activeIndex: 0,
+      total: 3,
     );
   }
 }

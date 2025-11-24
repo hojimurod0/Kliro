@@ -1,231 +1,325 @@
+import 'package:auto_route/auto_route.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'onboarding_language_page.dart';
-import 'onboarding_one_page.dart';
-import 'onboarding_two_page.dart';
-import 'onboarding_three_page.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class RegisterPage extends StatefulWidget {
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_input_decoration.dart';
+import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/constants/app_typography.dart';
+import '../../../../core/dio/singletons/service_locator.dart';
+import '../../../../core/navigation/app_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/services/auth/auth_service.dart';
+import '../../../../core/services/google/google_sign_in_service.dart';
+import '../../domain/entities/google_auth_redirect.dart';
+import '../../domain/params/auth_params.dart';
+import '../bloc/register_bloc.dart';
+import '../bloc/register_event.dart';
+import '../bloc/register_state.dart';
+import '../widgets/auth_divider.dart';
+import '../widgets/auth_mode_toggle.dart';
+import '../widgets/auth_primary_button.dart';
+import '../widgets/auth_social_button.dart';
+import '../widgets/common_back_button.dart';
+
+@RoutePage()
+class RegisterPage extends StatefulWidget implements AutoRouteWrapper {
   const RegisterPage({super.key});
+
+  @override
+  Widget wrappedRoute(BuildContext context) {
+    return BlocProvider(
+      create: (_) => ServiceLocator.resolve<RegisterBloc>(),
+      child: this,
+    );
+  }
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  late final PageController _controller;
-  int _index = 0;
-  late final List<Widget> _pages;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = PageController();
-    _pages = [
-      OnboardingLanguagePage(
-        onSelected: () {
-          _controller.nextPage(
-            duration: const Duration(milliseconds: 350),
-            curve: Curves.easeOut,
-          );
-        },
-      ),
-      const OnboardingOnePage(),
-      const OnboardingTwoPage(),
-      const OnboardingThreePage(),
-    ];
-  }
+  bool isPhoneMode = true;
+  final TextEditingController _phoneOrEmailController = TextEditingController();
+  String? _lastContact;
 
   @override
   void dispose() {
-    _controller.dispose();
+    _phoneOrEmailController.dispose();
     super.dispose();
   }
 
-  void _next() {
-    if (_index < _pages.length - 1) {
-      _controller.nextPage(
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeOut,
-      );
-    } else {
-      // TODO: Navigate to actual auth/register form
-      Navigator.of(context).maybePop();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: null,
-      body: Column(
-        children: [
-          Expanded(
-            child: PageView(
-              controller: _controller,
-              onPageChanged: (i) => setState(() => _index = i),
-              children: _pages,
-            ),
-          ),
-          if (_index >= 1) const SizedBox(height: 8),
-          if (_index >= 1)
-            _Dots(
-              count: 3,
-              index: _index - 1,
-              progress: _progressValue,
-            ),
-          if (_index >= 1) const SizedBox(height: 12),
-          if (_index > 0)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-              child: Row(
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      _controller.animateToPage(
-                        _pages.length - 1,
-                        duration: const Duration(milliseconds: 400),
-                        curve: Curves.easeOut,
-                      );
-                    },
-                    child: const Text("O'tkazib yuborish"),
-                  ),
-                  const Spacer(),
-                  _NextButton(
-                    progress: _progressValue,
-                    onTap: _next,
-                  ),
-                ],
-              ),
-            ),
-        ],
+  void _showSnackBar(String message, {Color background = Colors.red}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: background,
       ),
     );
   }
 
-  double get _progressValue {
-    if (_index < 1) return 0.0;
-    final step = _index.clamp(1, 3); // 1..3
-    return step / 3.0;
+  void _submit() {
+    final bloc = context.read<RegisterBloc>();
+    final phoneOrEmail = _phoneOrEmailController.text.trim();
+
+    if (phoneOrEmail.isEmpty) {
+      _showSnackBar('auth.register.snack_contact'.tr());
+      return;
+    }
+
+    // Agar telefon rejimi bo'lsa va faqat raqam kiritilgan bo'lsa, +998 qo'shamiz
+    String contactToFormat = phoneOrEmail;
+    if (isPhoneMode && !phoneOrEmail.contains('@')) {
+      // Agar +998 bilan boshlanmasa, qo'shamiz
+      if (!phoneOrEmail.startsWith('+998') && !phoneOrEmail.startsWith('998')) {
+        contactToFormat = '+998$phoneOrEmail';
+      } else if (phoneOrEmail.startsWith('998')) {
+        contactToFormat = '+$phoneOrEmail';
+      }
+    }
+
+    final formattedContact = AuthService.normalizeContact(contactToFormat);
+    if (formattedContact.isEmpty) {
+      _showSnackBar('auth.register.snack_contact'.tr());
+      return;
+    }
+
+    final params = SendOtpParams(
+      email: formattedContact.contains('@') ? formattedContact : null,
+      phone: formattedContact.contains('@') ? null : formattedContact,
+    );
+
+    setState(() => _lastContact = formattedContact);
+    bloc.add(SendRegisterOtpRequested(params));
   }
-}
 
-class _Dots extends StatelessWidget {
-  final int count;
-  final int index;
-  final double progress; // 0..1 for active item
-  const _Dots({required this.count, required this.index, required this.progress});
+  Future<void> _handleGoogleSignIn() async {
+    try {
+      final googleAccount = await GoogleSignInService.instance.signIn();
+      if (googleAccount == null) return;
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(count, (i) {
-        final isFilled = i < (index + 1); // cumulative fill 1/3, 2/3, 3/3
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
-          height: 8,
-          width: 22,
-          decoration: BoxDecoration(
-            color: isFilled
-                ? Theme.of(context).colorScheme.primary
-                : Colors.grey.shade300,
-            borderRadius: BorderRadius.circular(999),
+      final email = googleAccount.email;
+      if (email.isEmpty) {
+        _showSnackBar('Google akkaunt email topilmadi');
+        return;
+      }
+
+      final redirectUrl = 'https://kliro.uz/auth/google/callback';
+      context.read<RegisterBloc>().add(
+        GoogleRedirectRequested(redirectUrl),
+      );
+    } catch (e) {
+      _showSnackBar('Google login xatolik: ${e.toString()}');
+    }
+  }
+
+  Future<void> _handleGoogleRedirect(GoogleAuthRedirect redirect) async {
+    try {
+      final googleAccount = GoogleSignInService.instance.currentUser;
+      if (googleAccount == null) {
+        _showSnackBar('Google akkaunt topilmadi');
+        return;
+      }
+
+      final displayName = googleAccount.displayName ?? '';
+      final nameParts = displayName.split(' ');
+      final firstName = nameParts.isNotEmpty ? nameParts.first : '';
+      final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+
+      if (redirect.sessionId != null && redirect.sessionId!.isNotEmpty) {
+        context.read<RegisterBloc>().add(
+          CompleteGoogleRegistrationRequested(
+            GoogleCompleteParams(
+              sessionId: redirect.sessionId!,
+              regionId: 1,
+              firstName: firstName,
+              lastName: lastName,
+            ),
           ),
         );
-      }),
-    );
-  }
-}
-
-class _NextButton extends StatelessWidget {
-  final double progress; // 0..1
-  final VoidCallback onTap;
-  const _NextButton({required this.progress, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 56,
-        height: 56,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Custom painted outer ring with discrete fill based on index
-            CustomPaint(
-              painter: _RingPainter(
-                color: Theme.of(context).colorScheme.primary,
-                progress: progress.clamp(0.0, 1.0),
-                strokeWidth: 3,
-              ),
-            ),
-            // Filled circular button
-            Center(
-              child: Container(
-                width: 46,
-                height: 46,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x22000000),
-                      blurRadius: 6,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.arrow_forward_ios,
-                  size: 18,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RingPainter extends CustomPainter {
-  final Color color;
-  final double progress; // 0..1
-  final double strokeWidth;
-  _RingPainter({required this.color, required this.progress, required this.strokeWidth});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.shortestSide - strokeWidth) / 2;
-
-    final bg = Paint()
-      ..color = color.withOpacity(0.15)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-    final fg = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawCircle(center, radius, bg);
-
-    if (progress > 0) {
-      const pi = 3.1415926535897932;
-      final rect = Rect.fromCircle(center: center, radius: radius);
-      final start = -pi / 2; // top
-      final sweep = 2 * pi * progress.clamp(0.0, 1.0);
-      canvas.drawArc(rect, start, sweep, false, fg);
+      } else {
+        final url = Uri.parse(redirect.url);
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+        }
+      }
+    } catch (e) {
+      _showSnackBar('Google redirect xatolik: ${e.toString()}');
     }
   }
 
   @override
-  bool shouldRepaint(covariant _RingPainter old) {
-    return old.color != color || old.progress != progress || old.strokeWidth != strokeWidth;
+  Widget build(BuildContext context) {
+    return BlocConsumer<RegisterBloc, RegisterState>(
+      listener: (context, state) {
+        if (state.flow == RegisterFlow.registerSendOtp) {
+          if (state.status == RegisterStatus.failure && state.error != null) {
+            _showSnackBar(state.error!);
+          } else if (state.status == RegisterStatus.success) {
+            final contact = _lastContact;
+            if (contact != null) {
+              _showSnackBar(
+                state.message ?? 'OTP yuborildi',
+                background: Colors.green,
+              );
+              context.router.push(
+                RegisterVerificationRoute(contactInfo: contact),
+              );
+              context.read<RegisterBloc>().add(const RegisterMessageCleared());
+            }
+          }
+        } else if (state.flow == RegisterFlow.googleRedirect) {
+          if (state.status == RegisterStatus.success && state.googleRedirect != null) {
+            _handleGoogleRedirect(state.googleRedirect!);
+          } else if (state.status == RegisterStatus.failure) {
+            _showSnackBar(state.error ?? 'Google redirect xatolik');
+          }
+        } else if (state.flow == RegisterFlow.googleComplete) {
+          if (state.status == RegisterStatus.failure) {
+            _showSnackBar(state.error ?? 'Google registration xatolik');
+          } else if (state.status == RegisterStatus.success) {
+            context.router.replace(HomeRoute());
+          }
+        }
+      },
+      builder: (context, state) {
+        final isLoading = state.isLoading &&
+            state.flow == RegisterFlow.registerSendOtp;
+        return Scaffold(
+      backgroundColor: AppColors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: AppSpacing.screenPadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: AppSpacing.sm),
+              const CommonBackButton(),
+              SizedBox(height: AppSpacing.lg),
+              Text('auth.register.title'.tr(), style: AppTypography.headingXL),
+              SizedBox(height: AppSpacing.xs),
+              Text(
+                'auth.register.subtitle'.tr(),
+                style: AppTypography.bodyPrimary,
+              ),
+              SizedBox(height: AppSpacing.lg),
+              AuthModeToggle(
+                first: AuthModeOption(
+                  label: 'auth.tab.phone'.tr(),
+                  icon: Icons.phone,
+                  gradient: AppColors.phoneGradient,
+                ),
+                second: AuthModeOption(
+                  label: 'auth.tab.email'.tr(),
+                  icon: Icons.email_outlined,
+                  gradient: AppColors.phoneGradient,
+                ),
+                isFirstSelected: isPhoneMode,
+                onChanged: (value) {
+                  setState(() {
+                    isPhoneMode = value;
+                    _phoneOrEmailController.clear();
+                  });
+                },
+              ),
+              SizedBox(height: AppSpacing.lg),
+              Padding(
+                padding: EdgeInsets.only(left: 2.w),
+                child: Text(
+                  isPhoneMode
+                      ? 'auth.field.phone_label'.tr()
+                      : 'auth.field.email_label'.tr(),
+                  style: AppTypography.labelSmall,
+                ),
+              ),
+              SizedBox(height: AppSpacing.xs),
+              TextFormField(
+                controller: _phoneOrEmailController,
+                keyboardType: isPhoneMode
+                    ? TextInputType.phone
+                    : TextInputType.emailAddress,
+                inputFormatters: isPhoneMode
+                    ? [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(9), // Faqat 9 ta raqam (+998 dan keyin)
+                      ]
+                    : null,
+                decoration: AppInputDecoration.outline(
+                  hint: isPhoneMode
+                      ? '901234567'
+                      : 'auth.field.email_hint'.tr(),
+                  prefix: isPhoneMode
+                      ? Padding(
+                          padding: EdgeInsets.only(left: 16.w, right: 8.w),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.phone,
+                                color: AppColors.primaryBlue,
+                                size: 20.sp,
+                              ),
+                              SizedBox(width: 8.w),
+                              Text(
+                                '+998',
+                                style: TextStyle(
+                                  color: AppColors.black,
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : null,
+                  prefixIcon: isPhoneMode ? null : Icons.email_outlined,
+                ),
+              ),
+              SizedBox(height: AppSpacing.lg),
+              AuthPrimaryButton(
+                label: 'auth.common.cta'.tr(),
+                onPressed: _submit,
+                isLoading: isLoading,
+              ),
+              SizedBox(height: AppSpacing.md),
+              AuthDivider(text: 'auth.common.divider'.tr()),
+              SizedBox(height: AppSpacing.md),
+              AuthSocialButton(
+                label: 'auth.common.google'.tr(),
+                iconUrl:
+                    'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/768px-Google_%22G%22_logo.svg.png',
+                onPressed: _handleGoogleSignIn,
+              ),
+              SizedBox(height: AppSpacing.lg),
+              Center(
+                child: GestureDetector(
+                  onTap: () {
+                    context.router.maybePop();
+                  },
+                  child: RichText(
+                    text: TextSpan(
+                      style: AppTypography.bodySecondary,
+                      children: [
+                        TextSpan(text: 'auth.register.have_account'.tr()),
+                        TextSpan(
+                          text: 'auth.register.login'.tr(),
+                          style: AppTypography.buttonLink,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16.h),
+            ],
+          ),
+        ),
+      ),
+        );
+      },
+    );
   }
 }

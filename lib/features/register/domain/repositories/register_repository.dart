@@ -1,3 +1,2 @@
-abstract class RegisterRepository {
-  Future<void> register({required String email, required String password});
-}
+export 'auth_repository.dart';
+export 'profile_repository.dart';
