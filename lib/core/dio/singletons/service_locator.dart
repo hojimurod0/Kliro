@@ -15,6 +15,12 @@ import '../../../features/micro_loan/data/repositories/microcredit_repository_im
 import '../../../features/micro_loan/domain/repositories/microcredit_repository.dart';
 import '../../../features/micro_loan/domain/usecases/get_microcredits.dart';
 import '../../../features/micro_loan/presentation/bloc/microcredit_bloc.dart';
+import '../../../features/deposit/data/datasources/deposit_local_data_source.dart';
+import '../../../features/deposit/data/datasources/deposit_remote_data_source.dart';
+import '../../../features/deposit/data/repositories/deposit_repository_impl.dart';
+import '../../../features/deposit/domain/repositories/deposit_repository.dart';
+import '../../../features/deposit/domain/usecases/get_deposit_offers.dart';
+import '../../../features/deposit/presentation/bloc/deposit_bloc.dart';
 import '../../../features/register/data/datasources/auth_remote_data_source.dart';
 import '../../../features/register/data/datasources/profile_remote_data_source.dart';
 import '../../../features/register/data/repositories/auth_repository_impl.dart';
@@ -91,6 +97,16 @@ class ServiceLocator {
         () => MicrocreditLocalDataSource(_getIt<SharedPreferences>()),
       );
     }
+    if (!_getIt.isRegistered<DepositRemoteDataSource>()) {
+      _getIt.registerLazySingleton<DepositRemoteDataSource>(
+        () => DepositRemoteDataSourceImpl(_getIt<Dio>()),
+      );
+    }
+    if (!_getIt.isRegistered<DepositLocalDataSource>()) {
+      _getIt.registerLazySingleton<DepositLocalDataSource>(
+        () => DepositLocalDataSource(_getIt<SharedPreferences>()),
+      );
+    }
   }
 
   static void _registerRepositories() {
@@ -117,6 +133,14 @@ class ServiceLocator {
         () => MicrocreditRepositoryImpl(
           remoteDataSource: _getIt<MicrocreditRemoteDataSource>(),
           localDataSource: _getIt<MicrocreditLocalDataSource>(),
+        ),
+      );
+    }
+    if (!_getIt.isRegistered<DepositRepository>()) {
+      _getIt.registerLazySingleton<DepositRepository>(
+        () => DepositRepositoryImpl(
+          remoteDataSource: _getIt<DepositRemoteDataSource>(),
+          localDataSource: _getIt<DepositLocalDataSource>(),
         ),
       );
     }
@@ -167,6 +191,9 @@ class ServiceLocator {
     _registerLazy<GetMicrocredits>(
       () => GetMicrocredits(_getIt<MicrocreditRepository>()),
     );
+    _registerLazy<GetDeposits>(
+      () => GetDeposits(_getIt<DepositRepository>()),
+    );
   }
 
   static void _registerLazy<T extends Object>(T Function() factoryFunc) {
@@ -204,6 +231,9 @@ class ServiceLocator {
     );
     _getIt.registerFactory<MicrocreditBloc>(
       () => MicrocreditBloc(getMicrocredits: _getIt()),
+    );
+    _getIt.registerFactory<DepositBloc>(
+      () => DepositBloc(getDeposits: _getIt()),
     );
   }
 }

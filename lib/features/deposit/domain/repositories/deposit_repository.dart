@@ -1,5 +1,10 @@
-import '../entities/deposit_offer.dart';
+import '../entities/deposit_filter.dart';
+import '../entities/deposit_page.dart';
 
 abstract class DepositRepository {
-  List<DepositOffer> getOffers();
+  Future<DepositPage> getDeposits({
+    required int page,
+    required int size,
+    DepositFilter filter,
+  });
 }
