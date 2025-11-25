@@ -165,6 +165,7 @@
     "interest_rate": "Foiz",
     "term": "Muddat",
     "amount": "Miqdor",
+    "filters": "Filtrlar",
     "advantages_count": "Afzalliklar ({count})",
     "open_deposit": "Omonat ochish",
     "months": "oygacha",
@@ -208,6 +209,23 @@
     "asc": "O'sish tartibi",
     "desc": "Kamayish tartibi",
     "open_link": "Havolani ochish: {0}"
+  },
+  "mortgage": {
+    "title": "Ipoteka",
+    "search_hint": "Bank nomini qidiring...",
+    "interest_rate": "Foiz",
+    "term": "Muddat",
+    "amount": "Miqdor",
+    "down_payment": "Boshlang'ich to'lov",
+    "advantages": "Afzalliklar",
+    "advantages_count": "Afzalliklar ({count})",
+    "property_type": "Mulk turi",
+    "property_type_value": "Barcha turlar",
+    "apply": "Ariza topshirish",
+    "filters": "Filtrlar",
+    "sort_field": "Saralash",
+    "empty_title": "Ipoteka topilmadi",
+    "empty_subtitle": "Filtrlarni o'zgartiring yoki ro'yxatni yangilang."
   },
   "about_app": {
     "title": "Dastur haqida",

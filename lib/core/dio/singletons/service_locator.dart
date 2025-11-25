@@ -21,6 +21,12 @@ import '../../../features/deposit/data/repositories/deposit_repository_impl.dart
 import '../../../features/deposit/domain/repositories/deposit_repository.dart';
 import '../../../features/deposit/domain/usecases/get_deposit_offers.dart';
 import '../../../features/deposit/presentation/bloc/deposit_bloc.dart';
+import '../../../features/mortgage/data/datasources/mortgage_local_data_source.dart';
+import '../../../features/mortgage/data/datasources/mortgage_remote_data_source.dart';
+import '../../../features/mortgage/data/repositories/mortgage_repository_impl.dart';
+import '../../../features/mortgage/domain/repositories/mortgage_repository.dart';
+import '../../../features/mortgage/domain/usecases/get_mortgage_offers.dart';
+import '../../../features/mortgage/presentation/bloc/mortgage_bloc.dart';
 import '../../../features/register/data/datasources/auth_remote_data_source.dart';
 import '../../../features/register/data/datasources/profile_remote_data_source.dart';
 import '../../../features/register/data/repositories/auth_repository_impl.dart';
@@ -107,6 +113,16 @@ class ServiceLocator {
         () => DepositLocalDataSource(_getIt<SharedPreferences>()),
       );
     }
+    if (!_getIt.isRegistered<MortgageRemoteDataSource>()) {
+      _getIt.registerLazySingleton<MortgageRemoteDataSource>(
+        () => MortgageRemoteDataSourceImpl(_getIt<Dio>()),
+      );
+    }
+    if (!_getIt.isRegistered<MortgageLocalDataSource>()) {
+      _getIt.registerLazySingleton<MortgageLocalDataSource>(
+        () => MortgageLocalDataSource(_getIt<SharedPreferences>()),
+      );
+    }
   }
 
   static void _registerRepositories() {
@@ -141,6 +157,14 @@ class ServiceLocator {
         () => DepositRepositoryImpl(
           remoteDataSource: _getIt<DepositRemoteDataSource>(),
           localDataSource: _getIt<DepositLocalDataSource>(),
+        ),
+      );
+    }
+    if (!_getIt.isRegistered<MortgageRepository>()) {
+      _getIt.registerLazySingleton<MortgageRepository>(
+        () => MortgageRepositoryImpl(
+          remoteDataSource: _getIt<MortgageRemoteDataSource>(),
+          localDataSource: _getIt<MortgageLocalDataSource>(),
         ),
       );
     }
@@ -194,6 +218,9 @@ class ServiceLocator {
     _registerLazy<GetDeposits>(
       () => GetDeposits(_getIt<DepositRepository>()),
     );
+    _registerLazy<GetMortgages>(
+      () => GetMortgages(_getIt<MortgageRepository>()),
+    );
   }
 
   static void _registerLazy<T extends Object>(T Function() factoryFunc) {
@@ -234,6 +261,9 @@ class ServiceLocator {
     );
     _getIt.registerFactory<DepositBloc>(
       () => DepositBloc(getDeposits: _getIt()),
+    );
+    _getIt.registerFactory<MortgageBloc>(
+      () => MortgageBloc(getMortgages: _getIt()),
     );
   }
 }

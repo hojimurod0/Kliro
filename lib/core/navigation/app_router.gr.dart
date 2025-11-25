@@ -62,11 +62,9 @@ abstract class _$AppRouter extends RootStackRouter {
       );
     },
     DepositRoute.name: (routeData) {
-      final args = routeData.argsAs<DepositRouteArgs>(
-          orElse: () => const DepositRouteArgs());
       return AutoRoutePage<dynamic>(
         routeData: routeData,
-        child: DepositPage(key: args.key),
+        child: const DepositPage(),
       );
     },
     InsuranceServicesRoute.name: (routeData) {
@@ -423,31 +421,16 @@ class CurrencyRatesRouteArgs {
 
 /// generated route for
 /// [DepositPage]
-class DepositRoute extends PageRouteInfo<DepositRouteArgs> {
-  DepositRoute({
-    Key? key,
-    List<PageRouteInfo>? children,
-  }) : super(
+class DepositRoute extends PageRouteInfo<void> {
+  const DepositRoute({List<PageRouteInfo>? children})
+      : super(
           DepositRoute.name,
-          args: DepositRouteArgs(key: key),
           initialChildren: children,
         );
 
   static const String name = 'DepositRoute';
 
-  static const PageInfo<DepositRouteArgs> page =
-      PageInfo<DepositRouteArgs>(name);
-}
-
-class DepositRouteArgs {
-  const DepositRouteArgs({this.key});
-
-  final Key? key;
-
-  @override
-  String toString() {
-    return 'DepositRouteArgs{key: $key}';
-  }
+  static const PageInfo<void> page = PageInfo<void>(name);
 }
 
 /// generated route for

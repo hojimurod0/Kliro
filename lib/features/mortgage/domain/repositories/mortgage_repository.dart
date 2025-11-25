@@ -1,6 +1,11 @@
-import '../entities/mortgage_offer.dart';
+import '../entities/mortgage_filter.dart';
+import '../entities/mortgage_page.dart';
 
 abstract class MortgageRepository {
-  Future<List<MortgageOffer>> getMortgageOffers();
+  Future<MortgagePage> getMortgages({
+    required int page,
+    required int size,
+    MortgageFilter filter,
+  });
 }
 

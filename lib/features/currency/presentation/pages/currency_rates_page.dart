@@ -1,8 +1,12 @@
+import 'dart:math';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import '../../../common/utils/bank_assets.dart';
 
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -23,6 +27,9 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
   String _selectedCurrencyCode = 'USD'; // USD по умолчанию
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  static const int _pageSize = 10;
+  int _currentPage = 1;
+  bool _isLoadingMore = false;
 
   String _getCurrencyFlag(String code) {
     switch (code.toUpperCase()) {
@@ -51,8 +58,26 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
     {'code': 'USD', 'flag': '🇺🇸', 'name': 'Dollar'},
     {'code': 'EUR', 'flag': '🇪🇺', 'name': 'Yevro'},
     {'code': 'RUB', 'flag': '🇷🇺', 'name': 'Rubl'},
-    {'code': 'KGS', 'flag': '🇰🇬', 'name': 'Som'},
+    {'code': 'KZT', 'flag': '🇰🇿', 'name': 'Tenge'},
   ];
+
+  void _loadMoreCurrencies(int totalItems) {
+    if (_isLoadingMore) return;
+    final currentMax = _currentPage * _pageSize;
+    if (currentMax >= totalItems) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      setState(() {
+        _currentPage += 1;
+        _isLoadingMore = false;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,6 +128,10 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
               // Sortirovka: eng arzon kurslar (eng kichik buyRate) tepada
               final sortedCurrencies = filteredCurrencies
                 ..sort((a, b) => a.buyRate.compareTo(b.buyRate));
+              final totalItems = sortedCurrencies.length;
+              final visibleCount = min(totalItems, _currentPage * _pageSize);
+              final paginatedCurrencies = sortedCurrencies.take(visibleCount).toList();
+              final canLoadMore = visibleCount < totalItems;
 
               return Column(
                 children: [
@@ -138,6 +167,7 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
                                     onChanged: (value) {
                                       setState(() {
                                         _searchQuery = value;
+                                        _currentPage = 1;
                                       });
                                     },
                                     decoration: InputDecoration(
@@ -229,6 +259,7 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
                           onSelected: (String value) {
                             setState(() {
                               _selectedCurrencyCode = value;
+                              _currentPage = 1;
                             });
                           },
                           child: Container(
@@ -273,19 +304,27 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
 
                   // --- BANKLAR RO'YXATI ---
                   Expanded(
-                    child: sortedCurrencies.isEmpty
+                    child: paginatedCurrencies.isEmpty
                         ? EmptyStateWidget(
                             messageKey: 'currency.empty',
                             icon: Icons.currency_exchange_outlined,
                           )
                         : ListView.separated(
                             padding: EdgeInsets.all(16.w),
-                            itemCount: sortedCurrencies.length,
+                            itemCount: paginatedCurrencies.length + (canLoadMore ? 1 : 0),
                             separatorBuilder: (context, index) =>
                                 SizedBox(height: 16.h),
                             itemBuilder: (context, index) {
+                              if (index >= paginatedCurrencies.length) {
+                                if (!_isLoadingMore) {
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    _loadMoreCurrencies(totalItems);
+                                  });
+                                }
+                                return const _LoadingMoreIndicator();
+                              }
                               return _BankRateCard(
-                                currency: sortedCurrencies[index],
+                                currency: paginatedCurrencies[index],
                               );
                             },
                           ),
@@ -307,13 +346,9 @@ class _BankRateCard extends StatelessWidget {
 
   final CurrencyEntity currency;
 
-  IconData _getBankIcon() {
-    final name = currency.bankName.toLowerCase();
-    if (name.contains('ipak')) return Icons.apartment_rounded;
-    if (name.contains('kapital')) return Icons.savings_outlined;
-    if (name.contains('asaka')) return Icons.domain;
-    return Icons.account_balance;
-  }
+  String? _getBankLogoAsset() => bankLogoAsset(currency.bankName);
+
+  bool _shouldUseContainFit() => bankLogoUsesContainFit(currency.bankName);
 
   @override
   Widget build(BuildContext context) {
@@ -325,7 +360,6 @@ class _BankRateCard extends StatelessWidget {
     const greenText = Color(0xFF059669);
     final redBg = isDark ? const Color(0xFF3A1E1E) : const Color(0xFFFEF2F2);
     const redText = Color(0xFFDC2626);
-    final greyText = Theme.of(context).textTheme.bodyMedium?.color ?? const Color(0xFF6B7280);
     final titleColor = Theme.of(context).textTheme.titleLarge?.color ?? const Color(0xFF111827);
 
     return Container(
@@ -345,9 +379,8 @@ class _BankRateCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- 1. HEADER: Logo, Nom, Joylashuv, Reyting ---
+          // --- 1. HEADER: Logo va bank nomi ---
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Bank Logosi
               Container(
@@ -357,136 +390,46 @@ class _BankRateCard extends StatelessWidget {
                   color: onlineBadgeBg,
                   borderRadius: BorderRadius.circular(14.r),
                 ),
-                child: Icon(
-                  _getBankIcon(),
-                  color: onlineBadgeText,
-                  size: 24.sp,
+                clipBehavior: Clip.antiAlias,
+                child: Builder(
+                  builder: (context) {
+                    final logoAsset = _getBankLogoAsset();
+                    if (logoAsset != null) {
+                      final shouldContain = _shouldUseContainFit();
+                      final image = Image.asset(
+                        logoAsset,
+                        fit: shouldContain ? BoxFit.contain : BoxFit.cover,
+                        filterQuality: FilterQuality.medium,
+                      );
+                      if (shouldContain) {
+                        return Padding(
+                          padding: EdgeInsets.all(6.w),
+                          child: image,
+                        );
+                      }
+                      return image;
+                    }
+                    return Icon(
+                      Icons.account_balance,
+                      color: onlineBadgeText,
+                      size: 24.sp,
+                    );
+                  },
                 ),
               ),
               SizedBox(width: 12.w),
 
-              // Ma'lumotlar
+              // Bank nomi
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Bank Nomi
-                    Text(
-                      currency.bankName,
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w700,
-                        color: titleColor,
-                      ),
-                    ),
-                    SizedBox(height: 6.h),
-
-                    // Location • Rating qatori
-                    Row(
-                      children: [
-                        // Joylashuv
-                        Icon(
-                          Icons.location_on_outlined,
-                          size: 14.sp,
-                          color: greyText,
-                        ),
-                        SizedBox(width: 4.w),
-                        Flexible(
-                          child: Text(
-                            // API dan null kelsa ham 'Toshkent shahar' chiqadi
-                            currency.location ?? 'Toshkent shahar',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: greyText,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-
-                        // Ajratuvchi nuqta
-                        Container(
-                          margin: EdgeInsets.symmetric(horizontal: 8.w),
-                          width: 4.w,
-                          height: 4.w,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).dividerColor,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-
-                        // Reyting (Yulduzcha)
-                        Icon(
-                          Icons.star_rounded,
-                          size: 16.sp,
-                          color: const Color(0xFFF59E0B),
-                        ),
-                        SizedBox(width: 4.w),
-                        Text(
-                          // API dan null kelsa ham '4.8' chiqadi
-                          (currency.rating ?? 4.8).toStringAsFixed(1),
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w700,
-                            color: titleColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                child: Text(
+                  currency.bankName,
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w700,
+                    color: titleColor,
+                  ),
                 ),
               ),
-            ],
-          ),
-
-          SizedBox(height: 12.h),
-
-          // --- 2. INFO: Soat va Online Status ---
-          Row(
-            children: [
-              // Soat
-              Icon(Icons.access_time_rounded, size: 16.sp, color: greyText),
-              SizedBox(width: 6.w),
-              Text(
-                // API dan null kelsa ham vaqt chiqadi
-                currency.schedule ?? '9:00 - 17:00',
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color: greyText,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-
-              SizedBox(width: 12.w),
-
-              // Online Badge
-              // Rasmda har doim bor, agar api null bersa ham ko'rsatish uchun true deb olamiz
-              if (currency.isOnline ?? true)
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 10.w,
-                    vertical: 4.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: onlineBadgeBg,
-                    borderRadius: BorderRadius.circular(100.r),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.language, size: 14.sp, color: onlineBadgeText),
-                      SizedBox(width: 4.w),
-                      Text(
-                        tr('currency.online'), // "Online"
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w600,
-                          color: onlineBadgeText,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
             ],
           ),
 
@@ -601,6 +544,29 @@ class _BankRateCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LoadingMoreIndicator extends StatelessWidget {
+  const _LoadingMoreIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8.h),
+      child: Center(
+        child: SizedBox(
+          width: 24.w,
+          height: 24.w,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.5,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Theme.of(context).colorScheme.primary,
+            ),
+          ),
+        ),
       ),
     );
   }

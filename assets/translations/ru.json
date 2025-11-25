@@ -165,6 +165,7 @@
     "interest_rate": "Процент",
     "term": "Срок",
     "amount": "Сумма",
+    "filters": "Фильтры",
     "advantages_count": "Преимущества ({count})",
     "open_deposit": "Открыть вклад",
     "months": "месяцев",
@@ -208,6 +209,23 @@
     "asc": "По возрастанию",
     "desc": "По убыванию",
     "open_link": "Открыть ссылку: {0}"
+  },
+  "mortgage": {
+    "title": "Ипотека",
+    "search_hint": "Поиск названия банка...",
+    "interest_rate": "Процентная ставка",
+    "term": "Срок",
+    "amount": "Сумма",
+    "down_payment": "Первоначальный взнос",
+    "advantages": "Преимущества",
+    "advantages_count": "Преимущества ({count})",
+    "property_type": "Тип недвижимости",
+    "property_type_value": "Все варианты",
+    "apply": "Подать заявку",
+    "filters": "Фильтры",
+    "sort_field": "Сортировать по",
+    "empty_title": "Ипотечные предложения не найдены",
+    "empty_subtitle": "Измените фильтры или обновите список."
   },
   "about_app": {
     "title": "О приложении",

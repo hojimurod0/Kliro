@@ -1,50 +1,35 @@
-import '../models/mortgage_offer_model.dart';
+import 'dart:convert';
+import 'dart:developer' as developer;
+
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MortgageLocalDataSource {
-  const MortgageLocalDataSource();
+  MortgageLocalDataSource(this._prefs);
 
-  Future<List<MortgageOfferModel>> fetchMortgageOffers() async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 500));
+  final SharedPreferences _prefs;
+  static const String _cacheKey = 'mortgage_cache_v1';
 
-    return [
-      MortgageOfferModel(
-        bankName: "Ipak Yuli Bank",
-        rating: 4.7,
-        interestRate: "14%",
-        term: "20 yil",
-        maxSum: "2 mlrd so'm",
-        downPayment: "20% dan",
-        advantages: const [
-          "Tez yetkazib berish",
-          "Yuqori sifat",
-        ],
-      ),
-      MortgageOfferModel(
-        bankName: "Ipak Yuli Bank",
-        rating: 4.7,
-        interestRate: "14%",
-        term: "20 yil",
-        maxSum: "2 mlrd so'm",
-        downPayment: "20% dan",
-        advantages: const [
-          "Tez yetkazib berish",
-          "Yuqori sifat",
-        ],
-      ),
-      MortgageOfferModel(
-        bankName: "Ipak Yuli Bank",
-        rating: 4.7,
-        interestRate: "14%",
-        term: "20 yil",
-        maxSum: "2 mlrd so'm",
-        downPayment: "20% dan",
-        advantages: const [
-          "Tez yetkazib berish",
-          "Yuqori sifat",
-        ],
-      ),
-    ];
+  Future<void> cacheResponse(Map<String, dynamic> json) async {
+    developer.log(
+      'Caching mortgage response page=${json['number']} size=${json['number_of_elements']}',
+      name: 'MortgageLocalDataSource',
+    );
+    await _prefs.setString(_cacheKey, jsonEncode(json));
+  }
+
+  Map<String, dynamic>? getLastCachedResponse() {
+    final cached = _prefs.getString(_cacheKey);
+    if (cached == null) {
+      developer.log(
+        'No cached mortgage response found',
+        name: 'MortgageLocalDataSource',
+      );
+      return null;
+    }
+    developer.log(
+      'Loaded cached mortgage response',
+      name: 'MortgageLocalDataSource',
+    );
+    return jsonDecode(cached) as Map<String, dynamic>;
   }
 }
-
