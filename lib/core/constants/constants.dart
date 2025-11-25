@@ -54,4 +54,5 @@ class ApiPaths {
   static const String getCurrencies = '/bank/currencies/new';
   static const String searchBankServices = '/bank/search';
   static const String getMicrocredits = '/bank/microcredits/new';
+  static const String getDeposits = '/bank/deposits/new';
 }

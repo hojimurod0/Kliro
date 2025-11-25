@@ -1,62 +1,35 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'dart:developer' as developer;
 
-import '../models/deposit_offer_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DepositLocalDataSource {
-  const DepositLocalDataSource();
+  DepositLocalDataSource(this._prefs);
 
-  List<DepositOfferModel> fetchOffers() {
-    return const [
-      DepositOfferModel(
-        bankName: 'Ipak Yuli Bank',
-        currency: 'UZS',
-        rating: 4.7,
-        interestRate: '24%',
-        term: '12 oygacha',
-        amount: '30 mln so\'m',
-        logoColor: Color(0xFFF0F9FF),
-        logoIcon: Icons.apartment_rounded,
-      ),
-      DepositOfferModel(
-        bankName: 'Kapitalbank',
-        currency: 'USD',
-        rating: 4.9,
-        interestRate: '6%',
-        term: '24 oygacha',
-        amount: '10 ming USD',
-        logoColor: Color(0xFFEFF6FF),
-        logoIcon: Icons.account_balance,
-      ),
-      DepositOfferModel(
-        bankName: 'Asaka bank',
-        currency: 'UZS',
-        rating: 4.5,
-        interestRate: '22%',
-        term: '18 oygacha',
-        amount: '25 mln so\'m',
-        logoColor: Color(0xFFF4F3FF),
-        logoIcon: Icons.domain,
-      ),
-      DepositOfferModel(
-        bankName: 'Hamkorbank',
-        currency: 'USD',
-        rating: 4.6,
-        interestRate: '5.5%',
-        term: '36 oygacha',
-        amount: '15 ming USD',
-        logoColor: Color(0xFFFFFBEB),
-        logoIcon: Icons.monetization_on_outlined,
-      ),
-      DepositOfferModel(
-        bankName: 'Agrobank',
-        currency: 'UZS',
-        rating: 4.3,
-        interestRate: '21%',
-        term: '9 oygacha',
-        amount: '20 mln so\'m',
-        logoColor: Color(0xFFEFFDF3),
-        logoIcon: Icons.agriculture,
-      ),
-    ];
+  final SharedPreferences _prefs;
+  static const String _cacheKey = 'deposit_cache_v1';
+
+  Future<void> cacheResponse(Map<String, dynamic> json) async {
+    developer.log(
+      'Caching deposit response page=${json['number']} size=${json['number_of_elements']}',
+      name: 'DepositLocalDataSource',
+    );
+    await _prefs.setString(_cacheKey, jsonEncode(json));
+  }
+
+  Map<String, dynamic>? getLastCachedResponse() {
+    final cached = _prefs.getString(_cacheKey);
+    if (cached == null) {
+      developer.log(
+        'No cached deposit response found',
+        name: 'DepositLocalDataSource',
+      );
+      return null;
+    }
+    developer.log(
+      'Loaded cached deposit response',
+      name: 'DepositLocalDataSource',
+    );
+    return jsonDecode(cached) as Map<String, dynamic>;
   }
 }

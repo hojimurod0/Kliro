@@ -1,10 +1,23 @@
-import '../entities/deposit_offer.dart';
+import 'dart:developer' as developer;
+
+import '../entities/deposit_filter.dart';
+import '../entities/deposit_page.dart';
 import '../repositories/deposit_repository.dart';
 
-class GetDepositOffers {
-  const GetDepositOffers(this.repository);
+class GetDeposits {
+  const GetDeposits(this.repository);
 
   final DepositRepository repository;
 
-  List<DepositOffer> call() => repository.getOffers();
+  Future<DepositPage> call({
+    required int page,
+    required int size,
+    DepositFilter filter = DepositFilter.empty,
+  }) {
+    developer.log(
+      'UseCase: fetching deposits page=$page size=$size filter=${filter.toQueryParameters()}',
+      name: 'GetDeposits',
+    );
+    return repository.getDeposits(page: page, size: size, filter: filter);
+  }
 }
