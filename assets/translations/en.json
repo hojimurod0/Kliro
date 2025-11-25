@@ -165,6 +165,7 @@
     "interest_rate": "Interest",
     "term": "Term",
     "amount": "Amount",
+    "filters": "Filters",
     "advantages_count": "Advantages ({count})",
     "open_deposit": "Open deposit",
     "months": "months",
@@ -326,13 +327,19 @@
   "mortgage": {
     "title": "Mortgage",
     "search_hint": "Search bank name...",
-    "interest_rate": "Interest",
+    "interest_rate": "Interest rate",
     "term": "Term",
     "amount": "Amount",
+    "down_payment": "Down payment",
+    "advantages": "Advantages",
     "advantages_count": "Advantages ({count})",
+    "property_type": "Property type",
+    "property_type_value": "All types",
     "apply": "Apply",
-    "years": "years",
-    "million": "million UZS"
+    "filters": "Filters",
+    "sort_field": "Sort by",
+    "empty_title": "No mortgage offers found",
+    "empty_subtitle": "Try changing the filters or refresh the list."
   },
   "auto_credit": {
     "title": "Auto credit",

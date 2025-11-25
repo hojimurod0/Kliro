@@ -29,10 +29,10 @@ class DepositModel {
   @JsonKey(fromJson: _toString)
   final String rate;
 
-  @JsonKey(fromJson: _toString)
+  @JsonKey(readValue: _readTermValue, fromJson: _toString)
   final String term;
 
-  @JsonKey(fromJson: _toString)
+  @JsonKey(readValue: _readAmountValue, fromJson: _toString)
   final String amount;
 
   @JsonKey(fromJson: _toStringOrNull)
@@ -61,6 +61,12 @@ extension DepositModelX on DepositModel {
 }
 
 String _toString(Object? value) => value?.toString() ?? '';
+
+Object? _readTermValue(Map json, String key) =>
+    json['term_years'] ?? json['term_months'] ?? json['term'];
+
+Object? _readAmountValue(Map json, String key) =>
+    json['min_amount'] ?? json['amount'];
 
 String? _toStringOrNull(Object? value) {
   if (value == null) return null;

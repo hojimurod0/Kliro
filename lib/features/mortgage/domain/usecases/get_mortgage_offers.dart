@@ -1,11 +1,21 @@
-import '../entities/mortgage_offer.dart';
+import '../entities/mortgage_filter.dart';
+import '../entities/mortgage_page.dart';
 import '../repositories/mortgage_repository.dart';
 
-class GetMortgageOffers {
-  const GetMortgageOffers(this.repository);
+class GetMortgages {
+  const GetMortgages(this.repository);
 
   final MortgageRepository repository;
 
-  Future<List<MortgageOffer>> call() => repository.getMortgageOffers();
+  Future<MortgagePage> call({
+    required int page,
+    required int size,
+    MortgageFilter filter = MortgageFilter.empty,
+  }) =>
+      repository.getMortgages(
+        page: page,
+        size: size,
+        filter: filter,
+      );
 }
 

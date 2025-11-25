@@ -165,6 +165,7 @@
     "interest_rate": "Фоиз",
     "term": "Муддат",
     "amount": "Миқдор",
+    "filters": "Фильтрлар",
     "advantages_count": "Афзалликлар ({count})",
     "open_deposit": "Омонат очиш",
     "months": "ойгача",
@@ -208,6 +209,23 @@
     "asc": "Ўсиш тартиби",
     "desc": "Камайиш тартиби",
     "open_link": "Ҳаволани очиш: {0}"
+  },
+  "mortgage": {
+    "title": "Ипотека",
+    "search_hint": "Банк номини қидиринг...",
+    "interest_rate": "Фоиз",
+    "term": "Муддат",
+    "amount": "Миқдор",
+    "down_payment": "Бошланғич тўлов",
+    "advantages": "Афзалликлар",
+    "advantages_count": "Афзалликлар ({count})",
+    "property_type": "Мулк тури",
+    "property_type_value": "Барча турлар",
+    "apply": "Ариза топшириш",
+    "filters": "Фильтрлар",
+    "sort_field": "Саралаш",
+    "empty_title": "Ипотека топилмади",
+    "empty_subtitle": "Фильтрларни ўзгартиринг ёки рўйхатни янгиланг."
   },
   "about_app": {
     "title": "Дастур ҳақида",
