@@ -1,10 +1,10 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/navigation/app_router.dart';
-import 'kasko_form_page.dart';
 import '../../data/datasources/insurance_local_data_source.dart';
 import '../../data/repositories/insurance_repository_impl.dart';
 import '../../domain/entities/insurance_service.dart';
@@ -33,7 +33,10 @@ class _InsuranceServicesPageState extends State<InsuranceServicesPage> {
         localDataSource: const InsuranceLocalDataSource(),
       ),
     );
-    _loadServices();
+    // EasyLocalization ishga tushishini kutish uchun biroz kechiktirish
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadServices();
+    });
   }
 
   Future<void> _loadServices() async {
@@ -53,9 +56,13 @@ class _InsuranceServicesPageState extends State<InsuranceServicesPage> {
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Xatolik yuz berdi: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'common.error_occurred'.tr().replaceAll('{0}', e.toString()),
+            ),
+          ),
+        );
       }
     }
   }
@@ -98,7 +105,7 @@ class _InsuranceServicesPageState extends State<InsuranceServicesPage> {
           ),
         ),
         title: Text(
-          "Sug'urta xizmatlari",
+          tr('insurance.title'),
           style: TextStyle(
             color:
                 Theme.of(context).textTheme.titleLarge?.color ??
@@ -188,9 +195,9 @@ class InsuranceCard extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 // OSAGO uchun maxsus sahifa
-                if (service.title.toUpperCase() == 'OSAGO') {
-                  context.router.push(OsagoInputRoute());
-                } else if (service.title.toUpperCase() == 'KASKO') {
+                if (service.id == 'osago') {
+                  context.router.push(const OsagoModuleRoute());
+                } else if (service.id == 'kasko') {
                   // KASKO uchun maxsus sahifa
                   context.router.push(KaskoFormRoute());
                 } else {

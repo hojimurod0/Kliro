@@ -53,6 +53,20 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const CardsPage(),
       );
     },
+    CurrencyDetailRoute.name: (routeData) {
+      final args = routeData.argsAs<CurrencyDetailRouteArgs>(
+          orElse: () => const CurrencyDetailRouteArgs());
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: CurrencyDetailPage(
+          key: args.key,
+          bankName: args.bankName,
+          currencyCode: args.currencyCode,
+          buyRate: args.buyRate,
+          sellRate: args.sellRate,
+        ),
+      );
+    },
     CurrencyRatesRoute.name: (routeData) {
       final args = routeData.argsAs<CurrencyRatesRouteArgs>(
           orElse: () => const CurrencyRatesRouteArgs());
@@ -195,34 +209,10 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const OnboardingPage(),
       );
     },
-    OsagoInputRoute.name: (routeData) {
+    OsagoModuleRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
-        child: const OsagoInputPage(),
-      );
-    },
-    OsagoOrderRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const OsagoOrderPage(),
-      );
-    },
-    OsagoPaymentRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const OsagoPaymentPage(),
-      );
-    },
-    OsagoSelectRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const OsagoSelectPage(),
-      );
-    },
-    OsagoSuccessRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const OsagoSuccessPage(),
+        child: const OsagoModule(),
       );
     },
     ProfileEditRoute.name: (routeData) {
@@ -388,6 +378,59 @@ class CardsRoute extends PageRouteInfo<void> {
   static const String name = 'CardsRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [CurrencyDetailPage]
+class CurrencyDetailRoute extends PageRouteInfo<CurrencyDetailRouteArgs> {
+  CurrencyDetailRoute({
+    Key? key,
+    String? bankName,
+    String? currencyCode,
+    double? buyRate,
+    double? sellRate,
+    List<PageRouteInfo>? children,
+  }) : super(
+          CurrencyDetailRoute.name,
+          args: CurrencyDetailRouteArgs(
+            key: key,
+            bankName: bankName,
+            currencyCode: currencyCode,
+            buyRate: buyRate,
+            sellRate: sellRate,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'CurrencyDetailRoute';
+
+  static const PageInfo<CurrencyDetailRouteArgs> page =
+      PageInfo<CurrencyDetailRouteArgs>(name);
+}
+
+class CurrencyDetailRouteArgs {
+  const CurrencyDetailRouteArgs({
+    this.key,
+    this.bankName,
+    this.currencyCode,
+    this.buyRate,
+    this.sellRate,
+  });
+
+  final Key? key;
+
+  final String? bankName;
+
+  final String? currencyCode;
+
+  final double? buyRate;
+
+  final double? sellRate;
+
+  @override
+  String toString() {
+    return 'CurrencyDetailRouteArgs{key: $key, bankName: $bankName, currencyCode: $currencyCode, buyRate: $buyRate, sellRate: $sellRate}';
+  }
 }
 
 /// generated route for
@@ -787,71 +830,15 @@ class OnboardingRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [OsagoInputPage]
-class OsagoInputRoute extends PageRouteInfo<void> {
-  const OsagoInputRoute({List<PageRouteInfo>? children})
+/// [OsagoModule]
+class OsagoModuleRoute extends PageRouteInfo<void> {
+  const OsagoModuleRoute({List<PageRouteInfo>? children})
       : super(
-          OsagoInputRoute.name,
+          OsagoModuleRoute.name,
           initialChildren: children,
         );
 
-  static const String name = 'OsagoInputRoute';
-
-  static const PageInfo<void> page = PageInfo<void>(name);
-}
-
-/// generated route for
-/// [OsagoOrderPage]
-class OsagoOrderRoute extends PageRouteInfo<void> {
-  const OsagoOrderRoute({List<PageRouteInfo>? children})
-      : super(
-          OsagoOrderRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'OsagoOrderRoute';
-
-  static const PageInfo<void> page = PageInfo<void>(name);
-}
-
-/// generated route for
-/// [OsagoPaymentPage]
-class OsagoPaymentRoute extends PageRouteInfo<void> {
-  const OsagoPaymentRoute({List<PageRouteInfo>? children})
-      : super(
-          OsagoPaymentRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'OsagoPaymentRoute';
-
-  static const PageInfo<void> page = PageInfo<void>(name);
-}
-
-/// generated route for
-/// [OsagoSelectPage]
-class OsagoSelectRoute extends PageRouteInfo<void> {
-  const OsagoSelectRoute({List<PageRouteInfo>? children})
-      : super(
-          OsagoSelectRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'OsagoSelectRoute';
-
-  static const PageInfo<void> page = PageInfo<void>(name);
-}
-
-/// generated route for
-/// [OsagoSuccessPage]
-class OsagoSuccessRoute extends PageRouteInfo<void> {
-  const OsagoSuccessRoute({List<PageRouteInfo>? children})
-      : super(
-          OsagoSuccessRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'OsagoSuccessRoute';
+  static const String name = 'OsagoModuleRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }

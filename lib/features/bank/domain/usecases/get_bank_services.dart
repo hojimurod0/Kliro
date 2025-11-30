@@ -7,4 +7,6 @@ class GetBankServices {
   final BankRepository repository;
 
   List<BankService> call() => repository.getServices();
+  
+  Future<List<BankService>> callFromApi() => repository.getBankServicesFromApi();
 }

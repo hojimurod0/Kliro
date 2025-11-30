@@ -17,6 +17,7 @@ class MortgageModel {
     this.currency,
     this.rating,
     this.advantages,
+    this.propertyType,
     this.createdAt,
   });
 
@@ -50,6 +51,9 @@ class MortgageModel {
   @JsonKey(fromJson: _listStringFromJsonOrNull)
   final List<String>? advantages;
 
+  @JsonKey(name: 'property_type', fromJson: _toStringOrNull)
+  final String? propertyType;
+
   @JsonKey(name: 'created_at')
   final DateTime? createdAt;
 
@@ -78,6 +82,28 @@ class MortgageModel {
       }
     }
 
+    final rawDownPayment = normalized['down_payment'];
+    if (rawDownPayment == null ||
+        (rawDownPayment is String && rawDownPayment.trim().isEmpty)) {
+      final fallback =
+          json['initial_payment'] ??
+          json['downPayment'] ??
+          json['initialPayment'] ??
+          json['opening'];
+      if (fallback != null) {
+        normalized['down_payment'] = fallback;
+      }
+    }
+
+    final rawPropertyType = normalized['property_type'];
+    if (rawPropertyType == null ||
+        (rawPropertyType is String && rawPropertyType.trim().isEmpty)) {
+      final fallback = json['propertyType'] ?? json['property'];
+      if (fallback != null) {
+        normalized['property_type'] = fallback;
+      }
+    }
+
     return _$MortgageModelFromJson(normalized);
   }
 
@@ -86,18 +112,19 @@ class MortgageModel {
 
 extension MortgageModelX on MortgageModel {
   MortgageEntity toEntity() => MortgageEntity(
-    id: id,
-    bankName: bankName,
-    description: description,
-    interestRate: interestRate,
-    term: term,
-    maxSum: maxSum,
-    downPayment: downPayment,
-    currency: currency,
-    rating: rating,
-    advantages: advantages,
-    createdAt: createdAt,
-  );
+        id: id,
+        bankName: bankName,
+        description: description,
+        interestRate: interestRate,
+        term: term,
+        maxSum: maxSum,
+        downPayment: downPayment,
+        currency: currency,
+        rating: rating,
+        advantages: advantages,
+        propertyType: propertyType,
+        createdAt: createdAt,
+      );
 }
 
 String _toString(Object? value) => value?.toString() ?? '';

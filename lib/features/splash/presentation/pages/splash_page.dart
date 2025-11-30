@@ -131,11 +131,8 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    
     return Scaffold(
-      backgroundColor: isDark ? AppColors.charcoal : Colors.black,
+      backgroundColor: Colors.black,
       body: MouseRegion(
         cursor: SystemMouseCursors.none,
         child: Stack(

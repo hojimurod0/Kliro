@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 // Ranglar va stillar
 class _AppStyle {
@@ -43,10 +44,10 @@ class _FilterScreen extends StatefulWidget {
 
 class _FilterScreenState extends State<_FilterScreen> {
   final List<Map<String, dynamic>> currencies = [
-    {'code': 'USD', 'flag': '🇺🇸', 'selected': false},
-    {'code': 'EUR', 'flag': '🇪🇺', 'selected': false},
-    {'code': 'RUB', 'flag': '🇷🇺', 'selected': false},
-    {'code': 'KZT', 'flag': '🇰🇿', 'selected': false},
+    {'code': 'USD', 'flag': '🇬🇧', 'selected': false, 'isSvg': true},
+    {'code': 'EUR', 'flag': '🇪🇺', 'selected': false, 'isSvg': false},
+    {'code': 'RUB', 'flag': '🇷🇺', 'selected': false, 'isSvg': false},
+    {'code': 'KZT', 'flag': '🇰🇿', 'selected': false, 'isSvg': false},
   ];
 
   bool onlineBanksOnly = false;
@@ -163,6 +164,26 @@ class _CurrencySelector extends StatelessWidget {
   final List<Map<String, dynamic>> currencies;
   final Function(int) onCurrencySelected;
 
+  Widget _getCurrencyFlagWidget(String code, {double size = 18.0}) {
+    switch (code.toUpperCase()) {
+      case 'USD':
+        return SvgPicture.asset(
+          'assets/images/brinatya.svg',
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+        );
+      case 'EUR':
+        return Text('🇪🇺', style: TextStyle(fontSize: size));
+      case 'RUB':
+        return Text('🇷🇺', style: TextStyle(fontSize: size));
+      case 'KZT':
+        return Text('🇰🇿', style: TextStyle(fontSize: size));
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -191,7 +212,9 @@ class _CurrencySelector extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(item['flag'] as String, style: TextStyle(fontSize: 18.sp)),
+                  item['isSvg'] == true
+                      ? _getCurrencyFlagWidget(item['code'] as String, size: 18.sp)
+                      : Text(item['flag'] as String, style: TextStyle(fontSize: 18.sp)),
                   SizedBox(width: 8.w),
                   Text(
                     item['code'] as String,

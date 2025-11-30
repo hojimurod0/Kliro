@@ -1,42 +1,79 @@
-import 'package:flutter/material.dart';
+import 'package:equatable/equatable.dart';
 
-class CardMetric {
-  const CardMetric({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.valueColor,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color valueColor;
-}
-
-class CardOffer {
+class CardOffer extends Equatable {
   const CardOffer({
+    required this.id,
     required this.bankName,
     required this.cardName,
-    required this.currency,
-    required this.rating,
-    required this.cardTag,
-    required this.typeTag,
-    required this.typeTagColor,
-    required this.metrics,
-    required this.advantagesCount,
+    this.cardNetwork,
+    this.cardCategory,
+    this.cardType,
+    this.currency,
+    this.cashback,
+    this.serviceFee,
+    this.limitAmount,
+    this.delivery,
+    this.opening,
+    this.description,
+    this.gracePeriod,
+    this.minIncome,
+    this.processingTime,
+    this.rating,
+    this.url,
+    this.advantages,
+    this.features,
+    this.createdAt,
     this.isPrimaryCard = false,
   });
 
+  final int id;
   final String bankName;
   final String cardName;
-  final String currency;
-  final double rating;
-  final String cardTag;
-  final String typeTag;
-  final Color typeTagColor;
-  final List<CardMetric> metrics;
-  final int advantagesCount;
+  final String? cardNetwork;
+  final String? cardCategory;
+  final String? cardType;
+  final String? currency;
+  final String? cashback;
+  final String? serviceFee;
+  final String? limitAmount;
+  final String? delivery;
+  final String? opening;
+  final String? description;
+  final String? gracePeriod;
+  final String? minIncome;
+  final String? processingTime;
+  final double? rating;
+  final String? url;
+  final List<String>? advantages;
+  final List<String>? features;
+  final DateTime? createdAt;
   final bool isPrimaryCard;
-}
 
+  int get advantagesCount => advantages?.length ?? features?.length ?? 0;
+
+  @override
+  List<Object?> get props => [
+    id,
+    bankName,
+    cardName,
+    cardNetwork,
+    cardCategory,
+    cardType,
+    currency,
+    cashback,
+    serviceFee,
+    limitAmount,
+    delivery,
+    opening,
+    description,
+    gracePeriod,
+    minIncome,
+    processingTime,
+    rating,
+    url,
+    advantages,
+    features,
+    createdAt,
+    isPrimaryCard,
+  ];
+}

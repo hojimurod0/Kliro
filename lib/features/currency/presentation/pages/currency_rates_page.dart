@@ -5,10 +5,13 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../common/utils/bank_assets.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
+import '../../../../core/navigation/app_router.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../bank/domain/entities/currency_entity.dart';
 import '../../../bank/presentation/bloc/currency_bloc.dart';
@@ -31,10 +34,32 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
   int _currentPage = 1;
   bool _isLoadingMore = false;
 
+  Widget _getCurrencyFlagWidget(String code, {double size = 16.0}) {
+    switch (code.toUpperCase()) {
+      case 'USD':
+        return SvgPicture.asset(
+          'assets/images/brinatya.svg',
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+        );
+      case 'EUR':
+        return Text('🇪🇺', style: TextStyle(fontSize: size));
+      case 'RUB':
+        return Text('🇷🇺', style: TextStyle(fontSize: size));
+      case 'KZT':
+        return Text('🇰🇿', style: TextStyle(fontSize: size));
+      case 'KGS':
+        return Text('🇰🇬', style: TextStyle(fontSize: size));
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   String _getCurrencyFlag(String code) {
     switch (code.toUpperCase()) {
       case 'USD':
-        return '🇺🇸';
+        return '🇬🇧';
       case 'EUR':
         return '🇪🇺';
       case 'RUB':
@@ -55,10 +80,10 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
   }
 
   List<Map<String, dynamic>> get _currencies => [
-    {'code': 'USD', 'flag': '🇺🇸', 'name': 'Dollar'},
-    {'code': 'EUR', 'flag': '🇪🇺', 'name': 'Yevro'},
-    {'code': 'RUB', 'flag': '🇷🇺', 'name': 'Rubl'},
-    {'code': 'KZT', 'flag': '🇰🇿', 'name': 'Tenge'},
+    {'code': 'USD', 'flag': '🇬🇧', 'nameKey': 'currency.usd_name', 'isSvg': true},
+    {'code': 'EUR', 'flag': '🇪🇺', 'nameKey': 'currency.eur_name', 'isSvg': false},
+    {'code': 'RUB', 'flag': '🇷🇺', 'nameKey': 'currency.rub_name', 'isSvg': false},
+    {'code': 'KZT', 'flag': '🇰🇿', 'nameKey': 'currency.kzt_name', 'isSvg': false},
   ];
 
   void _loadMoreCurrencies(int totalItems) {
@@ -157,7 +182,7 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
                               children: [
                                 Icon(
                                   Icons.search,
-                                  color: const Color(0xFF3B82F6),
+                                  color: AppColors.primaryBlue,
                                   size: 20.sp,
                                 ),
                                 SizedBox(width: 10.w),
@@ -171,9 +196,9 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
                                       });
                                     },
                                     decoration: InputDecoration(
-                                      hintText: 'Bank nomini qidirish...',
+                                      hintText: tr('currency.search_hint'),
                                       hintStyle: TextStyle(
-                                        color: Theme.of(context).textTheme.bodySmall?.color ?? const Color(0xFF9CA3AF),
+                                        color: Theme.of(context).textTheme.bodySmall?.color ?? AppColors.grayText,
                                         fontSize: 13.sp,
                                       ),
                                       border: InputBorder.none,
@@ -187,7 +212,7 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
                                     ),
                                     style: TextStyle(
                                       fontSize: 13.sp,
-                                      color: Theme.of(context).textTheme.bodyLarge?.color ?? const Color(0xFF111827),
+                                      color: Theme.of(context).textTheme.bodyLarge?.color ?? AppColors.charcoal,
                                     ),
                                   ),
                                 ),
@@ -219,12 +244,13 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
                                   vertical: 8.h,
                                 ),
                                 child: Row(
-                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text(
-                                      currency['flag'] as String,
-                                      style: TextStyle(fontSize: 18.sp),
-                                    ),
+                                    currency['isSvg'] == true
+                                        ? _getCurrencyFlagWidget(currency['code'] as String, size: 18.sp)
+                                        : Text(
+                                            currency['flag'] as String,
+                                            style: TextStyle(fontSize: 18.sp),
+                                          ),
                                     SizedBox(width: 8.w),
                                     Text(
                                       currency['code'] as String,
@@ -232,24 +258,30 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
                                         fontSize: 13.sp,
                                         fontWeight: FontWeight.w600,
                                         color: isSelected
-                                            ? const Color(0xFF3B82F6)
-                                            : Theme.of(context).textTheme.bodyLarge?.color ?? const Color(0xFF111827),
+                                            ? AppColors.primaryBlue
+                                            : Theme.of(context).textTheme.bodyLarge?.color ?? AppColors.charcoal,
                                       ),
                                     ),
                                     SizedBox(width: 6.w),
-                                    Text(
-                                      currency['name'] as String,
-                                      style: TextStyle(
-                                        fontSize: 12.sp,
-                                        color: Theme.of(context).textTheme.bodyMedium?.color ?? const Color(0xFF6B7280),
+                                    Expanded(
+                                      child: Text(
+                                        tr(currency['nameKey'] as String),
+                                        style: TextStyle(
+                                          fontSize: 12.sp,
+                                          color: Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.gray500,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
                                       ),
                                     ),
-                                    const Spacer(),
                                     if (isSelected)
-                                      Icon(
-                                        Icons.check,
-                                        color: const Color(0xFF3B82F6),
-                                        size: 16.sp,
+                                      Padding(
+                                        padding: EdgeInsets.only(left: 4.w),
+                                        child: Icon(
+                                          Icons.check,
+                                          color: AppColors.primaryBlue,
+                                          size: 16.sp,
+                                        ),
                                       ),
                                   ],
                                 ),
@@ -275,15 +307,17 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  _getCurrencyFlag(_selectedCurrencyCode),
-                                  style: TextStyle(fontSize: 16.sp),
-                                ),
+                                _selectedCurrencyCode == 'USD'
+                                    ? _getCurrencyFlagWidget(_selectedCurrencyCode, size: 16.sp)
+                                    : Text(
+                                        _getCurrencyFlag(_selectedCurrencyCode),
+                                        style: TextStyle(fontSize: 16.sp),
+                                      ),
                                 SizedBox(width: 4.w),
                                 Text(
                                   _selectedCurrencyCode,
                                   style: TextStyle(
-                                    color: const Color(0xFF3B82F6),
+                                    color: AppColors.primaryBlue,
                                     fontSize: 13.sp,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -291,7 +325,7 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
                                 SizedBox(width: 2.w),
                                 Icon(
                                   Icons.arrow_drop_up,
-                                  color: const Color(0xFF3B82F6),
+                                  color: AppColors.primaryBlue,
                                   size: 18.sp,
                                 ),
                               ],
@@ -301,6 +335,56 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
                       ],
                     ),
                   ),
+
+                  // --- ENG ARZON KURS BANKA ---
+                  if (sortedCurrencies.isNotEmpty) ...[
+                    SizedBox(height: 12.h),
+                    Container(
+                      margin: EdgeInsets.symmetric(horizontal: 16.w),
+                      padding: EdgeInsets.all(12.w),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 18.sp,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          SizedBox(width: 8.w),
+                          Expanded(
+                            child: RichText(
+                              text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.midnight,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: '${tr('currency.best_rate')}: ',
+                                    style: TextStyle(fontWeight: FontWeight.w500),
+                                  ),
+                                  TextSpan(
+                                    text: sortedCurrencies.first.bankName,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
 
                   // --- BANKLAR RO'YXATI ---
                   Expanded(
@@ -354,15 +438,25 @@ class _BankRateCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     // Rasmga mos ranglar
-    final onlineBadgeBg = isDark ? const Color(0xFF1E3A5F) : const Color(0xFFE0F2FE);
-    const onlineBadgeText = Color(0xFF0284C7);
-    final greenBg = isDark ? const Color(0xFF1A3A2E) : const Color(0xFFECFDF5);
-    const greenText = Color(0xFF059669);
+    final onlineBadgeBg = isDark ? const Color(0xFF1E3A5F) : AppColors.skySurface;
+    final onlineBadgeText = AppColors.skyAccent;
+    final greenBg = isDark ? const Color(0xFF1A3A2E) : AppColors.greenBg;
+    final greenText = AppColors.accentGreen;
     final redBg = isDark ? const Color(0xFF3A1E1E) : const Color(0xFFFEF2F2);
-    const redText = Color(0xFFDC2626);
-    final titleColor = Theme.of(context).textTheme.titleLarge?.color ?? const Color(0xFF111827);
+    final redText = AppColors.dangerRed;
+    final titleColor = Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal;
 
-    return Container(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        context.router.push(CurrencyDetailRoute(
+          bankName: currency.bankName,
+          currencyCode: currency.currencyCode,
+          buyRate: currency.buyRate,
+          sellRate: currency.sellRate,
+        ));
+      },
+      child: Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
@@ -421,13 +515,27 @@ class _BankRateCard extends StatelessWidget {
 
               // Bank nomi
               Expanded(
-                child: Text(
-                  currency.bankName,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w700,
-                    color: titleColor,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      currency.bankName,
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w700,
+                        color: titleColor,
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      '${currency.currencyCode} ${tr('currency.title')} • ${currency.bankName}',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7) ?? AppColors.gray500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -460,12 +568,16 @@ class _BankRateCard extends StatelessWidget {
                             size: 18.sp,
                           ),
                           SizedBox(width: 6.w),
-                          Text(
-                            tr('currency.buy'),
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: Theme.of(context).textTheme.bodyMedium?.color ?? const Color(0xFF374151),
-                              fontWeight: FontWeight.w500,
+                          Expanded(
+                            child: Text(
+                              tr('currency.buy'),
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.midnight,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
                           ),
                         ],
@@ -513,12 +625,16 @@ class _BankRateCard extends StatelessWidget {
                             size: 18.sp,
                           ),
                           SizedBox(width: 6.w),
-                          Text(
-                            tr('currency.sell'),
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: Theme.of(context).textTheme.bodyMedium?.color ?? const Color(0xFF374151),
-                              fontWeight: FontWeight.w500,
+                          Expanded(
+                            child: Text(
+                              tr('currency.sell'),
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.midnight,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
                           ),
                         ],
@@ -544,6 +660,7 @@ class _BankRateCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
       ),
     );
   }

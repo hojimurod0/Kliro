@@ -47,6 +47,11 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   void dispose() {
     _phoneOrEmailController.dispose();
     _passwordController.dispose();
@@ -67,14 +72,16 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    // Agar telefon rejimi bo'lsa va faqat raqam kiritilgan bo'lsa, +998 qo'shamiz
+    // Agar telefon rejimi bo'lsa, +998 allaqachon bor
     String contactToFormat = phoneOrEmail;
     if (_isPhoneMode && !phoneOrEmail.contains('@')) {
       // Agar +998 bilan boshlanmasa, qo'shamiz
-      if (!phoneOrEmail.startsWith('+998') && !phoneOrEmail.startsWith('998')) {
-        contactToFormat = '+998$phoneOrEmail';
-      } else if (phoneOrEmail.startsWith('998')) {
-        contactToFormat = '+$phoneOrEmail';
+      if (!phoneOrEmail.startsWith('+998')) {
+        if (phoneOrEmail.startsWith('998')) {
+          contactToFormat = '+$phoneOrEmail';
+        } else {
+          contactToFormat = '+998$phoneOrEmail';
+        }
       }
     }
 
@@ -376,12 +383,16 @@ class _LoginPageState extends State<LoginPage> {
                     inputFormatters: _isPhoneMode
                         ? [
                             FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(9), // Faqat 9 ta raqam (+998 dan keyin)
+                            LengthLimitingTextInputFormatter(9), // Faqat 9 ta raqam
                           ]
                         : null,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      color: AppColors.black,
+                    ),
                     decoration: AppInputDecoration.outline(
                       hint: _isPhoneMode
-                          ? '901234567'
+                          ? '_____'
                           : 'auth.field.email_hint'.tr(),
                       prefix: _isPhoneMode
                           ? Padding(
@@ -398,9 +409,9 @@ class _LoginPageState extends State<LoginPage> {
                                   Text(
                                     '+998',
                                     style: TextStyle(
-                                      color: AppColors.black,
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.grayText,
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.w400,
                                     ),
                                   ),
                                 ],
@@ -510,3 +521,4 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+

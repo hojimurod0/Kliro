@@ -34,7 +34,7 @@ class HomePage extends StatelessWidget {
                 onProfileTap: () => onTabChange?.call(TabItem.profile),
               ),
               SizedBox(height: 20.h),
-              const HomeBanner(),
+              HomeBanner(),
               Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: 20.w,

@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/constants/constants.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/network/api_response.dart';
+import '../models/bank_service_model.dart';
 import '../models/currency_data_model.dart';
 import '../models/currency_model.dart';
 import '../models/currency_rate_item_model.dart';
@@ -14,6 +15,7 @@ abstract class BankRemoteDataSource {
     int page = 0,
     int size = 10,
   });
+  Future<List<BankServiceModel>> getBankServices();
 }
 
 class BankRemoteDataSourceImpl implements BankRemoteDataSource {
@@ -172,6 +174,62 @@ class BankRemoteDataSourceImpl implements BankRemoteDataSource {
     }).toList();
   }
 
+
+  @override
+  Future<List<BankServiceModel>> getBankServices() async {
+    try {
+      final response = await _dio.get(ApiPaths.getBankServices);
+      final data = response.data;
+      
+      if (data is! Map<String, dynamic>) {
+        throw const AppException(message: 'Malformed server response');
+      }
+      
+      final apiResponse = ApiResponse.fromJson(
+        data,
+        (json) => json,
+      );
+      
+      if (!apiResponse.success) {
+        throw ValidationException(
+          message: apiResponse.message ?? 'Request failed',
+          details: data,
+          statusCode: response.statusCode,
+        );
+      }
+      
+      final result = apiResponse.result;
+      if (result == null) {
+        return <BankServiceModel>[];
+      }
+      
+      // Если result - это список
+      if (result is List) {
+        return result
+            .whereType<Map<String, dynamic>>()
+            .map((json) => BankServiceModel.fromJson(json))
+            .toList();
+      }
+      
+      // Если result - это объект с данными
+      if (result is Map<String, dynamic>) {
+        // Проверяем, есть ли поле 'services' или 'data'
+        final servicesData = result['services'] ?? result['data'] ?? result;
+        
+        if (servicesData is List) {
+          return servicesData
+              .whereType<Map<String, dynamic>>()
+              .map((json) => BankServiceModel.fromJson(json))
+              .toList();
+        }
+      }
+      
+      return <BankServiceModel>[];
+    } on DioException catch (error) {
+      _handleDioError(error);
+      // _handleDioError always throws, so this is unreachable
+    }
+  }
 
   Never _handleDioError(DioException error) {
     final statusCode = error.response?.statusCode;

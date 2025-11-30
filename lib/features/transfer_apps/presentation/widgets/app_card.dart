@@ -1,6 +1,9 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../common/utils/bank_assets.dart';
+import '../../../common/utils/bank_data.dart';
 import '../../domain/entities/transfer_app.dart';
 
 class AppCard extends StatefulWidget {
@@ -15,14 +18,44 @@ class AppCard extends StatefulWidget {
 class _AppCardState extends State<AppCard> {
   bool _isExpanded = false;
 
+  List<String> _buildAdvantages() {
+    if (widget.app.advantages.isNotEmpty) {
+      return widget.app.advantages;
+    }
+
+    final generated = <String>[];
+    final commission = widget.app.displayCommission;
+    final speed = widget.app.displaySpeed;
+    final rating = widget.app.displayRating;
+
+    if (commission.isNotEmpty && commission != '—') {
+      generated.add('Komissiya $commission');
+    }
+    if (speed.isNotEmpty && speed != '—') {
+      generated.add('Tezlik $speed');
+    }
+    if (rating.isNotEmpty && rating != '—') {
+      generated.add('Reyting $rating');
+    }
+
+    if (generated.isEmpty) {
+      generated.add("Bank tomonidan tasdiqlangan o'tkazmalar");
+    }
+
+    return generated;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF111827);
-    final subtitleColor = isDark ? (Colors.grey[400] ?? const Color(0xFF6B7280)) : const Color(0xFF6B7280);
+    final subtitleColor = isDark
+        ? (Colors.grey[400] ?? const Color(0xFF6B7280))
+        : const Color(0xFF6B7280);
     final infoBg = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF9FAFB);
-
+    final advantages = _buildAdvantages();
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
@@ -42,19 +75,7 @@ class _AppCardState extends State<AppCard> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 56.w,
-                height: 56.h,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF), // Light Blue
-                  borderRadius: BorderRadius.circular(16.r),
-                ),
-                child: Icon(
-                  Icons.bolt_rounded,
-                  color: const Color(0xFF0085FF),
-                  size: 32.sp,
-                ),
-              ),
+              _LogoBox(app: widget.app, isDark: isDark),
               SizedBox(width: 16.w),
               Expanded(
                 child: Column(
@@ -71,10 +92,7 @@ class _AppCardState extends State<AppCard> {
                     SizedBox(height: 4.h),
                     Text(
                       widget.app.bank,
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        color: subtitleColor,
-                      ),
+                      style: TextStyle(fontSize: 13.sp, color: subtitleColor),
                     ),
                   ],
                 ),
@@ -98,69 +116,14 @@ class _AppCardState extends State<AppCard> {
           ),
           SizedBox(height: 20.h),
 
-          // 2. Rating Bar
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-            decoration: BoxDecoration(
-              color: infoBg,
-              borderRadius: BorderRadius.circular(16.r),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.star_rounded,
-                  color: const Color(0xFF0085FF),
-                  size: 20.sp,
-                ),
-                SizedBox(width: 8.w),
-                Text(
-                  "Reyting",
-                  style: TextStyle(
-                    color: subtitleColor,
-                    fontSize: 13.sp,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  widget.app.rating,
-                  style: TextStyle(
-                    color: const Color(0xFF0085FF),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15.sp,
-                  ),
-                ),
-                Container(
-                  margin: EdgeInsets.symmetric(horizontal: 16.w),
-                  width: 1.w,
-                  height: 14.h,
-                  color: const Color(0xFFD1D5DB),
-                ),
-                Icon(
-                  Icons.people_alt_outlined,
-                  color: const Color(0xFF9CA3AF),
-                  size: 18.sp,
-                ),
-                SizedBox(width: 6.w),
-                Text(
-                  "${widget.app.users} foydalanuvchi",
-                  style: TextStyle(
-                    color: subtitleColor,
-                    fontSize: 12.sp,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 12.h),
-
-          // 3. Grid Info
+          // 2. Grid Info
           Row(
             children: [
               Expanded(
                 child: _buildMiniCard(
                   icon: Icons.percent_rounded,
                   label: "Komissiya",
-                  value: widget.app.commission,
+                  value: widget.app.displayCommission,
                   isBlue: true,
                   infoBg: infoBg,
                   subtitleColor: subtitleColor,
@@ -172,7 +135,7 @@ class _AppCardState extends State<AppCard> {
                 child: _buildMiniCard(
                   icon: Icons.speed_rounded,
                   label: "Tezlik",
-                  value: widget.app.speed,
+                  value: widget.app.displaySpeed,
                   isBlue: false,
                   infoBg: infoBg,
                   subtitleColor: subtitleColor,
@@ -183,120 +146,85 @@ class _AppCardState extends State<AppCard> {
           ),
           SizedBox(height: 12.h),
 
-          // 4. Limit Row
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-            decoration: BoxDecoration(
-              color: infoBg,
-              borderRadius: BorderRadius.circular(16.r),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.check_circle_outline_rounded,
-                  color: const Color(0xFF9CA3AF),
-                  size: 20.sp,
+          // 4. Accordion styled like deposits page
+          if (advantages.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: theme.scaffoldBackgroundColor
+                    .withOpacity(isDark ? 0.35 : 0.3),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(
+                  color: theme.dividerColor,
+                  width: 1.5,
                 ),
-                SizedBox(width: 10.w),
-                Text(
-                  "Maksimal limit",
-                  style: TextStyle(
-                    color: subtitleColor,
-                    fontSize: 13.sp,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  widget.app.limit,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14.sp,
-                    color: textColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          SizedBox(height: 20.h),
-
-          // 5. Tags
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              "O'tkazma turlari",
-              style: TextStyle(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w600,
-                color: subtitleColor,
               ),
-            ),
-          ),
-          SizedBox(height: 10.h),
-          Wrap(
-            spacing: 8.w,
-            runSpacing: 8.h,
-            children: widget.app.tags.map((tag) => _buildTag(tag)).toList(),
-          ),
-
-          SizedBox(height: 20.h),
-
-          // 6. Accordion
-          if (widget.app.advantages.isNotEmpty)
-            InkWell(
-              onTap: () {
-                setState(() {
-                  _isExpanded = !_isExpanded;
-                });
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "Afzalliklar (${widget.app.advantages.length})",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14.sp,
-                      color: textColor,
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        _isExpanded = !_isExpanded;
+                      });
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            context.tr('transfers.advantages_count', namedArgs: {'count': advantages.length.toString()}),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14.sp,
+                              color: theme.textTheme.titleLarge?.color ??
+                                  textColor,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                        Icon(
+                          _isExpanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          color: const Color(0xFF9CA3AF),
+                        ),
+                      ],
                     ),
                   ),
-                  Icon(
-                    _isExpanded
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                    color: const Color(0xFF9CA3AF),
-                  ),
-                ],
-              ),
-            ),
-
-          if (_isExpanded && widget.app.advantages.isNotEmpty) ...[
-            SizedBox(height: 12.h),
-            ...widget.app.advantages.map(
-              (advantage) => Padding(
-                padding: EdgeInsets.only(bottom: 8.h),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.check_circle,
-                      color: const Color(0xFF0085FF),
-                      size: 16.sp,
-                    ),
-                    SizedBox(width: 8.w),
-                    Expanded(
-                      child: Text(
-                        advantage,
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          color: subtitleColor,
+                  if (_isExpanded) ...[
+                    SizedBox(height: 12.h),
+                    ...advantages.map(
+                      (advantage) => Padding(
+                        padding: EdgeInsets.only(bottom: 8.h),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              color: theme.colorScheme.primary,
+                              size: 16.sp,
+                            ),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: Text(
+                                advantage,
+                                style: TextStyle(
+                                  fontSize: 13.sp,
+                                  color: theme.textTheme.bodyMedium?.color ??
+                                      subtitleColor,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
             ),
-          ],
 
           SizedBox(height: 20.h),
 
@@ -305,8 +233,8 @@ class _AppCardState extends State<AppCard> {
             width: double.infinity,
             height: 56.h,
             child: ElevatedButton(
-              onPressed: () {
-                // TODO: Implement download functionality
+              onPressed: () async {
+                await openPaymentServiceApp(widget.app.name);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0085FF),
@@ -319,10 +247,7 @@ class _AppCardState extends State<AppCard> {
               ),
               child: Text(
                 "Yuklab olish",
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16.sp,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16.sp),
               ),
             ),
           ),
@@ -355,10 +280,7 @@ class _AppCardState extends State<AppCard> {
               SizedBox(width: 6.w),
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color: subtitleColor,
-                ),
+                style: TextStyle(fontSize: 12.sp, color: subtitleColor),
               ),
             ],
           ),
@@ -375,23 +297,81 @@ class _AppCardState extends State<AppCard> {
       ),
     );
   }
+}
 
-  Widget _buildTag(String text) {
+class _LogoBox extends StatelessWidget {
+  const _LogoBox({required this.app, required this.isDark});
+
+  final TransferApp app;
+  final bool isDark;
+
+  bool _isAbsoluteUrl(String value) {
+    final uri = Uri.tryParse(value);
+    return uri != null && uri.hasScheme;
+  }
+
+  String? _resolveLogoPath() {
+    final logo = app.logo?.trim();
+    if (logo != null && logo.isNotEmpty) {
+      if (_isAbsoluteUrl(logo)) return logo;
+      if (logo.startsWith('assets/')) return logo;
+      if (logo.contains('/')) return 'assets/$logo';
+      return 'assets/images/$logo';
+    }
+    return bankLogoAsset(app.bank) ?? bankLogoAsset(app.name);
+  }
+
+  bool _shouldUseContainFit() {
+    return bankLogoUsesContainFit(app.bank) || bankLogoUsesContainFit(app.name);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFEFF6FF);
+    final iconColor = isDark ? Colors.white : const Color(0xFF0085FF);
+    final resolvedLogo = _resolveLogoPath();
+    final isNetworkLogo = resolvedLogo != null && _isAbsoluteUrl(resolvedLogo);
+    final shouldContain = _shouldUseContainFit();
+
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      width: 48.w,
+      height: 48.h,
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
-        borderRadius: BorderRadius.circular(10.r),
+        color: bgColor,
+        borderRadius: BorderRadius.circular(14.r),
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: const Color(0xFF0085FF),
-          fontSize: 12.sp,
-          fontWeight: FontWeight.w700,
-        ),
+      clipBehavior: Clip.antiAlias,
+      child: Builder(
+        builder: (context) {
+          Widget wrapIfNeeded(Widget child) {
+            if (shouldContain) {
+              return Padding(padding: EdgeInsets.all(6.w), child: child);
+            }
+            return child;
+          }
+
+          if (resolvedLogo != null && isNetworkLogo) {
+            final image = Image.network(
+              resolvedLogo,
+              fit: shouldContain ? BoxFit.contain : BoxFit.cover,
+              errorBuilder: (_, __, ___) =>
+                  Icon(Icons.apps, color: iconColor, size: 24.sp),
+            );
+            return wrapIfNeeded(image);
+          }
+
+          if (resolvedLogo != null) {
+            final image = Image.asset(
+              resolvedLogo,
+              fit: shouldContain ? BoxFit.contain : BoxFit.cover,
+              filterQuality: FilterQuality.high,
+            );
+            return wrapIfNeeded(image);
+          }
+
+          return Icon(Icons.apps, color: iconColor, size: 24.sp);
+        },
       ),
     );
   }
 }
-

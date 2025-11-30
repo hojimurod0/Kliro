@@ -214,11 +214,16 @@ class _BankCardWithCurrency extends StatelessWidget {
                             const Color(0xFF6B7280),
                       ),
                       SizedBox(width: 4.w),
-                      Text(
-                        'Valyuta kursi',
-                        style: AppTypography.bodySecondary.copyWith(
-                          fontSize: 12.sp,
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                      Expanded(
+                        child: Text(
+                          cheapestCurrency.bankName,
+                          style: AppTypography.bodySecondary.copyWith(
+                            fontSize: 12.sp,
+                            color: Theme.of(context).textTheme.bodyMedium?.color,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],

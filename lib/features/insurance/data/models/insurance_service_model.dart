@@ -4,6 +4,7 @@ import '../../domain/entities/insurance_service.dart';
 
 class InsuranceServiceModel extends InsuranceService {
   const InsuranceServiceModel({
+    required super.id,
     required super.title,
     required super.subtitle,
     required super.description,
@@ -16,6 +17,7 @@ class InsuranceServiceModel extends InsuranceService {
   });
 
   factory InsuranceServiceModel.fromData({
+    required String id,
     required String title,
     required String subtitle,
     required String description,
@@ -27,6 +29,7 @@ class InsuranceServiceModel extends InsuranceService {
     String? tag,
   }) {
     return InsuranceServiceModel(
+      id: id,
       title: title,
       subtitle: subtitle,
       description: description,

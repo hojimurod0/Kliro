@@ -187,7 +187,6 @@ class _ProfilePageState extends State<ProfilePage> {
                       ? () => context.router.push(const ProfileEditRoute())
                       : () => context.router.push(const LoginRoute()),
                 ),
-                _buildDivider(),
                 _buildSettingItem(
                   icon: Icons.notifications_outlined,
                   title: tr('profile.notifications'),
@@ -217,7 +216,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     });
                   },
                 ),
-                _buildDivider(),
                 _buildSettingItem(
                   icon: Icons.work_outline,
                   title: tr('profile.my_bookings'),
@@ -232,7 +230,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     context.router.push(const MyOrdersRoute());
                   },
                 ),
-                _buildDivider(),
                 _buildSettingItem(
                   icon: Icons.nightlight_round,
                   title: tr('profile.appearance'),
@@ -241,7 +238,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     showAppearanceModal(context);
                   },
                 ),
-                _buildDivider(),
                 _buildSettingItem(
                   icon: Icons.language,
                   title: tr('profile.language'),
@@ -250,7 +246,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     showLanguageModal(context);
                   },
                 ),
-                _buildDivider(),
                 _buildSettingItem(
                   icon: Icons.security,
                   title: tr('profile.security'),
@@ -258,7 +253,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     context.router.push(const SecurityRoute());
                   },
                 ),
-                _buildDivider(),
                 _buildSettingItem(
                   icon: Icons.headset_mic_outlined,
                   title: tr('profile.support'),
@@ -266,7 +260,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     context.router.push(const SupportRoute());
                   },
                 ),
-                _buildDivider(),
                 _buildSettingItem(
                   icon: Icons.info_outline,
                   title: tr('profile.about_app'),
@@ -367,40 +360,76 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildLoginButton(BuildContext context) {
-    return OutlinedButton(
-      onPressed: () => context.router.push(const LoginRoute()),
-      style: OutlinedButton.styleFrom(
-        side: BorderSide(color: AppColors.primaryBlue, width: 1.5),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-        minimumSize: Size(0, 36.h),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(
+          color: AppColors.primaryBlue.withOpacity(0.5),
+          width: 1.5,
+        ),
       ),
-      child: Text(
-        tr('profile.login_section.login'),
-        style: AppTypography.bodyPrimary.copyWith(
-          color: AppColors.primaryBlue,
-          fontSize: 13.sp,
-          fontWeight: FontWeight.w600,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.router.push(const LoginRoute()),
+          borderRadius: BorderRadius.circular(20.r),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            constraints: BoxConstraints(minHeight: 36.h),
+            alignment: Alignment.center,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                tr('profile.login_section.login'),
+                style: AppTypography.bodyPrimary.copyWith(
+                  color: AppColors.primaryBlue,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildRegisterButton(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () => context.router.push(const RegisterRoute()),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primaryBlue,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-        minimumSize: Size(0, 36.h),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.lightBlue, AppColors.primaryBlue],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.3),
+          width: 1.5,
+        ),
       ),
-      child: Text(
-        tr('profile.login_section.register'),
-        style: AppTypography.bodyPrimary.copyWith(
-          color: Theme.of(context).colorScheme.onPrimary,
-          fontSize: 13.sp,
-          fontWeight: FontWeight.w600,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.router.push(const RegisterRoute()),
+          borderRadius: BorderRadius.circular(20.r),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            constraints: BoxConstraints(minHeight: 36.h),
+            alignment: Alignment.center,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                tr('profile.login_section.register'),
+                style: AppTypography.bodyPrimary.copyWith(
+                  color: Colors.white,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -629,11 +658,4 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildDivider() => Divider(
-    height: 18.h,
-    thickness: 1,
-    color: AppColors.divider,
-    indent: 16.w,
-    endIndent: 16.w,
-  );
 }

@@ -3,6 +3,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
 import '../../../bank/domain/entities/bank_service.dart';
@@ -10,14 +11,52 @@ import '../../../bank/domain/repositories/bank_repository.dart';
 import '../../../bank/domain/usecases/get_bank_services.dart';
 
 @RoutePage()
-class BankServicesPage extends StatelessWidget {
+class BankServicesPage extends StatefulWidget {
   BankServicesPage({super.key});
 
-  static final GetBankServices _getBankServices = GetBankServices(
-    ServiceLocator.resolve<BankRepository>(),
-  );
+  @override
+  State<BankServicesPage> createState() => _BankServicesPageState();
+}
 
-  static final List<BankService> _services = _getBankServices();
+class _BankServicesPageState extends State<BankServicesPage> {
+  late final GetBankServices _getBankServices;
+  Future<List<BankService>>? _servicesFuture;
+  Locale? _currentLocale;
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _getBankServices = GetBankServices(
+      ServiceLocator.resolve<BankRepository>(),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Инициализируем или обновляем данные при смене языка
+    final newLocale = context.locale;
+
+    if (!_isInitialized) {
+      // Первая инициализация
+      _currentLocale = newLocale;
+      _servicesFuture = _getBankServices.callFromApi();
+      _isInitialized = true;
+    } else {
+      // Проверяем, изменился ли язык
+      final localeChanged =
+          _currentLocale?.languageCode != newLocale.languageCode ||
+          _currentLocale?.countryCode != newLocale.countryCode;
+
+      if (localeChanged) {
+        _currentLocale = newLocale;
+        setState(() {
+          _servicesFuture = _getBankServices.callFromApi();
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,48 +68,132 @@ class BankServicesPage extends StatelessWidget {
             Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: Theme.of(context).iconTheme.color ?? Colors.black,
+        leading: Padding(
+          padding: EdgeInsets.only(left: 16.w),
+          child: Center(
+            child: IconButton(
+              icon: Icon(
+                Icons.arrow_back,
+                color:
+                    Theme.of(context).iconTheme.color ??
+                    (Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : AppColors.charcoal),
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
           ),
-          onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
         title: Text(
           tr('bank.services'),
           style: TextStyle(
             color:
-                Theme.of(context).textTheme.titleLarge?.color ?? Colors.black,
+                Theme.of(context).textTheme.titleLarge?.color ??
+                AppColors.charcoal,
             fontSize: 17.sp,
             fontWeight: FontWeight.w600,
           ),
         ),
       ),
-      body: ListView.separated(
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-        itemCount: _services.length,
-        separatorBuilder: (context, index) => SizedBox(height: 20.h),
-        itemBuilder: (context, index) {
-          final service = _services[index];
-          VoidCallback? onTap;
-          final titleKey = service.titleKey;
-          if (titleKey == 'currency') {
-            onTap = () => context.router.push(CurrencyRatesRoute());
-          } else if (titleKey == 'micro_loan') {
-            onTap = () => context.router.push(MicroLoanRoute());
-          } else if (titleKey == 'deposit') {
-            onTap = () => context.router.push(DepositRoute());
-          } else if (titleKey == 'auto_credit') {
-            onTap = () => context.router.push(const AutoCreditRoute());
-          } else if (titleKey == 'mortgage') {
-            onTap = () => context.router.push(const MortgageRoute());
-          } else if (titleKey == 'cards') {
-            onTap = () => context.router.push(const CardsRoute());
-          } else if (titleKey == 'transfers') {
-            onTap = () => context.router.push(const TransferAppsRoute());
+      body: FutureBuilder<List<BankService>>(
+        future: _servicesFuture ?? _getBankServices.callFromApi(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(
+              child: CircularProgressIndicator(color: AppColors.primaryBlue),
+            );
           }
-          return _ServiceCard(service: service, onTap: onTap);
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 32.w),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 48.sp,
+                      color: AppColors.dangerRed,
+                    ),
+                    SizedBox(height: 16.h),
+                    Text(
+                      tr('bank.error_title'),
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                        color:
+                            Theme.of(context).textTheme.titleLarge?.color ??
+                            AppColors.charcoal,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 8.h),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _servicesFuture = _getBankServices.callFromApi();
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryBlue,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(tr('bank.error_retry')),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final services = snapshot.data ?? [];
+
+          if (services.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 32.w),
+                child: Text(
+                  tr('bank.empty_title'),
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    color:
+                        Theme.of(context).textTheme.bodyMedium?.color ??
+                        AppColors.gray500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
+          }
+
+          return ListView.separated(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+            itemCount: services.length,
+            separatorBuilder: (context, index) => SizedBox(height: 20.h),
+            itemBuilder: (context, index) {
+              final service = services[index];
+              VoidCallback? onTap;
+              final titleKey = service.titleKey;
+              if (titleKey == 'currency') {
+                onTap = () => context.router.push(CurrencyRatesRoute());
+              } else if (titleKey == 'micro_loan') {
+                onTap = () => context.router.push(MicroLoanRoute());
+              } else if (titleKey == 'deposit') {
+                onTap = () => context.router.push(DepositRoute());
+              } else if (titleKey == 'auto_credit') {
+                onTap = () => context.router.push(const AutoCreditRoute());
+              } else if (titleKey == 'mortgage') {
+                onTap = () => context.router.push(const MortgageRoute());
+              } else if (titleKey == 'cards') {
+                onTap = () => context.router.push(const CardsRoute());
+              } else if (titleKey == 'transfers') {
+                onTap = () => context.router.push(const TransferAppsRoute());
+              }
+              return _ServiceCard(service: service, onTap: onTap);
+            },
+          );
         },
       ),
     );
@@ -108,7 +231,13 @@ class _ServiceCard extends StatelessWidget {
             Container(
               height: 6.h,
               width: double.infinity,
-              color: service.color,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [service.color.withOpacity(0.6), service.color],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
             ),
             Padding(
               padding: EdgeInsets.fromLTRB(20.w, 14.w, 20.w, 20.w),

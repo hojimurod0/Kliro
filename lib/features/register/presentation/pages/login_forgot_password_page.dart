@@ -55,7 +55,7 @@ class _LoginForgotPasswordPageState extends State<LoginForgotPasswordPage> {
         if (state.status == RegisterStatus.failure) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.error ?? 'Xatolik yuz berdi'),
+              content: Text(state.error ?? tr('common.error_occurred_simple')),
               backgroundColor: Colors.red,
             ),
           );

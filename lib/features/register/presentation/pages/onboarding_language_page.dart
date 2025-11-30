@@ -24,9 +24,9 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
   String _labelFor(Locale l) {
     final country = l.countryCode?.toUpperCase();
     if (l.languageCode == 'uz' && country == 'CYR') {
-      return 'O\'zbek (Кирилл)';
+      return 'Ўзбек';
     }
-    if (l.languageCode == 'uz') return "O'zbek tili";
+    if (l.languageCode == 'uz') return "O'zbek";
     if (l.languageCode == 'ru') return 'Русский';
     if (l.languageCode == 'en') return 'English';
     return l.toLanguageTag();
@@ -89,16 +89,22 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
     final titleFontSize = isSmallScreen ? 15.0 : (isLargeScreen ? 18.0 : 16.0);
     final buttonHeight = isSmallScreen ? 44.0 : (isLargeScreen ? 52.0 : 48.0);
     final buttonBorderRadius = isSmallScreen ? 12.0 : 14.0;
-    final bottomSpacing = isSmallScreen ? 10.0 : 12.0;
+    final bottomSpacing = 20.0;
     final middleSpacing = isSmallScreen ? 24.0 : (isLargeScreen ? 40.0 : 32.0);
     final buttonSpacing = isSmallScreen ? 12.0 : 16.0;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final totalBottomPadding = bottomPadding > 0 ? bottomPadding + 20.0 : 20.0;
 
     return SafeArea(
       top: false,
       bottom: true,
       child: Container(
         color: Colors.white,
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        padding: EdgeInsets.only(
+          left: horizontalPadding,
+          right: horizontalPadding,
+          bottom: totalBottomPadding,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -214,7 +220,7 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
 
   String _flagEmoji(Locale l) {
     if (l.languageCode == 'ru') return '🇷🇺';
-    if (l.languageCode == 'en') return '🇺🇸';
+    if (l.languageCode == 'en') return '🇬🇧';
     return '🇺🇿';
   }
 
@@ -226,7 +232,7 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
       return 'assets/images/rus.svg';
     }
     if (l.languageCode == 'en') {
-      return 'assets/images/american.svg';
+      return 'assets/images/brinatya.svg';
     }
     return null;
   }

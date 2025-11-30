@@ -6,9 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
+import '../../../../core/widgets/primary_back_button.dart';
+import '../../../../core/widgets/primary_search_filter_bar.dart';
 import '../../../common/utils/amount_formatter.dart';
 import '../../../common/utils/bank_assets.dart';
+import '../../../common/utils/bank_data.dart';
 import '../../domain/entities/deposit_entity.dart';
 import '../../domain/entities/deposit_filter.dart';
 import '../bloc/deposit_bloc.dart';
@@ -83,30 +87,18 @@ class _DepositPageState extends State<DepositPage> {
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
+          toolbarHeight: 72.h,
+          leadingWidth: 72.w,
+          titleSpacing: 0,
           backgroundColor:
               Theme.of(context).appBarTheme.backgroundColor ??
               Theme.of(context).scaffoldBackgroundColor,
           elevation: 0,
           scrolledUnderElevation: 0,
-          titleSpacing: 0,
-          leading: Center(
-            child: Container(
-              width: 40.w,
-              height: 40.w,
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: Theme.of(context).dividerColor),
-              ),
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: Theme.of(context).iconTheme.color ?? Colors.black,
-                  size: 20.sp,
-                ),
-                onPressed: () => Navigator.pop(context),
-              ),
+          leading: Padding(
+            padding: EdgeInsets.only(left: 16.w),
+            child: Center(
+              child: PrimaryBackButton(onTap: () => Navigator.pop(context)),
             ),
           ),
           centerTitle: true,
@@ -124,11 +116,12 @@ class _DepositPageState extends State<DepositPage> {
           children: [
             BlocBuilder<DepositBloc, DepositState>(
               builder: (context, state) {
-                return _SearchAndActionsBar(
+                return PrimarySearchFilterBar(
                   controller: _searchController,
                   onSearchChanged: (value) => _onSearchChanged(context, value),
-                  onOpenFilter: () => _openFilterSheet(context, state.filter),
+                  onFilterTap: () => _openFilterSheet(context, state.filter),
                   hasActiveFilter: state.filter.hasActiveFilters,
+                  hintText: tr('deposit.search_hint'),
                 );
               },
             ),
@@ -243,115 +236,6 @@ class _DepositPageState extends State<DepositPage> {
   }
 }
 
-class _SearchAndActionsBar extends StatelessWidget {
-  const _SearchAndActionsBar({
-    required this.controller,
-    required this.onSearchChanged,
-    required this.onOpenFilter,
-    required this.hasActiveFilter,
-  });
-
-  final TextEditingController controller;
-  final ValueChanged<String> onSearchChanged;
-  final VoidCallback onOpenFilter;
-  final bool hasActiveFilter;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Theme.of(context).cardColor,
-      padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 16.h),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 40.h,
-                  padding: EdgeInsets.symmetric(horizontal: 12.w),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(10.r),
-                    border: Border.all(color: Theme.of(context).dividerColor),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.search,
-                        color: const Color(0xFF3B82F6),
-                        size: 20.sp,
-                      ),
-                      SizedBox(width: 10.w),
-                      Expanded(
-                        child: TextField(
-                          controller: controller,
-                          onChanged: onSearchChanged,
-                          decoration: InputDecoration(
-                            hintText: tr('deposit.search_hint'),
-                            hintStyle: TextStyle(
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).textTheme.bodySmall?.color ??
-                                  const Color(0xFF9CA3AF),
-                              fontSize: 13.sp,
-                            ),
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            disabledBorder: InputBorder.none,
-                            errorBorder: InputBorder.none,
-                            focusedErrorBorder: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          style: TextStyle(
-                            fontSize: 13.sp,
-                            color:
-                                Theme.of(context).textTheme.bodyLarge?.color ??
-                                const Color(0xFF111827),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(width: 12.w),
-              InkWell(
-                onTap: onOpenFilter,
-                borderRadius: BorderRadius.circular(12.r),
-                child: Container(
-                  width: 40.h,
-                  height: 40.h,
-                  decoration: BoxDecoration(
-                    color: hasActiveFilter
-                        ? Theme.of(
-                            context,
-                          ).colorScheme.primary.withOpacity(0.08)
-                        : Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(12.r),
-                    border: Border.all(
-                      color: hasActiveFilter
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).dividerColor,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.filter_alt_outlined,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 20.sp,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _DepositList extends StatelessWidget {
   const _DepositList({required this.state, required this.onRetryPagination});
 
@@ -390,18 +274,43 @@ class _DepositList extends StatelessWidget {
   }
 }
 
-class _DepositCard extends StatelessWidget {
+class _DepositCard extends StatefulWidget {
   const _DepositCard({required this.item});
 
   final DepositEntity item;
 
   @override
+  State<_DepositCard> createState() => _DepositCardState();
+}
+
+class _DepositCardState extends State<_DepositCard> {
+  bool _isExpanded = false;
+
+  List<String> _getAdvantages() {
+    final advantages = <String>[];
+    if (widget.item.rate.isNotEmpty) {
+      advantages.add('${tr('deposit.interest_rate_label')} ${widget.item.rate}');
+    }
+    if (widget.item.term.isNotEmpty) {
+      advantages.add('${tr('deposit.term_label')} ${widget.item.term}');
+    }
+    if (widget.item.amount.isNotEmpty) {
+      advantages.add('${tr('deposit.min_amount_label')} ${widget.item.amount}');
+    }
+    if (advantages.isEmpty) {
+      advantages.add(tr('deposit.default_advantages'));
+    }
+    return advantages;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final formattedAmount = formatCompactAmount(item.amount);
-    final logoAsset = bankLogoAsset(item.bankName);
+    final formattedAmount = formatCompactAmount(widget.item.amount);
+    final logoAsset = bankLogoAsset(widget.item.bankName);
     final useContainFit =
-        logoAsset != null && bankLogoUsesContainFit(item.bankName);
+        logoAsset != null && bankLogoUsesContainFit(widget.item.bankName);
+    final advantages = _getAdvantages();
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -458,7 +367,7 @@ class _DepositCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item.bankName,
+                      widget.item.bankName,
                       style: TextStyle(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w700,
@@ -467,35 +376,32 @@ class _DepositCard extends StatelessWidget {
                             const Color(0xFF111827),
                       ),
                     ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      item.description,
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        color:
-                            Theme.of(context).textTheme.bodyMedium?.color ??
-                            const Color(0xFF6B7280),
-                      ),
-                    ),
-                    if (item.currency != null) ...[
-                      SizedBox(height: 8.h),
-                      Row(
-                        children: [
-                          Text(
-                            item.currency!,
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w500,
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).textTheme.bodyMedium?.color ??
-                                  const Color(0xFF6B7280),
-                            ),
+                    SizedBox(height: 8.h),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          size: 14.sp,
+                          color:
+                              Theme.of(context).textTheme.bodySmall?.color ??
+                              const Color(0xFF9CA3AF),
+                        ),
+                        SizedBox(width: 4.w),
+                        Text(
+                          widget.item.createdAt != null
+                              ? DateFormat(
+                                  'dd MMM, HH:mm',
+                                ).format(widget.item.createdAt!.toLocal())
+                              : tr('deposit.updated_recently'),
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color:
+                                Theme.of(context).textTheme.bodyMedium?.color ??
+                                AppColors.gray500,
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -508,7 +414,7 @@ class _DepositCard extends StatelessWidget {
                 child: _InfoBlock(
                   icon: Icons.percent_rounded,
                   label: tr('deposit.interest_rate'),
-                  value: item.rate,
+                  value: widget.item.rate,
                   isAccent: true,
                 ),
               ),
@@ -517,7 +423,7 @@ class _DepositCard extends StatelessWidget {
                 child: _InfoBlock(
                   icon: Icons.calendar_month_outlined,
                   label: tr('deposit.term'),
-                  value: item.term,
+                  value: widget.item.term,
                 ),
               ),
               SizedBox(width: 8.w),
@@ -531,11 +437,99 @@ class _DepositCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: 16.h),
+          // Afzalliklar section
+          if (advantages.isNotEmpty)
+            Container(
+              padding: EdgeInsets.all(10.w),
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(10.r),
+                border: Border.all(
+                  color: Theme.of(context).dividerColor,
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        _isExpanded = !_isExpanded;
+                      });
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          tr('deposit.advantages_count', namedArgs: {'count': advantages.length.toString()}),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14.sp,
+                            color:
+                                Theme.of(context).textTheme.titleLarge?.color ??
+                                const Color(0xFF111827),
+                          ),
+                        ),
+                        Icon(
+                          _isExpanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          color: const Color(0xFF9CA3AF),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_isExpanded && advantages.isNotEmpty) ...[
+                    SizedBox(height: 12.h),
+                    ...advantages.map(
+                      (advantage) => Padding(
+                        padding: EdgeInsets.only(bottom: 8.h),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 16.sp,
+                            ),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: Text(
+                                advantage,
+                                style: TextStyle(
+                                  fontSize: 13.sp,
+                                  color:
+                                      Theme.of(context).textTheme.bodyMedium?.color ??
+                                      AppColors.gray500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          SizedBox(height: 16.h),
           SizedBox(
             width: double.infinity,
             height: 46.h,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () async {
+                final opened = await openBankApplication(widget.item.bankName);
+                if (!opened && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        tr('common.error'),
+                      ),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 elevation: 0,
@@ -575,7 +569,7 @@ class _InfoBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color accentColor = const Color(0xFF10B981);
+    final Color accentColor = AppColors.accentGreen;
 
     return Container(
       padding: EdgeInsets.all(12.w),
@@ -584,7 +578,7 @@ class _InfoBlock extends StatelessWidget {
             ? (isDark ? const Color(0xFF1A3A2E) : const Color(0xFFECFDF5))
             : (isDark
                   ? Theme.of(context).scaffoldBackgroundColor
-                  : const Color(0xFFF9FAFB)),
+                  : AppColors.grayBackground),
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Column(
@@ -595,7 +589,7 @@ class _InfoBlock extends StatelessWidget {
             color: isAccent
                 ? accentColor
                 : Theme.of(context).textTheme.bodyMedium?.color ??
-                      const Color(0xFF6B7280),
+                      AppColors.gray500,
             size: 18.sp,
           ),
           SizedBox(height: 8.h),
@@ -605,7 +599,7 @@ class _InfoBlock extends StatelessWidget {
               fontSize: 11.sp,
               color:
                   Theme.of(context).textTheme.bodyMedium?.color ??
-                  const Color(0xFF6B7280),
+                  AppColors.gray500,
             ),
           ),
           SizedBox(height: 4.h),
@@ -614,10 +608,10 @@ class _InfoBlock extends StatelessWidget {
             style: TextStyle(
               fontSize: 12.sp,
               fontWeight: FontWeight.w700,
-              color: isAccent
+                  color: isAccent
                   ? accentColor
                   : Theme.of(context).textTheme.titleLarge?.color ??
-                        const Color(0xFF111827),
+                        AppColors.charcoal,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,

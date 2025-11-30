@@ -18,13 +18,13 @@ class OnboardingPage extends StatefulWidget {
 class _OnboardingPageState extends State<OnboardingPage> {
   late final PageController _controller;
   late final List<Widget> _pages;
-  int _index = 1; // OnboardingOnePage dan boshlash
+  int _index = 0; // OnboardingLanguagePage dan boshlash
   Timer? _autoTimer;
 
   @override
   void initState() {
     super.initState();
-    _controller = PageController(initialPage: 1); // Birinchi onboarding sahifasidan boshlash
+    _controller = PageController(initialPage: 0); // Tilni tanlash sahifasidan boshlash
     _pages = [
       OnboardingLanguagePage(
         onSelected: () {
@@ -43,17 +43,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   void _startAutoNavigation() {
-    // Birinchi sahifada 3 soniya kutish
-    _autoTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted && _index == 1) {
-        _goToPage(2); // Ikkinchi sahifaga
-      }
-    });
+    // Tilni tanlash sahifasida avtomatik navigatsiya yo'q
+    // Foydalanuvchi tilni tanlagandan keyin keyingi sahifaga o'tadi
   }
 
   void _scheduleNextPage(int currentPageIndex) {
     _autoTimer?.cancel();
-    // Faqat onboarding sahifalari uchun (1, 2, 3)
+    // Faqat onboarding sahifalari uchun (1, 2, 3) - tilni tanlash sahifasini (0) o'tkazib yuboramiz
     if (currentPageIndex >= 1 && currentPageIndex < 3) {
       _autoTimer = Timer(const Duration(seconds: 3), () {
         if (mounted && _index == currentPageIndex) {

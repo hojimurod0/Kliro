@@ -72,3 +72,33 @@ class MicrocreditFilter {
       direction != null;
 }
 
+Map<String, dynamic> microcreditFilterToMap(MicrocreditFilter filter) {
+  return <String, dynamic>{
+    'bank': filter.bank,
+    'rateFrom': filter.rateFrom,
+    'termMonthsFrom': filter.termMonthsFrom,
+    'amountFrom': filter.amountFrom,
+    'opening': filter.opening,
+    'search': filter.search,
+    'sort': filter.sort,
+    'direction': filter.direction,
+  };
+}
+
+MicrocreditFilter microcreditFilterFromMap(Map<String, dynamic> map) {
+  double? _toDouble(dynamic value) =>
+      value == null ? null : (value as num).toDouble();
+  int? _toInt(dynamic value) => value == null ? null : (value as num).toInt();
+
+  return MicrocreditFilter(
+    bank: map['bank'] as String?,
+    rateFrom: _toDouble(map['rateFrom']),
+    termMonthsFrom: _toInt(map['termMonthsFrom']),
+    amountFrom: _toDouble(map['amountFrom']),
+    opening: map['opening'] as String?,
+    search: map['search'] as String?,
+    sort: map['sort'] as String?,
+    direction: map['direction'] as String?,
+  );
+}
+

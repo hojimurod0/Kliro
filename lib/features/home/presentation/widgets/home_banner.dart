@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -9,6 +10,9 @@ class HomeBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Locale o'zgarganda rebuild qilish uchun
+    final locale = context.locale;
+    
     return Container(
       height: 220.h,
       decoration: BoxDecoration(
@@ -59,22 +63,24 @@ class HomeBanner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _BannerChip(),
+                _BannerChip(key: ValueKey(locale.toString())),
                 const Spacer(),
                 Text(
-                  'Dunyoni kashf eting',
+                  'home.banner.title'.tr(),
                   style: AppTypography.headingXL.copyWith(color: AppColors.white),
+                  key: ValueKey('title_${locale.toString()}'),
                 ),
                 SizedBox(height: 4.h),
                 Text(
-                  'Parvozlar va mehmonxonalar arzon narxda',
+                  'home.banner.subtitle'.tr(),
                   style: AppTypography.bodyPrimary.copyWith(
                     color: AppColors.white.withOpacity(0.8),
                     fontSize: 14.sp,
                   ),
+                  key: ValueKey('subtitle_${locale.toString()}'),
                 ),
                 SizedBox(height: 16.h),
-                const _BannerButton(),
+                _BannerButton(key: ValueKey('button_${locale.toString()}')),
               ],
             ),
           ),
@@ -94,10 +100,13 @@ class HomeBanner extends StatelessWidget {
 }
 
 class _BannerChip extends StatelessWidget {
-  const _BannerChip();
+  const _BannerChip({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Locale o'zgarganda rebuild qilish uchun
+    final locale = context.locale;
+    
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
       decoration: BoxDecoration(
@@ -111,7 +120,8 @@ class _BannerChip extends StatelessWidget {
           Icon(Icons.flight_takeoff, color: AppColors.white, size: 14.sp),
           SizedBox(width: 4.w),
           Text(
-            'SAYOHAT',
+            'home.banner.travel'.tr(),
+            key: ValueKey('travel_${locale.toString()}'),
             style: AppTypography.labelSmall.copyWith(
               color: AppColors.white,
               fontSize: 10.sp,
@@ -126,10 +136,13 @@ class _BannerChip extends StatelessWidget {
 }
 
 class _BannerButton extends StatelessWidget {
-  const _BannerButton();
+  const _BannerButton({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Locale o'zgarganda rebuild qilish uchun
+    final locale = context.locale;
+    
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
       decoration: BoxDecoration(
@@ -141,7 +154,8 @@ class _BannerButton extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Bron qilish',
+            'home.banner.book'.tr(),
+            key: ValueKey('book_${locale.toString()}'),
             style: AppTypography.bodyPrimary.copyWith(
               color: AppColors.white,
               fontSize: 14.sp,
