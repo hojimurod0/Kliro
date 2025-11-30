@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../models/insurance_service_model.dart';
@@ -19,52 +20,70 @@ class InsuranceLocalDataSource {
     const Color lightOrange = Color(0xFFFFEBD5); // KASKO
     const Color lightGreen = Color(0xFFE8F5E9); // Sayohat
 
+    // Helper function to safely get translations
+    String safeTr(String key) {
+      try {
+        final result = key.tr();
+        // Check if result is null or empty, return key as fallback
+        if (result.isEmpty) {
+          debugPrint('Translation empty for key: $key');
+          return key;
+        }
+        return result;
+      } catch (e) {
+        // Fallback to key if translation fails
+        debugPrint('Translation error for key $key: $e');
+        return key;
+      }
+    }
+
     return [
       InsuranceServiceModel(
-        title: "OSAGO",
-        subtitle: "Majburiy sug'urta",
-        description:
-            "Yo'l harakati ishtirokchilarining fuqarolik javobgarligini sug'urtalash",
-        features: const [
-          "Majburiy",
-          "Onlayn rasmiylashtirish",
-          "Tez ko'rib chiqish",
+        id: 'osago',
+        title: safeTr('insurance.osago.title'),
+        subtitle: safeTr('insurance.osago.subtitle'),
+        description: safeTr('insurance.osago.description'),
+        features: [
+          safeTr('insurance.osago.feature_1'),
+          safeTr('insurance.osago.feature_2'),
+          safeTr('insurance.osago.feature_3'),
         ],
         primaryColor: bluePrimary,
         lightColor: lightBlue,
         iconData: Icons.directions_car_filled,
-        buttonText: "Rasmiylashtirish",
+        buttonText: safeTr('insurance.osago.button_text'),
       ),
       InsuranceServiceModel(
-        title: "KASKO",
-        subtitle: "To'liq himoya",
-        description: "Transport vositasini barcha xavflardan to'liq himoyalash",
-        features: const [
-          "To'liq himoya",
-          "O'g'irlilikdan",
-          "Tabiiy ofatlardan",
-          "Baxtsiz hodisalardan",
+        id: 'kasko',
+        title: safeTr('insurance.kasko.title'),
+        subtitle: safeTr('insurance.kasko.subtitle'),
+        description: safeTr('insurance.kasko.description'),
+        features: [
+          safeTr('insurance.kasko.feature_1'),
+          safeTr('insurance.kasko.feature_2'),
+          safeTr('insurance.kasko.feature_3'),
+          safeTr('insurance.kasko.feature_4'),
         ],
         primaryColor: orangePrimary,
         lightColor: lightOrange,
         iconData: Icons.shield,
-        buttonText: "Rasmiylashtirish",
-        tag: "Ommabop",
+        buttonText: safeTr('insurance.kasko.button_text'),
+        tag: safeTr('insurance.kasko.tag'),
       ),
       InsuranceServiceModel(
-        title: "Sayohat sug'urtasi",
-        subtitle: "Xavfsiz sayohat",
-        description:
-            "Xorijda bo'lish davomida tibbiy yordam va boshqa xavflardan himoya",
-        features: const [
-          "Tibbiy yordam",
-          "Bagaj yo'qolishi",
-          "Parvoz bekor qilish",
+        id: 'travel',
+        title: safeTr('insurance.travel.title'),
+        subtitle: safeTr('insurance.travel.subtitle'),
+        description: safeTr('insurance.travel.description'),
+        features: [
+          safeTr('insurance.travel.feature_1'),
+          safeTr('insurance.travel.feature_2'),
+          safeTr('insurance.travel.feature_3'),
         ],
         primaryColor: greenPrimary,
         lightColor: lightGreen,
         iconData: Icons.airplanemode_active,
-        buttonText: "Rasmiylashtirish",
+        buttonText: safeTr('insurance.travel.button_text'),
       ),
     ];
   }

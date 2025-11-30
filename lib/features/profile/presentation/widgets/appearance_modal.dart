@@ -129,29 +129,10 @@ class _AppearanceActionSheetState extends State<AppearanceActionSheet> {
                   ),
                 ),
 
-                // Tashqi ko'rinish sarlavhasi
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10.h),
-                  child: const Text(
-                    "Tashqi ko'rinish",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 10.h),
-
                 // 2. Variantlar guruhi (Yorug', Qorong'i, Avtomatik)
                 _buildOptionGroup(),
 
-                SizedBox(height: 10.h),
-
-                // 3. Yopish tugmasi
-                _buildCloseButton(context, bottomPadding),
-
-                SizedBox(height: bottomPadding), // iOS safe area
+                SizedBox(height: bottomPadding + 25.0), // iOS safe area + дополнительный отступ
               ],
             ),
           ),
@@ -167,7 +148,6 @@ class _AppearanceActionSheetState extends State<AppearanceActionSheet> {
         _buildOptionItem(
           icon: Icons.wb_sunny_outlined,
           title: "Yorug'",
-          subtitle: "Yorug' rejim",
           mode: ThemeMode.light,
           isFirst: true,
         ),
@@ -175,7 +155,6 @@ class _AppearanceActionSheetState extends State<AppearanceActionSheet> {
         _buildOptionItem(
           icon: Icons.mode_night_outlined,
           title: "Qorong'i",
-          subtitle: "Qorong'i rejim",
           mode: ThemeMode.dark,
           isMiddle: true,
         ),
@@ -183,7 +162,6 @@ class _AppearanceActionSheetState extends State<AppearanceActionSheet> {
         _buildOptionItem(
           icon: Icons.phone_android_outlined,
           title: "Avtomatik",
-          subtitle: "Tizim sozlamalari",
           mode: ThemeMode.system,
           isLast: true,
         ),
@@ -195,7 +173,6 @@ class _AppearanceActionSheetState extends State<AppearanceActionSheet> {
   Widget _buildOptionItem({
     required IconData icon,
     required String title,
-    required String subtitle,
     required ThemeMode mode,
     bool isFirst = false,
     bool isMiddle = false,
@@ -206,7 +183,6 @@ class _AppearanceActionSheetState extends State<AppearanceActionSheet> {
     // Tanlangan variant uchun maxsus stil
     Color bgColor = isSelected ? kSelectedBgColor : kModalBgColor;
     Color titleColor = isSelected ? kSelectedTextColor : Colors.white;
-    Color subtitleColor = isSelected ? kSelectedTextColor : Colors.white;
 
     return InkWell(
       onTap: () {
@@ -229,57 +205,15 @@ class _AppearanceActionSheetState extends State<AppearanceActionSheet> {
               color: isSelected ? kSelectedTextColor : kPrimaryBlue,
             ),
             SizedBox(width: 12.w),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                    color: titleColor,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: subtitleColor,
-                  ),
-                ),
-              ],
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: titleColor,
+              ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  // 4. Yopish tugmasi
-  Widget _buildCloseButton(BuildContext context, double bottomPadding) {
-    return InkWell(
-      onTap: () {
-        Navigator.pop(context); // Modalni yopish
-      },
-      child: Container(
-        margin: EdgeInsets.only(
-          bottom: 10.h,
-          top: 10.h,
-        ), // Yuqoridan va pastdan masofa
-        height: 50.h,
-        decoration: BoxDecoration(
-          color: kUnselectedBgColor, // Oq fon
-          borderRadius: BorderRadius.circular(15.r),
-        ),
-        child: Center(
-          child: Text(
-            "Yopish",
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
-              color: kPrimaryBlue, // Moviy rang
-            ),
-          ),
         ),
       ),
     );

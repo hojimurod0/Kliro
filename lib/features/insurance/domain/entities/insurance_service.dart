@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class InsuranceService {
   const InsuranceService({
+    required this.id,
     required this.title,
     required this.subtitle,
     required this.description,
@@ -13,6 +14,7 @@ class InsuranceService {
     this.tag,
   });
 
+  final String id; // 'osago', 'kasko', 'travel'
   final String title;
   final String subtitle;
   final String description;
@@ -23,4 +25,3 @@ class InsuranceService {
   final String buttonText;
   final String? tag;
 }
-

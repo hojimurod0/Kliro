@@ -36,7 +36,7 @@ class ServicesPage extends StatelessWidget {
             context,
             'Valyuta kurslari',
             Icons.currency_exchange,
-            () => context.router.push(CurrencyRatesRoute()),
+            () => context.router.push(CurrencyDetailRoute()),
           ),
           SizedBox(height: 16.h),
           _buildServiceCard(

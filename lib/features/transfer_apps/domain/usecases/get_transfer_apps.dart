@@ -1,4 +1,5 @@
 import '../entities/transfer_app.dart';
+import '../entities/transfer_app_filter.dart';
 import '../repositories/transfer_app_repository.dart';
 
 class GetTransferApps {
@@ -6,8 +7,10 @@ class GetTransferApps {
 
   final TransferAppRepository _repository;
 
-  Future<List<TransferApp>> call() async {
-    return await _repository.getTransferApps();
+  Future<List<TransferApp>> call({
+    TransferAppFilter filter = TransferAppFilter.empty,
+  }) async {
+    return _repository.getTransferApps(filter: filter);
   }
 }
 

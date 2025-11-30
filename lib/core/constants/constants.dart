@@ -53,7 +53,14 @@ class ApiPaths {
   // Bank services
   static const String getCurrencies = '/bank/currencies/new';
   static const String searchBankServices = '/bank/search';
+  static const String getBankServices = '/bank/services';
   static const String getMicrocredits = '/bank/microcredits/new';
   static const String getDeposits = '/bank/deposits/new';
   static const String getMortgages = '/bank/mortgages/new';
+  static const String getCards = '/bank/cards/new';
+  static const String getCreditCards = '/bank/credit-cards/new';
+  static const String getTransferApps = '/bank/transfers/new';
+  static const String osagoCalc = '/osago/calc';
+  static const String osagoCreate = '/osago/create';
+  static const String osagoCheck = '/osago/check';
 }

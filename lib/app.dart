@@ -3,14 +3,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'core/constants/app_colors.dart';
 import 'core/navigation/app_router.dart';
+import 'core/services/locale/locale_prefs.dart';
 import 'core/services/theme/theme_controller.dart';
 
-class App extends StatelessWidget {
+class App extends StatefulWidget {
   const App({super.key});
 
-  static final AppRouter _appRouter = AppRouter();
+  @override
+  State<App> createState() => _AppState();
+}
 
-  static ThemeData get lightTheme => ThemeData(
+class _AppState extends State<App> {
+  static final AppRouter _appRouter = AppRouter();
+  
+  @override
+  void initState() {
+    super.initState();
+    // Загружаем и применяем сохраненную локаль после первого кадра
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAndApplyLocale();
+    });
+  }
+  
+  Future<void> _loadAndApplyLocale() async {
+    try {
+      final locale = await LocalePrefs.load();
+      if (locale != null && mounted) {
+        await context.setLocale(locale);
+      }
+    } catch (e) {
+      debugPrint('Error loading locale: $e');
+    }
+  }
+
+  static ThemeData get _lightTheme => ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
         scaffoldBackgroundColor: AppColors.background,
@@ -78,17 +104,21 @@ class App extends StatelessWidget {
         ),
         dividerColor: AppColors.divider,
       );
+  
+  static ThemeData get lightTheme => _AppState._lightTheme;
 
-  static ThemeData get darkTheme => ThemeData(
+  static ThemeData get darkTheme => _AppState._darkTheme;
+  
+  static ThemeData get _darkTheme => ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: AppColors.charcoal,
+        scaffoldBackgroundColor: const Color(0xFF121212),
         primaryColor: AppColors.primaryBlue,
         colorScheme: const ColorScheme.dark(
           primary: AppColors.primaryBlue,
           secondary: AppColors.lightBlue,
-          surface: AppColors.midnight,
-          background: AppColors.charcoal,
+          surface: Color(0xFF1E1E1E),
+          background: Color(0xFF121212),
           error: AppColors.dangerRed,
           onPrimary: AppColors.white,
           onSecondary: AppColors.white,
@@ -97,13 +127,13 @@ class App extends StatelessWidget {
           onError: AppColors.white,
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors.midnight,
+          backgroundColor: Color(0xFF1E1E1E),
           foregroundColor: AppColors.white,
           elevation: 0,
           centerTitle: true,
         ),
         cardTheme: CardThemeData(
-          color: AppColors.midnight,
+          color: const Color(0xFF1E1E1E),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
@@ -111,7 +141,7 @@ class App extends StatelessWidget {
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: AppColors.midnight,
+          fillColor: const Color(0xFF1E1E1E),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: AppColors.gray500),
@@ -164,8 +194,8 @@ class App extends StatelessWidget {
               localizationsDelegates: context.localizationDelegates,
               supportedLocales: context.supportedLocales,
               locale: context.locale,
-              theme: lightTheme,
-              darkTheme: darkTheme,
+              theme: _lightTheme,
+              darkTheme: _darkTheme,
               themeMode: ThemeController.instance.mode,
               routerConfig: _appRouter.config(),
               builder: (context, child) {

@@ -5,6 +5,7 @@ import '../../features/auto_credit/presentation/pages/auto_credit_page.dart';
 import '../../features/bank/presentation/pages/bank_services_page.dart';
 import '../../features/cards/presentation/pages/cards_page.dart';
 import '../../features/currency/presentation/pages/currency_rates_page.dart';
+import '../../features/currency/presentation/pages/currency_detail_page.dart';
 import '../../features/deposit/presentation/pages/deposit_page.dart';
 import '../../features/home/presentation/pages/main_navigation_page.dart';
 import '../../features/home/presentation/widgets/main_bottom_navigation.dart';
@@ -17,11 +18,7 @@ import '../../features/insurance/presentation/pages/kasko_personal_data_page.dar
 import '../../features/insurance/presentation/pages/kasko_order_details_page.dart';
 import '../../features/insurance/presentation/pages/kasko_payment_type_page.dart';
 import '../../features/insurance/presentation/pages/kasko_success_page.dart';
-import '../../features/osago/presentation/pages/osago_input_page.dart';
-import '../../features/osago/presentation/pages/osago_order_page.dart';
-import '../../features/osago/presentation/pages/osago_payment_page.dart';
-import '../../features/osago/presentation/pages/osago_select_page.dart';
-import '../../features/osago/presentation/pages/osago_success_page.dart';
+import '../../features/osago/osago_module.dart';
 import '../../features/micro_loan/presentation/pages/micro_loan_page.dart';
 import '../../features/profile/presentation/pages/profile_edit_page.dart';
 import '../../features/profile/presentation/pages/about_app_page.dart';
@@ -65,6 +62,7 @@ class AppRouter extends _$AppRouter {
     AutoRoute(page: HomeRoute.page),
     AutoRoute(page: BankServicesRoute.page),
     AutoRoute(page: CurrencyRatesRoute.page),
+    AutoRoute(page: CurrencyDetailRoute.page),
     AutoRoute(page: InsuranceServicesRoute.page),
     AutoRoute(page: KaskoFormRoute.page),
     AutoRoute(page: KaskoTariffRoute.page),
@@ -73,11 +71,7 @@ class AppRouter extends _$AppRouter {
     AutoRoute(page: KaskoOrderDetailsRoute.page),
     AutoRoute(page: KaskoPaymentTypeRoute.page),
     AutoRoute(page: KaskoSuccessRoute.page),
-    AutoRoute(page: OsagoInputRoute.page),
-    AutoRoute(page: OsagoSelectRoute.page),
-    AutoRoute(page: OsagoOrderRoute.page),
-    AutoRoute(page: OsagoPaymentRoute.page),
-    AutoRoute(page: OsagoSuccessRoute.page),
+    AutoRoute(page: OsagoModuleRoute.page),
     AutoRoute(page: AutoCreditRoute.page),
     AutoRoute(page: MortgageRoute.page),
     AutoRoute(page: CardsRoute.page),

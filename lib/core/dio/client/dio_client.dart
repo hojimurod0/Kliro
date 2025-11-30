@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../constants/constants.dart';
 import '../../errors/app_exception.dart';
 import '../../services/auth/auth_service.dart';
+import '../interceptor/language_interceptor.dart';
 import '../interceptor/logging_interceptor.dart';
 
 class DioClient {
@@ -19,6 +20,7 @@ class DioClient {
           ),
         ) {
     _dio.interceptors.addAll([
+      LanguageInterceptor(), // Добавляем язык в заголовки перед другими interceptors
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = await _authService.getAccessToken();

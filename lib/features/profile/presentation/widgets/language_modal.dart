@@ -74,7 +74,7 @@ class _LanguageActionSheetState extends State<LanguageActionSheet> {
 
   final List<Locale> _locales = const [
     Locale('uz'), // O'zbekcha (Lotin)
-    Locale('uz', 'CYR'), // O'zbek (Кирилл)
+    Locale('uz', 'CYR'), // Кирилл
     Locale('ru'), // Русский
     Locale('en'), // English
   ];
@@ -87,10 +87,10 @@ class _LanguageActionSheetState extends State<LanguageActionSheet> {
 
   String _getLanguageTitle(Locale locale) {
     if (locale.languageCode == 'uz' && locale.countryCode == 'CYR') {
-      return "O'zbek (Кирилл)";
+      return "Ўзбек";
     }
     if (locale.languageCode == 'uz') {
-      return "O'zbek tili";
+      return "O'zbek";
     }
     if (locale.languageCode == 'ru') {
       return "Русский";
@@ -144,29 +144,10 @@ class _LanguageActionSheetState extends State<LanguageActionSheet> {
                   ),
                 ),
 
-                // Til tanlash sarlavhasi
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10.h),
-                  child: const Text(
-                    "Til tanlash",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 10.h),
-
                 // 2. Variantlar guruhi (4ta til)
                 _buildOptionGroup(),
 
-                SizedBox(height: 10.h),
-
-                // 3. Yopish tugmasi
-                _buildCloseButton(context, bottomPadding),
-
-                SizedBox(height: bottomPadding), // iOS safe area
+                SizedBox(height: bottomPadding + 25.0), // iOS safe area + дополнительный отступ
               ],
             ),
           ),
@@ -185,7 +166,7 @@ class _LanguageActionSheetState extends State<LanguageActionSheet> {
         ),
         SizedBox(height: 15.h),
         _buildOptionItem(
-          locale: _locales[1], // O'zbek (Кирилл)
+          locale: _locales[1], // Ўзбек
           isMiddle: true,
         ),
         SizedBox(height: 15.h),
@@ -253,36 +234,6 @@ class _LanguageActionSheetState extends State<LanguageActionSheet> {
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,
               color: titleColor,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // 4. Yopish tugmasi
-  Widget _buildCloseButton(BuildContext context, double bottomPadding) {
-    return InkWell(
-      onTap: () {
-        Navigator.pop(context); // Modalni yopish
-      },
-      child: Container(
-        margin: EdgeInsets.only(
-          bottom: 10.h,
-          top: 10.h,
-        ), // Yuqoridan va pastdan masofa
-        height: 50.h,
-        decoration: BoxDecoration(
-          color: kUnselectedBgColor, // Oq fon
-          borderRadius: BorderRadius.circular(15.r),
-        ),
-        child: Center(
-          child: Text(
-            "Yopish",
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
-              color: kPrimaryBlue, // Moviy rang
             ),
           ),
         ),

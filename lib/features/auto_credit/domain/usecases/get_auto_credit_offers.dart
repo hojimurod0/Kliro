@@ -1,3 +1,4 @@
+import '../entities/auto_credit_filter.dart';
 import '../entities/auto_credit_offer.dart';
 import '../repositories/auto_credit_repository.dart';
 
@@ -6,6 +7,10 @@ class GetAutoCreditOffers {
 
   final AutoCreditRepository repository;
 
-  Future<List<AutoCreditOffer>> call() => repository.getAutoCreditOffers();
+  Future<List<AutoCreditOffer>> call({
+    AutoCreditFilter filter = AutoCreditFilter.empty,
+  }) {
+    return repository.getAutoCreditOffers(filter: filter);
+  }
 }
 

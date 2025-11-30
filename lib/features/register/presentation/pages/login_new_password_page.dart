@@ -110,7 +110,7 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
           );
           context.router.replaceAll([const LoginRoute()]);
         } else if (state.status == RegisterStatus.failure) {
-          _showSnack(state.error ?? 'Xatolik yuz berdi');
+          _showSnack(state.error ?? tr('common.error_occurred_simple'));
         }
       },
       builder: (context, state) {

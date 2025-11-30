@@ -9,6 +9,12 @@ import '../../../features/bank/domain/repositories/bank_repository.dart';
 import '../../../features/bank/domain/usecases/get_currencies.dart';
 import '../../../features/bank/domain/usecases/search_bank_services.dart';
 import '../../../features/bank/presentation/bloc/currency_bloc.dart';
+import '../../../features/cards/data/datasources/card_local_data_source.dart';
+import '../../../features/cards/data/datasources/card_remote_data_source.dart';
+import '../../../features/cards/data/repositories/card_repository_impl.dart';
+import '../../../features/cards/domain/repositories/card_repository.dart';
+import '../../../features/cards/domain/usecases/get_card_offers.dart';
+import '../../../features/cards/presentation/bloc/card_bloc.dart';
 import '../../../features/micro_loan/data/datasources/microcredit_local_data_source.dart';
 import '../../../features/micro_loan/data/datasources/microcredit_remote_data_source.dart';
 import '../../../features/micro_loan/data/repositories/microcredit_repository_impl.dart';
@@ -35,6 +41,12 @@ import '../../../features/register/domain/repositories/auth_repository.dart';
 import '../../../features/register/domain/repositories/profile_repository.dart';
 import '../../../features/register/domain/usecases/register_user.dart';
 import '../../../features/register/presentation/bloc/register_bloc.dart';
+import '../../../features/transfer_apps/data/datasources/transfer_app_local_data_source.dart';
+import '../../../features/transfer_apps/data/datasources/transfer_app_remote_data_source.dart';
+import '../../../features/transfer_apps/data/repositories/transfer_app_repository_impl.dart';
+import '../../../features/transfer_apps/domain/repositories/transfer_app_repository.dart';
+import '../../../features/transfer_apps/domain/usecases/get_transfer_apps.dart';
+import '../../../features/transfer_apps/presentation/bloc/transfer_apps_bloc.dart';
 import '../../services/auth/auth_service.dart';
 import '../client/dio_client.dart';
 
@@ -113,6 +125,16 @@ class ServiceLocator {
         () => DepositLocalDataSource(_getIt<SharedPreferences>()),
       );
     }
+    if (!_getIt.isRegistered<TransferAppRemoteDataSource>()) {
+      _getIt.registerLazySingleton<TransferAppRemoteDataSource>(
+        () => TransferAppRemoteDataSourceImpl(_getIt<Dio>()),
+      );
+    }
+    if (!_getIt.isRegistered<TransferAppLocalDataSource>()) {
+      _getIt.registerLazySingleton<TransferAppLocalDataSource>(
+        () => TransferAppLocalDataSource(_getIt<SharedPreferences>()),
+      );
+    }
     if (!_getIt.isRegistered<MortgageRemoteDataSource>()) {
       _getIt.registerLazySingleton<MortgageRemoteDataSource>(
         () => MortgageRemoteDataSourceImpl(_getIt<Dio>()),
@@ -121,6 +143,16 @@ class ServiceLocator {
     if (!_getIt.isRegistered<MortgageLocalDataSource>()) {
       _getIt.registerLazySingleton<MortgageLocalDataSource>(
         () => MortgageLocalDataSource(_getIt<SharedPreferences>()),
+      );
+    }
+    if (!_getIt.isRegistered<CardRemoteDataSource>()) {
+      _getIt.registerLazySingleton<CardRemoteDataSource>(
+        () => CardRemoteDataSourceImpl(_getIt<Dio>()),
+      );
+    }
+    if (!_getIt.isRegistered<CardLocalDataSource>()) {
+      _getIt.registerLazySingleton<CardLocalDataSource>(
+        () => CardLocalDataSource(_getIt<SharedPreferences>()),
       );
     }
   }
@@ -165,6 +197,22 @@ class ServiceLocator {
         () => MortgageRepositoryImpl(
           remoteDataSource: _getIt<MortgageRemoteDataSource>(),
           localDataSource: _getIt<MortgageLocalDataSource>(),
+        ),
+      );
+    }
+    if (!_getIt.isRegistered<CardRepository>()) {
+      _getIt.registerLazySingleton<CardRepository>(
+        () => CardRepositoryImpl(
+          remoteDataSource: _getIt<CardRemoteDataSource>(),
+          localDataSource: _getIt<CardLocalDataSource>(),
+        ),
+      );
+    }
+    if (!_getIt.isRegistered<TransferAppRepository>()) {
+      _getIt.registerLazySingleton<TransferAppRepository>(
+        () => TransferAppRepositoryImpl(
+          remoteDataSource: _getIt<TransferAppRemoteDataSource>(),
+          localDataSource: _getIt<TransferAppLocalDataSource>(),
         ),
       );
     }
@@ -215,11 +263,13 @@ class ServiceLocator {
     _registerLazy<GetMicrocredits>(
       () => GetMicrocredits(_getIt<MicrocreditRepository>()),
     );
-    _registerLazy<GetDeposits>(
-      () => GetDeposits(_getIt<DepositRepository>()),
-    );
+    _registerLazy<GetDeposits>(() => GetDeposits(_getIt<DepositRepository>()));
     _registerLazy<GetMortgages>(
       () => GetMortgages(_getIt<MortgageRepository>()),
+    );
+    _registerLazy<GetCardOffers>(() => GetCardOffers(_getIt<CardRepository>()));
+    _registerLazy<GetTransferApps>(
+      () => GetTransferApps(_getIt<TransferAppRepository>()),
     );
   }
 
@@ -264,6 +314,10 @@ class ServiceLocator {
     );
     _getIt.registerFactory<MortgageBloc>(
       () => MortgageBloc(getMortgages: _getIt()),
+    );
+    _getIt.registerFactory<CardBloc>(() => CardBloc(getCardOffers: _getIt()));
+    _getIt.registerFactory<TransferAppsBloc>(
+      () => TransferAppsBloc(getTransferApps: _getIt()),
     );
   }
 }

@@ -48,7 +48,10 @@ class MicrocreditState with _$MicrocreditState {
 
   factory MicrocreditState.initial() => MicrocreditState(
     items: const <MicrocreditEntity>[],
-    filter: MicrocreditFilter.empty,
+    filter: MicrocreditFilter.empty.copyWith(
+      sort: 'rate',
+      direction: 'asc', // Самый низкий процент сверху
+    ),
     status: MicrocreditViewStatus.initial,
     isInitialLoading: true,
     isPaginating: false,
@@ -236,10 +239,12 @@ class MicrocreditBloc extends Bloc<MicrocreditEvent, MicrocreditState> {
         '[MicrocreditBloc] Result page: ${result.pageNumber}, isLast: ${result.isLast}',
       );
 
-      final mergedItems = append
-          ? [...state.items, ...result.items]
-          : result.items;
-      final orderedItems = _applySort(mergedItems, effectiveFilter);
+      final orderedItems = await _processMicrocreditsForUi(
+        newItems: result.items,
+        currentItems: state.items,
+        filter: effectiveFilter,
+        append: append,
+      );
 
       print('[MicrocreditBloc] Updated items list:');
       print('  - Previous items: ${state.items.length}');
@@ -311,77 +316,115 @@ class MicrocreditBloc extends Bloc<MicrocreditEvent, MicrocreditState> {
     return error.toString();
   }
 
-  List<MicrocreditEntity> _applySort(
-    List<MicrocreditEntity> items,
-    MicrocreditFilter filter,
-  ) {
-    final sortField = filter.sort;
-    if (sortField == null) return items;
-    final direction = filter.direction ?? 'asc';
-    final sorted = [...items];
-    sorted.sort((a, b) {
-      final aVal = _sortValue(a, sortField);
-      final bVal = _sortValue(b, sortField);
-      final comparison = aVal.compareTo(bVal);
-      return direction == 'asc' ? comparison : -comparison;
-    });
-    return sorted;
-  }
-
-  double _sortValue(MicrocreditEntity item, String field) {
-    switch (field) {
-      case 'rate':
-        return _extractNumber(item.rate);
-      case 'amount':
-        return _extractNumber(item.amount);
-      case 'term':
-        return _extractNumber(item.term);
-      default:
-        return 0;
-    }
-  }
-
-  double _extractNumber(String value) {
-    final buffer = StringBuffer();
-    bool started = false;
-    for (final rune in value.runes) {
-      final char = String.fromCharCode(rune);
-      if (_isDigit(char)) {
-        buffer.write(char);
-        started = true;
-        continue;
-      }
-      if (started && (char == ' ' || char == '\u00A0')) {
-        // Skip spacing inside number (e.g., "50 000")
-        continue;
-      }
-      if (!started && (char == ' ' || char == '\u00A0')) {
-        // Ignore leading spaces before number
-        continue;
-      }
-      if (started && (char == ',' || char == '.')) {
-        buffer.write('.');
-        continue;
-      }
-      if (!started && (char == ',' || char == '.')) {
-        // ignore punctuation before number starts
-        continue;
-      }
-      // We reached a non-numeric character after starting -> stop parsing
-      if (started) break;
-    }
-
-    final normalized = buffer.toString().replaceAll(' ', '');
-    if (normalized.isEmpty) {
-      // fallback: try to find first numeric chunk with regex
-      final match = RegExp(r'(\d+)').firstMatch(value);
-      if (match != null) {
-        return double.tryParse(match.group(0)!) ?? 0;
-      }
-      return 0;
-    }
-    return double.tryParse(normalized) ?? 0;
-  }
-
-  bool _isDigit(String char) => char.codeUnitAt(0) >= 48 && char.codeUnitAt(0) <= 57;
 }
+
+Future<List<MicrocreditEntity>> _processMicrocreditsForUi({
+  required List<MicrocreditEntity> newItems,
+  required List<MicrocreditEntity> currentItems,
+  required MicrocreditFilter filter,
+  required bool append,
+}) async {
+  final payload = <String, dynamic>{
+    'newItems': newItems.map(microcreditEntityToMap).toList(),
+    'currentItems': currentItems.map(microcreditEntityToMap).toList(),
+    'filter': microcreditFilterToMap(filter),
+    'append': append,
+  };
+
+  final processed = await compute(_processMicrocreditsIsolate, payload);
+  return processed
+      .map<MicrocreditEntity>(microcreditEntityFromMap)
+      .toList(growable: false);
+}
+
+List<Map<String, dynamic>> _processMicrocreditsIsolate(
+  Map<String, dynamic> payload,
+) {
+  final append = payload['append'] as bool;
+  final filterMap = (payload['filter'] as Map).cast<String, dynamic>();
+  final filter = microcreditFilterFromMap(filterMap);
+
+  final incoming = (payload['newItems'] as List)
+      .cast<Map<String, dynamic>>()
+      .map(microcreditEntityFromMap)
+      .toList();
+  final existing = (payload['currentItems'] as List)
+      .cast<Map<String, dynamic>>()
+      .map(microcreditEntityFromMap)
+      .toList();
+
+  final combined = append ? [...existing, ...incoming] : incoming;
+  final sorted = _sortMicrocreditItems(combined, filter);
+
+  return sorted.map(microcreditEntityToMap).toList();
+}
+
+List<MicrocreditEntity> _sortMicrocreditItems(
+  List<MicrocreditEntity> items,
+  MicrocreditFilter filter,
+) {
+  final sortField = filter.sort;
+  if (sortField == null) return items;
+  final direction = filter.direction ?? 'asc';
+  final sorted = [...items];
+  sorted.sort((a, b) {
+    final aVal = _microcreditSortValue(a, sortField);
+    final bVal = _microcreditSortValue(b, sortField);
+    final comparison = aVal.compareTo(bVal);
+    return direction == 'asc' ? comparison : -comparison;
+  });
+  return sorted;
+}
+
+double _microcreditSortValue(MicrocreditEntity item, String field) {
+  switch (field) {
+    case 'rate':
+      return _microcreditExtractNumber(item.rate);
+    case 'amount':
+      return _microcreditExtractNumber(item.amount);
+    case 'term':
+      return _microcreditExtractNumber(item.term);
+    default:
+      return 0;
+  }
+}
+
+double _microcreditExtractNumber(String value) {
+  final buffer = StringBuffer();
+  bool started = false;
+  for (final rune in value.runes) {
+    final char = String.fromCharCode(rune);
+    if (_isDigit(char)) {
+      buffer.write(char);
+      started = true;
+      continue;
+    }
+    if (started && (char == ' ' || char == '\u00A0')) {
+      continue;
+    }
+    if (!started && (char == ' ' || char == '\u00A0')) {
+      continue;
+    }
+    if (started && (char == ',' || char == '.')) {
+      buffer.write('.');
+      continue;
+    }
+    if (!started && (char == ',' || char == '.')) {
+      continue;
+    }
+    if (started) break;
+  }
+
+  final normalized = buffer.toString().replaceAll(' ', '');
+  if (normalized.isEmpty) {
+    final match = RegExp(r'(\d+)').firstMatch(value);
+    if (match != null) {
+      return double.tryParse(match.group(0)!) ?? 0;
+    }
+    return 0;
+  }
+  return double.tryParse(normalized) ?? 0;
+}
+
+bool _isDigit(String char) =>
+    char.codeUnitAt(0) >= 48 && char.codeUnitAt(0) <= 57;

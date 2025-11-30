@@ -18,6 +18,7 @@ MortgageModel _$MortgageModelFromJson(Map<String, dynamic> json) =>
       currency: _toStringOrNull(json['currency']),
       rating: _doubleFromJsonOrNull(json['rating']),
       advantages: _listStringFromJsonOrNull(json['advantages']),
+      propertyType: _toStringOrNull(json['property_type']),
       createdAt: json['created_at'] == null
           ? null
           : DateTime.parse(json['created_at'] as String),
@@ -35,5 +36,6 @@ Map<String, dynamic> _$MortgageModelToJson(MortgageModel instance) =>
       'currency': instance.currency,
       'rating': instance.rating,
       'advantages': instance.advantages,
+      'property_type': instance.propertyType,
       'created_at': instance.createdAt?.toIso8601String(),
     };

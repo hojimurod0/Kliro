@@ -6,9 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
+import '../../../../core/widgets/primary_back_button.dart';
+import '../../../../core/widgets/primary_search_filter_bar.dart';
 import '../../../common/utils/amount_formatter.dart';
 import '../../../common/utils/bank_assets.dart';
+import '../../../common/utils/bank_data.dart';
 import '../../domain/entities/mortgage_entity.dart';
 import '../../domain/entities/mortgage_filter.dart';
 import '../bloc/mortgage_bloc.dart';
@@ -50,6 +54,7 @@ class _MortgagePageState extends State<MortgagePage> {
   Future<void> _openFilterSheet(
     BuildContext context,
     MortgageFilter filter,
+    List<MortgageEntity> items,
   ) async {
     debugPrint('[MortgagePage] Opening filter sheet');
     final result = await showModalBottomSheet<MortgageFilter>(
@@ -60,7 +65,7 @@ class _MortgagePageState extends State<MortgagePage> {
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: _MortgageFilterSheet(initialFilter: filter),
+        child: _MortgageFilterSheet(initialFilter: filter, items: items),
       ),
     );
 
@@ -82,30 +87,18 @@ class _MortgagePageState extends State<MortgagePage> {
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
+          toolbarHeight: 72.h,
+          leadingWidth: 72.w,
+          titleSpacing: 0,
           backgroundColor:
               Theme.of(context).appBarTheme.backgroundColor ??
               Theme.of(context).scaffoldBackgroundColor,
           elevation: 0,
           scrolledUnderElevation: 0,
-          titleSpacing: 0,
-          leading: Center(
-            child: Container(
-              width: 40.w,
-              height: 40.w,
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: Theme.of(context).dividerColor),
-              ),
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: Theme.of(context).iconTheme.color ?? Colors.black,
-                  size: 20.sp,
-                ),
-                onPressed: () => Navigator.pop(context),
-              ),
+          leading: Padding(
+            padding: EdgeInsets.only(left: 16.w),
+            child: Center(
+              child: PrimaryBackButton(onTap: () => Navigator.pop(context)),
             ),
           ),
           centerTitle: true,
@@ -123,11 +116,14 @@ class _MortgagePageState extends State<MortgagePage> {
           children: [
             BlocBuilder<MortgageBloc, MortgageState>(
               builder: (context, state) {
-                return _SearchAndActionsBar(
+                return PrimarySearchFilterBar(
                   controller: _searchController,
-                  onSearchChanged: (value) => _onSearchChanged(context, value),
-                  onOpenFilter: () => _openFilterSheet(context, state.filter),
+                  onSearchChanged: (value) =>
+                      _onSearchChanged(context, value),
+                  onFilterTap: () =>
+                      _openFilterSheet(context, state.filter, state.items),
                   hasActiveFilter: state.filter.hasActiveFilters,
+                  hintText: tr('mortgage.search_hint'),
                 );
               },
             ),
@@ -242,113 +238,20 @@ class _MortgagePageState extends State<MortgagePage> {
   }
 }
 
-class _SearchAndActionsBar extends StatelessWidget {
-  const _SearchAndActionsBar({
-    required this.controller,
-    required this.onSearchChanged,
-    required this.onOpenFilter,
-    required this.hasActiveFilter,
-  });
+class _RateOption {
+  const _RateOption(this.label, {this.min, this.max});
+  final String label;
+  final double? min;
+  final double? max;
+  static const empty = _RateOption('');
+}
 
-  final TextEditingController controller;
-  final ValueChanged<String> onSearchChanged;
-  final VoidCallback onOpenFilter;
-  final bool hasActiveFilter;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Theme.of(context).cardColor,
-      padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 16.h),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 40.h,
-                  padding: EdgeInsets.symmetric(horizontal: 12.w),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(10.r),
-                    border: Border.all(color: Theme.of(context).dividerColor),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.search,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 20.sp,
-                      ),
-                      SizedBox(width: 10.w),
-                      Expanded(
-                        child: TextField(
-                          controller: controller,
-                          onChanged: onSearchChanged,
-                          decoration: InputDecoration(
-                            hintText: tr('mortgage.search_hint'),
-                            hintStyle: TextStyle(
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).textTheme.bodySmall?.color ??
-                                  const Color(0xFF9CA3AF),
-                              fontSize: 13.sp,
-                            ),
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            disabledBorder: InputBorder.none,
-                            errorBorder: InputBorder.none,
-                            focusedErrorBorder: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          style: TextStyle(
-                            fontSize: 13.sp,
-                            color:
-                                Theme.of(context).textTheme.bodyLarge?.color ??
-                                const Color(0xFF111827),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(width: 12.w),
-              InkWell(
-                onTap: onOpenFilter,
-                borderRadius: BorderRadius.circular(12.r),
-                child: Container(
-                  width: 40.h,
-                  height: 40.h,
-                  decoration: BoxDecoration(
-                    color: hasActiveFilter
-                        ? Theme.of(
-                            context,
-                          ).colorScheme.primary.withOpacity(0.08)
-                        : Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(12.r),
-                    border: Border.all(
-                      color: hasActiveFilter
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).dividerColor,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.filter_alt_outlined,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 20.sp,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+class _TermOption {
+  const _TermOption(this.label, {this.min, this.max});
+  final String label;
+  final int? min;
+  final int? max;
+  static const empty = _TermOption('');
 }
 
 class _MortgageList extends StatelessWidget {
@@ -427,7 +330,7 @@ class _MortgageCard extends StatelessWidget {
             useContainFit: useContainFit,
           ),
           SizedBox(height: 16.h),
-          const _MortgagePropertyBadge(),
+          _MortgagePropertyBadge(propertyType: item.propertyType),
           SizedBox(height: 16.h),
           _MortgageInfoGrid(
             interestRate: item.interestRate,
@@ -435,12 +338,10 @@ class _MortgageCard extends StatelessWidget {
             amount: formattedMaxSum,
             downPayment: item.downPayment,
           ),
-          if (item.advantages != null && item.advantages!.isNotEmpty) ...[
-            SizedBox(height: 16.h),
-            _MortgageBenefitsSection(advantages: item.advantages!),
-          ],
           SizedBox(height: 16.h),
-          _MortgageApplyButton(),
+          _MortgageBenefitsSection(item: item),
+          SizedBox(height: 16.h),
+          _MortgageApplyButton(bankName: item.bankName),
         ],
       ),
     );
@@ -466,7 +367,9 @@ class _MortgageHeader extends StatelessWidget {
           width: 48.w,
           height: 48.w,
           decoration: BoxDecoration(
-            color: Colors.blue.shade50,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.midnight
+                : AppColors.secondaryBlue,
             borderRadius: BorderRadius.circular(12.r),
           ),
           child: ClipRRect(
@@ -499,36 +402,22 @@ class _MortgageHeader extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   color:
                       Theme.of(context).textTheme.titleLarge?.color ??
-                      Colors.black87,
+                      AppColors.charcoal,
                 ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
               SizedBox(height: 4.h),
-              Row(
-                children: [
-                  if (item.currency != null)
-                    Text(
-                      item.currency!,
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color:
-                            Theme.of(context).textTheme.bodySmall?.color ??
-                            Colors.grey,
-                      ),
-                    ),
-                  if (item.currency != null) SizedBox(width: 8.w),
-                  Icon(Icons.star_rounded, color: Colors.amber, size: 16.sp),
-                  SizedBox(width: 4.w),
-                  Text(
-                    (item.rating ?? 0).toStringAsFixed(1),
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                      color:
-                          Theme.of(context).textTheme.titleLarge?.color ??
-                          Colors.black87,
-                    ),
-                  ),
-                ],
+              Text(
+                item.currency ?? 'UZS',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color:
+                      Theme.of(context).textTheme.bodySmall?.color ??
+                      AppColors.grayText,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ],
           ),
@@ -539,44 +428,62 @@ class _MortgageHeader extends StatelessWidget {
 }
 
 class _MortgagePropertyBadge extends StatelessWidget {
-  const _MortgagePropertyBadge();
+  const _MortgagePropertyBadge({required this.propertyType});
+
+  final String? propertyType;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F9FF),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Theme.of(context).scaffoldBackgroundColor
+            : AppColors.skySurface,
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.location_on_outlined,
-                size: 18.sp,
-                color: Colors.blue.shade300,
-              ),
-              SizedBox(width: 8.w),
-              Text(
-                tr('mortgage.property_type'),
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color:
-                      Theme.of(context).textTheme.bodySmall?.color ??
-                      Colors.grey,
+          Flexible(
+            child: Row(
+              children: [
+                Icon(
+                  Icons.location_on_outlined,
+                  size: 18.sp,
+                  color: AppColors.skyAccent,
                 ),
-              ),
-            ],
+                SizedBox(width: 8.w),
+                Flexible(
+                  child: Text(
+                    tr('mortgage.property_type'),
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color:
+                          Theme.of(context).textTheme.bodySmall?.color ??
+                          AppColors.grayText,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
+            ),
           ),
-          Text(
-            tr('mortgage.property_type_value'),
-            style: TextStyle(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.primary,
+          SizedBox(width: 8.w),
+          Flexible(
+            child: Text(
+              (propertyType == null || propertyType!.isEmpty)
+                  ? tr('mortgage.property_type_value')
+                  : propertyType!,
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              textAlign: TextAlign.end,
             ),
           ),
         ],
@@ -609,7 +516,7 @@ class _MortgageInfoGrid extends StatelessWidget {
                 icon: Icons.percent_rounded,
                 label: tr('mortgage.interest_rate'),
                 value: interestRate,
-                valueColor: const Color(0xFF00C853),
+                valueColor: AppColors.accentGreen,
               ),
             ),
             SizedBox(width: 12.w),
@@ -673,15 +580,24 @@ class _MortgageInfoItem extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 16.sp, color: Colors.grey),
+              Icon(
+                icon,
+                size: 16.sp,
+                color: Theme.of(context).textTheme.bodySmall?.color ??
+                    AppColors.grayText,
+              ),
               SizedBox(width: 6.w),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color:
-                      Theme.of(context).textTheme.bodySmall?.color ??
-                      Colors.grey,
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color:
+                        Theme.of(context).textTheme.bodySmall?.color ??
+                        AppColors.grayText,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ),
             ],
@@ -695,8 +611,10 @@ class _MortgageInfoItem extends StatelessWidget {
               color:
                   valueColor ??
                   Theme.of(context).textTheme.titleLarge?.color ??
-                  Colors.black87,
+                  AppColors.charcoal,
             ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
           ),
         ],
       ),
@@ -704,53 +622,152 @@ class _MortgageInfoItem extends StatelessWidget {
   }
 }
 
-class _MortgageBenefitsSection extends StatelessWidget {
-  const _MortgageBenefitsSection({required this.advantages});
+class _MortgageBenefitsSection extends StatefulWidget {
+  const _MortgageBenefitsSection({required this.item});
 
-  final List<String> advantages;
+  final MortgageEntity item;
+
+  @override
+  State<_MortgageBenefitsSection> createState() =>
+      _MortgageBenefitsSectionState();
+}
+
+class _MortgageBenefitsSectionState extends State<_MortgageBenefitsSection> {
+  bool _isExpanded = false;
+
+  List<String> _getAdvantages() {
+    if (widget.item.advantages != null && widget.item.advantages!.isNotEmpty) {
+      return widget.item.advantages!;
+    }
+    final advantages = <String>[];
+    if (widget.item.interestRate.isNotEmpty) {
+      advantages.add('${tr('mortgage.interest_rate')} ${widget.item.interestRate}');
+    }
+    if (widget.item.term.isNotEmpty) {
+      advantages.add('${tr('mortgage.term')} ${widget.item.term}');
+    }
+    if (widget.item.maxSum.isNotEmpty) {
+      advantages.add('${tr('mortgage.amount')} ${widget.item.maxSum}');
+    }
+    if (widget.item.downPayment.isNotEmpty) {
+      advantages.add('${tr('mortgage.down_payment')} ${widget.item.downPayment}');
+    }
+    if (advantages.isEmpty) {
+      advantages.add(tr('mortgage.default_advantages'));
+    }
+    return advantages;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final title = tr(
-      'mortgage.advantages_count',
-      namedArgs: {'count': advantages.length.toString()},
-    );
+    final advantages = _getAdvantages();
+
+    if (advantages.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Container(
+      padding: EdgeInsets.all(10.w),
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(12.r),
+        color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(color: Theme.of(context).dividerColor, width: 1.5),
       ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          dense: true,
-          tilePadding: EdgeInsets.symmetric(horizontal: 12.w),
-          childrenPadding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 12.h),
-          title: Text(
-            title,
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color:
-                  Theme.of(context).textTheme.titleLarge?.color ??
-                  Colors.black87,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isExpanded = !_isExpanded;
+              });
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    tr('mortgage.advantages_count', namedArgs: {'count': advantages.length.toString()}),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14.sp,
+                      color:
+                          Theme.of(context).textTheme.titleLarge?.color ??
+                          AppColors.charcoal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Icon(
+                  _isExpanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  color: AppColors.grayText,
+                ),
+              ],
             ),
           ),
-          children: [_AdvantagesList(advantages: advantages)],
-        ),
+          if (_isExpanded && advantages.isNotEmpty) ...[
+            SizedBox(height: 12.h),
+            ...advantages.map(
+              (advantage) => Padding(
+                padding: EdgeInsets.only(bottom: 8.h),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 16.sp,
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        advantage,
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          color:
+                              Theme.of(context).textTheme.bodyMedium?.color ??
+                              AppColors.gray500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
 }
 
 class _MortgageApplyButton extends StatelessWidget {
+  const _MortgageApplyButton({required this.bankName});
+  
+  final String bankName;
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       height: 50.h,
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: () async {
+          final opened = await openBankApplication(bankName);
+          if (!opened && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  tr('common.error'),
+                ),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).colorScheme.primary,
           elevation: 0,
@@ -767,58 +784,6 @@ class _MortgageApplyButton extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _AdvantagesList extends StatelessWidget {
-  const _AdvantagesList({required this.advantages});
-
-  final List<String> advantages;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          tr('mortgage.advantages'),
-          style: TextStyle(
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).textTheme.titleLarge?.color,
-          ),
-        ),
-        SizedBox(height: 8.h),
-        ...advantages.map(
-          (advantage) => Padding(
-            padding: EdgeInsets.only(bottom: 4.h),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '• ',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    advantage,
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      color:
-                          Theme.of(context).textTheme.bodyMedium?.color ??
-                          const Color(0xFF6B7280),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -882,102 +847,234 @@ class _StateMessage extends StatelessWidget {
   }
 }
 
-enum _MortgageSortType { interestRate, amount, term }
-
-extension _MortgageSortTypeX on _MortgageSortType {
-  String get label {
-    switch (this) {
-      case _MortgageSortType.interestRate:
-        return tr('mortgage.interest_rate');
-      case _MortgageSortType.amount:
-        return tr('mortgage.amount');
-      case _MortgageSortType.term:
-        return tr('mortgage.term');
-    }
-  }
-
-  IconData get icon {
-    switch (this) {
-      case _MortgageSortType.interestRate:
-        return Icons.percent_rounded;
-      case _MortgageSortType.amount:
-        return Icons.payments_outlined;
-      case _MortgageSortType.term:
-        return Icons.calendar_month_outlined;
-    }
-  }
-
-  String get apiField {
-    switch (this) {
-      case _MortgageSortType.interestRate:
-        return 'rate';
-      case _MortgageSortType.amount:
-        return 'amount';
-      case _MortgageSortType.term:
-        return 'term';
-    }
-  }
-}
-
 class _MortgageFilterSheet extends StatefulWidget {
-  const _MortgageFilterSheet({required this.initialFilter});
+  const _MortgageFilterSheet({
+    required this.initialFilter,
+    required this.items,
+  });
 
   final MortgageFilter initialFilter;
+  final List<MortgageEntity> items;
 
   @override
   State<_MortgageFilterSheet> createState() => _MortgageFilterSheetState();
 }
 
 class _MortgageFilterSheetState extends State<_MortgageFilterSheet> {
-  _MortgageSortType? _selectedSort;
-
-  final Color _primaryBlue = const Color(0xFF008CF0);
-  final Color _borderColor = const Color(0xFFE0E0E0);
+  late final List<_RateOption> _rateOptions;
+  late final List<_TermOption> _termOptions;
+  List<String> _propertyTypeOptions = const [];
+  String? _selectedRateLabel;
+  String? _selectedTermLabel;
+  String? _selectedPropertyTypeLabel;
 
   @override
   void initState() {
     super.initState();
-    _selectedSort = _sortFromValue(widget.initialFilter.sort);
-  }
-
-  _MortgageSortType? _sortFromValue(String? value) {
-    switch (value) {
-      case 'interest_rate':
-        return _MortgageSortType.interestRate;
-      case 'max_sum':
-        return _MortgageSortType.amount;
-      case 'term':
-        return _MortgageSortType.term;
-      case 'rate':
-        return _MortgageSortType.interestRate;
-      case 'amount':
-        return _MortgageSortType.amount;
-      default:
-        return null;
-    }
+    _rateOptions = _buildRateOptions(widget.items);
+    _termOptions = _buildTermOptions(widget.items);
+    _propertyTypeOptions = _buildPropertyTypeOptions(widget.items);
+    _selectedRateLabel = _labelForRate(
+      widget.initialFilter.interestRateFrom,
+      widget.initialFilter.interestRateTo,
+      _rateOptions,
+    );
+    _selectedTermLabel = _labelForTerm(
+      widget.initialFilter.termMonthsFrom,
+      widget.initialFilter.termMonthsTo,
+      _termOptions,
+    );
+    _selectedPropertyTypeLabel = widget.initialFilter.propertyType;
   }
 
   void _reset() {
     setState(() {
-      _selectedSort = null;
+      _selectedRateLabel = null;
+      _selectedTermLabel = null;
+      _selectedPropertyTypeLabel = null;
     });
   }
 
   void _apply() {
-    final updatedFilter = widget.initialFilter.copyWith(
-      sort: _selectedSort?.apiField,
-      direction: _selectedSort == null ? null : 'asc',
-      resetSort: _selectedSort == null,
-      resetDirection: _selectedSort == null,
+    final rateOption = _rateOptions.firstWhere(
+      (option) => option.label == _selectedRateLabel,
+      orElse: () => _RateOption.empty,
     );
+    final termOption = _termOptions.firstWhere(
+      (option) => option.label == _selectedTermLabel,
+      orElse: () => _TermOption.empty,
+    );
+    final rateSelected = rateOption.min != null;
+    final termSelected = termOption.min != null;
+    final sortField = rateSelected
+        ? 'rate'
+        : termSelected
+        ? 'term'
+        : null;
+    final updatedFilter = widget.initialFilter.copyWith(
+      interestRateFrom: rateOption.min,
+      interestRateTo: rateOption.max,
+      termMonthsFrom: termOption.min,
+      termMonthsTo: termOption.max,
+      propertyType: _selectedPropertyTypeLabel,
+      resetInterestRate: rateOption.min == null,
+      resetInterestRateTo: rateOption.max == null,
+      resetTerm: termOption.min == null,
+      resetTermTo: termOption.max == null,
+      resetPropertyType: _selectedPropertyTypeLabel == null,
+      sort: sortField,
+      direction: sortField == null ? null : 'asc',
+      resetSort: sortField == null,
+      resetDirection: sortField == null,
+    );
+
     Navigator.of(context).pop(updatedFilter);
+  }
+
+  List<_RateOption> _buildRateOptions(List<MortgageEntity> items) {
+    final values =
+        items
+            .map((e) => _parseNumeric(e.interestRate))
+            .whereType<double>()
+            .toList()
+          ..sort();
+    if (values.isEmpty) {
+      return const [
+        _RateOption('16-20%', min: 16, max: 20),
+        _RateOption('21-25%', min: 21, max: 25),
+        _RateOption('26%+', min: 26, max: null),
+      ];
+    }
+    final min = values.first;
+    final max = values.last;
+    final mid = (min + max) / 2;
+    return _deduplicateRateOptions([
+      _RateOption(_formatPercentRange(min, mid), min: min, max: mid),
+      _RateOption(_formatPercentRange(mid, max), min: mid, max: max),
+      _RateOption('${_formatPercentValue(max)}%+', min: max, max: null),
+    ]);
+  }
+
+  List<_RateOption> _deduplicateRateOptions(List<_RateOption> options) {
+    final seen = <String>{};
+    final result = <_RateOption>[];
+    for (final option in options) {
+      if (option.min == null && option.max == null) continue;
+      final key = '${option.min ?? 'null'}-${option.max ?? 'null'}';
+      if (seen.add(key)) {
+        result.add(option);
+      }
+    }
+    return result;
+  }
+
+  List<_TermOption> _buildTermOptions(List<MortgageEntity> items) {
+    final values =
+        items.map((e) => _parseTermToMonths(e.term)).whereType<int>().toList()
+          ..sort();
+    if (values.isEmpty) {
+      return [
+        _TermOption('5 ${tr('mortgage.years_short')}', min: 60, max: 60),
+        _TermOption('7 ${tr('mortgage.years_short')}', min: 84, max: 84),
+        _TermOption('8+ ${tr('mortgage.years_short')}', min: 96, max: null),
+      ];
+    }
+    final min = values.first;
+    final max = values.last;
+    final mid = ((min + max) / 2).round();
+    return _deduplicateTermOptions([
+      _TermOption(_formatTermRange(min, mid), min: min, max: mid),
+      _TermOption(_formatTermRange(mid, max), min: mid, max: max),
+      _TermOption('${_formatTermValue(max)}+', min: max, max: null),
+    ]);
+  }
+
+  List<String> _buildPropertyTypeOptions(List<MortgageEntity> items) {
+    final seen = <String>{};
+    for (final item in items) {
+      final value = item.propertyType?.trim();
+      if (value != null && value.isNotEmpty) {
+        seen.add(value);
+      }
+    }
+    if (seen.isEmpty) {
+      return [
+        tr('mortgage.property_type_new_building'),
+        tr('mortgage.property_type_residential'),
+        tr('mortgage.property_type_country_house'),
+      ];
+    }
+    final list = seen.toList();
+    list.sort();
+    return list;
+  }
+
+  List<_TermOption> _deduplicateTermOptions(List<_TermOption> options) {
+    final seen = <String>{};
+    final result = <_TermOption>[];
+    for (final option in options) {
+      if (option.min == null && option.max == null) continue;
+      final key = '${option.min ?? 'null'}-${option.max ?? 'null'}';
+      if (seen.add(key)) {
+        result.add(option);
+      }
+    }
+    return result;
+  }
+
+  double? _parseNumeric(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    final match = RegExp(r'[\d.,]+').firstMatch(raw);
+    if (match == null) return null;
+    final normalized = match
+        .group(0)!
+        .replaceAll(RegExp(r'\s'), '')
+        .replaceAll(',', '.');
+    return double.tryParse(normalized);
+  }
+
+  int? _parseTermToMonths(String raw) {
+    final value = _parseNumeric(raw);
+    if (value == null) return null;
+    final lower = raw.toLowerCase();
+    // Проверяем различные варианты написания года/месяца на разных языках
+    if (lower.contains('yil') || lower.contains('year') || lower.contains('лет') || lower.contains('йил')) {
+      return (value * 12).round();
+    }
+    return value.round();
+  }
+
+  String _formatPercentValue(double value) {
+    return value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
+  }
+
+  String _formatPercentRange(double from, double? to) {
+    if (to == null || to == from) {
+      return '${_formatPercentValue(from)}%';
+    }
+    return '${_formatPercentValue(from)}-${_formatPercentValue(to)}%';
+  }
+
+  String _formatTermValue(int months) {
+    if (months % 12 == 0) {
+      final years = months ~/ 12;
+      return '$years ${tr('mortgage.years_short')}';
+    }
+    return '$months ${tr('mortgage.months_short')}';
+  }
+
+  String _formatTermRange(int from, int? to) {
+    if (to == null || to == from) {
+      return _formatTermValue(from);
+    }
+    return '${_formatTermValue(from)} - ${_formatTermValue(to)}';
   }
 
   @override
   Widget build(BuildContext context) {
     final cardColor = Theme.of(context).cardColor;
     return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
+      height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
         color: Colors.transparent,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
@@ -991,7 +1088,7 @@ class _MortgageFilterSheetState extends State<_MortgageFilterSheet> {
           children: [
             SizedBox(height: 12.h),
             Container(
-              width: 40.w,
+              width: 48.w,
               height: 4.h,
               decoration: BoxDecoration(
                 color: Colors.grey[300],
@@ -1003,27 +1100,63 @@ class _MortgageFilterSheetState extends State<_MortgageFilterSheet> {
               tr('mortgage.filters'),
               style: TextStyle(
                 fontSize: 18.sp,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
                 color:
                     Theme.of(context).textTheme.titleLarge?.color ??
                     Colors.black87,
               ),
             ),
-            SizedBox(height: 16.h),
+            SizedBox(height: 24.h),
             Expanded(
-              child: ListView(
+              child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: 20.w),
-                children: [
-                  ..._MortgageSortType.values.map(
-                    (type) => Padding(
-                      padding: EdgeInsets.only(bottom: 12.h),
-                      child: _buildSortOption(
-                        type: type,
-                        isSelected: _selectedSort == type,
-                      ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionHeader(
+                      Icons.percent_rounded,
+                      tr('mortgage.interest_rate'),
                     ),
-                  ),
-                ],
+                    SizedBox(height: 12.h),
+                    _buildChipWrap(
+                      options: _rateOptions.map((e) => e.label).toList(),
+                      selected: _selectedRateLabel,
+                      onSelected: (value) =>
+                          setState(() => _selectedRateLabel = value),
+                    ),
+                    SizedBox(height: 28.h),
+                    _buildSectionHeader(
+                      Icons.calendar_today_outlined,
+                      tr('mortgage.term'),
+                    ),
+                    SizedBox(height: 12.h),
+                    _buildChipWrap(
+                      options: _termOptions.map((e) => e.label).toList(),
+                      selected: _selectedTermLabel,
+                      onSelected: (value) =>
+                          setState(() => _selectedTermLabel = value),
+                    ),
+                    SizedBox(height: 28.h),
+                    if (_propertyTypeOptions.isNotEmpty) ...[
+                      _buildSectionHeader(
+                        Icons.home_outlined,
+                        tr('mortgage.property_type'),
+                      ),
+                      SizedBox(height: 12.h),
+                      _buildChipWrap(
+                        options: _propertyTypeOptions,
+                        selected: _selectedPropertyTypeLabel,
+                        onSelected: (value) => setState(() {
+                          _selectedPropertyTypeLabel =
+                              value == _selectedPropertyTypeLabel
+                              ? null
+                              : value;
+                        }),
+                      ),
+                      SizedBox(height: 28.h),
+                    ],
+                  ],
+                ),
               ),
             ),
             Container(
@@ -1032,8 +1165,7 @@ class _MortgageFilterSheetState extends State<_MortgageFilterSheet> {
                 color: cardColor,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    spreadRadius: 1,
+                    color: Colors.black.withOpacity(0.03),
                     blurRadius: 10,
                     offset: const Offset(0, -5),
                   ),
@@ -1042,45 +1174,52 @@ class _MortgageFilterSheetState extends State<_MortgageFilterSheet> {
               child: Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: _reset,
-                      style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 16.h),
-                        side: BorderSide(color: _borderColor),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16.r),
+                    child: SizedBox(
+                      height: 52.h,
+                      child: OutlinedButton(
+                        onPressed: _reset,
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: Theme.of(context).dividerColor,
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.r),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        tr('common.reset'),
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w500,
-                          color:
-                              Theme.of(context).textTheme.titleLarge?.color ??
-                              Colors.black,
+                        child: Text(
+                          tr('common.reset'),
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            color:
+                                Theme.of(context).textTheme.titleLarge?.color ??
+                                const Color(0xFF1F2937),
+                          ),
                         ),
                       ),
                     ),
                   ),
                   SizedBox(width: 16.w),
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed: _apply,
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 16.h),
-                        backgroundColor: _primaryBlue,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16.r),
+                    child: SizedBox(
+                      height: 52.h,
+                      child: ElevatedButton(
+                        onPressed: _apply,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryBlue,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.r),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        tr('common.apply'),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
+                        child: Text(
+                          tr('common.apply'),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
@@ -1094,37 +1233,108 @@ class _MortgageFilterSheetState extends State<_MortgageFilterSheet> {
     );
   }
 
-  Widget _buildSortOption({
-    required _MortgageSortType type,
-    required bool isSelected,
-  }) {
-    return InkWell(
-      onTap: () => setState(() => _selectedSort = type),
-      borderRadius: BorderRadius.circular(16.r),
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 16.h),
-        decoration: BoxDecoration(
-          color: isSelected ? _primaryBlue : Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: isSelected ? _primaryBlue : _borderColor),
+  Widget _buildSectionHeader(IconData icon, String title) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 20.sp,
+          color: Theme.of(context).textTheme.bodyMedium?.color ??
+              AppColors.gray500,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(type.icon, color: isSelected ? Colors.white : _primaryBlue),
-            SizedBox(width: 8.w),
-            Text(
-              type.label,
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : Colors.black87,
+        SizedBox(width: 8.w),
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 15.sp,
+              fontWeight: FontWeight.w700,
+              color: Theme.of(context).textTheme.titleLarge?.color ??
+                  AppColors.charcoal,
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChipWrap({
+    required List<String> options,
+    required String? selected,
+    required ValueChanged<String> onSelected,
+  }) {
+    return Wrap(
+      spacing: 8.w,
+      runSpacing: 8.h,
+      children: options.map((label) {
+        final isSelected = label == selected;
+        return GestureDetector(
+          onTap: () => onSelected(label),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.primaryBlue.withOpacity(0.08)
+                  : (Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.midnight
+                      : AppColors.grayLight),
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(
+                color: isSelected
+                    ? AppColors.primaryBlue
+                    : Colors.transparent,
+                width: 1.5,
               ),
             ),
-          ],
-        ),
-      ),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? AppColors.primaryBlue
+                    : (Theme.of(context).textTheme.bodyMedium?.color ??
+                        AppColors.gray500),
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
+        );
+      }).toList(),
     );
+  }
+
+  String? _labelForRate(
+    double? minValue,
+    double? maxValue,
+    List<_RateOption> options,
+  ) {
+    for (final option in options) {
+      final minMatches =
+          (option.min == null && minValue == null) || option.min == minValue;
+      final maxMatches =
+          (option.max == null && maxValue == null) || option.max == maxValue;
+      if (minMatches && maxMatches) return option.label;
+    }
+    return null;
+  }
+
+  String? _labelForTerm(
+    int? minMonths,
+    int? maxMonths,
+    List<_TermOption> options,
+  ) {
+    for (final option in options) {
+      final minMatches =
+          (option.min == null && minMonths == null) || option.min == minMonths;
+      final maxMatches =
+          (option.max == null && maxMonths == null) || option.max == maxMonths;
+      if (minMatches && maxMatches) return option.label;
+    }
+    return null;
   }
 }
 

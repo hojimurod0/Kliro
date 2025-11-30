@@ -44,7 +44,10 @@ class MortgageState with _$MortgageState {
 
   factory MortgageState.initial() => MortgageState(
     items: const <MortgageEntity>[],
-    filter: MortgageFilter.empty,
+    filter: MortgageFilter.empty.copyWith(
+      sort: 'rate',
+      direction: 'asc', // Самый низкий процент сверху
+    ),
     status: MortgageViewStatus.initial,
     isInitialLoading: true,
     isPaginating: false,
@@ -232,12 +235,11 @@ class MortgageBloc extends Bloc<MortgageEvent, MortgageState> {
         '[MortgageBloc] Result page: ${result.pageNumber}, isLast: ${result.isLast}',
       );
 
-      final combinedItems = append
-          ? [...state.items, ...result.items]
-          : result.items;
-      final sortedItems = _sortItems(
-        combinedItems,
-        effectiveFilter.sort,
+      final sortedItems = await _processMortgagesForUi(
+        newItems: result.items,
+        currentItems: state.items,
+        filter: effectiveFilter,
+        append: append,
       );
 
       print('[MortgageBloc] Updated items list:');
@@ -308,50 +310,141 @@ class MortgageBloc extends Bloc<MortgageEvent, MortgageState> {
     return error.toString();
   }
 
-  List<MortgageEntity> _sortItems(
-    List<MortgageEntity> items,
-    String? sortField,
-  ) {
-    if (sortField == null) return items;
-    final sorted = [...items];
-    int compare(double a, double b) => a.compareTo(b);
+}
 
-    switch (sortField) {
-      case 'rate':
-      case 'interest_rate':
-        sorted.sort(
-          (a, b) => compare(
-            _extractNumber(a.interestRate),
-            _extractNumber(b.interestRate),
-          ),
-        );
-        break;
-      case 'amount':
-      case 'max_sum':
-        sorted.sort(
-          (a, b) => compare(
-            _extractNumber(a.maxSum),
-            _extractNumber(b.maxSum),
-          ),
-        );
-        break;
-      case 'term':
-        sorted.sort(
-          (a, b) => compare(
-            _extractNumber(a.term),
-            _extractNumber(b.term),
-          ),
-        );
-        break;
-    }
-    return sorted;
+Future<List<MortgageEntity>> _processMortgagesForUi({
+  required List<MortgageEntity> newItems,
+  required List<MortgageEntity> currentItems,
+  required MortgageFilter filter,
+  required bool append,
+}) async {
+  final payload = <String, dynamic>{
+    'newItems': newItems.map(mortgageEntityToMap).toList(),
+    'currentItems': currentItems.map(mortgageEntityToMap).toList(),
+    'filter': mortgageFilterToMap(filter),
+    'append': append,
+  };
+
+  final processed = await compute(_processMortgagesIsolate, payload);
+  return processed
+      .map<MortgageEntity>(mortgageEntityFromMap)
+      .toList(growable: false);
+}
+
+List<Map<String, dynamic>> _processMortgagesIsolate(
+  Map<String, dynamic> payload,
+) {
+  final append = payload['append'] as bool;
+  final filterMap = (payload['filter'] as Map).cast<String, dynamic>();
+  final filter = mortgageFilterFromMap(filterMap);
+
+  final incoming = (payload['newItems'] as List)
+      .cast<Map<String, dynamic>>()
+      .map(mortgageEntityFromMap)
+      .toList();
+  final existing = (payload['currentItems'] as List)
+      .cast<Map<String, dynamic>>()
+      .map(mortgageEntityFromMap)
+      .toList();
+
+  final combined = append ? [...existing, ...incoming] : incoming;
+  final filtered = _applyMortgageFilters(combined, filter);
+  final sorted = _sortMortgageItems(filtered, filter.sort);
+
+  return sorted.map(mortgageEntityToMap).toList();
+}
+
+List<MortgageEntity> _sortMortgageItems(
+  List<MortgageEntity> items,
+  String? sortField,
+) {
+  if (sortField == null) return items;
+  final sorted = [...items];
+  int compare(double a, double b) => a.compareTo(b);
+
+  switch (sortField) {
+    case 'rate':
+    case 'interest_rate':
+      sorted.sort(
+        (a, b) => compare(
+          _extractMortgageNumber(a.interestRate),
+          _extractMortgageNumber(b.interestRate),
+        ),
+      );
+      break;
+    case 'amount':
+    case 'max_sum':
+      sorted.sort(
+        (a, b) => compare(
+          _extractMortgageNumber(a.maxSum),
+          _extractMortgageNumber(b.maxSum),
+        ),
+      );
+      break;
+    case 'term':
+      sorted.sort(
+        (a, b) => compare(
+          _extractMortgageNumber(a.term),
+          _extractMortgageNumber(b.term),
+        ),
+      );
+      break;
+  }
+  return sorted;
+}
+
+List<MortgageEntity> _applyMortgageFilters(
+  List<MortgageEntity> items,
+  MortgageFilter filter,
+) {
+  var filtered = items;
+
+  if (filter.interestRateFrom != null || filter.interestRateTo != null) {
+    filtered = filtered.where((item) {
+      final rateValue = _extractMortgageNumber(item.interestRate);
+      final meetsMin =
+          filter.interestRateFrom == null ||
+          rateValue >= filter.interestRateFrom!;
+      final meetsMax =
+          filter.interestRateTo == null ||
+          rateValue <= filter.interestRateTo!;
+      return meetsMin && meetsMax;
+    }).toList();
   }
 
-  double _extractNumber(String value) {
-    final match = RegExp(r'[\d.,]+').firstMatch(value);
-    if (match == null) return double.infinity;
-    final normalized = match.group(0)!.replaceAll(' ', '').replaceAll(',', '.');
-    return double.tryParse(normalized) ?? double.infinity;
+  if (filter.termMonthsFrom != null || filter.termMonthsTo != null) {
+    filtered = filtered.where((item) {
+      final termValue = _extractMortgageNumber(item.term);
+      final meetsMin =
+          filter.termMonthsFrom == null ||
+          termValue >= filter.termMonthsFrom!;
+      final meetsMax =
+          filter.termMonthsTo == null ||
+          termValue <= filter.termMonthsTo!;
+      return meetsMin && meetsMax;
+    }).toList();
   }
+
+  if (filter.maxSumFrom != null || filter.maxSumTo != null) {
+    filtered = filtered.where((item) {
+      final amountValue = _extractMortgageNumber(item.maxSum);
+      final meetsMin =
+          filter.maxSumFrom == null ||
+          amountValue >= filter.maxSumFrom!;
+      final meetsMax =
+          filter.maxSumTo == null ||
+          amountValue <= filter.maxSumTo!;
+      return meetsMin && meetsMax;
+    }).toList();
+  }
+
+  return filtered;
+}
+
+double _extractMortgageNumber(String value) {
+  final match = RegExp(r'[\d.,]+').firstMatch(value);
+  if (match == null) return double.infinity;
+  final normalized = match.group(0)!.replaceAll(' ', '').replaceAll(',', '.');
+  return double.tryParse(normalized) ?? double.infinity;
 }
 

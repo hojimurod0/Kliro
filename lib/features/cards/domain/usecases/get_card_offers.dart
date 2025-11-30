@@ -1,4 +1,5 @@
-import '../entities/card_offer.dart';
+import '../entities/card_filter.dart';
+import '../entities/card_page.dart';
 import '../repositories/card_repository.dart';
 
 class GetCardOffers {
@@ -6,6 +7,9 @@ class GetCardOffers {
 
   final CardRepository repository;
 
-  Future<List<CardOffer>> call() => repository.getCardOffers();
+  Future<CardPage> call({
+    required int page,
+    required int size,
+    CardFilter filter = CardFilter.empty,
+  }) => repository.getCardOffers(page: page, size: size, filter: filter);
 }
-

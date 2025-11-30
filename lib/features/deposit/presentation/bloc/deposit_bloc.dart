@@ -44,7 +44,10 @@ class DepositState with _$DepositState {
 
   factory DepositState.initial() => DepositState(
     items: const <DepositEntity>[],
-    filter: DepositFilter.empty,
+    filter: DepositFilter.empty.copyWith(
+      sort: 'rate',
+      direction: 'desc', // Самый высокий процент сверху
+    ),
     status: DepositViewStatus.initial,
     isInitialLoading: true,
     isPaginating: false,
@@ -73,7 +76,12 @@ class DepositBloc extends Bloc<DepositEvent, DepositState> {
     Emitter<DepositState> emit,
   ) async {
     debugPrint('[DepositBloc] Event: started');
-    await _reload(emit, filter: state.filter, showFullScreenLoader: true);
+    // Гарантируем сортировку по наивысшему проценту сверху
+    final defaultFilter = state.filter.copyWith(
+      sort: 'rate',
+      direction: 'desc',
+    );
+    await _reload(emit, filter: defaultFilter, showFullScreenLoader: true);
   }
 
   Future<void> _onRefreshRequested(
@@ -81,9 +89,14 @@ class DepositBloc extends Bloc<DepositEvent, DepositState> {
     Emitter<DepositState> emit,
   ) async {
     debugPrint('[DepositBloc] Event: refreshRequested');
+    // Гарантируем сортировку по наивысшему проценту при обновлении
+    final filterWithSort = state.filter.copyWith(
+      sort: state.filter.sort ?? 'rate',
+      direction: state.filter.direction ?? 'desc',
+    );
     await _reload(
       emit,
-      filter: state.filter,
+      filter: filterWithSort,
       completer: event.completer,
       showFullScreenLoader: false,
     );
@@ -120,9 +133,12 @@ class DepositBloc extends Bloc<DepositEvent, DepositState> {
       return;
     }
 
+    // Сохраняем сортировку по наивысшему проценту при поиске
     final updatedFilter = state.filter.copyWith(
       search: query.isEmpty ? null : query,
       resetSearch: query.isEmpty,
+      sort: state.filter.sort ?? 'rate',
+      direction: state.filter.direction ?? 'desc',
     );
     await _reload(emit, filter: updatedFilter, showFullScreenLoader: true);
   }
@@ -196,7 +212,12 @@ class DepositBloc extends Bloc<DepositEvent, DepositState> {
     DepositFilter? filter,
     Completer<void>? completer,
   }) async {
-    final effectiveFilter = filter ?? state.filter;
+    // Гарантируем сортировку по наивысшему проценту
+    final baseFilter = filter ?? state.filter;
+    final effectiveFilter = baseFilter.copyWith(
+      sort: baseFilter.sort ?? 'rate',
+      direction: baseFilter.direction ?? 'desc',
+    );
     debugPrint(
       '[DepositBloc] _loadPage page=$page append=$append '
       'filter=${effectiveFilter.toQueryParameters()}',
@@ -236,22 +257,25 @@ class DepositBloc extends Bloc<DepositEvent, DepositState> {
           ? [...state.items, ...result.items]
           : result.items;
 
+      // Клиентская сортировка по проценту (самый высокий процент сверху)
+      final sortedItems = _sortByRate(updatedItems, effectiveFilter.direction ?? 'desc');
+
       print('[DepositBloc] Updated items list:');
       print('  - Previous items: ${state.items.length}');
       print('  - New items: ${result.items.length}');
       print(
-        '  - Total after ${append ? "append" : "replace"}: ${updatedItems.length}',
+        '  - Total after ${append ? "append" : "replace"}: ${sortedItems.length}',
       );
 
       debugPrint(
-        '[DepositBloc] Emitting state with ${updatedItems.length} items',
+        '[DepositBloc] Emitting state with ${sortedItems.length} items',
       );
       debugPrint(
         '[DepositBloc] State before emit: items=${state.items.length}, status=${state.status}',
       );
 
       final newState = state.copyWith(
-        items: updatedItems,
+        items: sortedItems,
         filter: effectiveFilter,
         page: result.pageNumber,
         hasMore: !result.isLast,
@@ -302,5 +326,32 @@ class DepositBloc extends Bloc<DepositEvent, DepositState> {
       return error.message;
     }
     return error.toString();
+  }
+
+  /// Сортирует депозиты по проценту (rate)
+  /// direction: 'desc' - самый высокий процент сверху, 'asc' - самый низкий процент сверху
+  List<DepositEntity> _sortByRate(List<DepositEntity> items, String direction) {
+    final sorted = List<DepositEntity>.from(items);
+    sorted.sort((a, b) {
+      // Парсим строку rate в число, удаляя символы % и пробелы
+      final aRate = _parseRate(a.rate);
+      final bRate = _parseRate(b.rate);
+      final comparison = aRate.compareTo(bRate);
+      // Если direction == 'asc', возвращаем comparison (низкий -> высокий)
+      // Если direction == 'desc', возвращаем -comparison (высокий -> низкий)
+      return direction.toLowerCase() == 'desc' ? -comparison : comparison;
+    });
+    return sorted;
+  }
+
+  /// Парсит строку процента в число
+  double _parseRate(String rate) {
+    try {
+      // Удаляем все символы кроме цифр, точки и запятой
+      final cleaned = rate.replaceAll(RegExp(r'[^\d.,]'), '').replaceAll(',', '.');
+      return double.tryParse(cleaned) ?? 0.0;
+    } catch (e) {
+      return 0.0;
+    }
   }
 }
