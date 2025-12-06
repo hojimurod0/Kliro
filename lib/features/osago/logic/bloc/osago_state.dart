@@ -89,6 +89,8 @@ class OsagoVehicleFilled extends OsagoState {
     super.periodId,
     super.birthDate,
     super.osagoType,
+    super.ownerName,
+    super.calcResponse,
   });
 }
 
@@ -110,6 +112,7 @@ class OsagoCalcSuccess extends OsagoState {
     required super.drivers,
     required super.insurance,
     required super.calcResponse,
+    super.paymentMethod,
     super.gosNumber,
     super.periodId,
     super.numberDriversId,

@@ -1,6 +1,8 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../logic/bloc/osago_bloc.dart';
@@ -18,31 +20,45 @@ class OsagoSuccessScreen extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             automaticallyImplyLeading: false,
-            title: const Text('Tasdiqlash'),
+            backgroundColor: Theme.of(context).cardColor,
+            title: Text(
+              'insurance.osago.success.title'.tr(),
+              style: TextStyle(color: Theme.of(context).textTheme.titleLarge?.color),
+            ),
           ),
           body: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 24),
-                const Icon(Icons.check_circle, color: Colors.green, size: 72),
-                const SizedBox(height: 12),
-                const Text(
-                  'Polis muvaffaqiyatli rasmiylashtirildi',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                SizedBox(height: 24.h),
+                Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 72.w,
                 ),
-                const SizedBox(height: 24),
-                _buildInfoTile('Polisa raqami', check?.policyNumber ?? '—'),
+                SizedBox(height: 12.h),
+                Text(
+                  'insurance.osago.success.message'.tr(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.titleLarge?.color,
+                  ),
+                ),
+                SizedBox(height: 24.h),
+                _buildInfoTile(context, 'insurance.osago.success.policy_number'.tr(), check?.policyNumber ?? '—'),
                 _buildInfoTile(
-                  'Sana',
+                  context,
+                  'insurance.osago.success.date'.tr(),
                   check?.issuedAt != null
                       ? '${check!.issuedAt!.day.toString().padLeft(2, '0')}.${check.issuedAt!.month.toString().padLeft(2, '0')}.${check.issuedAt!.year}'
                       : '—',
                 ),
                 _buildInfoTile(
-                  'Summa',
+                  context,
+                  'insurance.osago.success.amount'.tr(),
                   calc == null
                       ? '—'
                       : '${calc.amount.toStringAsFixed(2)} ${calc.currency.toUpperCase()}',
@@ -52,18 +68,22 @@ class OsagoSuccessScreen extends StatelessWidget {
                   onPressed: check?.downloadUrl == null
                       ? null
                       : () => _openUrl(context, check!.downloadUrl!),
-                  child: const Text('Polisni yuklab olish'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                  child: Text('insurance.osago.success.download'.tr()),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 OutlinedButton(
                   onPressed: () => _share(context, check?.downloadUrl),
-                  child: const Text('Ulashish'),
+                  child: Text('insurance.osago.success.share'.tr()),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 TextButton(
                   onPressed: () =>
                       Navigator.of(context).popUntil((route) => route.isFirst),
-                  child: const Text('Yopish'),
+                  child: Text('insurance.osago.success.close'.tr()),
                 ),
               ],
             ),
@@ -73,10 +93,20 @@ class OsagoSuccessScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoTile(String title, String value) {
+  Widget _buildInfoTile(BuildContext context, String title, String value) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(title: Text(title), subtitle: Text(value)),
+      margin: EdgeInsets.only(bottom: 12.h),
+      color: Theme.of(context).cardColor,
+      child: ListTile(
+        title: Text(
+          title,
+          style: TextStyle(color: Theme.of(context).textTheme.titleMedium?.color),
+        ),
+        subtitle: Text(
+          value,
+          style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
+        ),
+      ),
     );
   }
 
@@ -86,14 +116,14 @@ class OsagoSuccessScreen extends StatelessWidget {
     if (!success) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('URL ni ochib bo\'lmadi')));
+      ).showSnackBar(SnackBar(content: Text('insurance.osago.success.url_error'.tr())));
     }
   }
 
   Future<void> _share(BuildContext context, String? url) async {
     if (url == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Yuklab olish havolasi mavjud emas')),
+        SnackBar(content: Text('insurance.osago.success.no_url'.tr())),
       );
       return;
     }
@@ -101,6 +131,6 @@ class OsagoSuccessScreen extends StatelessWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Havola nusxalandi')));
+    ).showSnackBar(SnackBar(content: Text('insurance.osago.success.url_copied'.tr())));
   }
 }

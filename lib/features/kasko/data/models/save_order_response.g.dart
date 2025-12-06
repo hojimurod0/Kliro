@@ -1,0 +1,29 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'save_order_response.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_$SaveOrderResponseImpl _$$SaveOrderResponseImplFromJson(
+        Map<String, dynamic> json) =>
+    _$SaveOrderResponseImpl(
+      orderId: json['order_id'] as String,
+      premium: (json['premium'] as num).toDouble(),
+      carId: (json['car_id'] as num).toInt(),
+      ownerName: json['owner_name'] as String,
+      ownerPhone: json['owner_phone'] as String,
+      status: json['status'] as String?,
+    );
+
+Map<String, dynamic> _$$SaveOrderResponseImplToJson(
+        _$SaveOrderResponseImpl instance) =>
+    <String, dynamic>{
+      'order_id': instance.orderId,
+      'premium': instance.premium,
+      'car_id': instance.carId,
+      'owner_name': instance.ownerName,
+      'owner_phone': instance.ownerPhone,
+      'status': instance.status,
+    };

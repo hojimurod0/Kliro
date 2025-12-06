@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 // === Ranglar va Uslublar ===
-const Color _primaryBlue = Color(0xFF007BFF); // Asosiy ko'k rang (ikonka)
-const Color _lightBlue = Color(0xFFE5F5FF); // Ikonka fonidagi yengil ko'k
 const Color _darkText = Color(0xFF2C2C2C); // Sarlavha va yozuvlar rangi
-const Color _backgroundColor = Colors.white; // Sahifa foni
 
 // === Ma'lumot Modeli ===
 class Amenity {

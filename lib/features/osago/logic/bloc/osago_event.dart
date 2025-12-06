@@ -32,6 +32,21 @@ class LoadVehicleData extends OsagoEvent {
   List<Object?> get props => [vehicle, drivers, osagoType, periodId, gosNumber, birthDate];
 }
 
+class FetchVehicleInfo extends OsagoEvent {
+  const FetchVehicleInfo({
+    required this.vehicle,
+    this.osagoType,
+    this.periodId,
+  });
+
+  final OsagoVehicle vehicle;
+  final String? osagoType;
+  final String? periodId;
+
+  @override
+  List<Object?> get props => [vehicle, osagoType, periodId];
+}
+
 class LoadInsuranceCompany extends OsagoEvent {
   const LoadInsuranceCompany(this.insurance);
 

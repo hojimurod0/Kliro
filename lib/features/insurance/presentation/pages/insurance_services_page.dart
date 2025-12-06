@@ -199,7 +199,7 @@ class InsuranceCard extends StatelessWidget {
                   context.router.push(const OsagoModuleRoute());
                 } else if (service.id == 'kasko') {
                   // KASKO uchun maxsus sahifa
-                  context.router.push(KaskoFormRoute());
+                  context.router.push(const KaskoModuleRoute());
                 } else {
                   // Boshqa sug'urta turlari uchun boshqa logika
                   // TODO: Navigate logic for other insurance types

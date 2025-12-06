@@ -1,13 +1,19 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/navigation/app_router.dart';
-
-// Asosiy ranglar
-const Color _primaryBlue = Color(0xFF1976D2);
-const Color _cardLightBlue = Color(0xFFE3F2FD);
+import '../bloc/kasko_bloc.dart';
+import '../bloc/kasko_event.dart';
+import '../bloc/kasko_state.dart';
+import '../widgets/kasko_car_plate_input.dart';
+import '../widgets/kasko_info_card.dart';
+import '../widgets/kasko_tech_passport_input.dart';
 
 @RoutePage()
 class KaskoDocumentDataPage extends StatefulWidget {
@@ -18,26 +24,67 @@ class KaskoDocumentDataPage extends StatefulWidget {
 }
 
 class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
-  // Ma'lumotlar (Bular avvalgi sahifalardan kelishi kerak)
-  final String _carModel = 'Chevrolet Lacetti';
-  final String _carYear = '2022';
-  final String _tariffName = 'Premium 1';
-  final String _totalPrice = '1 200 000 so\'m';
-
-  // Controllerlar
+  // Text controllers
   final TextEditingController _regionController = TextEditingController(
     text: '01',
   );
-  final TextEditingController _numberController = TextEditingController(
-    text: 'A 000 AA',
-  );
+  final TextEditingController _numberController = TextEditingController();
   final TextEditingController _texPassportSeriesController =
       TextEditingController();
   final TextEditingController _texPassportNumberController =
       TextEditingController();
 
+  // Form key for validation
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    // Har bir maydon o'zgarganda tugma holatini yangilash
+    _numberController.addListener(_updateButtonState);
+    _texPassportSeriesController.addListener(_updateButtonState);
+    _texPassportNumberController.addListener(_updateButtonState);
+  }
+
+  void _updateButtonState() {
+    setState(() {});
+  }
+
+  // Barcha maydonlar to'ldirilganligini tekshirish
+  bool _areAllFieldsValid() {
+    final carNumber = _numberController.text.trim();
+    final texPassportSeries = _texPassportSeriesController.text.trim();
+    final texPassportNumber = _texPassportNumberController.text.trim();
+
+    // Car number tekshiruvi (region + number)
+    if (carNumber.isEmpty || carNumber.length < 6) {
+      return false;
+    }
+
+    // Tex passport seriya tekshiruvi (3 ta harf)
+    if (texPassportSeries.isEmpty || texPassportSeries.length != 3) {
+      return false;
+    }
+    if (!RegExp(r'^[A-Za-z]{3}$').hasMatch(texPassportSeries)) {
+      return false;
+    }
+
+    // Tex passport raqami tekshiruvi (7 ta raqam)
+    if (texPassportNumber.isEmpty || texPassportNumber.length != 7) {
+      return false;
+    }
+    if (!RegExp(r'^[0-9]{7}$').hasMatch(texPassportNumber)) {
+      return false;
+    }
+
+    return true;
+  }
+
   @override
   void dispose() {
+    _numberController.removeListener(_updateButtonState);
+    _texPassportSeriesController.removeListener(_updateButtonState);
+    _texPassportNumberController.removeListener(_updateButtonState);
     _regionController.dispose();
     _numberController.dispose();
     _texPassportSeriesController.dispose();
@@ -45,504 +92,396 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
     super.dispose();
   }
 
-  // 1. Avtomobil va Tarif ma'lumotlari kartasi
-  Widget _buildInfoCard(bool isDark, Color textColor, Color subtitleColor) {
-    final cardBg = isDark ? const Color(0xFF1E3A5C) : _cardLightBlue;
-    final cardTextColor = isDark ? Colors.white : Colors.black;
+  // ============================================
+  // BIRINCHI SAHIFADAN TANLANGAN MA'LUMOTLARNI OLISH
+  // ============================================
 
-    return Container(
-      padding: EdgeInsets.all(16.0.w),
-      margin: EdgeInsets.symmetric(vertical: 20.0.h),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(15.0.r),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1-qator: Avtomobil va Yili
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Avtomobil',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: subtitleColor,
-                ),
-              ),
-              Text(
-                'Yili',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: subtitleColor,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 4.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _carModel,
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: cardTextColor,
-                ),
-              ),
-              Text(
-                _carYear,
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: cardTextColor,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 15.h),
-          // 2-qator: Tarif va Summa
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Tarif',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: subtitleColor,
-                ),
-              ),
-              Text(
-                'Summa',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: subtitleColor,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 4.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _tariffName,
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: _primaryBlue,
-                ),
-              ),
-              Text(
-                _totalPrice,
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: _primaryBlue,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+  /// Birinchi sahifada tanlangan mashina nomini olish (brand + model)
+  /// Masalan: "Chevrolet Lacetti"
+  String _getCarModel(KaskoBloc bloc) {
+    // Avval to'liq nomni olish (birinchi sahifada tanlangan brand + model)
+    final carFullName = bloc.selectedCarFullName;
+    if (carFullName.isNotEmpty && carFullName.trim().isNotEmpty) {
+      return carFullName;
+    }
+
+    // Agar to'liq nom bo'sh bo'lsa, carEntity'dan olish
+    final carEntity = bloc.selectedCarEntity;
+    if (carEntity != null) {
+      if (carEntity.brand != null && carEntity.model != null) {
+        return '${carEntity.brand} ${carEntity.model}';
+      }
+      if (carEntity.brand != null) {
+        return carEntity.brand!;
+      }
+      if (carEntity.model != null) {
+        return carEntity.model!;
+      }
+      return carEntity.name;
+    }
+
+    // Agar hech narsa topilmasa
+    return '--';
   }
 
-  // 2. Avtomobil raqami kiritish maydoni (Plita ko'rinishi)
-  Widget _buildCarPlateInput(bool isDark, Color cardBg, Color textColor) {
-    final borderColor = isDark ? Colors.grey[600]! : Colors.black;
-    final flagBg = isDark ? const Color(0xFF0D47A1) : Colors.blue;
+  /// Birinchi sahifada tanlangan yilni olish
+  String _getCarYear(KaskoBloc bloc) {
+    // Birinchi sahifada tanlangan yil
+    final year = bloc.selectedYear;
+    if (year != null) {
+      return year.toString();
+    }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Avtomobile raqami',
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w500,
-            color: textColor,
-          ),
-        ),
-        SizedBox(height: 8.0.h),
-        // Asosiy plita Container
-        Container(
-          height: 60.h,
-          decoration: BoxDecoration(
-            color: cardBg,
-            borderRadius: BorderRadius.circular(10.0.r),
-            border: Border.all(
-              color: borderColor,
-              width: 1.5,
-            ),
-          ),
-          child: Row(
-            children: [
-              // 1. Viloyat kodi (01)
-              Container(
-                width: 60.w,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  border: Border(
-                    right: BorderSide(color: borderColor, width: 1.5),
-                  ),
-                ),
-                child: TextFormField(
-                  controller: _regionController,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
-                  keyboardType: TextInputType.number,
-                  maxLength: 2,
-                  decoration: const InputDecoration(
-                    counterText: '',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ),
-              // 2. Raqam qismi (A 000 AA)
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10.0.w),
-                  child: TextFormField(
-                    controller: _numberController,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 24.sp,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
-                    textCapitalization: TextCapitalization.characters,
-                    maxLength: 8,
-                    decoration: InputDecoration(
-                      hintText: 'A 000 AA',
-                      hintStyle: TextStyle(
-                        color: isDark ? Colors.grey[600]! : Colors.grey,
-                      ),
-                      counterText: '',
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                ),
-              ),
-              // 3. Bayroq qismi (UZ)
-              Container(
-                width: 35.w,
-                decoration: BoxDecoration(
-                  color: flagBg,
-                  borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(8.5.r),
-                    bottomRight: Radius.circular(8.5.r),
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    // Bayroq chiziqlari
-                    Container(height: 2.h, color: Colors.white),
-                    Container(height: 2.h, color: Colors.green),
-                    SizedBox(height: 4.h),
-                    Text(
-                      'UZ',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.bold,
-                        height: 1,
-                      ),
-                    ),
-                    SizedBox(height: 3.h),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: 20.0.h),
-      ],
-    );
+    // Agar yil tanlanmagan bo'lsa, carPrice'dan olish
+    final carPrice = bloc.cachedCarPrice;
+    if (carPrice != null) {
+      return carPrice.year.toString();
+    }
+
+    return '--';
   }
 
-  // 3. Tex Passport raqami kiritish maydoni
-  Widget _buildTexPassportInput(
-    bool isDark,
-    Color cardBg,
-    Color textColor,
-    Color borderColor,
-    Color placeholderColor,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Tex passport',
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w500,
-            color: textColor,
-          ),
-        ),
-        SizedBox(height: 8.0.h),
-        Row(
-          children: [
-            // 1. Seriya (AAA)
-            Expanded(
-              flex: 1,
-              child: TextFormField(
-                controller: _texPassportSeriesController,
-                maxLength: 3,
-                textCapitalization: TextCapitalization.characters,
-                style: TextStyle(color: textColor, fontSize: 16.sp),
-                decoration: InputDecoration(
-                  hintText: 'AAA',
-                  hintStyle: TextStyle(color: placeholderColor),
-                  counterText: '',
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16.0.w,
-                    vertical: 14.0.h,
-                  ),
-                  filled: true,
-                  fillColor: cardBg,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0.r),
-                    borderSide: BorderSide(
-                      color: borderColor,
-                      width: 1.0,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0.r),
-                    borderSide: BorderSide(
-                      color: borderColor,
-                      width: 1.0,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0.r),
-                    borderSide: const BorderSide(
-                      color: _primaryBlue,
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(width: 10.0.w),
-            // 2. Raqam (1234567)
-            Expanded(
-              flex: 2,
-              child: TextFormField(
-                controller: _texPassportNumberController,
-                maxLength: 7,
-                keyboardType: TextInputType.number,
-                style: TextStyle(color: textColor, fontSize: 16.sp),
-                decoration: InputDecoration(
-                  hintText: '1234567',
-                  hintStyle: TextStyle(color: placeholderColor),
-                  counterText: '',
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16.0.w,
-                    vertical: 14.0.h,
-                  ),
-                  filled: true,
-                  fillColor: cardBg,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0.r),
-                    borderSide: BorderSide(
-                      color: borderColor,
-                      width: 1.0,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0.r),
-                    borderSide: BorderSide(
-                      color: borderColor,
-                      width: 1.0,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0.r),
-                    borderSide: const BorderSide(
-                      color: _primaryBlue,
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 15.0.h),
-        // Eslatma matni
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(top: 4.0.h),
-              child: Text(
-                '•',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  height: 1.0,
-                  color: textColor,
-                ),
-              ),
-            ),
-            SizedBox(width: 8.w),
-            Expanded(
-              child: Text(
-                'Ma\'lumotlar texpasportdagi ma\'lumotlarga to\'liq mos kelishi kerak',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: isDark ? Colors.grey[400]! : Colors.grey.shade700,
-                  height: 1.4,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+  // ============================================
+  // IKKINCHI SAHIFADAN TANLANGAN MA'LUMOTLARNI OLISH
+  // ============================================
+
+  /// Ikkinchi sahifada tanlangan tarif nomini olish
+  String _getTariffName(KaskoBloc bloc, KaskoState state) {
+    // Ikkinchi sahifada tanlangan tarif nomi
+    // Avval state'dan olish (KaskoRatesLoaded state'da selectedRate bor)
+    if (state is KaskoRatesLoaded && state.selectedRate != null) {
+      return state.selectedRate!.name;
+    }
+
+    // Keyin BLoC'dan olish
+    final rate = bloc.selectedRate ?? bloc.cachedSelectedRate;
+
+    if (rate != null) {
+      // Rate nomini qaytarish
+      if (rate.name.isNotEmpty) {
+        return rate.name;
+      }
+    }
+
+    return '--';
+  }
+
+  /// Premium summasini hisoblash va formatlash
+  /// Ikkinchi sahifada tanlangan tarif va birinchi sahifada hisoblangan narxdan
+  String _getTotalPrice(KaskoBloc bloc, KaskoState state) {
+    // Avval Policy yoki Order'dan premium olish (agar hisoblangan bo'lsa)
+    if (state is KaskoPolicyCalculated) {
+      final formatted = NumberFormat(
+        '#,###',
+      ).format(state.calculateResult.premium.toInt());
+      return '${formatted.replaceAll(',', ' ')} so\'m';
+    }
+
+    if (state is KaskoOrderSaved) {
+      final formatted = NumberFormat(
+        '#,###',
+      ).format(state.order.premium.toInt());
+      return '${formatted.replaceAll(',', ' ')} so\'m';
+    }
+
+    // Ikkinchi sahifada tanlangan tarif va birinchi sahifada hisoblangan narxdan premium hisoblash
+    final rate = bloc.selectedRate ?? bloc.cachedSelectedRate;
+    final price = bloc.calculatedPrice;
+
+    if (rate != null && price != null) {
+      double premium = 0.0;
+
+      // Agar tarifda percent bo'lsa, narxdan foiz hisobla
+      if (rate.percent != null && rate.percent! > 0) {
+        premium = price * rate.percent! / 100;
+      }
+      // Agar minPremium bo'lsa, uni ishlat
+      else if (rate.minPremium != null && rate.minPremium! > 0) {
+        premium = rate.minPremium!;
+      }
+
+      if (premium > 0) {
+        final formatted = NumberFormat('#,###').format(premium.toInt());
+        return '${formatted.replaceAll(',', ' ')} so\'m';
+      }
+    }
+
+    // Agar faqat minimal premium bo'lsa
+    if (rate?.minPremium != null && rate!.minPremium! > 0) {
+      final formatted = NumberFormat('#,###').format(rate.minPremium!.toInt());
+      return '${formatted.replaceAll(',', ' ')} so\'m';
+    }
+
+    return '--';
+  }
+
+  // Сохранение данных документа
+  void _saveDocumentData(KaskoBloc bloc) {
+    // Формируем номер автомобиля (регион + номер без пробелов)
+    final region = _regionController.text.trim();
+    final number = _numberController.text
+        .trim()
+        .replaceAll(' ', '')
+        .toUpperCase();
+    final carNumber = '$region$number';
+
+    // Формируем VIN (техпаспорт серия + номер)
+    final techSeries = _texPassportSeriesController.text.trim().toUpperCase();
+    final techNumber = _texPassportNumberController.text.trim();
+    final vin = '$techSeries$techNumber';
+
+    // Сохраняем данные в BLoC через событие
+    bloc.add(
+      SaveDocumentData(
+        carNumber: carNumber,
+        vin: vin,
+        passportSeria: '',
+        passportNumber: '',
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final scaffoldBg = isDark ? const Color(0xFF121212) : Colors.white;
-    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
-    final subtitleColor = isDark ? Colors.grey[400]! : Colors.grey.shade600;
-    final borderColor = isDark ? Colors.grey[800]! : Colors.grey.shade300;
-    final placeholderColor = isDark ? Colors.grey[600]! : Colors.grey.shade500;
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    return ScreenUtilInit(
+      designSize: const Size(375, 812),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final scaffoldBg = AppColors.getScaffoldBg(isDark);
+        final cardBg = AppColors.getCardBg(isDark);
+        final textColor = AppColors.getTextColor(isDark);
+        final subtitleColor = AppColors.getSubtitleColor(isDark);
+        final borderColor = AppColors.getBorderColor(isDark);
+        final placeholderColor = AppColors.getPlaceholderColor(isDark);
+        final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    return Scaffold(
-      backgroundColor: scaffoldBg,
-      appBar: AppBar(
-        backgroundColor: cardBg,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: textColor,
-          ),
-          onPressed: () {
-            context.router.pop();
-          },
-        ),
-        title: Text(
-          'KASKO',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: textColor,
-            fontSize: 18.sp,
-          ),
-        ),
-        centerTitle: true,
-        systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-        ),
-      ),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: EdgeInsets.all(16.0.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                // Sarlavha
-                Text(
-                  'Hujjat ma\'lumotlari',
-                  style: TextStyle(
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
-                ),
-                SizedBox(height: 5.0.h),
-                // Qo'shimcha matn
-                Text(
-                  'Avtomobil raqami va texpasport ma\'lumotlarini kiriting',
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    color: subtitleColor,
-                  ),
-                ),
-                // 1. Avtomobil va Tarif kartasi
-                _buildInfoCard(isDark, textColor, subtitleColor),
-                // 2. Avtomobil raqami
-                _buildCarPlateInput(isDark, cardBg, textColor),
-                // 3. Tex Passport raqami
-                _buildTexPassportInput(
-                  isDark,
-                  cardBg,
-                  textColor,
-                  borderColor,
-                  placeholderColor,
-                ),
-                SizedBox(height: 40.0.h),
-              ],
+        return Scaffold(
+          backgroundColor: scaffoldBg,
+          appBar: AppBar(
+            backgroundColor: cardBg,
+            elevation: 0.5,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back, color: textColor),
+              onPressed: () => context.router.pop(),
+            ),
+            title: Text(
+              'insurance.kasko.title'.tr(),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: textColor,
+                fontSize: 18.sp,
+              ),
+            ),
+            centerTitle: true,
+            systemOverlayStyle: SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: isDark
+                  ? Brightness.light
+                  : Brightness.dark,
             ),
           ),
-          // FIXED BOTTOM BUTTON
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(
-                16.0.w,
-                10.0.h,
-                16.0.w,
-                10.0.h + bottomPadding,
-              ),
-              decoration: BoxDecoration(
-                color: cardBg,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    spreadRadius: 3,
-                    blurRadius: 5,
-                    offset: const Offset(0, -3),
+          body: BlocBuilder<KaskoBloc, KaskoState>(
+            builder: (context, state) {
+              final bloc = context.read<KaskoBloc>();
+
+              // Ma'lumotlarni BLoC'dan olish - og'ir ishlarni memoize qilish
+              // Build metodida har safar qayta hisoblamaslik uchun
+              final carModel = _getCarModel(bloc);
+              final carYear = _getCarYear(bloc);
+              final tariffName = _getTariffName(bloc, state);
+              final totalPrice = _getTotalPrice(bloc, state);
+
+              return Stack(
+                children: [
+                  SingleChildScrollView(
+                    padding: EdgeInsets.all(16.0.w),
+                    child: Form(
+                      key: _formKey,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'insurance.kasko.document_data.title'.tr(),
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
+                          ),
+                          SizedBox(height: 5.0.h),
+                          Text(
+                            'insurance.kasko.document_data.subtitle'.tr(),
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: subtitleColor,
+                            ),
+                          ),
+                          KaskoInfoCard(
+                            carModel: carModel,
+                            carYear: carYear,
+                            tariffName: tariffName,
+                            totalPrice: totalPrice,
+                            isDark: isDark,
+                          ),
+                          KaskoCarPlateInput(
+                            regionController: _regionController,
+                            numberController: _numberController,
+                            isDark: isDark,
+                            cardBg: cardBg,
+                            textColor: textColor,
+                            regionValidator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'insurance.kasko.document_data.errors.enter_region'
+                                    .tr();
+                              }
+                              if (value.length != 2) {
+                                return 'insurance.kasko.document_data.errors.region_2_digits'
+                                    .tr();
+                              }
+                              if (!RegExp(r'^[0-9]{2}$').hasMatch(value)) {
+                                return 'insurance.kasko.document_data.errors.region_2_digits'
+                                    .tr();
+                              }
+                              return null;
+                            },
+                            numberValidator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'insurance.kasko.document_data.errors.enter_car_number'
+                                    .tr();
+                              }
+                              final cleanNumber = value
+                                  .trim()
+                                  .replaceAll(' ', '')
+                                  .toUpperCase();
+                              if (cleanNumber.length < 6) {
+                                return 'insurance.kasko.document_data.errors.invalid_car_number'
+                                    .tr();
+                              }
+                              // Format: A000AA (1 harf + 3 raqam + 2 harf)
+                              if (!RegExp(
+                                r'^[A-Z][0-9]{3}[A-Z]{2}$',
+                              ).hasMatch(cleanNumber)) {
+                                return 'insurance.kasko.document_data.errors.invalid_car_number_format'
+                                    .tr();
+                              }
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: 20.0.h),
+                          KaskoTechPassportInput(
+                            seriesController: _texPassportSeriesController,
+                            numberController: _texPassportNumberController,
+                            isDark: isDark,
+                            cardBg: cardBg,
+                            textColor: textColor,
+                            borderColor: borderColor,
+                            placeholderColor: placeholderColor,
+                            seriesValidator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'insurance.kasko.document_data.errors.enter_tech_passport_series'
+                                    .tr();
+                              }
+                              if (value.length != 3) {
+                                return 'insurance.kasko.document_data.errors.series_3_letters'
+                                    .tr();
+                              }
+                              // Faqat harflar bo'lishi kerak
+                              if (!RegExp(r'^[A-Za-z]{3}$').hasMatch(value)) {
+                                return 'insurance.kasko.document_data.errors.series_3_letters'
+                                    .tr();
+                              }
+                              return null;
+                            },
+                            numberValidator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'insurance.kasko.document_data.errors.enter_tech_passport_number'
+                                    .tr();
+                              }
+                              if (value.length != 7) {
+                                return 'insurance.kasko.document_data.errors.number_7_digits'
+                                    .tr();
+                              }
+                              // Faqat raqamlar bo'lishi kerak
+                              if (!RegExp(r'^[0-9]{7}$').hasMatch(value)) {
+                                return 'insurance.kasko.document_data.errors.number_7_digits'
+                                    .tr();
+                              }
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: 40.0.h),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      padding: EdgeInsets.fromLTRB(
+                        16.0.w,
+                        10.0.h,
+                        16.0.w,
+                        10.0.h + bottomPadding,
+                      ),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            spreadRadius: 3,
+                            blurRadius: 5,
+                            offset: const Offset(0, -3),
+                          ),
+                        ],
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 50.h,
+                        child: ElevatedButton(
+                          onPressed: _areAllFieldsValid()
+                              ? () {
+                                  // Form validatsiyasini ishga tushirish
+                                  if (_formKey.currentState!.validate()) {
+                                    // Validatsiya o'tdi - ma'lumotlarni saqlash va keyingi sahifaga o'tish
+                                    _saveDocumentData(bloc);
+                                    context.router.push(
+                                      const KaskoPersonalDataRoute(),
+                                    );
+                                  }
+                                  // Agar validatsiya o'tmasa, xatolar maydonlar ostida ko'rsatiladi
+                                }
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _areAllFieldsValid()
+                                ? AppColors.kaskoPrimaryBlue
+                                : AppColors.kaskoPrimaryBlue.withOpacity(0.5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.0.r),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            'insurance.kasko.document_data.calculate'.tr(),
+                            style: TextStyle(
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
-              ),
-              child: SizedBox(
-                width: double.infinity,
-                height: 50.h,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Keyingi sahifaga o'tish - shaxsiy ma'lumotlar sahifasiga
-                    context.router.push(const KaskoPersonalDataRoute());
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _primaryBlue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.0.r),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    'Davom etish',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+              );
+            },
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
-

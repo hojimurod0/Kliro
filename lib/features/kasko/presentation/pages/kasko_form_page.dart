@@ -23,6 +23,14 @@ class _KaskoFormPageState extends State<KaskoFormPage> {
   final TextEditingController _pozitsiyaController = TextEditingController();
   final TextEditingController _yearController = TextEditingController();
 
+  // Form key for validation
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  // Validation method
+  bool _validateForm() {
+    return _formKey.currentState?.validate() ?? false;
+  }
+
   @override
   void dispose() {
     _markaController.dispose();
@@ -60,6 +68,12 @@ class _KaskoFormPageState extends State<KaskoFormPage> {
         // Yozish mumkin bo'lgan TextFormField
         TextFormField(
           controller: controller,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return '$label ni kiriting';
+            }
+            return null;
+          },
           decoration: InputDecoration(
             hintText: hintText ?? 'Tanlash',
             hintStyle: TextStyle(color: hintColor),
@@ -140,9 +154,11 @@ class _KaskoFormPageState extends State<KaskoFormPage> {
         children: [
           SingleChildScrollView(
             padding: EdgeInsets.all(16.0.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
                 // 1. Avtomobile markasi (Endi yozish mumkin)
                 _buildWritableField(
                   'Avtomobile markasi',
@@ -169,7 +185,8 @@ class _KaskoFormPageState extends State<KaskoFormPage> {
                 ),
 
                 SizedBox(height: 40.0.h), // Pastki tugma uchun joy
-              ],
+                ],
+              ),
             ),
           ),
 
@@ -199,8 +216,10 @@ class _KaskoFormPageState extends State<KaskoFormPage> {
                 height: 50.h,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Keyingi sahifaga o'tish - tariflar sahifasiga
-                    context.router.push(const KaskoTariffRoute());
+                    if (_validateForm()) {
+                      // Keyingi sahifaga o'tish - tariflar sahifasiga
+                      context.router.push(const KaskoTariffRoute());
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _primaryBlue,

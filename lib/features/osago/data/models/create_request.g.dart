@@ -18,6 +18,7 @@ _$CreateRequestImpl _$$CreateRequestImplFromJson(Map<String, dynamic> json) =>
       ownerInn: json['owner__inn'] as String?,
       applicantLicenseSeria: json['applicant__license_seria'] as String?,
       applicantLicenseNumber: json['applicant__license_number'] as String?,
+      numberDriversId: json['number_drivers_id'] as String,
       startDate: parseOsagoDate(json['start_date'] as String),
     );
 
@@ -31,5 +32,6 @@ Map<String, dynamic> _$$CreateRequestImplToJson(_$CreateRequestImpl instance) =>
       'owner__inn': instance.ownerInn,
       'applicant__license_seria': instance.applicantLicenseSeria,
       'applicant__license_number': instance.applicantLicenseNumber,
+      'number_drivers_id': instance.numberDriversId,
       'start_date': formatOsagoDate(instance.startDate),
     };

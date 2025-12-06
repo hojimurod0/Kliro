@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -10,13 +11,7 @@ import 'osago_order_confirmation_screen.dart';
 // -----------------------------------------------------------------------------
 // CONSTANTS & THEME
 // -----------------------------------------------------------------------------
-class PreviewAppColors {
-  static const Color background = Color(0xFFF5F6FA);
-  static const Color primary = Color(0xFF0095F6);
-  static const Color textDark = Colors.black;
-  static const Color textGrey = Colors.grey;
-  static const Color white = Colors.white;
-}
+// PreviewAppColors класс o'rniga Theme.of(context) ishlatiladi
 
 class OsagoPreviewScreen extends StatefulWidget {
   const OsagoPreviewScreen({super.key});
@@ -60,16 +55,16 @@ class _OsagoPreviewScreenState extends State<OsagoPreviewScreen> {
         final vehicle = state.vehicle;
         if (calc == null || insurance == null || vehicle == null) {
           return Scaffold(
-            backgroundColor: PreviewAppColors.background,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             appBar: _buildAppBar(),
-            body: const Center(child: Text('Hisoblash natijalari topilmadi')),
+            body: Center(child: Text('insurance.osago.preview.no_results'.tr())),
           );
         }
         final isLoading = state is OsagoLoading;
         final currentPaymentMethod = state.paymentMethod ?? _selectedPaymentMethod;
         
         return Scaffold(
-          backgroundColor: PreviewAppColors.background,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: _buildAppBar(),
           body: Stack(
             children: [
@@ -77,23 +72,23 @@ class _OsagoPreviewScreenState extends State<OsagoPreviewScreen> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   _buildSummaryTile(
-                    title: 'Kompaniya',
+                    title: 'insurance.osago.preview.company'.tr(),
                     value: insurance.companyName,
                   ),
                   _buildSummaryTile(
-                    title: 'Muddati',
-                    value: OsagoUtils.mapIdToPeriod(insurance.periodId) ?? '${insurance.periodId} oy',
+                    title: 'insurance.osago.preview.period'.tr(),
+                    value: OsagoUtils.mapIdToPeriod(insurance.periodId) ?? '${insurance.periodId} ${'insurance.osago.preview.months'.tr()}',
                   ),
                   _buildSummaryTile(
-                    title: 'Avto',
+                    title: 'insurance.osago.preview.vehicle'.tr(),
                     value: '${vehicle.brand} ${vehicle.model}',
                   ),
                   _buildSummaryTile(
-                    title: 'Gos raqami',
+                    title: 'insurance.osago.preview.gos_number'.tr(),
                     value: vehicle.gosNumber,
                   ),
                   _buildSummaryTile(
-                    title: 'Polis summasi',
+                    title: 'insurance.osago.preview.policy_amount'.tr(),
                     value:
                         '${calc.amount.toStringAsFixed(2)} ${calc.currency.toUpperCase()}',
                   ),
@@ -102,23 +97,23 @@ class _OsagoPreviewScreenState extends State<OsagoPreviewScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: PreviewAppColors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "To'lov turi",
+                        Text(
+                          'insurance.osago.preview.payment_type'.tr(),
                           style: TextStyle(
-                            color: PreviewAppColors.textDark,
+                            color: Theme.of(context).textTheme.titleLarge?.color,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 12),
                         RadioListTile<String>(
-                          title: const Text('Payme'),
+                          title: Text('insurance.osago.payment.payment_method_payme'.tr()),
                           value: 'payme',
                           groupValue: currentPaymentMethod,
                           onChanged: (value) {
@@ -127,11 +122,11 @@ class _OsagoPreviewScreenState extends State<OsagoPreviewScreen> {
                             });
                             context.read<OsagoBloc>().add(PaymentSelected(value!));
                           },
-                          activeColor: PreviewAppColors.primary,
+                          activeColor: Theme.of(context).colorScheme.primary,
                           contentPadding: EdgeInsets.zero,
                         ),
                         RadioListTile<String>(
-                          title: const Text('Click'),
+                          title: Text('insurance.osago.payment.payment_method_click'.tr()),
                           value: 'click',
                           groupValue: currentPaymentMethod,
                           onChanged: (value) {
@@ -140,7 +135,7 @@ class _OsagoPreviewScreenState extends State<OsagoPreviewScreen> {
                             });
                             context.read<OsagoBloc>().add(PaymentSelected(value!));
                           },
-                          activeColor: PreviewAppColors.primary,
+                          activeColor: Theme.of(context).colorScheme.primary,
                           contentPadding: EdgeInsets.zero,
                         ),
                       ],
@@ -154,17 +149,17 @@ class _OsagoPreviewScreenState extends State<OsagoPreviewScreen> {
                           ? null
                           : () => _createPolicy(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: PreviewAppColors.primary,
-                        foregroundColor: Colors.white,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: const Text(
-                        'Rasmiylashtirish',
-                        style: TextStyle(
+                      child: Text(
+                        'insurance.osago.preview.confirm'.tr(),
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -174,10 +169,16 @@ class _OsagoPreviewScreenState extends State<OsagoPreviewScreen> {
                 ],
               ),
               if (isLoading)
-                const Positioned.fill(
+                Positioned.fill(
                   child: ColoredBox(
                     color: Colors.black38,
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
             ],
@@ -189,16 +190,19 @@ class _OsagoPreviewScreenState extends State<OsagoPreviewScreen> {
 
   AppBar _buildAppBar() {
     return AppBar(
-      backgroundColor: PreviewAppColors.white,
+      backgroundColor: Theme.of(context).cardColor,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: PreviewAppColors.textDark),
+        icon: Icon(
+          Icons.arrow_back,
+          color: Theme.of(context).textTheme.titleLarge?.color,
+        ),
         onPressed: () => Navigator.of(context).pop(),
       ),
-      title: const Text(
-        'Buyurtma preview',
+      title: Text(
+        'insurance.osago.preview.title'.tr(),
         style: TextStyle(
-          color: PreviewAppColors.textDark,
+          color: Theme.of(context).textTheme.titleLarge?.color,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -211,7 +215,7 @@ class _OsagoPreviewScreenState extends State<OsagoPreviewScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: PreviewAppColors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -219,8 +223,8 @@ class _OsagoPreviewScreenState extends State<OsagoPreviewScreen> {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: PreviewAppColors.textDark,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.titleLarge?.color,
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
@@ -228,8 +232,8 @@ class _OsagoPreviewScreenState extends State<OsagoPreviewScreen> {
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
-              color: PreviewAppColors.textDark,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyLarge?.color,
               fontSize: 14,
             ),
           ),

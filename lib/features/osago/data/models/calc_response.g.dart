@@ -24,6 +24,7 @@ _$CalcResponseImpl _$$CalcResponseImplFromJson(Map<String, dynamic> json) =>
           const <InsuranceModel>[],
       ownerName: json['owner_name'] as String?,
       numberDriversId: json['number_drivers_id'] as String?,
+      issueYear: (json['issue_year'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$$CalcResponseImplToJson(_$CalcResponseImpl instance) =>
@@ -37,4 +38,5 @@ Map<String, dynamic> _$$CalcResponseImplToJson(_$CalcResponseImpl instance) =>
       'available_providers': instance.availableProviders,
       'owner_name': instance.ownerName,
       'number_drivers_id': instance.numberDriversId,
+      'issue_year': instance.issueYear,
     };

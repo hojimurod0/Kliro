@@ -36,7 +36,7 @@ class AutoCreditLocalDataSource {
         maxSum: "2 mlrd so'm",
         applicationMethod: "Bank",
         applicationIcon: Icons.business,
-        applicationColor: AppColors.darkText,
+        applicationColor: AppColors.darkTextAutoCredit,
         advantages: const [
           "Past foiz stavkasi",
           "Qisqa muddatda ko'rib chiqish",

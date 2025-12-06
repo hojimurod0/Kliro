@@ -24,7 +24,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   void initState() {
     super.initState();
-    _controller = PageController(initialPage: 0); // Tilni tanlash sahifasidan boshlash
+    _controller = PageController(
+      initialPage: 0,
+    ); // Tilni tanlash sahifasidan boshlash
     _pages = [
       OnboardingLanguagePage(
         onSelected: () {
@@ -77,11 +79,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   void _next() {
     // Joriy sahifa indeksini aniqlash
-    final currentPage = _controller.hasClients ? (_controller.page?.round() ?? _index) : _index;
+    // _index har doim to'g'ri qiymatga ega, chunki onPageChanged callback'da yangilanadi
+    final currentPage = _index;
     final isLastPage = currentPage >= _pages.length - 1;
-    
-    debugPrint('_next called: currentPage=$currentPage, _index=$_index, isLastPage=$isLastPage');
-    
+
+    debugPrint(
+      '_next called: currentPage=$currentPage, _index=$_index, isLastPage=$isLastPage',
+    );
+
     if (!isLastPage) {
       if (_controller.hasClients) {
         _controller.nextPage(
@@ -97,7 +102,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         if (!mounted) return;
         try {
           debugPrint('Attempting navigation to HomeRoute...');
-          context.router.replace( HomeRoute());
+          context.router.replace(HomeRoute());
           debugPrint('Navigation successful');
         } catch (e, stackTrace) {
           debugPrint('Navigation error: $e');

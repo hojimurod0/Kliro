@@ -22,6 +22,7 @@ class CalcResponse with _$CalcResponse {
     List<InsuranceModel> availableProviders,
     @JsonKey(name: 'owner_name') String? ownerName,
     @JsonKey(name: 'number_drivers_id') String? numberDriversId,
+    @JsonKey(name: 'issue_year') int? issueYear,
   }) = _CalcResponse;
 
   factory CalcResponse.fromJson(Map<String, dynamic> json) =>

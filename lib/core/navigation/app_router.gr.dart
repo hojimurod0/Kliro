@@ -35,7 +35,8 @@ abstract class _$AppRouter extends RootStackRouter {
     },
     BankServicesRoute.name: (routeData) {
       final args = routeData.argsAs<BankServicesRouteArgs>(
-          orElse: () => const BankServicesRouteArgs());
+        orElse: () => const BankServicesRouteArgs(),
+      );
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: BankServicesPage(key: args.key),
@@ -55,7 +56,8 @@ abstract class _$AppRouter extends RootStackRouter {
     },
     CurrencyDetailRoute.name: (routeData) {
       final args = routeData.argsAs<CurrencyDetailRouteArgs>(
-          orElse: () => const CurrencyDetailRouteArgs());
+        orElse: () => const CurrencyDetailRouteArgs(),
+      );
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: CurrencyDetailPage(
@@ -69,7 +71,8 @@ abstract class _$AppRouter extends RootStackRouter {
     },
     CurrencyRatesRoute.name: (routeData) {
       final args = routeData.argsAs<CurrencyRatesRouteArgs>(
-          orElse: () => const CurrencyRatesRouteArgs());
+        orElse: () => const CurrencyRatesRouteArgs(),
+      );
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: CurrencyRatesPage(key: args.key),
@@ -87,6 +90,12 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const InsuranceServicesPage(),
       );
     },
+    KaskoCarsListRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const KaskoCarsListPage(),
+      );
+    },
     KaskoDocumentDataRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -99,10 +108,33 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const KaskoFormPage(),
       );
     },
+    KaskoFormSelectionRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const KaskoFormSelectionPage(),
+      );
+    },
+    KaskoModuleRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const KaskoModule(),
+      );
+    },
     KaskoOrderDetailsRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: const KaskoOrderDetailsPage(),
+      );
+    },
+    KaskoPaymentRoute.name: (routeData) {
+      final args = routeData.argsAs<KaskoPaymentRouteArgs>();
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: KaskoPaymentPage(
+          key: args.key,
+          orderId: args.orderId,
+          amount: args.amount,
+        ),
       );
     },
     KaskoPaymentTypeRoute.name: (routeData) {
@@ -140,11 +172,12 @@ abstract class _$AppRouter extends RootStackRouter {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: WrappedRoute(
-            child: LoginNewPasswordPage(
-          key: args.key,
-          contactInfo: args.contactInfo,
-          otp: args.otp,
-        )),
+          child: LoginNewPasswordPage(
+            key: args.key,
+            contactInfo: args.contactInfo,
+            otp: args.otp,
+          ),
+        ),
       );
     },
     LoginRoute.name: (routeData) {
@@ -158,10 +191,11 @@ abstract class _$AppRouter extends RootStackRouter {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: WrappedRoute(
-            child: LoginResetPasswordPage(
-          key: args.key,
-          contactInfo: args.contactInfo,
-        )),
+          child: LoginResetPasswordPage(
+            key: args.key,
+            contactInfo: args.contactInfo,
+          ),
+        ),
       );
     },
     LoginVerificationRoute.name: (routeData) {
@@ -175,14 +209,12 @@ abstract class _$AppRouter extends RootStackRouter {
       );
     },
     HomeRoute.name: (routeData) {
-      final args =
-          routeData.argsAs<HomeRouteArgs>(orElse: () => const HomeRouteArgs());
+      final args = routeData.argsAs<HomeRouteArgs>(
+        orElse: () => const HomeRouteArgs(),
+      );
       return AutoRoutePage<dynamic>(
         routeData: routeData,
-        child: MainNavigationPage(
-          key: args.key,
-          initialTab: args.initialTab,
-        ),
+        child: MainNavigationPage(key: args.key, initialTab: args.initialTab),
       );
     },
     MicroLoanRoute.name: (routeData) {
@@ -272,10 +304,11 @@ abstract class _$AppRouter extends RootStackRouter {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: WrappedRoute(
-            child: UserDetailsScreen(
-          key: args.key,
-          contactInfo: args.contactInfo,
-        )),
+          child: UserDetailsScreen(
+            key: args.key,
+            contactInfo: args.contactInfo,
+          ),
+        ),
       );
     },
   };
@@ -285,10 +318,7 @@ abstract class _$AppRouter extends RootStackRouter {
 /// [AboutAppPage]
 class AboutAppRoute extends PageRouteInfo<void> {
   const AboutAppRoute({List<PageRouteInfo>? children})
-      : super(
-          AboutAppRoute.name,
-          initialChildren: children,
-        );
+    : super(AboutAppRoute.name, initialChildren: children);
 
   static const String name = 'AboutAppRoute';
 
@@ -299,10 +329,7 @@ class AboutAppRoute extends PageRouteInfo<void> {
 /// [AmenitiesPage]
 class AmenitiesRoute extends PageRouteInfo<void> {
   const AmenitiesRoute({List<PageRouteInfo>? children})
-      : super(
-          AmenitiesRoute.name,
-          initialChildren: children,
-        );
+    : super(AmenitiesRoute.name, initialChildren: children);
 
   static const String name = 'AmenitiesRoute';
 
@@ -313,10 +340,7 @@ class AmenitiesRoute extends PageRouteInfo<void> {
 /// [AutoCreditPage]
 class AutoCreditRoute extends PageRouteInfo<void> {
   const AutoCreditRoute({List<PageRouteInfo>? children})
-      : super(
-          AutoCreditRoute.name,
-          initialChildren: children,
-        );
+    : super(AutoCreditRoute.name, initialChildren: children);
 
   static const String name = 'AutoCreditRoute';
 
@@ -326,14 +350,12 @@ class AutoCreditRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [BankServicesPage]
 class BankServicesRoute extends PageRouteInfo<BankServicesRouteArgs> {
-  BankServicesRoute({
-    Key? key,
-    List<PageRouteInfo>? children,
-  }) : super(
-          BankServicesRoute.name,
-          args: BankServicesRouteArgs(key: key),
-          initialChildren: children,
-        );
+  BankServicesRoute({Key? key, List<PageRouteInfo>? children})
+    : super(
+        BankServicesRoute.name,
+        args: BankServicesRouteArgs(key: key),
+        initialChildren: children,
+      );
 
   static const String name = 'BankServicesRoute';
 
@@ -356,10 +378,7 @@ class BankServicesRouteArgs {
 /// [BookingDetailsPage]
 class BookingDetailsRoute extends PageRouteInfo<void> {
   const BookingDetailsRoute({List<PageRouteInfo>? children})
-      : super(
-          BookingDetailsRoute.name,
-          initialChildren: children,
-        );
+    : super(BookingDetailsRoute.name, initialChildren: children);
 
   static const String name = 'BookingDetailsRoute';
 
@@ -370,10 +389,7 @@ class BookingDetailsRoute extends PageRouteInfo<void> {
 /// [CardsPage]
 class CardsRoute extends PageRouteInfo<void> {
   const CardsRoute({List<PageRouteInfo>? children})
-      : super(
-          CardsRoute.name,
-          initialChildren: children,
-        );
+    : super(CardsRoute.name, initialChildren: children);
 
   static const String name = 'CardsRoute';
 
@@ -391,16 +407,16 @@ class CurrencyDetailRoute extends PageRouteInfo<CurrencyDetailRouteArgs> {
     double? sellRate,
     List<PageRouteInfo>? children,
   }) : super(
-          CurrencyDetailRoute.name,
-          args: CurrencyDetailRouteArgs(
-            key: key,
-            bankName: bankName,
-            currencyCode: currencyCode,
-            buyRate: buyRate,
-            sellRate: sellRate,
-          ),
-          initialChildren: children,
-        );
+         CurrencyDetailRoute.name,
+         args: CurrencyDetailRouteArgs(
+           key: key,
+           bankName: bankName,
+           currencyCode: currencyCode,
+           buyRate: buyRate,
+           sellRate: sellRate,
+         ),
+         initialChildren: children,
+       );
 
   static const String name = 'CurrencyDetailRoute';
 
@@ -436,14 +452,12 @@ class CurrencyDetailRouteArgs {
 /// generated route for
 /// [CurrencyRatesPage]
 class CurrencyRatesRoute extends PageRouteInfo<CurrencyRatesRouteArgs> {
-  CurrencyRatesRoute({
-    Key? key,
-    List<PageRouteInfo>? children,
-  }) : super(
-          CurrencyRatesRoute.name,
-          args: CurrencyRatesRouteArgs(key: key),
-          initialChildren: children,
-        );
+  CurrencyRatesRoute({Key? key, List<PageRouteInfo>? children})
+    : super(
+        CurrencyRatesRoute.name,
+        args: CurrencyRatesRouteArgs(key: key),
+        initialChildren: children,
+      );
 
   static const String name = 'CurrencyRatesRoute';
 
@@ -466,10 +480,7 @@ class CurrencyRatesRouteArgs {
 /// [DepositPage]
 class DepositRoute extends PageRouteInfo<void> {
   const DepositRoute({List<PageRouteInfo>? children})
-      : super(
-          DepositRoute.name,
-          initialChildren: children,
-        );
+    : super(DepositRoute.name, initialChildren: children);
 
   static const String name = 'DepositRoute';
 
@@ -480,12 +491,20 @@ class DepositRoute extends PageRouteInfo<void> {
 /// [InsuranceServicesPage]
 class InsuranceServicesRoute extends PageRouteInfo<void> {
   const InsuranceServicesRoute({List<PageRouteInfo>? children})
-      : super(
-          InsuranceServicesRoute.name,
-          initialChildren: children,
-        );
+    : super(InsuranceServicesRoute.name, initialChildren: children);
 
   static const String name = 'InsuranceServicesRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [KaskoCarsListPage]
+class KaskoCarsListRoute extends PageRouteInfo<void> {
+  const KaskoCarsListRoute({List<PageRouteInfo>? children})
+    : super(KaskoCarsListRoute.name, initialChildren: children);
+
+  static const String name = 'KaskoCarsListRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }
@@ -494,10 +513,7 @@ class InsuranceServicesRoute extends PageRouteInfo<void> {
 /// [KaskoDocumentDataPage]
 class KaskoDocumentDataRoute extends PageRouteInfo<void> {
   const KaskoDocumentDataRoute({List<PageRouteInfo>? children})
-      : super(
-          KaskoDocumentDataRoute.name,
-          initialChildren: children,
-        );
+    : super(KaskoDocumentDataRoute.name, initialChildren: children);
 
   static const String name = 'KaskoDocumentDataRoute';
 
@@ -508,12 +524,31 @@ class KaskoDocumentDataRoute extends PageRouteInfo<void> {
 /// [KaskoFormPage]
 class KaskoFormRoute extends PageRouteInfo<void> {
   const KaskoFormRoute({List<PageRouteInfo>? children})
-      : super(
-          KaskoFormRoute.name,
-          initialChildren: children,
-        );
+    : super(KaskoFormRoute.name, initialChildren: children);
 
   static const String name = 'KaskoFormRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [KaskoFormSelectionPage]
+class KaskoFormSelectionRoute extends PageRouteInfo<void> {
+  const KaskoFormSelectionRoute({List<PageRouteInfo>? children})
+    : super(KaskoFormSelectionRoute.name, initialChildren: children);
+
+  static const String name = 'KaskoFormSelectionRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [KaskoModule]
+class KaskoModuleRoute extends PageRouteInfo<void> {
+  const KaskoModuleRoute({List<PageRouteInfo>? children})
+    : super(KaskoModuleRoute.name, initialChildren: children);
+
+  static const String name = 'KaskoModuleRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }
@@ -522,10 +557,7 @@ class KaskoFormRoute extends PageRouteInfo<void> {
 /// [KaskoOrderDetailsPage]
 class KaskoOrderDetailsRoute extends PageRouteInfo<void> {
   const KaskoOrderDetailsRoute({List<PageRouteInfo>? children})
-      : super(
-          KaskoOrderDetailsRoute.name,
-          initialChildren: children,
-        );
+    : super(KaskoOrderDetailsRoute.name, initialChildren: children);
 
   static const String name = 'KaskoOrderDetailsRoute';
 
@@ -533,13 +565,53 @@ class KaskoOrderDetailsRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [KaskoPaymentPage]
+class KaskoPaymentRoute extends PageRouteInfo<KaskoPaymentRouteArgs> {
+  KaskoPaymentRoute({
+    Key? key,
+    required String orderId,
+    required double amount,
+    List<PageRouteInfo>? children,
+  }) : super(
+         KaskoPaymentRoute.name,
+         args: KaskoPaymentRouteArgs(
+           key: key,
+           orderId: orderId,
+           amount: amount,
+         ),
+         initialChildren: children,
+       );
+
+  static const String name = 'KaskoPaymentRoute';
+
+  static const PageInfo<KaskoPaymentRouteArgs> page =
+      PageInfo<KaskoPaymentRouteArgs>(name);
+}
+
+class KaskoPaymentRouteArgs {
+  const KaskoPaymentRouteArgs({
+    this.key,
+    required this.orderId,
+    required this.amount,
+  });
+
+  final Key? key;
+
+  final String orderId;
+
+  final double amount;
+
+  @override
+  String toString() {
+    return 'KaskoPaymentRouteArgs{key: $key, orderId: $orderId, amount: $amount}';
+  }
+}
+
+/// generated route for
 /// [KaskoPaymentTypePage]
 class KaskoPaymentTypeRoute extends PageRouteInfo<void> {
   const KaskoPaymentTypeRoute({List<PageRouteInfo>? children})
-      : super(
-          KaskoPaymentTypeRoute.name,
-          initialChildren: children,
-        );
+    : super(KaskoPaymentTypeRoute.name, initialChildren: children);
 
   static const String name = 'KaskoPaymentTypeRoute';
 
@@ -550,10 +622,7 @@ class KaskoPaymentTypeRoute extends PageRouteInfo<void> {
 /// [KaskoPersonalDataPage]
 class KaskoPersonalDataRoute extends PageRouteInfo<void> {
   const KaskoPersonalDataRoute({List<PageRouteInfo>? children})
-      : super(
-          KaskoPersonalDataRoute.name,
-          initialChildren: children,
-        );
+    : super(KaskoPersonalDataRoute.name, initialChildren: children);
 
   static const String name = 'KaskoPersonalDataRoute';
 
@@ -564,10 +633,7 @@ class KaskoPersonalDataRoute extends PageRouteInfo<void> {
 /// [KaskoSuccessPage]
 class KaskoSuccessRoute extends PageRouteInfo<void> {
   const KaskoSuccessRoute({List<PageRouteInfo>? children})
-      : super(
-          KaskoSuccessRoute.name,
-          initialChildren: children,
-        );
+    : super(KaskoSuccessRoute.name, initialChildren: children);
 
   static const String name = 'KaskoSuccessRoute';
 
@@ -578,10 +644,7 @@ class KaskoSuccessRoute extends PageRouteInfo<void> {
 /// [KaskoTariffPage]
 class KaskoTariffRoute extends PageRouteInfo<void> {
   const KaskoTariffRoute({List<PageRouteInfo>? children})
-      : super(
-          KaskoTariffRoute.name,
-          initialChildren: children,
-        );
+    : super(KaskoTariffRoute.name, initialChildren: children);
 
   static const String name = 'KaskoTariffRoute';
 
@@ -592,10 +655,7 @@ class KaskoTariffRoute extends PageRouteInfo<void> {
 /// [LoginForgotPasswordPage]
 class LoginForgotPasswordRoute extends PageRouteInfo<void> {
   const LoginForgotPasswordRoute({List<PageRouteInfo>? children})
-      : super(
-          LoginForgotPasswordRoute.name,
-          initialChildren: children,
-        );
+    : super(LoginForgotPasswordRoute.name, initialChildren: children);
 
   static const String name = 'LoginForgotPasswordRoute';
 
@@ -611,14 +671,14 @@ class LoginNewPasswordRoute extends PageRouteInfo<LoginNewPasswordRouteArgs> {
     required String otp,
     List<PageRouteInfo>? children,
   }) : super(
-          LoginNewPasswordRoute.name,
-          args: LoginNewPasswordRouteArgs(
-            key: key,
-            contactInfo: contactInfo,
-            otp: otp,
-          ),
-          initialChildren: children,
-        );
+         LoginNewPasswordRoute.name,
+         args: LoginNewPasswordRouteArgs(
+           key: key,
+           contactInfo: contactInfo,
+           otp: otp,
+         ),
+         initialChildren: children,
+       );
 
   static const String name = 'LoginNewPasswordRoute';
 
@@ -649,10 +709,7 @@ class LoginNewPasswordRouteArgs {
 /// [LoginPage]
 class LoginRoute extends PageRouteInfo<void> {
   const LoginRoute({List<PageRouteInfo>? children})
-      : super(
-          LoginRoute.name,
-          initialChildren: children,
-        );
+    : super(LoginRoute.name, initialChildren: children);
 
   static const String name = 'LoginRoute';
 
@@ -668,13 +725,10 @@ class LoginResetPasswordRoute
     required String contactInfo,
     List<PageRouteInfo>? children,
   }) : super(
-          LoginResetPasswordRoute.name,
-          args: LoginResetPasswordRouteArgs(
-            key: key,
-            contactInfo: contactInfo,
-          ),
-          initialChildren: children,
-        );
+         LoginResetPasswordRoute.name,
+         args: LoginResetPasswordRouteArgs(key: key, contactInfo: contactInfo),
+         initialChildren: children,
+       );
 
   static const String name = 'LoginResetPasswordRoute';
 
@@ -683,10 +737,7 @@ class LoginResetPasswordRoute
 }
 
 class LoginResetPasswordRouteArgs {
-  const LoginResetPasswordRouteArgs({
-    this.key,
-    required this.contactInfo,
-  });
+  const LoginResetPasswordRouteArgs({this.key, required this.contactInfo});
 
   final Key? key;
 
@@ -706,13 +757,10 @@ class LoginVerificationRoute extends PageRouteInfo<LoginVerificationRouteArgs> {
     required String phoneNumber,
     List<PageRouteInfo>? children,
   }) : super(
-          LoginVerificationRoute.name,
-          args: LoginVerificationRouteArgs(
-            key: key,
-            phoneNumber: phoneNumber,
-          ),
-          initialChildren: children,
-        );
+         LoginVerificationRoute.name,
+         args: LoginVerificationRouteArgs(key: key, phoneNumber: phoneNumber),
+         initialChildren: children,
+       );
 
   static const String name = 'LoginVerificationRoute';
 
@@ -721,10 +769,7 @@ class LoginVerificationRoute extends PageRouteInfo<LoginVerificationRouteArgs> {
 }
 
 class LoginVerificationRouteArgs {
-  const LoginVerificationRouteArgs({
-    this.key,
-    required this.phoneNumber,
-  });
+  const LoginVerificationRouteArgs({this.key, required this.phoneNumber});
 
   final Key? key;
 
@@ -744,13 +789,10 @@ class HomeRoute extends PageRouteInfo<HomeRouteArgs> {
     TabItem initialTab = TabItem.home,
     List<PageRouteInfo>? children,
   }) : super(
-          HomeRoute.name,
-          args: HomeRouteArgs(
-            key: key,
-            initialTab: initialTab,
-          ),
-          initialChildren: children,
-        );
+         HomeRoute.name,
+         args: HomeRouteArgs(key: key, initialTab: initialTab),
+         initialChildren: children,
+       );
 
   static const String name = 'HomeRoute';
 
@@ -758,10 +800,7 @@ class HomeRoute extends PageRouteInfo<HomeRouteArgs> {
 }
 
 class HomeRouteArgs {
-  const HomeRouteArgs({
-    this.key,
-    this.initialTab = TabItem.home,
-  });
+  const HomeRouteArgs({this.key, this.initialTab = TabItem.home});
 
   final Key? key;
 
@@ -777,10 +816,7 @@ class HomeRouteArgs {
 /// [MicroLoanPage]
 class MicroLoanRoute extends PageRouteInfo<void> {
   const MicroLoanRoute({List<PageRouteInfo>? children})
-      : super(
-          MicroLoanRoute.name,
-          initialChildren: children,
-        );
+    : super(MicroLoanRoute.name, initialChildren: children);
 
   static const String name = 'MicroLoanRoute';
 
@@ -791,10 +827,7 @@ class MicroLoanRoute extends PageRouteInfo<void> {
 /// [MortgagePage]
 class MortgageRoute extends PageRouteInfo<void> {
   const MortgageRoute({List<PageRouteInfo>? children})
-      : super(
-          MortgageRoute.name,
-          initialChildren: children,
-        );
+    : super(MortgageRoute.name, initialChildren: children);
 
   static const String name = 'MortgageRoute';
 
@@ -805,10 +838,7 @@ class MortgageRoute extends PageRouteInfo<void> {
 /// [MyOrdersPage]
 class MyOrdersRoute extends PageRouteInfo<void> {
   const MyOrdersRoute({List<PageRouteInfo>? children})
-      : super(
-          MyOrdersRoute.name,
-          initialChildren: children,
-        );
+    : super(MyOrdersRoute.name, initialChildren: children);
 
   static const String name = 'MyOrdersRoute';
 
@@ -819,10 +849,7 @@ class MyOrdersRoute extends PageRouteInfo<void> {
 /// [OnboardingPage]
 class OnboardingRoute extends PageRouteInfo<void> {
   const OnboardingRoute({List<PageRouteInfo>? children})
-      : super(
-          OnboardingRoute.name,
-          initialChildren: children,
-        );
+    : super(OnboardingRoute.name, initialChildren: children);
 
   static const String name = 'OnboardingRoute';
 
@@ -833,10 +860,7 @@ class OnboardingRoute extends PageRouteInfo<void> {
 /// [OsagoModule]
 class OsagoModuleRoute extends PageRouteInfo<void> {
   const OsagoModuleRoute({List<PageRouteInfo>? children})
-      : super(
-          OsagoModuleRoute.name,
-          initialChildren: children,
-        );
+    : super(OsagoModuleRoute.name, initialChildren: children);
 
   static const String name = 'OsagoModuleRoute';
 
@@ -847,10 +871,7 @@ class OsagoModuleRoute extends PageRouteInfo<void> {
 /// [ProfileEditPage]
 class ProfileEditRoute extends PageRouteInfo<void> {
   const ProfileEditRoute({List<PageRouteInfo>? children})
-      : super(
-          ProfileEditRoute.name,
-          initialChildren: children,
-        );
+    : super(ProfileEditRoute.name, initialChildren: children);
 
   static const String name = 'ProfileEditRoute';
 
@@ -861,10 +882,7 @@ class ProfileEditRoute extends PageRouteInfo<void> {
 /// [RegisterPage]
 class RegisterRoute extends PageRouteInfo<void> {
   const RegisterRoute({List<PageRouteInfo>? children})
-      : super(
-          RegisterRoute.name,
-          initialChildren: children,
-        );
+    : super(RegisterRoute.name, initialChildren: children);
 
   static const String name = 'RegisterRoute';
 
@@ -880,13 +898,13 @@ class RegisterVerificationRoute
     required String contactInfo,
     List<PageRouteInfo>? children,
   }) : super(
-          RegisterVerificationRoute.name,
-          args: RegisterVerificationRouteArgs(
-            key: key,
-            contactInfo: contactInfo,
-          ),
-          initialChildren: children,
-        );
+         RegisterVerificationRoute.name,
+         args: RegisterVerificationRouteArgs(
+           key: key,
+           contactInfo: contactInfo,
+         ),
+         initialChildren: children,
+       );
 
   static const String name = 'RegisterVerificationRoute';
 
@@ -895,10 +913,7 @@ class RegisterVerificationRoute
 }
 
 class RegisterVerificationRouteArgs {
-  const RegisterVerificationRouteArgs({
-    this.key,
-    required this.contactInfo,
-  });
+  const RegisterVerificationRouteArgs({this.key, required this.contactInfo});
 
   final Key? key;
 
@@ -914,10 +929,7 @@ class RegisterVerificationRouteArgs {
 /// [SecurityPage]
 class SecurityRoute extends PageRouteInfo<void> {
   const SecurityRoute({List<PageRouteInfo>? children})
-      : super(
-          SecurityRoute.name,
-          initialChildren: children,
-        );
+    : super(SecurityRoute.name, initialChildren: children);
 
   static const String name = 'SecurityRoute';
 
@@ -928,10 +940,7 @@ class SecurityRoute extends PageRouteInfo<void> {
 /// [SplashPage]
 class SplashRoute extends PageRouteInfo<void> {
   const SplashRoute({List<PageRouteInfo>? children})
-      : super(
-          SplashRoute.name,
-          initialChildren: children,
-        );
+    : super(SplashRoute.name, initialChildren: children);
 
   static const String name = 'SplashRoute';
 
@@ -942,10 +951,7 @@ class SplashRoute extends PageRouteInfo<void> {
 /// [SupportChatPage]
 class SupportChatRoute extends PageRouteInfo<void> {
   const SupportChatRoute({List<PageRouteInfo>? children})
-      : super(
-          SupportChatRoute.name,
-          initialChildren: children,
-        );
+    : super(SupportChatRoute.name, initialChildren: children);
 
   static const String name = 'SupportChatRoute';
 
@@ -956,10 +962,7 @@ class SupportChatRoute extends PageRouteInfo<void> {
 /// [SupportPage]
 class SupportRoute extends PageRouteInfo<void> {
   const SupportRoute({List<PageRouteInfo>? children})
-      : super(
-          SupportRoute.name,
-          initialChildren: children,
-        );
+    : super(SupportRoute.name, initialChildren: children);
 
   static const String name = 'SupportRoute';
 
@@ -970,10 +973,7 @@ class SupportRoute extends PageRouteInfo<void> {
 /// [TransferAppsPage]
 class TransferAppsRoute extends PageRouteInfo<void> {
   const TransferAppsRoute({List<PageRouteInfo>? children})
-      : super(
-          TransferAppsRoute.name,
-          initialChildren: children,
-        );
+    : super(TransferAppsRoute.name, initialChildren: children);
 
   static const String name = 'TransferAppsRoute';
 
@@ -988,13 +988,10 @@ class UserDetailsRoute extends PageRouteInfo<UserDetailsRouteArgs> {
     required String contactInfo,
     List<PageRouteInfo>? children,
   }) : super(
-          UserDetailsRoute.name,
-          args: UserDetailsRouteArgs(
-            key: key,
-            contactInfo: contactInfo,
-          ),
-          initialChildren: children,
-        );
+         UserDetailsRoute.name,
+         args: UserDetailsRouteArgs(key: key, contactInfo: contactInfo),
+         initialChildren: children,
+       );
 
   static const String name = 'UserDetailsRoute';
 
@@ -1003,10 +1000,7 @@ class UserDetailsRoute extends PageRouteInfo<UserDetailsRouteArgs> {
 }
 
 class UserDetailsRouteArgs {
-  const UserDetailsRouteArgs({
-    this.key,
-    required this.contactInfo,
-  });
+  const UserDetailsRouteArgs({this.key, required this.contactInfo});
 
   final Key? key;
 

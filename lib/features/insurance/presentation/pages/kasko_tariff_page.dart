@@ -1,11 +1,30 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 
+import '../../../../../core/dio/singletons/service_locator.dart';
 import '../../../../../core/navigation/app_router.dart';
+import '../../../kasko/data/datasources/kasko_remote_data_source.dart';
+import '../../../kasko/data/repositories/kasko_repository_impl.dart';
+import '../../../kasko/domain/repositories/kasko_repository.dart';
+import '../../../kasko/domain/usecases/calculate_car_price.dart' as usecases;
+import '../../../kasko/domain/usecases/calculate_policy.dart' as usecases;
+import '../../../kasko/domain/usecases/check_payment_status.dart';
+import '../../../kasko/domain/usecases/get_cars.dart';
+import '../../../kasko/domain/usecases/get_cars_minimal.dart';
+import '../../../kasko/domain/usecases/get_payment_link.dart';
+import '../../../kasko/domain/usecases/get_rates.dart';
+import '../../../kasko/domain/usecases/save_order.dart' as usecases;
+import '../../../kasko/domain/usecases/upload_image.dart' as usecases;
+import '../../../kasko/presentation/bloc/kasko_bloc.dart';
+import '../../../kasko/presentation/bloc/kasko_event.dart';
+import '../../../kasko/presentation/bloc/kasko_state.dart';
 
-// --- MA'LUMOT MODELI ---
+// --- MA'LUMOT MODELI (faqat UI uchun) ---
 class TariffModel {
   final String title;
   final String duration;
@@ -20,39 +39,57 @@ class TariffModel {
   });
 }
 
-// --- ASOSIY EKRAN ---
+// --- ASOSIY ROUTE WIDGET (Bloc bilan o'ralgan) ---
 @RoutePage()
-class KaskoTariffPage extends StatefulWidget {
+class KaskoTariffPage extends StatelessWidget {
   const KaskoTariffPage({super.key});
 
   @override
-  State<KaskoTariffPage> createState() => _KaskoTariffPageState();
+  Widget build(BuildContext context) {
+    // DI: Dio -> RemoteDataSource -> Repository -> UseCase'lar -> Bloc
+    final dio = ServiceLocator.resolve<Dio>();
+    final KaskoRepository repository = KaskoRepositoryImpl(
+      KaskoRemoteDataSourceImpl(dio),
+    );
+
+    return BlocProvider<KaskoBloc>(
+      create: (_) => KaskoBloc(
+        getCars: GetCars(repository),
+        getCarsMinimal: GetCarsMinimal(repository),
+        getRates: GetRates(repository),
+        calculateCarPrice: usecases.CalculateCarPrice(repository),
+        calculatePolicy: usecases.CalculatePolicy(repository),
+        saveOrder: usecases.SaveOrder(repository),
+        getPaymentLink: GetPaymentLink(repository),
+        checkPaymentStatus: CheckPaymentStatus(repository),
+        uploadImage: usecases.UploadImage(repository),
+      )..add(const FetchRates(forceRefresh: true)),
+      child: const _KaskoTariffContent(),
+    );
+  }
 }
 
-class _KaskoTariffPageState extends State<KaskoTariffPage> {
+// --- UI KONTENT (Stateful, faqat UI state) ---
+class _KaskoTariffContent extends StatefulWidget {
+  const _KaskoTariffContent();
+
+  @override
+  State<_KaskoTariffContent> createState() => _KaskoTariffContentState();
+}
+
+class _KaskoTariffContentState extends State<_KaskoTariffContent> {
   int _selectedCardIndex = 0;
   int _selectedTabIndex = 0;
 
-  // Ma'lumotlar ro'yxati (Data Source)
-  final List<TariffModel> _tariffs = [
-    TariffModel(
-      title: "Standart A",
-      duration: "12 oy",
-      description: "To'liq zarar qoplash 80%",
-      price: "550 000",
-    ),
-    TariffModel(
-      title: "Standart B",
-      duration: "12 oy",
-      description: "To'liq zarar qoplash 90%",
-      price: "750 000",
-    ),
-  ];
+  // API'dan kelgan tariflardan hosil qilingan UI modeli
+  List<TariffModel> _tariffs = [];
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final scaffoldBg = isDark ? const Color(0xFF121212) : const Color(0xFFF4F6F8);
+    final scaffoldBg = isDark
+        ? const Color(0xFF121212)
+        : const Color(0xFFF4F6F8);
     final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF111827);
     final subtitleColor = isDark ? Colors.grey[400]! : const Color(0xFF6B7280);
@@ -61,56 +98,153 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
     return Scaffold(
       backgroundColor: scaffoldBg,
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildCustomAppBar(cardBg, textColor),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
+        child: BlocConsumer<KaskoBloc, KaskoState>(
+          listener: (context, state) {
+            if (state is KaskoError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+          builder: (context, state) {
+            // Loading holati
+            if (state is KaskoLoading && _tariffs.isEmpty) {
+              return Center(
+                child: CircularProgressIndicator(
+                  color: const Color(0xFF0085FF),
+                ),
+              );
+            }
+
+            // Error holati
+            if (state is KaskoError && _tariffs.isEmpty) {
+              return Column(
                 children: [
-                  Text(
-                    "Tarifni tanlang",
-                    style: TextStyle(
-                      fontSize: 24.sp,
-                      fontWeight: FontWeight.w800,
-                      color: textColor,
+                  _buildCustomAppBar(cardBg, textColor),
+                  Expanded(
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24.w),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 64.sp,
+                              color: Colors.red,
+                            ),
+                            SizedBox(height: 16.h),
+                            Text(
+                              state.message,
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                color: textColor,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 24.h),
+                            ElevatedButton(
+                              onPressed: () {
+                                context.read<KaskoBloc>().add(
+                                  const FetchRates(forceRefresh: true),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0085FF),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 32.w,
+                                  vertical: 12.h,
+                                ),
+                              ),
+                              child: Text(
+                                'Qayta urinib ko\'ring',
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    "O'zingizga mos bo'lgan sug'urta tarifini tanlang",
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      color: subtitleColor,
+                ],
+              );
+            }
+
+            // Ma'lumotlar yuklanganda UI modelga o'tkazish
+            if (state is KaskoRatesLoaded && _tariffs.isEmpty) {
+              final rates = state.rates;
+              _tariffs = rates.map((rate) {
+                final minPremium = rate.minPremium ?? 0.0;
+                final formattedPrice = NumberFormat(
+                  '#,###',
+                ).format(minPremium.toInt());
+                return TariffModel(
+                  title: rate.name,
+                  duration: '12 oy',
+                  description: rate.description,
+                  price: formattedPrice,
+                );
+              }).toList();
+            }
+
+            return Column(
+              children: [
+                _buildCustomAppBar(cardBg, textColor),
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 20.h,
                     ),
-                  ),
-                  SizedBox(height: 24.h),
-
-                  // Tab Switcher
-                  _TabSelector(
-                    selectedIndex: _selectedTabIndex,
-                    onChanged: (index) => setState(() => _selectedTabIndex = index),
-                    isDark: isDark,
-                  ),
-
-                  SizedBox(height: 24.h),
-                  // Tariflar ro'yxatini generatsiya qilish
-                  ...List.generate(_tariffs.length, (index) {
-                    return Padding(
-                      padding: EdgeInsets.only(bottom: 16.h),
-                      child: _TariffCard(
-                        data: _tariffs[index],
-                        isSelected: _selectedCardIndex == index,
-                        onTap: () => setState(() => _selectedCardIndex = index),
+                    children: [
+                      Text(
+                        "Tarifni tanlang",
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          fontWeight: FontWeight.w800,
+                          color: textColor,
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        "O'zingizga mos bo'lgan sug'urta tarifini tanlang",
+                        style: TextStyle(fontSize: 14.sp, color: subtitleColor),
+                      ),
+                      SizedBox(height: 24.h),
+                      // Tab Switcher
+                      _TabSelector(
+                        selectedIndex: _selectedTabIndex,
+                        onChanged: (index) =>
+                            setState(() => _selectedTabIndex = index),
                         isDark: isDark,
                       ),
-                    );
-                  }),
-                ],
-              ),
-            ),
-            _buildBottomButton(cardBg, bottomPadding),
-          ],
+                      SizedBox(height: 24.h),
+                      // Tariflar ro'yxatini generatsiya qilish
+                      ...List.generate(_tariffs.length, (index) {
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: 16.h),
+                          child: _TariffCard(
+                            data: _tariffs[index],
+                            isSelected: _selectedCardIndex == index,
+                            onTap: () =>
+                                setState(() => _selectedCardIndex = index),
+                            isDark: isDark,
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+                _buildBottomButton(cardBg, bottomPadding),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -126,9 +260,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
             width: 44.w,
             height: 44.w,
             decoration: BoxDecoration(
-              border: Border.all(
-                color: const Color(0xFFE5E7EB),
-              ),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
               borderRadius: BorderRadius.circular(14.r),
             ),
             child: IconButton(
@@ -161,12 +293,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
 
   Widget _buildBottomButton(Color cardBg, double bottomPadding) {
     return Container(
-      padding: EdgeInsets.fromLTRB(
-        16.w,
-        16.h,
-        16.w,
-        16.h + bottomPadding,
-      ),
+      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h + bottomPadding),
       decoration: BoxDecoration(
         color: cardBg,
         boxShadow: [
@@ -259,7 +386,7 @@ class _TabSelector extends StatelessWidget {
                       color: Colors.black.withOpacity(0.04),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
-                    )
+                    ),
                   ]
                 : [],
           ),
@@ -367,10 +494,7 @@ class _TariffCard extends StatelessWidget {
                     SizedBox(height: 2.h),
                     Text(
                       data.duration,
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        color: subtitleColor,
-                      ),
+                      style: TextStyle(fontSize: 13.sp, color: subtitleColor),
                     ),
                   ],
                 ),
@@ -382,11 +506,7 @@ class _TariffCard extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     padding: EdgeInsets.all(4.w),
-                    child: Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 14.sp,
-                    ),
+                    child: Icon(Icons.check, color: Colors.white, size: 14.sp),
                   ),
               ],
             ),
@@ -395,10 +515,7 @@ class _TariffCard extends StatelessWidget {
             // Description
             Text(
               data.description,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 14.sp,
-              ),
+              style: TextStyle(color: textColor, fontSize: 14.sp),
             ),
             SizedBox(height: 20.h),
 
@@ -434,4 +551,3 @@ class _TariffCard extends StatelessWidget {
     );
   }
 }
-

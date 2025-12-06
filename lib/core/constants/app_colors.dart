@@ -46,7 +46,7 @@ class AppColors {
   static const Color midnight = Color(0xFF1F2937);
 
   // Auto Credit colors
-  static const Color darkText = Color(0xFF212529);
+  static const Color darkTextAutoCredit = Color(0xFF212529);
   static const Color mutedText = Color(0xFF6C757D);
   static const Color veryMutedText = Color(0xFFA0A0A0);
   static const Color cardBackground = Colors.white;
@@ -61,4 +61,31 @@ class AppColors {
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
+
+  // KASKO colors
+  static const Color kaskoPrimaryBlue = Color(0xFF1976D2);
+  
+  // Dark theme colors
+  static const Color darkScaffoldBg = Color(0xFF121212);
+  static const Color darkCardBg = Color(0xFF1E1E1E);
+  static const Color darkTextColor = Color(0xFFFFFFFF);
+  static const Color darkSubtitle = Color(0xFFB3B3B3);
+  static const Color darkBorder = Color(0xFF424242);
+  static const Color darkPlaceholder = Color(0xFF757575);
+  
+  // Light theme colors
+  static const Color lightScaffoldBg = Color(0xFFFFFFFF);
+  static const Color lightCardBg = Color(0xFFFFFFFF);
+  static const Color lightTextColor = Color(0xFF212121);
+  static const Color lightSubtitle = Color(0xFF757575);
+  static const Color lightBorder = Color(0xFFE0E0E0);
+  static const Color lightPlaceholder = Color(0xFF9E9E9E);
+  
+  // Helper methods for theme-aware colors
+  static Color getScaffoldBg(bool isDark) => isDark ? darkScaffoldBg : lightScaffoldBg;
+  static Color getCardBg(bool isDark) => isDark ? darkCardBg : lightCardBg;
+  static Color getTextColor(bool isDark) => isDark ? darkTextColor : lightTextColor;
+  static Color getSubtitleColor(bool isDark) => isDark ? darkSubtitle : lightSubtitle;
+  static Color getBorderColor(bool isDark) => isDark ? darkBorder : lightBorder;
+  static Color getPlaceholderColor(bool isDark) => isDark ? darkPlaceholder : lightPlaceholder;
 }

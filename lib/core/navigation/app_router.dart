@@ -12,12 +12,16 @@ import '../../features/home/presentation/widgets/main_bottom_navigation.dart';
 import '../../features/mortgage/presentation/pages/mortgage_page.dart';
 import '../../features/insurance/presentation/pages/insurance_services_page.dart';
 import '../../features/insurance/presentation/pages/kasko_form_page.dart';
-import '../../features/insurance/presentation/pages/kasko_tariff_page.dart';
 import '../../features/insurance/presentation/pages/kasko_document_data_page.dart';
 import '../../features/insurance/presentation/pages/kasko_personal_data_page.dart';
 import '../../features/insurance/presentation/pages/kasko_order_details_page.dart';
 import '../../features/insurance/presentation/pages/kasko_payment_type_page.dart';
 import '../../features/insurance/presentation/pages/kasko_success_page.dart';
+import '../../features/kasko/presentation/pages/kasko_form_selection_page.dart';
+import '../../features/kasko/presentation/pages/kasko_cars_list_page.dart';
+import '../../features/kasko/presentation/pages/kasko_payment_page.dart';
+import '../../features/kasko/presentation/pages/kasko_tariff_page.dart';
+import '../../features/kasko/kasko_module.dart';
 import '../../features/osago/osago_module.dart';
 import '../../features/micro_loan/presentation/pages/micro_loan_page.dart';
 import '../../features/profile/presentation/pages/profile_edit_page.dart';
@@ -71,6 +75,10 @@ class AppRouter extends _$AppRouter {
     AutoRoute(page: KaskoOrderDetailsRoute.page),
     AutoRoute(page: KaskoPaymentTypeRoute.page),
     AutoRoute(page: KaskoSuccessRoute.page),
+    AutoRoute(page: KaskoModuleRoute.page),
+    AutoRoute(page: KaskoFormSelectionRoute.page),
+    AutoRoute(page: KaskoCarsListRoute.page),
+    AutoRoute(page: KaskoPaymentRoute.page),
     AutoRoute(page: OsagoModuleRoute.page),
     AutoRoute(page: AutoCreditRoute.page),
     AutoRoute(page: MortgageRoute.page),

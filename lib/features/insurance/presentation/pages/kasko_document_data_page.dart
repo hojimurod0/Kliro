@@ -66,17 +66,11 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
             children: [
               Text(
                 'Avtomobil',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: subtitleColor,
-                ),
+                style: TextStyle(fontSize: 14.sp, color: subtitleColor),
               ),
               Text(
                 'Yili',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: subtitleColor,
-                ),
+                style: TextStyle(fontSize: 14.sp, color: subtitleColor),
               ),
             ],
           ),
@@ -109,17 +103,11 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
             children: [
               Text(
                 'Tarif',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: subtitleColor,
-                ),
+                style: TextStyle(fontSize: 14.sp, color: subtitleColor),
               ),
               Text(
                 'Summa',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: subtitleColor,
-                ),
+                style: TextStyle(fontSize: 14.sp, color: subtitleColor),
               ),
             ],
           ),
@@ -173,36 +161,38 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
           decoration: BoxDecoration(
             color: cardBg,
             borderRadius: BorderRadius.circular(10.0.r),
-            border: Border.all(
-              color: borderColor,
-              width: 1.5,
-            ),
+            border: Border.all(color: borderColor, width: 1.5),
           ),
           child: Row(
             children: [
               // 1. Viloyat kodi (01)
               Container(
                 width: 60.w,
-                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   border: Border(
                     right: BorderSide(color: borderColor, width: 1.5),
                   ),
                 ),
-                child: TextFormField(
-                  controller: _regionController,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
-                  keyboardType: TextInputType.number,
-                  maxLength: 2,
-                  decoration: const InputDecoration(
-                    counterText: '',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 12.0.h),
+                    child: TextFormField(
+                      controller: _regionController,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                      keyboardType: TextInputType.number,
+                      maxLength: 2,
+                      decoration: const InputDecoration(
+                        counterText: '',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -312,17 +302,11 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
                   fillColor: cardBg,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10.0.r),
-                    borderSide: BorderSide(
-                      color: borderColor,
-                      width: 1.0,
-                    ),
+                    borderSide: BorderSide(color: borderColor, width: 1.0),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10.0.r),
-                    borderSide: BorderSide(
-                      color: borderColor,
-                      width: 1.0,
-                    ),
+                    borderSide: BorderSide(color: borderColor, width: 1.0),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10.0.r),
@@ -355,17 +339,11 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
                   fillColor: cardBg,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10.0.r),
-                    borderSide: BorderSide(
-                      color: borderColor,
-                      width: 1.0,
-                    ),
+                    borderSide: BorderSide(color: borderColor, width: 1.0),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10.0.r),
-                    borderSide: BorderSide(
-                      color: borderColor,
-                      width: 1.0,
-                    ),
+                    borderSide: BorderSide(color: borderColor, width: 1.0),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10.0.r),
@@ -429,10 +407,7 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
         backgroundColor: cardBg,
         elevation: 0.5,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: textColor,
-          ),
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () {
             context.router.pop();
           },
@@ -460,7 +435,7 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
               children: <Widget>[
                 // Sarlavha
                 Text(
-                  'Hujjat ma\'lumotlari',
+                  'Ma\'lumotlarni tekshirish',
                   style: TextStyle(
                     fontSize: 24.sp,
                     fontWeight: FontWeight.bold,
@@ -471,10 +446,7 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
                 // Qo'shimcha matn
                 Text(
                   'Avtomobil raqami va texpasport ma\'lumotlarini kiriting',
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    color: subtitleColor,
-                  ),
+                  style: TextStyle(fontSize: 16.sp, color: subtitleColor),
                 ),
                 // 1. Avtomobil va Tarif kartasi
                 _buildInfoCard(isDark, textColor, subtitleColor),
@@ -529,7 +501,7 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
                     elevation: 0,
                   ),
                   child: Text(
-                    'Davom etish',
+                    'Hisoblash',
                     style: TextStyle(
                       fontSize: 18.sp,
                       fontWeight: FontWeight.bold,
@@ -545,4 +517,3 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
     );
   }
 }
-

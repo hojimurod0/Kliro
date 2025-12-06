@@ -20,8 +20,8 @@ class DriverModel with _$DriverModel {
     required DateTime driverBirthday,
     @JsonKey(name: 'relative') @Default(0) int relative,
     @JsonKey(name: 'name') String? name,
-    @JsonKey(name: 'license__seria') String? licenseSeria,
-    @JsonKey(name: 'license__number') String? licenseNumber,
+    @JsonKey(name: 'license__seria', includeIfNull: false) String? licenseSeria,
+    @JsonKey(name: 'license__number', includeIfNull: false) String? licenseNumber,
   }) = _DriverModel;
 
   factory DriverModel.fromJson(Map<String, dynamic> json) =>

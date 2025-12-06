@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import 'osago_insurance.dart';
+import 'osago_vehicle.dart';
 
 class OsagoCalcResult extends Equatable {
   const OsagoCalcResult({
@@ -11,6 +12,8 @@ class OsagoCalcResult extends Equatable {
     this.availableProviders = const <OsagoInsurance>[],
     this.ownerName,
     this.numberDriversId,
+    this.vehicle,
+    this.issueYear,
   });
 
   final String sessionId;
@@ -20,6 +23,8 @@ class OsagoCalcResult extends Equatable {
   final List<OsagoInsurance> availableProviders;
   final String? ownerName;
   final String? numberDriversId;
+  final OsagoVehicle? vehicle;
+  final int? issueYear;
 
   @override
   List<Object?> get props => [
@@ -30,5 +35,7 @@ class OsagoCalcResult extends Equatable {
     availableProviders,
     ownerName,
     numberDriversId,
+    vehicle,
+    issueYear,
   ];
 }

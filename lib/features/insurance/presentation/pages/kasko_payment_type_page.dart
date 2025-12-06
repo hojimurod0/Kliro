@@ -21,7 +21,13 @@ class KaskoPaymentTypePage extends StatefulWidget {
 }
 
 class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
-  // Ma'lumotlar
+  // Ma'lumotlar (Bular avvalgi sahifalardan kelishi kerak)
+  final String _tariffName = 'Basic';
+  final String _carNumber = '70D405DB';
+  final String _texPassport = 'AAG 0000000';
+  final String _passport = 'AA 1234567';
+  final String _birthDate = '01.01.1990';
+  final String _phone = '+998 90 123 45 67';
   final String _totalAmount = '1,200,000 sum';
 
   // Tanlangan to'lov turi
@@ -161,6 +167,102 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
     );
   }
 
+  // Ma'lumotlar ro'yxatini ko'rsatish (Web'dagidek)
+  Widget _buildInfoList(bool isDark, Color textColor, Color subtitleColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Dastur
+        _buildInfoRow(
+          label: 'Dastur:',
+          value: _tariffName,
+          isDark: isDark,
+          textColor: textColor,
+          subtitleColor: subtitleColor,
+        ),
+        SizedBox(height: 12.h),
+        // Avtomobil raqami
+        _buildInfoRow(
+          label: 'Avtomobil raqami:',
+          value: _carNumber,
+          isDark: isDark,
+          textColor: textColor,
+          subtitleColor: subtitleColor,
+        ),
+        SizedBox(height: 12.h),
+        // Texnik pasport
+        _buildInfoRow(
+          label: 'Texnik pasport:',
+          value: _texPassport,
+          isDark: isDark,
+          textColor: textColor,
+          subtitleColor: subtitleColor,
+        ),
+        SizedBox(height: 12.h),
+        // Pasport
+        _buildInfoRow(
+          label: 'Pasport:',
+          value: _passport,
+          isDark: isDark,
+          textColor: textColor,
+          subtitleColor: subtitleColor,
+        ),
+        SizedBox(height: 12.h),
+        // Tug'ilgan sana
+        _buildInfoRow(
+          label: 'Tug\'ilgan sana:',
+          value: _birthDate,
+          isDark: isDark,
+          textColor: textColor,
+          subtitleColor: subtitleColor,
+        ),
+        SizedBox(height: 12.h),
+        // Telefon
+        _buildInfoRow(
+          label: 'Telefon:',
+          value: _phone,
+          isDark: isDark,
+          textColor: textColor,
+          subtitleColor: subtitleColor,
+        ),
+      ],
+    );
+  }
+
+  // Ma'lumot qatori
+  Widget _buildInfoRow({
+    required String label,
+    required String value,
+    required bool isDark,
+    required Color textColor,
+    required Color subtitleColor,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 2,
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 16.sp, color: subtitleColor),
+          ),
+        ),
+        Expanded(
+          flex: 3,
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w500,
+              color: textColor,
+            ),
+            textAlign: TextAlign.right,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -177,10 +279,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
         backgroundColor: cardBg,
         elevation: 0.5,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: textColor,
-          ),
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () {
             context.router.pop();
           },
@@ -208,14 +307,51 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
               children: <Widget>[
                 // Sarlavha
                 Text(
-                  'To\'lov turi',
+                  'To\'lov usulini tanlang',
                   style: TextStyle(
                     fontSize: 24.sp,
                     fontWeight: FontWeight.bold,
                     color: textColor,
                   ),
                 ),
-                SizedBox(height: 20.0.h),
+                SizedBox(height: 5.h),
+                // Qadam ko'rsatkich
+                Text(
+                  'Qadam 5/5',
+                  style: TextStyle(fontSize: 14.sp, color: subtitleColor),
+                ),
+                SizedBox(height: 24.h),
+                // Ma'lumotlar ro'yxati
+                _buildInfoList(isDark, textColor, subtitleColor),
+                SizedBox(height: 24.h),
+                // To'lanadigan summa
+                Container(
+                  padding: EdgeInsets.all(16.w),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF1E3A5C)
+                        : const Color(0xFFE3F2FD),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'To\'lanadigan summa',
+                        style: TextStyle(fontSize: 16.sp, color: subtitleColor),
+                      ),
+                      Text(
+                        _totalAmount,
+                        style: TextStyle(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.bold,
+                          color: _primaryBlue,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 24.h),
                 // 1. Payme kartasi
                 _buildPaymentCard(
                   PaymentOption.payme,
@@ -260,34 +396,33 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
                 ],
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Jami Summa
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Jami summa',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: subtitleColor,
+                  // Ortga tugmasi
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        context.router.pop();
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: borderColor),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.0.r),
                         ),
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
                       ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        _totalAmount,
+                      child: Text(
+                        'Ortga',
                         style: TextStyle(
                           fontSize: 18.sp,
                           fontWeight: FontWeight.bold,
-                          color: _primaryBlue,
+                          color: textColor,
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                  // To'lash tugmasi
-                  SizedBox(
-                    height: 50.h,
+                  SizedBox(width: 12.w),
+                  // Davom etish tugmasi
+                  Expanded(
                     child: ElevatedButton(
                       onPressed: () {
                         // Keyingi sahifaga o'tish - muvaffaqiyatli yakunlanish sahifasiga
@@ -299,10 +434,10 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
                           borderRadius: BorderRadius.circular(10.0.r),
                         ),
                         elevation: 0,
-                        minimumSize: Size(120.w, 50.h),
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
                       ),
                       child: Text(
-                        'To\'lash',
+                        'Davom etish',
                         style: TextStyle(
                           fontSize: 18.sp,
                           fontWeight: FontWeight.bold,
@@ -320,4 +455,3 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
     );
   }
 }
-

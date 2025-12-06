@@ -35,6 +35,8 @@ mixin _$CreateRequest {
   String? get applicantLicenseSeria => throw _privateConstructorUsedError;
   @JsonKey(name: 'applicant__license_number')
   String? get applicantLicenseNumber => throw _privateConstructorUsedError;
+  @JsonKey(name: 'number_drivers_id')
+  String get numberDriversId => throw _privateConstructorUsedError;
   @JsonKey(
       name: 'start_date', fromJson: parseOsagoDate, toJson: formatOsagoDate)
   DateTime get startDate => throw _privateConstructorUsedError;
@@ -61,6 +63,7 @@ abstract class $CreateRequestCopyWith<$Res> {
       @JsonKey(name: 'applicant__license_seria') String? applicantLicenseSeria,
       @JsonKey(name: 'applicant__license_number')
       String? applicantLicenseNumber,
+      @JsonKey(name: 'number_drivers_id') String numberDriversId,
       @JsonKey(
           name: 'start_date', fromJson: parseOsagoDate, toJson: formatOsagoDate)
       DateTime startDate});
@@ -87,6 +90,7 @@ class _$CreateRequestCopyWithImpl<$Res, $Val extends CreateRequest>
     Object? ownerInn = freezed,
     Object? applicantLicenseSeria = freezed,
     Object? applicantLicenseNumber = freezed,
+    Object? numberDriversId = null,
     Object? startDate = null,
   }) {
     return _then(_value.copyWith(
@@ -122,6 +126,10 @@ class _$CreateRequestCopyWithImpl<$Res, $Val extends CreateRequest>
           ? _value.applicantLicenseNumber
           : applicantLicenseNumber // ignore: cast_nullable_to_non_nullable
               as String?,
+      numberDriversId: null == numberDriversId
+          ? _value.numberDriversId
+          : numberDriversId // ignore: cast_nullable_to_non_nullable
+              as String,
       startDate: null == startDate
           ? _value.startDate
           : startDate // ignore: cast_nullable_to_non_nullable
@@ -148,6 +156,7 @@ abstract class _$$CreateRequestImplCopyWith<$Res>
       @JsonKey(name: 'applicant__license_seria') String? applicantLicenseSeria,
       @JsonKey(name: 'applicant__license_number')
       String? applicantLicenseNumber,
+      @JsonKey(name: 'number_drivers_id') String numberDriversId,
       @JsonKey(
           name: 'start_date', fromJson: parseOsagoDate, toJson: formatOsagoDate)
       DateTime startDate});
@@ -172,6 +181,7 @@ class __$$CreateRequestImplCopyWithImpl<$Res>
     Object? ownerInn = freezed,
     Object? applicantLicenseSeria = freezed,
     Object? applicantLicenseNumber = freezed,
+    Object? numberDriversId = null,
     Object? startDate = null,
   }) {
     return _then(_$CreateRequestImpl(
@@ -207,6 +217,10 @@ class __$$CreateRequestImplCopyWithImpl<$Res>
           ? _value.applicantLicenseNumber
           : applicantLicenseNumber // ignore: cast_nullable_to_non_nullable
               as String?,
+      numberDriversId: null == numberDriversId
+          ? _value.numberDriversId
+          : numberDriversId // ignore: cast_nullable_to_non_nullable
+              as String,
       startDate: null == startDate
           ? _value.startDate
           : startDate // ignore: cast_nullable_to_non_nullable
@@ -227,6 +241,7 @@ class _$CreateRequestImpl implements _CreateRequest {
       @JsonKey(name: 'owner__inn') this.ownerInn,
       @JsonKey(name: 'applicant__license_seria') this.applicantLicenseSeria,
       @JsonKey(name: 'applicant__license_number') this.applicantLicenseNumber,
+      @JsonKey(name: 'number_drivers_id') required this.numberDriversId,
       @JsonKey(
           name: 'start_date', fromJson: parseOsagoDate, toJson: formatOsagoDate)
       required this.startDate})
@@ -265,13 +280,16 @@ class _$CreateRequestImpl implements _CreateRequest {
   @JsonKey(name: 'applicant__license_number')
   final String? applicantLicenseNumber;
   @override
+  @JsonKey(name: 'number_drivers_id')
+  final String numberDriversId;
+  @override
   @JsonKey(
       name: 'start_date', fromJson: parseOsagoDate, toJson: formatOsagoDate)
   final DateTime startDate;
 
   @override
   String toString() {
-    return 'CreateRequest(provider: $provider, sessionId: $sessionId, drivers: $drivers, applicantIsDriver: $applicantIsDriver, phoneNumber: $phoneNumber, ownerInn: $ownerInn, applicantLicenseSeria: $applicantLicenseSeria, applicantLicenseNumber: $applicantLicenseNumber, startDate: $startDate)';
+    return 'CreateRequest(provider: $provider, sessionId: $sessionId, drivers: $drivers, applicantIsDriver: $applicantIsDriver, phoneNumber: $phoneNumber, ownerInn: $ownerInn, applicantLicenseSeria: $applicantLicenseSeria, applicantLicenseNumber: $applicantLicenseNumber, numberDriversId: $numberDriversId, startDate: $startDate)';
   }
 
   @override
@@ -294,6 +312,8 @@ class _$CreateRequestImpl implements _CreateRequest {
                 other.applicantLicenseSeria == applicantLicenseSeria) &&
             (identical(other.applicantLicenseNumber, applicantLicenseNumber) ||
                 other.applicantLicenseNumber == applicantLicenseNumber) &&
+            (identical(other.numberDriversId, numberDriversId) ||
+                other.numberDriversId == numberDriversId) &&
             (identical(other.startDate, startDate) ||
                 other.startDate == startDate));
   }
@@ -310,6 +330,7 @@ class _$CreateRequestImpl implements _CreateRequest {
       ownerInn,
       applicantLicenseSeria,
       applicantLicenseNumber,
+      numberDriversId,
       startDate);
 
   @JsonKey(ignore: true)
@@ -338,6 +359,7 @@ abstract class _CreateRequest implements CreateRequest {
       final String? applicantLicenseSeria,
       @JsonKey(name: 'applicant__license_number')
       final String? applicantLicenseNumber,
+      @JsonKey(name: 'number_drivers_id') required final String numberDriversId,
       @JsonKey(
           name: 'start_date', fromJson: parseOsagoDate, toJson: formatOsagoDate)
       required final DateTime startDate}) = _$CreateRequestImpl;
@@ -368,6 +390,9 @@ abstract class _CreateRequest implements CreateRequest {
   @override
   @JsonKey(name: 'applicant__license_number')
   String? get applicantLicenseNumber;
+  @override
+  @JsonKey(name: 'number_drivers_id')
+  String get numberDriversId;
   @override
   @JsonKey(
       name: 'start_date', fromJson: parseOsagoDate, toJson: formatOsagoDate)

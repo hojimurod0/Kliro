@@ -33,9 +33,9 @@ mixin _$DriverModel {
   int get relative => throw _privateConstructorUsedError;
   @JsonKey(name: 'name')
   String? get name => throw _privateConstructorUsedError;
-  @JsonKey(name: 'license__seria')
+  @JsonKey(name: 'license__seria', includeIfNull: false)
   String? get licenseSeria => throw _privateConstructorUsedError;
-  @JsonKey(name: 'license__number')
+  @JsonKey(name: 'license__number', includeIfNull: false)
   String? get licenseNumber => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -60,8 +60,10 @@ abstract class $DriverModelCopyWith<$Res> {
       DateTime driverBirthday,
       @JsonKey(name: 'relative') int relative,
       @JsonKey(name: 'name') String? name,
-      @JsonKey(name: 'license__seria') String? licenseSeria,
-      @JsonKey(name: 'license__number') String? licenseNumber});
+      @JsonKey(name: 'license__seria', includeIfNull: false)
+      String? licenseSeria,
+      @JsonKey(name: 'license__number', includeIfNull: false)
+      String? licenseNumber});
 }
 
 /// @nodoc
@@ -136,8 +138,10 @@ abstract class _$$DriverModelImplCopyWith<$Res>
       DateTime driverBirthday,
       @JsonKey(name: 'relative') int relative,
       @JsonKey(name: 'name') String? name,
-      @JsonKey(name: 'license__seria') String? licenseSeria,
-      @JsonKey(name: 'license__number') String? licenseNumber});
+      @JsonKey(name: 'license__seria', includeIfNull: false)
+      String? licenseSeria,
+      @JsonKey(name: 'license__number', includeIfNull: false)
+      String? licenseNumber});
 }
 
 /// @nodoc
@@ -205,8 +209,9 @@ class _$DriverModelImpl implements _DriverModel {
       required this.driverBirthday,
       @JsonKey(name: 'relative') this.relative = 0,
       @JsonKey(name: 'name') this.name,
-      @JsonKey(name: 'license__seria') this.licenseSeria,
-      @JsonKey(name: 'license__number') this.licenseNumber});
+      @JsonKey(name: 'license__seria', includeIfNull: false) this.licenseSeria,
+      @JsonKey(name: 'license__number', includeIfNull: false)
+      this.licenseNumber});
 
   factory _$DriverModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$DriverModelImplFromJson(json);
@@ -230,10 +235,10 @@ class _$DriverModelImpl implements _DriverModel {
   @JsonKey(name: 'name')
   final String? name;
   @override
-  @JsonKey(name: 'license__seria')
+  @JsonKey(name: 'license__seria', includeIfNull: false)
   final String? licenseSeria;
   @override
-  @JsonKey(name: 'license__number')
+  @JsonKey(name: 'license__number', includeIfNull: false)
   final String? licenseNumber;
 
   @override
@@ -291,8 +296,9 @@ abstract class _DriverModel implements DriverModel {
       required final DateTime driverBirthday,
       @JsonKey(name: 'relative') final int relative,
       @JsonKey(name: 'name') final String? name,
-      @JsonKey(name: 'license__seria') final String? licenseSeria,
-      @JsonKey(name: 'license__number')
+      @JsonKey(name: 'license__seria', includeIfNull: false)
+      final String? licenseSeria,
+      @JsonKey(name: 'license__number', includeIfNull: false)
       final String? licenseNumber}) = _$DriverModelImpl;
 
   factory _DriverModel.fromJson(Map<String, dynamic> json) =
@@ -317,10 +323,10 @@ abstract class _DriverModel implements DriverModel {
   @JsonKey(name: 'name')
   String? get name;
   @override
-  @JsonKey(name: 'license__seria')
+  @JsonKey(name: 'license__seria', includeIfNull: false)
   String? get licenseSeria;
   @override
-  @JsonKey(name: 'license__number')
+  @JsonKey(name: 'license__number', includeIfNull: false)
   String? get licenseNumber;
   @override
   @JsonKey(ignore: true)
