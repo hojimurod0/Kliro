@@ -148,7 +148,7 @@ class _AutoCreditPageState extends State<AutoCreditPage> {
           style: TextStyle(
             color:
                 Theme.of(context).textTheme.titleLarge?.color ??
-                AppColors.darkText,
+                AppColors.darkTextAutoCredit,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -629,7 +629,7 @@ class _AutoCreditOfferCardState extends State<AutoCreditOfferCard> {
                   fontWeight: FontWeight.w600,
                   color:
                       Theme.of(context).textTheme.titleLarge?.color ??
-                      AppColors.darkText,
+                      AppColors.darkTextAutoCredit,
                 ),
               ),
             ],
@@ -769,7 +769,7 @@ class _AutoCreditOfferCardState extends State<AutoCreditOfferCard> {
                     fontSize: 14.sp,
                     color:
                         Theme.of(context).textTheme.titleLarge?.color ??
-                        AppColors.darkText,
+                        AppColors.darkTextAutoCredit,
                   ),
                 ),
                 Icon(
@@ -909,7 +909,7 @@ class AutoCreditMetricBox extends StatelessWidget {
                         color:
                             valueColor ??
                             (Theme.of(context).textTheme.titleLarge?.color ??
-                                AppColors.darkText),
+                                AppColors.darkTextAutoCredit),
                       ),
                     );
                   },

@@ -30,8 +30,24 @@ class DioClient {
           handler.next(options);
         },
         onError: (error, handler) async {
+          // 401 xatolik - token yangilash yoki logout
           if (error.response?.statusCode == 401) {
-            await _authService.clearSession();
+            // Token refresh mexanizmi (agar mavjud bo'lsa)
+            final refreshToken = await _authService.getRefreshToken();
+            if (refreshToken != null && refreshToken.isNotEmpty) {
+              try {
+                // Token yangilash logikasi shu yerda bo'lishi mumkin
+                // Hozircha faqat session ni tozalaymiz
+                await _authService.clearSession();
+              } catch (e) {
+                // Token yangilash muvaffaqiyatsiz bo'lsa, session ni tozalaymiz
+                await _authService.clearSession();
+              }
+            } else {
+              // Refresh token yo'q bo'lsa, session ni tozalaymiz
+              await _authService.clearSession();
+            }
+            
             handler.next(
               DioException(
                 requestOptions: error.requestOptions,

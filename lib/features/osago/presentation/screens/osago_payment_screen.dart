@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -6,8 +7,6 @@ import '../../logic/bloc/osago_event.dart';
 import '../../logic/bloc/osago_state.dart';
 import 'osago_order_confirmation_screen.dart';
 import 'osago_success_screen.dart';
-
-const Color _primaryBlue = Color(0xFF0091EA);
 
 class OsagoPaymentScreen extends StatefulWidget {
   const OsagoPaymentScreen({super.key});
@@ -49,22 +48,31 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
         
         if (vehicle == null || insurance == null || calc == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('To\'lov')),
-            body: const Center(child: Text('Ma\'lumotlar topilmadi')),
+            appBar: AppBar(title: Text('insurance.osago.payment.title'.tr())),
+            body: Center(child: Text('insurance.osago.payment.no_data'.tr())),
           );
         }
 
         final formattedGosNumber = _formatGosNumber(vehicle.gosNumber);
         final formattedPhone = _formatPhone(insurance.phoneNumber);
         final formattedStartDate = _formatDate(insurance.startDate);
-        final osagoType = vehicle.isOwner ? 'Individual' : 'Juridik';
+        final osagoType = vehicle.isOwner 
+            ? 'insurance.osago.check.individual'.tr() 
+            : 'insurance.osago.check.juridical'.tr();
         final amountText = '${calc.amount.toStringAsFixed(0).replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]} ',
         )} sum';
 
         return Scaffold(
-          appBar: AppBar(title: const Text('OSAGO')),
+          appBar: AppBar(
+            title: Text('insurance.osago.payment.title'.tr()),
+            backgroundColor: Theme.of(context).cardColor,
+            iconTheme: IconThemeData(color: Theme.of(context).textTheme.titleLarge?.color),
+            titleTextStyle: TextStyle(
+              color: Theme.of(context).textTheme.titleLarge?.color,
+            ),
+          ),
           body: Stack(
             children: [
               Column(
@@ -75,48 +83,45 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Order Information',
+                          Text(
+                            'insurance.osago.payment.order_info'.tr(),
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
+                              color: Theme.of(context).textTheme.titleLarge?.color,
                             ),
                           ),
                           const SizedBox(height: 20),
-                          _buildInfoRow('Vehicle Number', formattedGosNumber, showFlag: true),
-                          _buildInfoRow('Car Make', '${vehicle.brand} ${vehicle.model}'),
-                          _buildInfoRow('Passport Series', '${vehicle.ownerPassportSeria} ${vehicle.ownerPassportNumber}'),
-                          _buildInfoRow('Technical Passport Number', '${vehicle.techSeria} ${vehicle.techNumber}'),
-                          _buildInfoRow('Type of OSAGO', osagoType),
-                          _buildInfoRow('Insurance Term', '${insurance.periodId} months'),
-                          _buildInfoRow('Insurance Company', insurance.companyName),
-                          _buildInfoRow('Start Date', formattedStartDate),
-                          _buildInfoRow('Phone', formattedPhone),
+                          _buildInfoRow('insurance.osago.payment.vehicle_number'.tr(), formattedGosNumber, showFlag: true),
+                          _buildInfoRow('insurance.osago.payment.car_make'.tr(), '${vehicle.brand} ${vehicle.model}'),
+                          _buildInfoRow('insurance.osago.payment.passport_series'.tr(), '${vehicle.ownerPassportSeria} ${vehicle.ownerPassportNumber}'),
+                          _buildInfoRow('insurance.osago.payment.tech_passport'.tr(), '${vehicle.techSeria} ${vehicle.techNumber}'),
+                          _buildInfoRow('insurance.osago.payment.osago_type'.tr(), osagoType),
+                          _buildInfoRow('insurance.osago.payment.insurance_term'.tr(), '${insurance.periodId} ${'insurance.osago.preview.months'.tr()}'),
+                          _buildInfoRow('insurance.osago.payment.insurance_company'.tr(), insurance.companyName),
+                          _buildInfoRow('insurance.osago.payment.start_date'.tr(), formattedStartDate),
+                          _buildInfoRow('insurance.osago.payment.phone'.tr(), formattedPhone),
                           const SizedBox(height: 24),
                           // Выбор метода оплаты
-                          const Text(
-                            'To\'lov turi',
+                          Text(
+                            'insurance.osago.preview.payment_type'.tr(),
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
+                              color: Theme.of(context).textTheme.titleLarge?.color,
                             ),
                           ),
                           const SizedBox(height: 12),
-                          RadioListTile<String>(
-                            title: const Text('Payme'),
-                            value: 'payme',
-                            groupValue: _selectedMethod,
-                            onChanged: isLoading ? null : _onMethodChanged,
-                            activeColor: _primaryBlue,
-                            contentPadding: EdgeInsets.zero,
+                          _buildPaymentMethodCard(
+                            'payme',
+                            'insurance.osago.payment.payment_method_payme'.tr(),
+                            _buildPaymeLogo(),
                           ),
-                          RadioListTile<String>(
-                            title: const Text('Click'),
-                            value: 'click',
-                            groupValue: _selectedMethod,
-                            onChanged: isLoading ? null : _onMethodChanged,
-                            activeColor: _primaryBlue,
-                            contentPadding: EdgeInsets.zero,
+                          const SizedBox(height: 12),
+                          _buildPaymentMethodCard(
+                            'click',
+                            'insurance.osago.payment.payment_method_click'.tr(),
+                            _buildClickLogo(),
                           ),
                         ],
                       ),
@@ -126,7 +131,7 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.05),
@@ -143,20 +148,20 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text(
-                                  'Jami summa',
+                                Text(
+                                  'insurance.osago.payment.total_amount'.tr(),
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: Colors.grey,
+                                    color: Theme.of(context).textTheme.bodySmall?.color,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   amountText,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: _primaryBlue,
+                                    color: Theme.of(context).colorScheme.primary,
                                   ),
                                 ),
                               ],
@@ -171,16 +176,16 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
                                   ? null
                                   : _onPayPressed,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: _primaryBlue,
+                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 elevation: 0,
                               ),
-                              child: const Text(
-                                'To\'lash',
-                                style: TextStyle(
-                                  color: Colors.white,
+                              child: Text(
+                                'insurance.osago.payment.pay'.tr(),
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -194,10 +199,16 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
                 ],
               ),
               if (isLoading)
-                const Positioned.fill(
+                Positioned.fill(
                   child: ColoredBox(
                     color: Colors.black38,
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
             ],
@@ -208,6 +219,7 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
   }
 
   Widget _buildInfoRow(String label, String value, {bool showFlag = false}) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -217,9 +229,9 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
             flex: 2,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey,
+                color: theme.textTheme.bodySmall?.color,
               ),
             ),
           ),
@@ -247,10 +259,10 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
                 Expanded(
                   child: Text(
                     value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Colors.black,
+                      color: theme.textTheme.bodyLarge?.color,
                     ),
                   ),
                 ),
@@ -302,7 +314,7 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
     if (_selectedMethod == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('To\'lov turini tanlang')));
+      ).showSnackBar(SnackBar(content: Text('insurance.osago.payment.select_payment_method'.tr())));
       return;
     }
     
@@ -316,6 +328,139 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
         builder: (_) => BlocProvider.value(
           value: context.read<OsagoBloc>(),
           child: const OsagoOrderConfirmationScreen(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentMethodCard(String value, String title, Widget logo) {
+    final isSelected = _selectedMethod == value;
+    final isLoading = context.read<OsagoBloc>().state is OsagoLoading;
+    
+    return InkWell(
+      onTap: isLoading ? null : () => _onMethodChanged(value),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).dividerColor,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            // Logo (circular)
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+              ),
+              child: logo,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+            ),
+            // Radio button
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).dividerColor,
+                  width: 2,
+                ),
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.transparent,
+              ),
+              child: isSelected
+                  ? Icon(
+                      Icons.check,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    )
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymeLogo() {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'pay',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              'me',
+              style: TextStyle(
+                color: Color(0xFF00D4AA), // Teal color
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClickLogo() {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Color(0xFF0066FF), // Blue color
+      ),
+      child: Center(
+        child: Container(
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+          ),
+          child: Center(
+            child: Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFF0066FF),
+              ),
+            ),
+          ),
         ),
       ),
     );

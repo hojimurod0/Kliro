@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/app_exception.dart';
+import '../../domain/entities/osago_driver.dart';
 import '../../domain/entities/osago_insurance.dart';
 import '../../domain/usecases/calc_osago.dart';
 import '../../domain/usecases/check_osago_status.dart';
@@ -20,12 +21,21 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
        _createOsagoPolicy = createOsagoPolicy,
        _checkOsagoStatus = checkOsagoStatus,
        super(const OsagoInitial()) {
+    log(
+      '[OSAGO_BLOC] OsagoBloc yaratildi, event handlerlar ro\'yxatdan o\'tkazilmoqda...',
+      name: 'OSAGO',
+    );
     on<LoadVehicleData>(_onLoadVehicleData);
+    on<FetchVehicleInfo>(_onFetchVehicleInfo);
     on<LoadInsuranceCompany>(_onLoadInsuranceCompany);
     on<CalcRequested>(_onCalcRequested);
     on<CreatePolicyRequested>(_onCreatePolicyRequested);
     on<PaymentSelected>(_onPaymentSelected);
     on<CheckPolicyRequested>(_onCheckPolicyRequested);
+    log(
+      '[OSAGO_BLOC] ✅ Barcha event handlerlar ro\'yxatdan o\'tkazildi',
+      name: 'OSAGO',
+    );
   }
 
   final CalcOsago _calcOsago;
@@ -44,6 +54,13 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
       name: 'OSAGO',
     );
     log('[OSAGO_BLOC] Drivers count: ${event.drivers.length}', name: 'OSAGO');
+    for (var i = 0; i < event.drivers.length; i++) {
+      final d = event.drivers[i];
+      log(
+        '[OSAGO_BLOC] LoadVehicleData Driver[$i]: passport=${d.passportSeria} ${d.passportNumber}, relative=${d.relative}',
+        name: 'OSAGO',
+      );
+    }
     log(
       '[OSAGO_BLOC] OSAGO type: ${event.osagoType}, periodId: ${event.periodId}',
       name: 'OSAGO',
@@ -62,6 +79,74 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
     );
 
     log('[OSAGO_BLOC] ✅ OsagoVehicleFilled state emit qilindi', name: 'OSAGO');
+  }
+
+  Future<void> _onFetchVehicleInfo(
+    FetchVehicleInfo event,
+    Emitter<OsagoState> emit,
+  ) async {
+    log('[OSAGO_BLOC] FetchVehicleInfo event qabul qilindi', name: 'OSAGO');
+    log(
+      '[OSAGO_BLOC] Vehicle: gosNumber=${event.vehicle.gosNumber}, techSeria=${event.vehicle.techSeria}, techNumber=${event.vehicle.techNumber}',
+      name: 'OSAGO',
+    );
+
+    emit(OsagoLoading(vehicle: event.vehicle, osagoType: event.osagoType));
+
+    try {
+      // Calc API ni chaqirish - tanlangan periodId yoki default bilan
+      final periodId = event.periodId ?? '12'; // Default: 12 oy
+      final tempInsurance = OsagoInsurance(
+        provider: 'neo',
+        companyName: 'NEO Insurance',
+        periodId: periodId,
+        numberDriversId: '5', // Default: cheklangan
+        startDate: DateTime.now(),
+        phoneNumber: '+998',
+        ownerInn: '',
+        isUnlimited: false,
+      );
+
+      final calcResult = await _calcOsago(
+        vehicle: event.vehicle,
+        insurance: tempInsurance,
+      );
+
+      log(
+        '[OSAGO_BLOC] ✅ Calc muvaffaqiyatli: brand=${calcResult.vehicle?.brand}, model=${calcResult.vehicle?.model}, ownerName=${calcResult.ownerName}',
+        name: 'OSAGO',
+      );
+
+      // Vehicle ma'lumotlarini yangilash
+      final updatedVehicle = calcResult.vehicle ?? event.vehicle;
+
+      emit(
+        OsagoVehicleFilled(
+          vehicle: updatedVehicle,
+          drivers: const [],
+          gosNumber: event.vehicle.gosNumber,
+          periodId: event.periodId,
+          ownerName: calcResult.ownerName,
+          osagoType: event.osagoType,
+          birthDate: updatedVehicle.ownerBirthDate,
+          calcResponse: calcResult,
+        ),
+      );
+    } catch (e, stackTrace) {
+      log(
+        '[OSAGO_BLOC] ❌ FetchVehicleInfo xatosi: $e',
+        name: 'OSAGO',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      emit(
+        OsagoFailure(
+          message: e.toString(),
+          vehicle: event.vehicle,
+          osagoType: event.osagoType,
+        ),
+      );
+    }
   }
 
   void _onLoadInsuranceCompany(
@@ -84,56 +169,71 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
       emit(_failureState('Avtomobil ma\'lumotlari topilmadi'));
       return;
     }
+    
+    // MUHIM: Agar state OsagoVehicleFilled bo'lsa va drivers mavjud bo'lsa, ularni saqlash
+    // Bu LoadVehicleData event dan keyin kelgan drivers ni saqlashni ta'minlaydi
+    List<OsagoDriver> currentDrivers = state.drivers;
+    if (state is OsagoVehicleFilled && state.drivers.isNotEmpty) {
+      currentDrivers = state.drivers;
+      log(
+        '[OSAGO_BLOC] OsagoVehicleFilled state dan ${currentDrivers.length} ta haydovchi olingan',
+        name: 'OSAGO',
+      );
+    }
 
     // OSAGO type va provider ga qarab numberDriversId ni map qilish
-    // Agar event.insurance.numberDriversId to'g'ri bo'lmasa, provider va OSAGO type dan olamiz
-    String finalNumberDriversId = event.insurance.numberDriversId;
+    // MUHIM: Provider tekshiruvi ustunlik qiladi - har doim tekshiramiz
+    final osagoType = state.osagoType;
+    final provider = event.insurance.provider;
+    String finalNumberDriversId;
+
     log(
-      '[OSAGO_BLOC] Initial numberDriversId: $finalNumberDriversId',
+      '[OSAGO_BLOC] Initial numberDriversId: ${event.insurance.numberDriversId}, provider=$provider, osagoType=$osagoType',
       name: 'OSAGO',
     );
 
-    if (finalNumberDriversId != '0' && finalNumberDriversId != '5') {
+    // Provider ga qarab mapping (ustunlik) - har doim tekshiramiz
+    final providerLower = provider.toLowerCase();
+    if (providerLower == 'neo') {
+      // NEO -> cheklanmagan (0) - nechta bo'lsa, hammasini qo'shadi
+      finalNumberDriversId = '0';
       log(
-        '[OSAGO_BLOC] ⚠️ numberDriversId noto\'g\'ri, mapping qilinmoqda...',
+        '[OSAGO_BLOC] ✅ Provider=NEO, finalNumberDriversId=0 (Cheklanmagan)',
         name: 'OSAGO',
       );
-      // Provider va OSAGO type dan map qilish
-      final osagoType = state.osagoType;
-      final provider = event.insurance.provider;
-
+    } else if (providerLower == 'gusto') {
+      // GUSTO -> cheklangan (5) - 5 tagacha
+      finalNumberDriversId = '5';
       log(
-        '[OSAGO_BLOC] Mapping uchun: osagoType=$osagoType, provider=$provider',
+        '[OSAGO_BLOC] ✅ Provider=GUSTO, finalNumberDriversId=5 (Cheklangan)',
         name: 'OSAGO',
       );
-
-      // Provider ga qarab mapping (ustunlik)
-      final providerLower = provider.toLowerCase();
-      if (providerLower == 'neo') {
-        // NEO -> cheklanmagan (0) - nechta bo'lsa, hammasini qo'shadi
+    } else if (providerLower == 'gross') {
+      // GROSS -> cheklangan (5) - 5 tagacha
+      finalNumberDriversId = '5';
+      log(
+        '[OSAGO_BLOC] ✅ Provider=GROSS, finalNumberDriversId=5 (Cheklangan)',
+        name: 'OSAGO',
+      );
+    } else {
+      // OSAGO type yoki event.insurance.numberDriversId dan map qilish
+      final tempNumberDriversId = event.insurance.numberDriversId;
+      if (tempNumberDriversId == '0' || tempNumberDriversId == '5') {
+        finalNumberDriversId = tempNumberDriversId;
+        log(
+          '[OSAGO_BLOC] ✅ Event dan numberDriversId=$finalNumberDriversId',
+          name: 'OSAGO',
+        );
+      } else if (osagoType != null &&
+          osagoType.toLowerCase().contains('cheklanmagan')) {
         finalNumberDriversId = '0';
-        log('[OSAGO_BLOC] Mapping: NEO -> 0 (cheklanmagan)', name: 'OSAGO');
-      } else if (providerLower == 'gusto') {
-        // GUSTO -> cheklangan (5) - 5 tagacha
-        finalNumberDriversId = '5';
-        log('[OSAGO_BLOC] Mapping: GUSTO -> 5 (cheklangan)', name: 'OSAGO');
-      } else if (providerLower == 'gross') {
-        // GROSS -> default (5)
-        finalNumberDriversId = '5';
-        log('[OSAGO_BLOC] Mapping: GROSS -> 5 (default)', name: 'OSAGO');
+        log(
+          '[OSAGO_BLOC] Mapping: OSAGO type (cheklanmagan) -> 0',
+          name: 'OSAGO',
+        );
       } else {
-        // OSAGO type dan map qilish
-        if (osagoType != null &&
-            osagoType.toLowerCase().contains('cheklanmagan')) {
-          finalNumberDriversId = '0';
-          log(
-            '[OSAGO_BLOC] Mapping: OSAGO type (cheklanmagan) -> 0',
-            name: 'OSAGO',
-          );
-        } else {
-          finalNumberDriversId = '5'; // Default: limited
-          log('[OSAGO_BLOC] Mapping: OSAGO type (default) -> 5', name: 'OSAGO');
-        }
+        finalNumberDriversId = '5'; // Default: limited
+        log('[OSAGO_BLOC] Mapping: Default -> 5', name: 'OSAGO');
       }
     }
 
@@ -158,12 +258,25 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
       '[OSAGO_BLOC] Updated insurance yaratildi: isUnlimited=${updatedInsurance.isUnlimited}',
       name: 'OSAGO',
     );
+    
+    // MUHIM: Drivers ni tekshirish va log qilish
+    log(
+      '[OSAGO_BLOC] LoadInsuranceCompany: currentDrivers count=${currentDrivers.length}',
+      name: 'OSAGO',
+    );
+    for (var i = 0; i < currentDrivers.length; i++) {
+      final d = currentDrivers[i];
+      log(
+        '[OSAGO_BLOC] LoadInsuranceCompany Driver[$i]: passport=${d.passportSeria} ${d.passportNumber}, relative=${d.relative}',
+        name: 'OSAGO',
+      );
+    }
 
     // State ni yangilash - tez operatsiya
     emit(
       OsagoCompanyFilled(
         vehicle: currentVehicle,
-        drivers: state.drivers,
+        drivers: currentDrivers, // Drivers ni saqlash
         insurance: updatedInsurance,
         gosNumber: state.gosNumber,
         periodId: state.periodId ?? updatedInsurance.periodId,
@@ -243,6 +356,10 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
     );
 
     // Loading state ni emit qilish - tez operatsiya
+    log(
+      '[OSAGO_BLOC] OsagoLoading state emit qilinmoqda: drivers count=${state.drivers.length}',
+      name: 'OSAGO',
+    );
     emit(
       OsagoLoading(
         vehicle: vehicle,
@@ -308,6 +425,10 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
       );
 
       // Success state ni emit qilish
+      log(
+        '[OSAGO_BLOC] OsagoCalcSuccess state emit qilinmoqda: drivers count=${state.drivers.length}',
+        name: 'OSAGO',
+      );
       emit(
         OsagoCalcSuccess(
           vehicle: vehicle,
@@ -369,14 +490,50 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
       emit(_failureState('Hisoblash natijasi topilmadi'));
       return;
     }
-    if (state.drivers.isEmpty) {
-      log('[OSAGO_BLOC] ❌ Haydovchi ma\'lumotlari kiritilmagan', name: 'OSAGO');
-      emit(_failureState('Haydovchi ma\'lumotlari kiritilmagan'));
-      return;
+
+    // Agar haydovchilar bo'sh bo'lsa, egasining ma'lumotlaridan avtomatik yaratamiz
+    List<OsagoDriver> drivers = state.drivers;
+    if (drivers.isEmpty) {
+      log(
+        '[OSAGO_BLOC] ⚠️ Haydovchilar bo\'sh, egasining ma\'lumotlaridan yaratilmoqda...',
+        name: 'OSAGO',
+      );
+      final ownerName = state.ownerName ?? calcResponse.ownerName;
+      // Tug'ilgan sanani olish: state.birthDate yoki vehicle.ownerBirthDate
+      // Agar ikkalasi ham hozirgi vaqt bo'lsa, 30 yil oldin sanani ishlatamiz (default)
+      DateTime driverBirthday = state.birthDate ?? vehicle.ownerBirthDate;
+      if (driverBirthday.year == DateTime.now().year &&
+          driverBirthday.month == DateTime.now().month &&
+          driverBirthday.day == DateTime.now().day) {
+        // Agar hozirgi sana bo'lsa, 30 yil oldin sanani ishlatamiz
+        driverBirthday = DateTime.now().subtract(
+          const Duration(days: 365 * 30),
+        );
+        log(
+          '[OSAGO_BLOC] ⚠️ Tug\'ilgan sana to\'g\'ri emas, default sana ishlatilmoqda: $driverBirthday',
+          name: 'OSAGO',
+        );
+      }
+      drivers = [
+        OsagoDriver(
+          passportSeria: vehicle.ownerPassportSeria,
+          passportNumber: vehicle.ownerPassportNumber,
+          driverBirthday: driverBirthday,
+          relative: 0,
+          name: ownerName,
+          // License ma'lumotlari optional, shuning uchun null qoldiramiz
+          licenseSeria: null,
+          licenseNumber: null,
+        ),
+      ];
+      log(
+        '[OSAGO_BLOC] ✅ Haydovchi yaratildi: passport=${vehicle.ownerPassportSeria} ${vehicle.ownerPassportNumber}, name=$ownerName, birthday=$driverBirthday',
+        name: 'OSAGO',
+      );
     }
 
     log(
-      '[OSAGO_BLOC] Create uchun: sessionId=${calcResponse.sessionId}, drivers count=${state.drivers.length}',
+      '[OSAGO_BLOC] Create uchun: sessionId=${calcResponse.sessionId}, drivers count=${drivers.length}',
       name: 'OSAGO',
     );
 
@@ -386,7 +543,7 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
     emit(
       OsagoLoading(
         vehicle: vehicle,
-        drivers: state.drivers,
+        drivers: drivers,
         insurance: insurance,
         calcResponse: calcResponse,
         paymentMethod: state.paymentMethod,
@@ -403,16 +560,21 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
     log('[OSAGO_BLOC] API create chaqiruvi boshlandi...', name: 'OSAGO');
 
     try {
-      // Postman collection ga ko'ra: create requestda number_drivers_id yo'q
-      // Shuningdek, applicant_is_driver doim false bo'lishi kerak
+      // numberDriversId ni state yoki calcResponse dan olamiz
+      final finalNumberDriversId =
+          state.numberDriversId ?? calcResponse.numberDriversId;
+      log(
+        '[OSAGO_BLOC] Create uchun numberDriversId: $finalNumberDriversId',
+        name: 'OSAGO',
+      );
+
       final response = await _createOsagoPolicy(
         sessionId: calcResponse.sessionId,
-        drivers: state.drivers,
+        drivers: drivers,
         insurance: insurance,
         vehicle: vehicle,
         ownerName: state.ownerName ?? calcResponse.ownerName,
-        numberDriversId:
-            null, // Create requestda ishlatilmaydi (Postman collection ga ko'ra)
+        numberDriversId: finalNumberDriversId, // number_drivers_id ni uzatamiz
       );
 
       log(
@@ -423,12 +585,27 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
         '[OSAGO_BLOC] Create response: amount=${response.amount}, paymentUrl=${response.paymentUrl}',
         name: 'OSAGO',
       );
+      log(
+        '[OSAGO_BLOC] Payment URLs: clickUrl=${response.clickUrl}, paymeUrl=${response.paymeUrl}',
+        name: 'OSAGO',
+      );
 
       _checkAttempts = 0;
+      log(
+        '[OSAGO_BLOC] OsagoCreateSuccess state emit qilinmoqda: drivers count=${drivers.length}',
+        name: 'OSAGO',
+      );
+      for (var i = 0; i < drivers.length; i++) {
+        final d = drivers[i];
+        log(
+          '[OSAGO_BLOC] Driver[$i] in CreateSuccess: passport=${d.passportSeria} ${d.passportNumber}, relative=${d.relative}',
+          name: 'OSAGO',
+        );
+      }
       emit(
         OsagoCreateSuccess(
           vehicle: vehicle,
-          drivers: state.drivers,
+          drivers: drivers,
           insurance: insurance,
           calcResponse: calcResponse,
           createResponse: response,
@@ -463,35 +640,54 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
       name: 'OSAGO',
     );
 
-    if (state is! OsagoCreateSuccess || state.createResponse == null) {
-      log(
-        '[OSAGO_BLOC] ❌ To\'lov tanlash uchun buyurtma yaratilmagan',
-        name: 'OSAGO',
-      );
-      emit(
-        _failureState('To\'lovni amalga oshirishdan avval buyurtma yarating'),
-      );
-      return;
-    }
-
     log('[OSAGO_BLOC] ✅ To\'lov turi tanlandi: ${event.method}', name: 'OSAGO');
 
-    emit(
-      OsagoCreateSuccess(
-        vehicle: state.vehicle!,
-        drivers: state.drivers,
-        insurance: state.insurance!,
-        calcResponse: state.calcResponse!,
-        createResponse: state.createResponse!,
-        paymentMethod: event.method,
-        gosNumber: state.gosNumber,
-        periodId: state.periodId,
-        numberDriversId: state.numberDriversId,
-        ownerName: state.ownerName,
-        birthDate: state.birthDate,
-        osagoType: state.osagoType,
-      ),
-    );
+    // To'lov turini saqlash - state ni yangilash
+    if (state.createResponse != null) {
+      // Agar policy allaqachon yaratilgan bo'lsa, OsagoCreateSuccess state ni yangilaymiz
+      emit(
+        OsagoCreateSuccess(
+          vehicle: state.vehicle!,
+          drivers: state.drivers,
+          insurance: state.insurance!,
+          calcResponse: state.calcResponse!,
+          createResponse: state.createResponse!,
+          paymentMethod: event.method,
+          gosNumber: state.gosNumber,
+          periodId: state.periodId,
+          numberDriversId: state.numberDriversId,
+          ownerName: state.ownerName,
+          birthDate: state.birthDate,
+          osagoType: state.osagoType,
+        ),
+      );
+    } else if (state.calcResponse != null) {
+      // Agar policy hali yaratilmagan bo'lsa, lekin calc response bor bo'lsa,
+      // to'lov turini saqlash uchun OsagoCalcSuccess state ni yangilaymiz
+      emit(
+        OsagoCalcSuccess(
+          vehicle: state.vehicle!,
+          drivers: state.drivers,
+          insurance: state.insurance!,
+          calcResponse: state.calcResponse!,
+          paymentMethod: event.method,
+          gosNumber: state.gosNumber,
+          periodId: state.periodId,
+          numberDriversId:
+              state.numberDriversId ?? state.calcResponse!.numberDriversId,
+          ownerName: state.ownerName ?? state.calcResponse!.ownerName,
+          birthDate: state.birthDate,
+          osagoType: state.osagoType,
+        ),
+      );
+    } else {
+      // Agar hech qanday ma'lumot bo'lmasa, faqat payment method ni saqlaymiz
+      // Bu holat kamdan-kam uchraydi, lekin xavfsizlik uchun qo'shamiz
+      log(
+        '[OSAGO_BLOC] ⚠️ To\'lov turi saqlanmoqda, lekin ma\'lumotlar to\'liq emas',
+        name: 'OSAGO',
+      );
+    }
   }
 
   Future<void> _onCheckPolicyRequested(
@@ -554,6 +750,17 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
       if (response.isReady) {
         log('[OSAGO_BLOC] ✅ Polis tayyor!', name: 'OSAGO');
         _checkAttempts = 0;
+        log(
+          '[OSAGO_BLOC] OsagoCheckSuccess state emit qilinmoqda: drivers count=${state.drivers.length}',
+          name: 'OSAGO',
+        );
+        for (var i = 0; i < state.drivers.length; i++) {
+          final d = state.drivers[i];
+          log(
+            '[OSAGO_BLOC] Driver[$i] in CheckSuccess: passport=${d.passportSeria} ${d.passportNumber}, relative=${d.relative}',
+            name: 'OSAGO',
+          );
+        }
         emit(
           OsagoCheckSuccess(
             vehicle: vehicle,
@@ -659,6 +866,12 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
 
     if (error is AppException) {
       log('[OSAGO_BLOC] AppException: ${error.message}', name: 'OSAGO');
+      if (error.details != null) {
+        log(
+          '[OSAGO_BLOC] AppException details: ${error.details}',
+          name: 'OSAGO',
+        );
+      }
       // Улучшенная обработка ошибки "provider not implemented"
       if (error.message.toLowerCase().contains('provider not implemented')) {
         return 'Tanlangan sug\'urta kompaniyasi hozircha mavjud emas. Iltimos, boshqa kompaniyani tanlang.';

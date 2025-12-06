@@ -1,23 +1,19 @@
 import 'dart:io';
+
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../logic/bloc/osago_bloc.dart';
 import '../../logic/bloc/osago_event.dart';
 import '../../logic/bloc/osago_state.dart';
-import '../../utils/osago_utils.dart';
 
 // -----------------------------------------------------------------------------
 // CONSTANTS & THEME
 // -----------------------------------------------------------------------------
-class AppColors {
-  static const Color background = Color(0xFFF5F6FA);
-  static const Color primary = Color(0xFF0095F6);
-  static const Color textDark = Colors.black;
-  static const Color textGrey = Colors.grey;
-  static const Color white = Colors.white;
-}
+// AppColors класс o'rniga Theme.of(context) ishlatiladi
 
 // -----------------------------------------------------------------------------
 // MAIN PAGE
@@ -26,10 +22,12 @@ class OsagoOrderConfirmationScreen extends StatefulWidget {
   const OsagoOrderConfirmationScreen({super.key});
 
   @override
-  State<OsagoOrderConfirmationScreen> createState() => _OsagoOrderConfirmationScreenState();
+  State<OsagoOrderConfirmationScreen> createState() =>
+      _OsagoOrderConfirmationScreenState();
 }
 
-class _OsagoOrderConfirmationScreenState extends State<OsagoOrderConfirmationScreen> {
+class _OsagoOrderConfirmationScreenState
+    extends State<OsagoOrderConfirmationScreen> {
   String? _selectedPaymentMethod;
 
   @override
@@ -39,135 +37,77 @@ class _OsagoOrderConfirmationScreenState extends State<OsagoOrderConfirmationScr
         final vehicle = state.vehicle;
         final insurance = state.insurance;
         final calc = state.calcResponse;
-        
+
         if (vehicle == null || insurance == null || calc == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('OSAGO')),
-            body: const Center(child: Text('Ma\'lumotlar topilmadi')),
+            appBar: AppBar(title: Text('insurance.osago.payment.title'.tr())),
+            body: Center(child: Text('insurance.osago.payment.no_data'.tr())),
           );
         }
 
-        // Formatlash funksiyalari
-        final formattedGosNumber = _formatGosNumber(vehicle.gosNumber);
-        final formattedPhone = _formatPhone(insurance.phoneNumber);
-        final formattedStartDate = _formatDate(insurance.startDate);
-        final osagoType = vehicle.isOwner ? 'Individual' : 'Juridik';
-        final term = OsagoUtils.mapIdToPeriod(insurance.periodId) ?? '${insurance.periodId} months';
+        // Jami summa
         final totalPrice = calc.amount.toInt();
 
         // Используем сохраненный метод оплаты из state или выбранный локально
-        final currentPaymentMethod = state.paymentMethod ?? _selectedPaymentMethod;
+        final currentPaymentMethod =
+            state.paymentMethod ?? _selectedPaymentMethod;
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: _buildAppBar(context),
           body: Column(
             children: [
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(16.w),
                   child: Column(
                     children: [
-                      // Order Information Card
+                      // Payment Method Selection Card (faqat to'lov)
                       Container(
-                        padding: const EdgeInsets.all(20),
+                        padding: EdgeInsets.all(20.w),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              "Order Information",
+                            Text(
+                              'insurance.osago.preview.payment_type'.tr(),
                               style: TextStyle(
-                                fontSize: 18,
+                                fontSize: 18.sp,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.textDark,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.titleLarge?.color,
                               ),
                             ),
-                            const SizedBox(height: 10),
-                            // Order data rows
-                            InfoRow(
-                              label: "Vehicle Number",
-                              value: '$formattedGosNumber 🇺🇿',
-                            ),
-                            InfoRow(
-                              label: "Car Make",
-                              value: '${vehicle.brand} ${vehicle.model}',
-                            ),
-                            InfoRow(
-                              label: "Passport Series",
-                              value: '${vehicle.ownerPassportSeria} ${vehicle.ownerPassportNumber}',
-                            ),
-                            InfoRow(
-                              label: "Technical Passport Number",
-                              value: '${vehicle.techSeria} ${vehicle.techNumber}',
-                            ),
-                            InfoRow(
-                              label: "Type of OSAGO",
-                              value: osagoType,
-                            ),
-                            InfoRow(
-                              label: "Insurance Term",
-                              value: term,
-                            ),
-                            InfoRow(
-                              label: "Insurance Company",
-                              value: insurance.companyName,
-                            ),
-                            InfoRow(
-                              label: "Start Date",
-                              value: formattedStartDate,
-                            ),
-                            InfoRow(
-                              label: "Phone",
-                              value: formattedPhone,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Payment Method Selection Card
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "To'lov turi",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textDark,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16.h),
                             _PaymentMethodOption(
-                              title: 'Payme',
+                              title: 'insurance.osago.payment.payment_method_payme'.tr(),
                               value: 'payme',
                               groupValue: currentPaymentMethod,
                               onChanged: (value) {
                                 setState(() {
                                   _selectedPaymentMethod = value;
                                 });
-                                context.read<OsagoBloc>().add(PaymentSelected(value!));
+                                context.read<OsagoBloc>().add(
+                                  PaymentSelected(value!),
+                                );
                               },
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12.h),
                             _PaymentMethodOption(
-                              title: 'Click',
+                              title: 'insurance.osago.payment.payment_method_click'.tr(),
                               value: 'click',
                               groupValue: currentPaymentMethod,
                               onChanged: (value) {
                                 setState(() {
                                   _selectedPaymentMethod = value;
                                 });
-                                context.read<OsagoBloc>().add(PaymentSelected(value!));
+                                context.read<OsagoBloc>().add(
+                                  PaymentSelected(value!),
+                                );
                               },
                             ),
                           ],
@@ -192,123 +132,165 @@ class _OsagoOrderConfirmationScreenState extends State<OsagoOrderConfirmationScr
 
   AppBar _buildAppBar(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
       elevation: 0,
       leading: Container(
-        margin: const EdgeInsets.all(8),
+        margin: EdgeInsets.all(8.w),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: Theme.of(context).dividerColor),
           borderRadius: BorderRadius.circular(12),
         ),
         child: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textDark, size: 20),
+          icon: Icon(
+            Icons.arrow_back,
+            color: Theme.of(context).textTheme.titleLarge?.color,
+            size: 20,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      title: const Text(
-        "OSAGO",
-        style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold),
+      title: Text(
+        'insurance.osago.payment.title'.tr(),
+        style: TextStyle(
+          color: Theme.of(context).textTheme.titleLarge?.color,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       centerTitle: true,
     );
   }
 
-  String _formatGosNumber(String gosNumber) {
-    // Форматируем номер как "21 3 231 23" (регион + пробел + остальные символы через пробел)
-    final cleaned = gosNumber.replaceAll(' ', '').toUpperCase();
-    if (cleaned.length >= 2) {
-      final region = cleaned.substring(0, 2);
-      final rest = cleaned.substring(2);
-      if (rest.isNotEmpty) {
-        return '$region ${rest.split('').join(' ')}';
-      }
-      return region;
-    }
-    return gosNumber;
-  }
-
-  String _formatPhone(String phone) {
-    // Форматируем телефон как "+998 99 999 99-99"
-    final cleaned = phone.replaceAll(RegExp(r'[^\d]'), '');
-    if (cleaned.length == 12 && cleaned.startsWith('998')) {
-      return '+${cleaned.substring(0, 3)} ${cleaned.substring(3, 5)} ${cleaned.substring(5, 8)} ${cleaned.substring(8, 10)}-${cleaned.substring(10)}';
-    } else if (cleaned.length == 9) {
-      return '+998 ${cleaned.substring(0, 2)} ${cleaned.substring(2, 5)} ${cleaned.substring(5, 7)}-${cleaned.substring(7)}';
-    }
-    return phone;
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
-  }
-
-
   Future<void> _onConfirmPressed(BuildContext context, OsagoState state) async {
     final createResponse = state.createResponse;
     final paymentMethod = state.paymentMethod ?? _selectedPaymentMethod;
-    
+
     if (createResponse == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('To\'lov ma\'lumotlari topilmadi')),
+        SnackBar(content: Text('insurance.osago.payment.no_data'.tr())),
       );
       return;
     }
-    
+
     if (paymentMethod == null || paymentMethod.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('To\'lov turini tanlang')),
+        SnackBar(
+          content: Text('insurance.osago.payment.select_payment_method'.tr()),
+        ),
       );
       return;
     }
-    
-    // Получаем URL для оплаты из createResponse
+
+    // Avval payment URL ni olamiz (bu asosiy)
     final paymentUrl = createResponse.getPaymentUrl(paymentMethod);
-    
-    // Если есть прямой URL для оплаты, открываем его
-    if (paymentUrl != null && paymentUrl.isNotEmpty) {
-      final success = await launchUrlString(
+    if (paymentUrl == null || paymentUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('insurance.osago.order.no_payment_url'.tr())),
+      );
+      return;
+    }
+
+    // Avval payment URL dan foydalanishga harakat qilamiz (bu asosiy)
+    bool urlOpened = false;
+
+    try {
+      // Payment URL ochishga harakat qilamiz
+      urlOpened = await launchUrlString(
         paymentUrl,
         mode: LaunchMode.externalApplication,
       );
-      
-      if (!context.mounted) return;
-      
-      if (!success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('To\'lov havolasini ochib bo\'lmadi')),
-        );
-        return;
-      }
-    } else {
-      // Если URL нет, открываем приложение Payme или Click
+    } catch (e) {
+      // Agar payment URL ishlamasa, deep link yoki store URL dan foydalanamiz
+      urlOpened = false;
+    }
+
+    if (!context.mounted) return;
+
+    // Agar payment URL ishlamasa, deep link yoki store URL dan foydalanamiz
+    if (!urlOpened) {
       final appUrl = _getPaymentAppUrl(paymentMethod);
+
       if (appUrl != null) {
-        final success = await launchUrlString(
-          appUrl,
-          mode: LaunchMode.externalApplication,
-        );
-        
-        if (!context.mounted) return;
-        
-        if (!success) {
+        try {
+          // Deep link ochishga harakat qilamiz
+          urlOpened = await launchUrlString(
+            appUrl,
+            mode: LaunchMode.externalApplication,
+          );
+        } catch (e) {
+          // Agar deep link ishlamasa, store URL dan foydalanamiz
+          urlOpened = false;
+        }
+      }
+
+      // Agar deep link ham ishlamasa, store URL dan foydalanamiz
+      if (!urlOpened) {
+        final storeUrl = _getPaymentStoreUrl(paymentMethod);
+        if (storeUrl.isNotEmpty) {
+          try {
+            final success = await launchUrlString(
+              storeUrl,
+              mode: LaunchMode.externalApplication,
+            );
+
+            if (!context.mounted) return;
+
+            if (!success) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('insurance.osago.order.payment_url_error'.tr()),
+                ),
+              );
+              return;
+            }
+          } catch (e) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('insurance.osago.order.payment_url_error'.tr()),
+              ),
+            );
+            return;
+          }
+        } else {
+          if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ilovani ochib bo\'lmadi')),
+            SnackBar(
+              content: Text('insurance.osago.order.payment_url_error'.tr()),
+            ),
           );
           return;
         }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('To\'lov havolasi mavjud emas')),
-        );
-        return;
       }
     }
-    
+
     // После открытия ссылки оплаты, начинаем проверку статуса полиса
     context.read<OsagoBloc>().add(const CheckPolicyRequested());
   }
 
   String? _getPaymentAppUrl(String paymentMethod) {
+    // Deep links для открытия приложений напрямую
+    if (paymentMethod == 'payme') {
+      // Payme deep link - Android va iOS uchun
+      if (Platform.isAndroid) {
+        return 'payme://';
+      } else if (Platform.isIOS) {
+        return 'payme://';
+      }
+      return null;
+    } else if (paymentMethod == 'click') {
+      // Click deep link - Android va iOS uchun
+      if (Platform.isAndroid) {
+        return 'clickuz://';
+      } else if (Platform.isIOS) {
+        return 'clickuz://';
+      }
+      return null;
+    }
+    return null;
+  }
+
+  String _getPaymentStoreUrl(String paymentMethod) {
+    // Fallback URL - agar ilova o'rnatilmagan bo'lsa, Play Store/App Store ga yo'naltiramiz
     if (paymentMethod == 'payme') {
       if (Platform.isAndroid) {
         return 'https://play.google.com/store/apps/details?id=uz.dida.payme&hl=ru';
@@ -322,7 +304,7 @@ class _OsagoOrderConfirmationScreenState extends State<OsagoOrderConfirmationScr
         return 'https://apps.apple.com/uz/app/click-superapp/id768132591';
       }
     }
-    return null;
+    return '';
   }
 }
 
@@ -333,29 +315,28 @@ class InfoRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const InfoRow({
-    super.key,
-    required this.label,
-    required this.value,
-  });
+  const InfoRow({super.key, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      padding: EdgeInsets.symmetric(vertical: 12.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(color: AppColors.textGrey, fontSize: 14),
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodySmall?.color,
+                fontSize: 14.sp,
+              ),
             ),
           ),
           Text(
             value,
-            style: const TextStyle(
-              color: AppColors.textDark,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyLarge?.color,
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
@@ -381,54 +362,71 @@ class _BottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 30.h),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
         boxShadow: [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 10,
-            offset: Offset(0, -5),
+            offset: Offset(0, -5.h),
           ),
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Jami summa",
-                style: TextStyle(color: AppColors.textGrey, fontSize: 12),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _formatCurrency(totalPrice),
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'insurance.osago.payment.total_amount'.tr(),
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                    fontSize: 12.sp,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  _formatCurrency(totalPrice),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: ElevatedButton(
+              onPressed: paymentMethod != null ? onConfirm : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 24.w,
+                  vertical: 14.h,
                 ),
               ),
-            ],
-          ),
-          ElevatedButton(
-            onPressed: paymentMethod != null ? onConfirm : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+              child: Text(
+                'insurance.osago.payment.pay'.tr(),
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-            ),
-            child: const Text(
-              "To'lash",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -442,17 +440,20 @@ class _BottomBar extends StatelessWidget {
     if (amountStr.length <= 3) {
       return "$amountStr sum";
     }
-    
+
     // Первая цифра/цифры + запятая
-    final firstPart = amountStr.substring(0, amountStr.length % 3 == 0 ? 3 : amountStr.length % 3);
+    final firstPart = amountStr.substring(
+      0,
+      amountStr.length % 3 == 0 ? 3 : amountStr.length % 3,
+    );
     final restPart = amountStr.substring(firstPart.length);
-    
+
     // Форматируем остальную часть с пробелами
     final formattedRest = restPart.replaceAllMapped(
       RegExp(r'(\d{3})'),
       (Match m) => ' ${m[1]}',
     );
-    
+
     return "$firstPart,$formattedRest sum";
   }
 }
@@ -474,16 +475,17 @@ class _PaymentMethodOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSelected = groupValue == value;
-    
+    final theme = Theme.of(context);
+
     return InkWell(
       onTap: () => onChanged(value),
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.white,
+          color: isSelected ? theme.colorScheme.primary : theme.cardColor,
           border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.grey.shade300,
+            color: isSelected ? theme.colorScheme.primary : theme.dividerColor,
             width: 2,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -496,16 +498,20 @@ class _PaymentMethodOption extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? Colors.white : Colors.grey.shade400,
+                  color: isSelected
+                      ? theme.colorScheme.onPrimary
+                      : theme.dividerColor,
                   width: 2,
                 ),
-                color: isSelected ? Colors.white : Colors.transparent,
+                color: isSelected
+                    ? theme.colorScheme.onPrimary
+                    : Colors.transparent,
               ),
               child: isSelected
-                  ? const Icon(
+                  ? Icon(
                       Icons.check,
                       size: 14,
-                      color: AppColors.primary,
+                      color: theme.colorScheme.primary,
                     )
                   : null,
             ),
@@ -515,7 +521,9 @@ class _PaymentMethodOption extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : AppColors.textDark,
+                color: isSelected
+                    ? theme.colorScheme.onPrimary
+                    : theme.textTheme.bodyLarge?.color,
               ),
             ),
           ],
@@ -524,5 +532,3 @@ class _PaymentMethodOption extends StatelessWidget {
     );
   }
 }
-
-

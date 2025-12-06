@@ -63,4 +63,16 @@ class ApiPaths {
   static const String osagoCalc = '/osago/calc';
   static const String osagoCreate = '/osago/create';
   static const String osagoCheck = '/osago/check';
+
+  // KASKO Insurance
+  static const String kaskoCars = '/insurance/kasko/cars';
+  static const String kaskoCarsMinimal =
+      '/insurance/kasko/cars/minimal'; // Faqat brand, model, position uchun
+  static const String kaskoRates = '/insurance/kasko/rates';
+  static const String kaskoCarPrice = '/insurance/kasko/car-price';
+  static const String kaskoCalculate = '/insurance/kasko/calculate';
+  static const String kaskoSave = '/insurance/kasko/save';
+  static const String kaskoPaymentLink = '/insurance/kasko/payment-link';
+  static const String kaskoCheckPayment = '/insurance/kasko/check-payment';
+  static const String kaskoImageUpload = '/insurance/kasko/image-upload';
 }

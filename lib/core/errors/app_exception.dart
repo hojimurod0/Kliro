@@ -43,3 +43,19 @@ class ValidationException extends AppException {
   });
 }
 
+class ServerException extends AppException {
+  const ServerException({
+    required super.message,
+    super.statusCode,
+    super.details,
+  });
+}
+
+class ApiException extends AppException {
+  const ApiException({
+    required super.message,
+    super.statusCode,
+    super.details,
+  });
+}
+

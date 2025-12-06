@@ -4,10 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/navigation/app_router.dart';
+import '../../utils/upper_case_text_formatter.dart';
 
 // Asosiy ranglar
 const Color _primaryBlue = Color(0xFF1976D2);
-const Color _privacyCardColor = Color(0xFFE3F2FD);
 
 @RoutePage()
 class KaskoPersonalDataPage extends StatefulWidget {
@@ -114,7 +114,7 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
           'Passport seriyasi va raqami',
           style: TextStyle(
             fontSize: 16.sp,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.bold,
             color: textColor,
           ),
         ),
@@ -127,13 +127,16 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
               child: TextFormField(
                 controller: _passportSeriesController,
                 maxLength: 2,
-                textCapitalization: TextCapitalization.characters,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: textColor,
-                  fontSize: 16.sp,
+                  fontSize: 20.sp,
                 ),
+                inputFormatters: [
+                  UpperCaseTextFormatter(),
+                  FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z]')),
+                ],
                 decoration: _commonInputDecoration(
                   hintText: 'AA',
                   isDark: isDark,
@@ -151,7 +154,11 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
                 controller: _passportNumberController,
                 maxLength: 7,
                 keyboardType: TextInputType.number,
-                style: TextStyle(color: textColor, fontSize: 16.sp),
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                ),
                 decoration: _commonInputDecoration(
                   hintText: '1234567',
                   isDark: isDark,
@@ -184,7 +191,7 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
           'Tug\'ilgan kun sanasi',
           style: TextStyle(
             fontSize: 16.sp,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.bold,
             color: textColor,
           ),
         ),
@@ -192,10 +199,14 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
         GestureDetector(
           onTap: () => _selectDate(context),
           child: AbsorbPointer(
-            child: TextFormField(
-              controller: _birthDateController,
-              readOnly: true,
-              style: TextStyle(color: textColor, fontSize: 16.sp),
+              child: TextFormField(
+                controller: _birthDateController,
+                readOnly: true,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                ),
               decoration: _commonInputDecoration(
                 hintText: 'dd/mm/yyyy',
                 prefixIcon: Icon(
@@ -231,7 +242,7 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
           'Telefon raqami',
           style: TextStyle(
             fontSize: 16.sp,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.bold,
             color: textColor,
           ),
         ),
@@ -240,7 +251,11 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
           controller: _phoneNumberController,
           keyboardType: TextInputType.phone,
           maxLength: 9,
-          style: TextStyle(color: textColor, fontSize: 16.sp),
+          style: TextStyle(
+            color: textColor,
+            fontSize: 20.sp,
+            fontWeight: FontWeight.bold,
+          ),
           decoration: _commonInputDecoration(
             hintText: '--- -- -- --',
             prefixIcon: Padding(
@@ -253,8 +268,8 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
                   Text(
                     '+998',
                     style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.bold,
                       color: textColor,
                     ),
                   ),
@@ -279,41 +294,6 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
     );
   }
 
-  // 4. Maxfiylik (Privacy) bloki
-  Widget _buildPrivacyCard(bool isDark, Color textColor, Color subtitleColor) {
-    final cardBg = isDark ? const Color(0xFF1E3A5C) : _privacyCardColor;
-    final cardTextColor = isDark ? Colors.white : Colors.grey.shade700;
-
-    return Container(
-      padding: EdgeInsets.all(16.0.w),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(10.0.r),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Maxfiylik',
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.bold,
-              color: _primaryBlue,
-            ),
-          ),
-          SizedBox(height: 8.0.h),
-          Text(
-            'Sizning shaxsiy ma\'lumotlaringiz xavfsiz saqlanadi va uchinchi shaxslarga berilmaydi. SMS tasdiqlov kodi ko\'rsatilgan raqamga yuboriladi.',
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: cardTextColor,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -376,6 +356,7 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
                   'Sug\'urta polisi uchun shaxsiy ma\'lumotlaringizni kiriting',
                   style: TextStyle(
                     fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
                     color: subtitleColor,
                   ),
                 ),
@@ -405,8 +386,6 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
                   borderColor,
                   placeholderColor,
                 ),
-                // 4. Maxfiylik bloki
-                _buildPrivacyCard(isDark, textColor, subtitleColor),
                 SizedBox(height: 40.0.h),
               ],
             ),
@@ -437,8 +416,8 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
                 height: 50.h,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Keyingi sahifaga o'tish - buyurtma tafsilotlari
-                    context.router.push(const KaskoOrderDetailsRoute());
+                    // Keyingi sahifaga o'tish - to'lov usulini tanlash
+                    context.router.push(const KaskoPaymentTypeRoute());
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _primaryBlue,

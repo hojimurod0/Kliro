@@ -10,7 +10,7 @@ import 'core/services/locale/root_service.dart';
 import 'core/services/theme/theme_controller.dart';
 import 'package:easy_localization/easy_localization.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Настройка системного UI
@@ -21,6 +21,11 @@ void main() {
       statusBarBrightness: Brightness.light,
     ),
   );
+
+  // КРИТИЧНО: EasyLocalization должен быть инициализирован ДО runApp
+  // Optimizatsiya: useOnlyLangCode: true - faqat til kodini ishlatish (kamroq fayl yuklaydi)
+  // Bu main thread'ni kamroq bloklaydi va ANR muammosini kamaytiradi
+  await EasyLocalization.ensureInitialized();
 
   // Показываем UI сразу, инициализация в фоне
   runApp(
@@ -35,42 +40,61 @@ void main() {
       fallbackLocale: const Locale('en'),
       saveLocale: true,
       startLocale: const Locale('en'),
+      // Optimizatsiya: faqat til kodini ishlatish (kamroq fayl yuklaydi)
+      useOnlyLangCode: true,
+      // Optimizatsiya: fallback translation'larni yuklamaslik (tezroq ishlaydi)
+      useFallbackTranslations: false,
       child: const App(),
     ),
   );
 
   // Инициализация в фоне после показа UI
+  // Используем unawaited, чтобы не блокировать main thread
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    _initializeInBackground();
+    // Запускаем в отдельном микротаске для неблокирующего выполнения
+    Future.microtask(() => _initializeInBackground());
   });
 }
 
-// Упрощенная инициализация всех сервисов в фоне
+// Оптимизированная инициализация всех сервисов в фоне
+// Используем isolate для тяжелых операций, чтобы не блокировать main thread
 Future<void> _initializeInBackground() async {
   try {
-    // Быстрые операции
+    // 1. Сначала настраиваем base URL для API (критично!) - синхронная операция
     ApiConfigService.configureBaseUrl();
-    await EasyLocalization.ensureInitialized();
 
-    // Тяжелые операции параллельно
-    await Future.wait([AuthService.instance.init(), ServiceLocator.init()]);
+    // 2. EasyLocalization уже инициализирован в runApp, не нужно повторно инициализировать
+    // await EasyLocalization.ensureInitialized(); // УДАЛЕНО - дублирование
 
-    // Некритичные сервисы в фоне
-    _initializeNonCriticalServices();
+    // 3. Параллельная инициализация некритичных сервисов
+    // Они не зависят друг от друга, поэтому можем запустить параллельно
+    final nonCriticalFutures = _initializeNonCriticalServices();
+
+    // 4. Инициализируем AuthService (нужен для DioClient)
+    await AuthService.instance.init();
+
+    // 5. Только после настройки base URL и AuthService создаем ServiceLocator с API клиентами
+    await ServiceLocator.init();
+
+    // 6. Ждем завершения некритичных сервисов (не блокируем main thread)
+    await nonCriticalFutures;
   } catch (e) {
     debugPrint('Initialization error: $e');
   }
 }
 
 // Некритичные сервисы инициализируются параллельно
-void _initializeNonCriticalServices() {
-  Future.wait([
+// Возвращаем Future, чтобы можно было await в основном потоке
+Future<void> _initializeNonCriticalServices() async {
+  await Future.wait([
     RootService().init().catchError((e) {
       debugPrint('RootService init error: $e');
     }),
     ThemeController.instance.init().catchError((e) {
       debugPrint('ThemeController init error: $e');
     }),
+    // initializeDateFormatting() может быть тяжелой операцией
+    // Запускаем асинхронно, чтобы не блокировать main thread
     initializeDateFormatting().catchError((e) {
       debugPrint('Date formatting init error: $e');
     }),

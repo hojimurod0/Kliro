@@ -17,13 +17,22 @@ _$DriverModelImpl _$$DriverModelImplFromJson(Map<String, dynamic> json) =>
       licenseNumber: json['license__number'] as String?,
     );
 
-Map<String, dynamic> _$$DriverModelImplToJson(_$DriverModelImpl instance) =>
-    <String, dynamic>{
-      'passport__seria': instance.passportSeria,
-      'passport__number': instance.passportNumber,
-      'driver_birthday': formatOsagoDate(instance.driverBirthday),
-      'relative': instance.relative,
-      'name': instance.name,
-      'license__seria': instance.licenseSeria,
-      'license__number': instance.licenseNumber,
-    };
+Map<String, dynamic> _$$DriverModelImplToJson(_$DriverModelImpl instance) {
+  final val = <String, dynamic>{
+    'passport__seria': instance.passportSeria,
+    'passport__number': instance.passportNumber,
+    'driver_birthday': formatOsagoDate(instance.driverBirthday),
+    'relative': instance.relative,
+    'name': instance.name,
+  };
+
+  void writeNotNull(String key, dynamic value) {
+    if (value != null) {
+      val[key] = value;
+    }
+  }
+
+  writeNotNull('license__seria', instance.licenseSeria);
+  writeNotNull('license__number', instance.licenseNumber);
+  return val;
+}

@@ -47,6 +47,19 @@ import '../../../features/transfer_apps/data/repositories/transfer_app_repositor
 import '../../../features/transfer_apps/domain/repositories/transfer_app_repository.dart';
 import '../../../features/transfer_apps/domain/usecases/get_transfer_apps.dart';
 import '../../../features/transfer_apps/presentation/bloc/transfer_apps_bloc.dart';
+import '../../../features/kasko/data/datasources/kasko_remote_data_source.dart';
+import '../../../features/kasko/data/repositories/kasko_repository_impl.dart';
+import '../../../features/kasko/domain/repositories/kasko_repository.dart';
+import '../../../features/kasko/domain/usecases/calculate_car_price.dart';
+import '../../../features/kasko/domain/usecases/calculate_policy.dart';
+import '../../../features/kasko/domain/usecases/check_payment_status.dart';
+import '../../../features/kasko/domain/usecases/get_cars.dart';
+import '../../../features/kasko/domain/usecases/get_cars_minimal.dart';
+import '../../../features/kasko/domain/usecases/get_payment_link.dart';
+import '../../../features/kasko/domain/usecases/get_rates.dart';
+import '../../../features/kasko/domain/usecases/save_order.dart';
+import '../../../features/kasko/domain/usecases/upload_image.dart';
+import '../../../features/kasko/presentation/bloc/kasko_bloc.dart';
 import '../../services/auth/auth_service.dart';
 import '../client/dio_client.dart';
 
@@ -155,6 +168,11 @@ class ServiceLocator {
         () => CardLocalDataSource(_getIt<SharedPreferences>()),
       );
     }
+    if (!_getIt.isRegistered<KaskoRemoteDataSource>()) {
+      _getIt.registerLazySingleton<KaskoRemoteDataSource>(
+        () => KaskoRemoteDataSourceImpl(_getIt<Dio>()),
+      );
+    }
   }
 
   static void _registerRepositories() {
@@ -216,6 +234,11 @@ class ServiceLocator {
         ),
       );
     }
+    if (!_getIt.isRegistered<KaskoRepository>()) {
+      _getIt.registerLazySingleton<KaskoRepository>(
+        () => KaskoRepositoryImpl(_getIt<KaskoRemoteDataSource>()),
+      );
+    }
   }
 
   static void _registerUseCases() {
@@ -271,6 +294,25 @@ class ServiceLocator {
     _registerLazy<GetTransferApps>(
       () => GetTransferApps(_getIt<TransferAppRepository>()),
     );
+    _registerLazy<GetCars>(() => GetCars(_getIt<KaskoRepository>()));
+    _registerLazy<GetCarsMinimal>(
+      () => GetCarsMinimal(_getIt<KaskoRepository>()),
+    );
+    _registerLazy<GetRates>(() => GetRates(_getIt<KaskoRepository>()));
+    _registerLazy<CalculateCarPrice>(
+      () => CalculateCarPrice(_getIt<KaskoRepository>()),
+    );
+    _registerLazy<CalculatePolicy>(
+      () => CalculatePolicy(_getIt<KaskoRepository>()),
+    );
+    _registerLazy<SaveOrder>(() => SaveOrder(_getIt<KaskoRepository>()));
+    _registerLazy<GetPaymentLink>(
+      () => GetPaymentLink(_getIt<KaskoRepository>()),
+    );
+    _registerLazy<CheckPaymentStatus>(
+      () => CheckPaymentStatus(_getIt<KaskoRepository>()),
+    );
+    _registerLazy<UploadImage>(() => UploadImage(_getIt<KaskoRepository>()));
   }
 
   static void _registerLazy<T extends Object>(T Function() factoryFunc) {
@@ -318,6 +360,19 @@ class ServiceLocator {
     _getIt.registerFactory<CardBloc>(() => CardBloc(getCardOffers: _getIt()));
     _getIt.registerFactory<TransferAppsBloc>(
       () => TransferAppsBloc(getTransferApps: _getIt()),
+    );
+    _getIt.registerFactory<KaskoBloc>(
+      () => KaskoBloc(
+        getCars: _getIt(),
+        getCarsMinimal: _getIt(),
+        getRates: _getIt(),
+        calculateCarPrice: _getIt(),
+        calculatePolicy: _getIt(),
+        saveOrder: _getIt(),
+        getPaymentLink: _getIt(),
+        checkPaymentStatus: _getIt(),
+        uploadImage: _getIt(),
+      ),
     );
   }
 }

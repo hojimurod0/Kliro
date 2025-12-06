@@ -43,6 +43,7 @@ class OsagoRepositoryImpl implements OsagoRepository {
           .toList(),
       ownerName: response.ownerName,
       numberDriversId: response.numberDriversId,
+      issueYear: response.issueYear,
     );
   }
 
@@ -73,7 +74,30 @@ class OsagoRepositoryImpl implements OsagoRepository {
       }
     }
 
-    // Postman collection ga ko'ra: create requestda number_drivers_id yo'q
+    // number_drivers_id ni to'g'ri aniqlash: provider, isUnlimited yoki insurance.numberDriversId ga qarab
+    // MUHIM: finalNumberDriversId hech qachon null bo'lmasligi kerak, chunki API uni talab qiladi
+    String finalNumberDriversId;
+
+    // Avval provider ni tekshiramiz (ustunlik) - NEO doim cheklanmagan (0)
+    final providerLower = insurance.provider.toLowerCase();
+    if (providerLower == 'neo') {
+      finalNumberDriversId = '0';
+    } else if (insurance.isUnlimited) {
+      // Keyin isUnlimited ni tekshiramiz
+      finalNumberDriversId = '0';
+    } else {
+      // numberDriversId yoki insurance.numberDriversId dan olamiz
+      final tempNumberDriversId = numberDriversId ?? insurance.numberDriversId;
+
+      // Agar '0' yoki '5' bo'lsa, ishlatamiz
+      if (tempNumberDriversId == '0' || tempNumberDriversId == '5') {
+        finalNumberDriversId = tempNumberDriversId;
+      } else {
+        // Default: '5' (Cheklangan) - hech qachon null emas
+        finalNumberDriversId = '5';
+      }
+    }
+
     // Shuningdek, applicant_is_driver doim false bo'lishi kerak
     final request = CreateRequest(
       provider: insurance.provider,
@@ -86,6 +110,7 @@ class OsagoRepositoryImpl implements OsagoRepository {
       ownerInn: insurance.ownerInn?.isEmpty ?? true ? '' : insurance.ownerInn,
       applicantLicenseSeria: applicantLicenseSeria,
       applicantLicenseNumber: applicantLicenseNumber,
+      numberDriversId: finalNumberDriversId, // Majburiy parametr
       startDate: insurance.startDate,
     );
 

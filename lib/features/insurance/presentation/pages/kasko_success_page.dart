@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../../core/navigation/app_router.dart';
-
 // Asosiy ranglar
 const Color _successGreen = Color(0xFF0EC785);
 const Color _cardLightBlue = Color(0xFFF0FAFF);

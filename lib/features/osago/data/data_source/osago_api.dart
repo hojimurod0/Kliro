@@ -1,13 +1,16 @@
 import 'package:dio/dio.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/constants/constants.dart';
 import '../../../../core/errors/app_exception.dart';
+import '../../utils/osago_utils.dart';
 import '../models/calc_request.dart';
 import '../models/calc_response.dart';
 import '../models/check_request.dart';
 import '../models/check_response.dart';
 import '../models/create_request.dart';
 import '../models/create_response.dart';
+import '../models/vehicle_model.dart';
 
 class OsagoApi {
   OsagoApi(this._dio);
@@ -39,11 +42,20 @@ class OsagoApi {
       if (amountUzs == null) {
         throw const AppException(message: 'Missing amount_uzs');
       }
-      
+
+      // Debug: API dan kelgan amount ni log qilish
+      print(
+        '[OSAGO_API] amount_uzs from API: $amountUzs (type: ${amountUzs.runtimeType})',
+      );
+      print('[OSAGO_API] Full calcData: $calcData');
+
       // Извлекаем имя владельца из calc response
       String? ownerName;
       String? numberDriversId;
-      
+      VehicleModel? vehicleModel;
+      String? modelName;
+      int? issueYear;
+
       // requestsData ni to'g'ridan-to'g'ri dataMap dan olamiz (calc ichida emas)
       // Logga ko'ra: data.requestsData.number_drivers_id = 5
       final requestsData = dataMap['requestsData'] as Map<String, dynamic>?;
@@ -62,49 +74,92 @@ class OsagoApi {
           ownerName = requestsOwnerName;
         }
       }
-      
-      // Проверяем различные возможные пути к имени
-      if (calcData != null) {
-        // Вариант 1: calc.juridik.name
-        final juridik = calcData['juridik'] as Map<String, dynamic>?;
-        if (juridik != null) {
-          if (ownerName == null || ownerName.isEmpty) {
-            ownerName = juridik['name'] as String?;
-          }
-        }
-        // Вариант 2: calc.requestsData (agar yuqorida topilmagan bo'lsa)
-        final calcRequestsData = calcData['requestsData'] as Map<String, dynamic>?;
-        if (calcRequestsData != null) {
-          if (ownerName == null || ownerName.isEmpty) {
-            ownerName = calcRequestsData['owner_name'] as String?;
-          }
-          // Извлекаем number_drivers_id из calc.requestsData (agar yuqorida topilmagan bo'lsa)
-          if (numberDriversId == null || numberDriversId.isEmpty) {
-            final calcRequestsNumberDriversId = calcRequestsData['number_drivers_id'];
-            if (calcRequestsNumberDriversId != null) {
-              final idStr = calcRequestsNumberDriversId.toString().trim();
-              if (idStr == '0' || idStr == '5') {
-                numberDriversId = idStr;
-              }
-            }
-          }
-        }
-        // Вариант 3: calc.name (прямо в calc)
+
+      // Извлекаем данные из data.juridik (juridik находится на уровне data, а не calc)
+      final juridik = dataMap['juridik'] as Map<String, dynamic>?;
+      String? brandName;
+      DateTime? ownerBirthDate;
+      if (juridik != null) {
+        // Извлекаем имя владельца
         if (ownerName == null || ownerName.isEmpty) {
-          ownerName = calcData['name'] as String?;
+          ownerName = juridik['name'] as String?;
+        }
+        // Извлекаем модель машины
+        modelName = juridik['modelName'] as String?;
+        // Извлекаем год выпуска
+        final year = juridik['issueYear'];
+        if (year != null) {
+          issueYear = year is int ? year : int.tryParse(year.toString());
+        }
+        // Извлекаем дату рождения из PINFL
+        final pinfl = juridik['pinfl'] as String?;
+        if (pinfl != null && pinfl.isNotEmpty) {
+          // Используем OsagoUtils для парсинга даты из PINFL
+          ownerBirthDate = _parseBirthDateFromPinfl(pinfl);
         }
       }
-      
+
+      // Создаем VehicleModel с данными из juridik и requestsData
+      if (requestsData != null) {
+        try {
+          // Определяем дату рождения: сначала из PINFL, если нет - используем текущую дату
+          final birthDate = ownerBirthDate ?? DateTime.now();
+
+          // Создаем временный Map для VehicleModel
+          final vehicleData = <String, dynamic>{
+            'gos_number': requestsData['gos_number'] ?? '',
+            'tech_sery': requestsData['tech_sery'] ?? '',
+            'tech_number': requestsData['tech_number'] ?? '',
+            'owner__pass_seria': requestsData['owner__pass_seria'] ?? '',
+            'owner__pass_number': requestsData['owner__pass_number'] ?? '',
+            'owner_birth_date': _formatOsagoDate(birthDate),
+            'brand': brandName ?? '', // Brand из juridik, если есть
+            'model': modelName ?? '', // Используем modelName из juridik
+          };
+
+          vehicleModel = VehicleModel.fromJson(vehicleData);
+        } catch (e) {
+          // E'tiborsiz qoldiramiz
+        }
+      }
+
+      // Agar vehicle dataMap['vehicle'] da bo'lsa, undan foydalanish
+      if (vehicleModel == null && dataMap.containsKey('vehicle')) {
+        final vehicleData = dataMap['vehicle'] as Map<String, dynamic>?;
+        if (vehicleData != null) {
+          try {
+            vehicleModel = VehicleModel.fromJson(vehicleData);
+            // Обновляем model из juridik, если есть
+            if (modelName != null && modelName.isNotEmpty) {
+              vehicleModel = vehicleModel.copyWith(model: modelName);
+            }
+          } catch (e) {
+            // E'tiborsiz qoldiramiz
+          }
+        }
+      } else if (vehicleModel != null) {
+        // Обновляем model и brand из juridik
+        try {
+          vehicleModel = vehicleModel.copyWith(
+            model: modelName ?? vehicleModel.model,
+            brand: brandName ?? vehicleModel.brand,
+          );
+        } catch (e) {
+          // E'tiborsiz qoldiramiz
+        }
+      }
+
       return CalcResponse(
         sessionId: sessionId,
         amount: amountUzs.toDouble(),
         currency: 'UZS',
         provider: null,
-        vehicle: null,
+        vehicle: vehicleModel,
         insurance: null,
         availableProviders: const [],
         ownerName: ownerName,
         numberDriversId: numberDriversId,
+        issueYear: issueYear,
       );
     } on DioException catch (error) {
       _handleDioError(error);
@@ -113,13 +168,54 @@ class OsagoApi {
 
   Future<CreateResponse> create(CreateRequest data) async {
     try {
+      final jsonData = data.toJson();
+      
+      // Debug: number_drivers_id va provider ni log qilish
+      print('[OSAGO_API] Create Request: provider=${jsonData['provider']}, number_drivers_id=${jsonData['number_drivers_id']}');
+      
+      // Debug: Sanani tekshirish
+      if (jsonData['drivers'] != null && (jsonData['drivers'] as List).isNotEmpty) {
+        final firstDriver = (jsonData['drivers'] as List).first;
+        if (firstDriver is Map) {
+          print('[OSAGO_API] Driver birthday format: ${firstDriver['driver_birthday']}');
+          print('[OSAGO_API] Driver license: seria=${firstDriver['license__seria']}, number=${firstDriver['license__number']}');
+        }
+      }
+      
+      // To'liq JSON ni log qilish (debug uchun)
+      print('[OSAGO_API] Create Request JSON (before sending): $jsonData');
+      
       final response = await _dio.post(
         ApiPaths.osagoCreate,
-        data: data.toJson(),
+        data: jsonData,
       );
       final responseData = _ensureMap(response.data);
+      // Backenddan kelgan javobni to'liq log qilish
+      // (xususan, drivers va requestsData ni ko'rish uchun)
+      // Eslatma: bu faqat debug uchun, productionda o'chirish mumkin
+      // ignore: avoid_print
+      print('[OSAGO_API] Create raw response: $responseData');
       final success = responseData['success'] == true;
       if (!success) {
+        // Agar success=false bo'lsa, haydovchi ma'lumotlari va requestsData ni alohida log qilamiz
+        final dataMap = responseData['data'] as Map<String, dynamic>?;
+        Map<String, dynamic>? requestsData;
+        List<dynamic>? drivers;
+        if (dataMap != null) {
+          final rd = dataMap['requestsData'];
+          if (rd is Map<String, dynamic>) {
+            requestsData = rd;
+            final d = requestsData['drivers'];
+            if (d is List) {
+              drivers = d;
+            }
+          }
+        }
+        // ignore: avoid_print
+        print(
+          '[OSAGO_API] Create error: message=${responseData['message']}, '
+          'requestsData=$requestsData, drivers=$drivers',
+        );
         throw ValidationException(
           message: responseData['message'] as String? ?? 'Request failed',
           details: responseData,
@@ -130,29 +226,29 @@ class OsagoApi {
       if (dataMap == null) {
         throw const AppException(message: 'Missing response data');
       }
-      
+
       // Извлекаем данные из объекта response, если он есть
       final responseObj = dataMap['response'] as Map<String, dynamic>?;
       final amountUzs = responseObj?['amount_uzs'] as num?;
-      
+
       // Создаем модифицированную карту для парсинга
       final modifiedDataMap = Map<String, dynamic>.from(dataMap);
-      
+
       // Если session_id отсутствует в ответе, используем его из запроса
       if (!modifiedDataMap.containsKey('session_id')) {
         modifiedDataMap['session_id'] = data.sessionId;
       }
-      
+
       // Добавляем amount из response, если он есть
       if (amountUzs != null) {
         modifiedDataMap['amount'] = amountUzs.toDouble();
       }
-      
+
       // Добавляем currency, если его нет
       if (!modifiedDataMap.containsKey('currency')) {
         modifiedDataMap['currency'] = 'UZS';
       }
-      
+
       try {
         return CreateResponse.fromJson(modifiedDataMap);
       } catch (e) {
@@ -231,5 +327,16 @@ class OsagoApi {
       statusCode: statusCode,
       details: responseData,
     );
+  }
+
+  /// PINFL dan tug'ilgan sanani olish
+  DateTime? _parseBirthDateFromPinfl(String? pinfl) {
+    return OsagoUtils.parseBirthDateFromPinfl(pinfl);
+  }
+
+  /// Sana formatini API uchun (dd.MM.yyyy)
+  String _formatOsagoDate(DateTime date) {
+    final formatter = DateFormat('dd.MM.yyyy');
+    return formatter.format(date);
   }
 }

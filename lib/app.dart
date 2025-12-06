@@ -1,10 +1,14 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import 'core/constants/app_colors.dart';
 import 'core/navigation/app_router.dart';
 import 'core/services/locale/locale_prefs.dart';
 import 'core/services/theme/theme_controller.dart';
+import 'core/dio/singletons/service_locator.dart';
+import 'features/kasko/presentation/providers/kasko_provider.dart';
+import 'features/kasko/domain/repositories/kasko_repository.dart';
 
 class App extends StatefulWidget {
   const App({super.key});
@@ -15,14 +19,34 @@ class App extends StatefulWidget {
 
 class _AppState extends State<App> {
   static final AppRouter _appRouter = AppRouter();
+  bool _isServiceLocatorReady = false;
   
   @override
   void initState() {
     super.initState();
+    // ServiceLocator init qilinishini kutish
+    _waitForServiceLocator();
     // Загружаем и применяем сохраненную локаль после первого кадра
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadAndApplyLocale();
     });
+  }
+
+  Future<void> _waitForServiceLocator() async {
+    // ServiceLocator init qilinmaguncha kutish
+    while (!_isServiceLocatorReady) {
+      try {
+        // KaskoRepository mavjudligini tekshirish
+        ServiceLocator.resolve<KaskoRepository>();
+        _isServiceLocatorReady = true;
+        if (mounted) {
+          setState(() {});
+        }
+      } catch (e) {
+        // Hali init qilinmagan, kichik kechikish bilan qayta urinish
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+    }
   }
   
   Future<void> _loadAndApplyLocale() async {
@@ -105,10 +129,6 @@ class _AppState extends State<App> {
         dividerColor: AppColors.divider,
       );
   
-  static ThemeData get lightTheme => _AppState._lightTheme;
-
-  static ThemeData get darkTheme => _AppState._darkTheme;
-  
   static ThemeData get _darkTheme => ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
@@ -185,27 +205,49 @@ class _AppState extends State<App> {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
-        return AnimatedBuilder(
-          animation: ThemeController.instance,
-          builder: (context, _) {
-            return MaterialApp.router(
-              title: tr('app_title'),
-              debugShowCheckedModeBanner: false,
-              localizationsDelegates: context.localizationDelegates,
-              supportedLocales: context.supportedLocales,
-              locale: context.locale,
-              theme: _lightTheme,
-              darkTheme: _darkTheme,
-              themeMode: ThemeController.instance.mode,
-              routerConfig: _appRouter.config(),
-              builder: (context, child) {
-                return MediaQuery(
-                  data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
-                  child: child ?? const SizedBox(),
-                );
-              },
-            );
-          },
+        // ServiceLocator init qilinmaguncha loading ko'rsatish
+        if (!_isServiceLocatorReady) {
+          return const MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          );
+        }
+
+        return MultiProvider(
+          providers: [
+            // KASKO Provider
+            ChangeNotifierProvider(
+              create: (_) => KaskoProvider(
+                ServiceLocator.resolve<KaskoRepository>(),
+              ),
+            ),
+            // Boshqa providerlar shu yerga qo'shiladi
+          ],
+          child: AnimatedBuilder(
+            animation: ThemeController.instance,
+            builder: (context, _) {
+              return MaterialApp.router(
+                title: tr('app_title'),
+                debugShowCheckedModeBanner: false,
+                localizationsDelegates: context.localizationDelegates,
+                supportedLocales: context.supportedLocales,
+                locale: context.locale,
+                theme: _lightTheme,
+                darkTheme: _darkTheme,
+                themeMode: ThemeController.instance.mode,
+                routerConfig: _appRouter.config(),
+                builder: (context, child) {
+                  return MediaQuery(
+                    data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+                    child: child ?? const SizedBox(),
+                  );
+                },
+              );
+            },
+          ),
         );
       },
     );

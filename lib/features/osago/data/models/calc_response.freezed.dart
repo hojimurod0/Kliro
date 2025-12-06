@@ -39,6 +39,8 @@ mixin _$CalcResponse {
   String? get ownerName => throw _privateConstructorUsedError;
   @JsonKey(name: 'number_drivers_id')
   String? get numberDriversId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'issue_year')
+  int? get issueYear => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -62,7 +64,8 @@ abstract class $CalcResponseCopyWith<$Res> {
       @JsonKey(name: 'available_providers')
       List<InsuranceModel> availableProviders,
       @JsonKey(name: 'owner_name') String? ownerName,
-      @JsonKey(name: 'number_drivers_id') String? numberDriversId});
+      @JsonKey(name: 'number_drivers_id') String? numberDriversId,
+      @JsonKey(name: 'issue_year') int? issueYear});
 
   $VehicleModelCopyWith<$Res>? get vehicle;
   $InsuranceModelCopyWith<$Res>? get insurance;
@@ -90,6 +93,7 @@ class _$CalcResponseCopyWithImpl<$Res, $Val extends CalcResponse>
     Object? availableProviders = null,
     Object? ownerName = freezed,
     Object? numberDriversId = freezed,
+    Object? issueYear = freezed,
   }) {
     return _then(_value.copyWith(
       sessionId: null == sessionId
@@ -128,6 +132,10 @@ class _$CalcResponseCopyWithImpl<$Res, $Val extends CalcResponse>
           ? _value.numberDriversId
           : numberDriversId // ignore: cast_nullable_to_non_nullable
               as String?,
+      issueYear: freezed == issueYear
+          ? _value.issueYear
+          : issueYear // ignore: cast_nullable_to_non_nullable
+              as int?,
     ) as $Val);
   }
 
@@ -174,7 +182,8 @@ abstract class _$$CalcResponseImplCopyWith<$Res>
       @JsonKey(name: 'available_providers')
       List<InsuranceModel> availableProviders,
       @JsonKey(name: 'owner_name') String? ownerName,
-      @JsonKey(name: 'number_drivers_id') String? numberDriversId});
+      @JsonKey(name: 'number_drivers_id') String? numberDriversId,
+      @JsonKey(name: 'issue_year') int? issueYear});
 
   @override
   $VehicleModelCopyWith<$Res>? get vehicle;
@@ -202,6 +211,7 @@ class __$$CalcResponseImplCopyWithImpl<$Res>
     Object? availableProviders = null,
     Object? ownerName = freezed,
     Object? numberDriversId = freezed,
+    Object? issueYear = freezed,
   }) {
     return _then(_$CalcResponseImpl(
       sessionId: null == sessionId
@@ -240,6 +250,10 @@ class __$$CalcResponseImplCopyWithImpl<$Res>
           ? _value.numberDriversId
           : numberDriversId // ignore: cast_nullable_to_non_nullable
               as String?,
+      issueYear: freezed == issueYear
+          ? _value.issueYear
+          : issueYear // ignore: cast_nullable_to_non_nullable
+              as int?,
     ));
   }
 }
@@ -257,7 +271,8 @@ class _$CalcResponseImpl implements _CalcResponse {
       @JsonKey(name: 'available_providers')
       final List<InsuranceModel> availableProviders = const <InsuranceModel>[],
       @JsonKey(name: 'owner_name') this.ownerName,
-      @JsonKey(name: 'number_drivers_id') this.numberDriversId})
+      @JsonKey(name: 'number_drivers_id') this.numberDriversId,
+      @JsonKey(name: 'issue_year') this.issueYear})
       : _availableProviders = availableProviders;
 
   factory _$CalcResponseImpl.fromJson(Map<String, dynamic> json) =>
@@ -297,10 +312,13 @@ class _$CalcResponseImpl implements _CalcResponse {
   @override
   @JsonKey(name: 'number_drivers_id')
   final String? numberDriversId;
+  @override
+  @JsonKey(name: 'issue_year')
+  final int? issueYear;
 
   @override
   String toString() {
-    return 'CalcResponse(sessionId: $sessionId, amount: $amount, currency: $currency, provider: $provider, vehicle: $vehicle, insurance: $insurance, availableProviders: $availableProviders, ownerName: $ownerName, numberDriversId: $numberDriversId)';
+    return 'CalcResponse(sessionId: $sessionId, amount: $amount, currency: $currency, provider: $provider, vehicle: $vehicle, insurance: $insurance, availableProviders: $availableProviders, ownerName: $ownerName, numberDriversId: $numberDriversId, issueYear: $issueYear)';
   }
 
   @override
@@ -323,7 +341,9 @@ class _$CalcResponseImpl implements _CalcResponse {
             (identical(other.ownerName, ownerName) ||
                 other.ownerName == ownerName) &&
             (identical(other.numberDriversId, numberDriversId) ||
-                other.numberDriversId == numberDriversId));
+                other.numberDriversId == numberDriversId) &&
+            (identical(other.issueYear, issueYear) ||
+                other.issueYear == issueYear));
   }
 
   @JsonKey(ignore: true)
@@ -338,7 +358,8 @@ class _$CalcResponseImpl implements _CalcResponse {
       insurance,
       const DeepCollectionEquality().hash(_availableProviders),
       ownerName,
-      numberDriversId);
+      numberDriversId,
+      issueYear);
 
   @JsonKey(ignore: true)
   @override
@@ -356,17 +377,17 @@ class _$CalcResponseImpl implements _CalcResponse {
 
 abstract class _CalcResponse implements CalcResponse {
   const factory _CalcResponse(
-          {@JsonKey(name: 'session_id') required final String sessionId,
-          @JsonKey(name: 'amount') required final double amount,
-          @JsonKey(name: 'currency') required final String currency,
-          @JsonKey(name: 'provider') final String? provider,
-          @JsonKey(name: 'vehicle') final VehicleModel? vehicle,
-          @JsonKey(name: 'insurance') final InsuranceModel? insurance,
-          @JsonKey(name: 'available_providers')
-          final List<InsuranceModel> availableProviders,
-          @JsonKey(name: 'owner_name') final String? ownerName,
-          @JsonKey(name: 'number_drivers_id') final String? numberDriversId}) =
-      _$CalcResponseImpl;
+      {@JsonKey(name: 'session_id') required final String sessionId,
+      @JsonKey(name: 'amount') required final double amount,
+      @JsonKey(name: 'currency') required final String currency,
+      @JsonKey(name: 'provider') final String? provider,
+      @JsonKey(name: 'vehicle') final VehicleModel? vehicle,
+      @JsonKey(name: 'insurance') final InsuranceModel? insurance,
+      @JsonKey(name: 'available_providers')
+      final List<InsuranceModel> availableProviders,
+      @JsonKey(name: 'owner_name') final String? ownerName,
+      @JsonKey(name: 'number_drivers_id') final String? numberDriversId,
+      @JsonKey(name: 'issue_year') final int? issueYear}) = _$CalcResponseImpl;
 
   factory _CalcResponse.fromJson(Map<String, dynamic> json) =
       _$CalcResponseImpl.fromJson;
@@ -398,6 +419,9 @@ abstract class _CalcResponse implements CalcResponse {
   @override
   @JsonKey(name: 'number_drivers_id')
   String? get numberDriversId;
+  @override
+  @JsonKey(name: 'issue_year')
+  int? get issueYear;
   @override
   @JsonKey(ignore: true)
   _$$CalcResponseImplCopyWith<_$CalcResponseImpl> get copyWith =>

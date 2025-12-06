@@ -1,9 +1,12 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 
-import '../../../../core/navigation/app_router.dart';
+import '../bloc/kasko_bloc.dart';
+import '../bloc/kasko_state.dart';
 
 // Asosiy ranglar
 const Color _successGreen = Color(0xFF0EC785);
@@ -14,6 +17,18 @@ const Color _iconLightBlue = Color(0xFFD6F1FF);
 @RoutePage()
 class KaskoSuccessPage extends StatelessWidget {
   const KaskoSuccessPage({super.key});
+
+  String _formatAmount(double? amount) {
+    if (amount == null) return '0 so\'m';
+    final formatter = NumberFormat('#,###', 'uz_UZ');
+    return '${formatter.format(amount)} so\'m';
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'N/A';
+    final formatter = DateFormat('yyyy-MM-dd', 'uz_UZ');
+    return formatter.format(date);
+  }
 
   // Yordamchi widget: Tafsilot qatori
   Widget _buildDetailRow(
@@ -102,19 +117,51 @@ class KaskoSuccessPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final scaffoldBg = isDark
-        ? Colors.black.withOpacity(0.6)
-        : Colors.black.withOpacity(0.4);
-    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final subtitleColor = isDark ? Colors.grey[400]! : const Color(0xFF8E9BA6);
-    final borderColor = isDark ? Colors.grey[700]! : const Color(0xFFE0E6EB);
-    final detailCardBg = isDark ? const Color(0xFF1E3A5C) : _cardLightBlue;
-    final iconContainerBg = isDark ? const Color(0xFF1E3A5C) : _iconLightBlue;
-    final dividerColor = isDark ? Colors.grey[700]! : const Color(0xFFE1EBF2);
+    return BlocBuilder<KaskoBloc, KaskoState>(
+      builder: (context, state) {
+        // Ma'lumotlarni state'dan olish
+        String orderId = 'N/A';
+        String carName = 'N/A';
+        String date = _formatDate(DateTime.now());
+        String amount = '0 so\'m';
+        
+        // SaveOrder'dan ma'lumotlar
+        if (state is KaskoOrderSaved) {
+          orderId = state.order.orderId;
+          amount = _formatAmount(state.order.premium);
+        }
+        
+        // CalculatePolicy'dan ma'lumotlar
+        if (state is KaskoPolicyCalculated) {
+          amount = _formatAmount(state.calculateResult.premium);
+          date = _formatDate(state.calculateResult.beginDate);
+        }
+        
+        // Car ma'lumotlarini olish
+        if (state is KaskoCarsLoaded) {
+          // Birinchi mashinani olish (yoki tanlangan mashinani)
+          if (state.cars.isNotEmpty) {
+            final car = state.cars.first;
+            carName = car.name;
+            if (car.brand != null && car.model != null) {
+              carName = '${car.brand} ${car.model}';
+            }
+          }
+        }
 
-    return Scaffold(
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final scaffoldBg = isDark
+            ? Colors.black.withOpacity(0.6)
+            : Colors.black.withOpacity(0.4);
+        final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+        final textColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
+        final subtitleColor = isDark ? Colors.grey[400]! : const Color(0xFF8E9BA6);
+        final borderColor = isDark ? Colors.grey[700]! : const Color(0xFFE0E6EB);
+        final detailCardBg = isDark ? const Color(0xFF1E3A5C) : _cardLightBlue;
+        final iconContainerBg = isDark ? const Color(0xFF1E3A5C) : _iconLightBlue;
+        final dividerColor = isDark ? Colors.grey[700]! : const Color(0xFFE1EBF2);
+
+        return Scaffold(
       backgroundColor: scaffoldBg,
       body: Center(
         child: Padding(
@@ -211,7 +258,7 @@ class KaskoSuccessPage extends StatelessWidget {
                               ),
                               SizedBox(height: 4.h),
                               Text(
-                                "#KASKO-20571",
+                                "#$orderId",
                                 style: TextStyle(
                                   color: _iconBlue,
                                   fontWeight: FontWeight.w700,
@@ -235,7 +282,7 @@ class KaskoSuccessPage extends StatelessWidget {
                       _buildDetailRow(
                         Icons.directions_car_outlined,
                         "Avtomobil",
-                        "Chevrolet Lacetti",
+                        carName,
                         isDark: isDark,
                         textColor: textColor,
                         subtitleColor: subtitleColor,
@@ -244,7 +291,7 @@ class KaskoSuccessPage extends StatelessWidget {
                       _buildDetailRow(
                         Icons.calendar_today_outlined,
                         "Sana",
-                        "2025-10-28",
+                        date,
                         isDark: isDark,
                         textColor: textColor,
                         subtitleColor: subtitleColor,
@@ -253,7 +300,7 @@ class KaskoSuccessPage extends StatelessWidget {
                       _buildDetailRow(
                         Icons.attach_money_rounded,
                         "Summa",
-                        "1,200,000 so'm",
+                        amount,
                         isBlueValue: true,
                         isDark: isDark,
                         textColor: textColor,
@@ -327,6 +374,8 @@ class KaskoSuccessPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+      },
     );
   }
 }

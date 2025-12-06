@@ -40,7 +40,7 @@ class ErrorStateWidget extends StatelessWidget {
               style: AppTypography.bodyPrimary.copyWith(
                 fontSize: 16.sp,
                 color: theme.textTheme.bodyLarge?.color ?? 
-                    (isDark ? AppColors.white : AppColors.darkText),
+                    (isDark ? AppColors.white : AppColors.darkTextAutoCredit),
               ),
               textAlign: TextAlign.center,
             ),

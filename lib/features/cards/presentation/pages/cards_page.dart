@@ -217,8 +217,9 @@ class _CardsPageState extends State<CardsPage> {
           color: Theme.of(context).cardColor,
         ),
         child: BackButton(
-          color: Theme.of(context).textTheme.titleLarge?.color ??
-              AppColors.darkText,
+          color:
+              Theme.of(context).textTheme.titleLarge?.color ??
+              AppColors.darkTextAutoCredit,
           onPressed: () => context.router.maybePop(),
         ),
       ),
@@ -226,8 +227,9 @@ class _CardsPageState extends State<CardsPage> {
       title: Text(
         tr('cards.title'),
         style: TextStyle(
-          color: Theme.of(context).textTheme.titleLarge?.color ??
-              AppColors.darkText,
+          color:
+              Theme.of(context).textTheme.titleLarge?.color ??
+              AppColors.darkTextAutoCredit,
           fontWeight: FontWeight.bold,
           fontSize: 20,
         ),
@@ -419,7 +421,7 @@ class _BankFilterListWidget extends StatelessWidget {
                   color: isSelected
                       ? Colors.white
                       : (Theme.of(context).textTheme.titleLarge?.color ??
-                          AppColors.darkText),
+                            AppColors.darkTextAutoCredit),
                 ),
               ),
             ),
@@ -510,10 +512,7 @@ class _BankCardCardState extends State<_BankCardCard> {
         logoAsset != null && bankLogoUsesContainFit(offer.bankName);
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 12,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF2BB7FF), Color(0xFF009BF2)],
@@ -694,8 +693,7 @@ class _BankCardCardState extends State<_BankCardCard> {
     String bankName,
   ) {
     final logoAsset = bankLogoAsset(bankName);
-    final useContainFit =
-        logoAsset != null && bankLogoUsesContainFit(bankName);
+    final useContainFit = logoAsset != null && bankLogoUsesContainFit(bankName);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -751,7 +749,7 @@ class _BankCardCardState extends State<_BankCardCard> {
                   fontSize: 16.sp,
                   color:
                       Theme.of(context).textTheme.titleLarge?.color ??
-                      AppColors.darkText,
+                      AppColors.darkTextAutoCredit,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.1,
                 ),
@@ -789,7 +787,7 @@ class _BankCardCardState extends State<_BankCardCard> {
                     fontSize: 16.sp,
                     color:
                         Theme.of(context).textTheme.titleLarge?.color ??
-                        AppColors.darkText,
+                        AppColors.darkTextAutoCredit,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.2,
                   ),
@@ -815,7 +813,7 @@ class _BankCardCardState extends State<_BankCardCard> {
                         fontSize: 16.sp,
                         color:
                             Theme.of(context).textTheme.titleLarge?.color ??
-                            AppColors.darkText,
+                            AppColors.darkTextAutoCredit,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.1,
                       ),
@@ -848,9 +846,7 @@ class _BankCardCardState extends State<_BankCardCard> {
             if (!opened && context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(
-                    tr('common.error'),
-                  ),
+                  content: Text(tr('common.error')),
                   duration: const Duration(seconds: 2),
                 ),
               );
@@ -876,7 +872,6 @@ class _BankCardCardState extends State<_BankCardCard> {
       ),
     );
   }
-
 
   List<_CardStatModel> _buildStats(BuildContext context) {
     final stats = <_CardStatModel>[];
@@ -968,7 +963,8 @@ class _StatItem extends StatelessWidget {
                 child: Text(
                   model.label,
                   style: TextStyle(
-                    color: Theme.of(context).textTheme.bodySmall?.color ??
+                    color:
+                        Theme.of(context).textTheme.bodySmall?.color ??
                         AppColors.grayText,
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w500,
@@ -1269,9 +1265,7 @@ class _CardFilterSheetState extends State<_CardFilterSheet> {
                       onPressed: _reset,
                       style: OutlinedButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: 16.h),
-                        side: BorderSide(
-                          color: Theme.of(context).dividerColor,
-                        ),
+                        side: BorderSide(color: Theme.of(context).dividerColor),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16.r),
                         ),
@@ -1332,9 +1326,7 @@ class _CardFilterSheetState extends State<_CardFilterSheet> {
           color: isSelected ? _primaryBlue : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
-            color: isSelected
-                ? _primaryBlue
-                : Theme.of(context).dividerColor,
+            color: isSelected ? _primaryBlue : Theme.of(context).dividerColor,
           ),
         ),
         child: Row(
@@ -1347,7 +1339,7 @@ class _CardFilterSheetState extends State<_CardFilterSheet> {
                 color: isSelected
                     ? Colors.white
                     : (Theme.of(context).textTheme.titleLarge?.color ??
-                        Colors.black87),
+                          Colors.black87),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1359,7 +1351,7 @@ class _CardFilterSheetState extends State<_CardFilterSheet> {
                 color: isSelected
                     ? Colors.white
                     : (Theme.of(context).textTheme.titleLarge?.color ??
-                        Colors.black87),
+                          Colors.black87),
                 fontWeight: FontWeight.w600,
               ),
             ),

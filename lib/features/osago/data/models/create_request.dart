@@ -19,6 +19,7 @@ class CreateRequest with _$CreateRequest {
     @JsonKey(name: 'owner__inn') String? ownerInn,
     @JsonKey(name: 'applicant__license_seria') String? applicantLicenseSeria,
     @JsonKey(name: 'applicant__license_number') String? applicantLicenseNumber,
+    @JsonKey(name: 'number_drivers_id') required String numberDriversId,
     @JsonKey(
       name: 'start_date',
       fromJson: parseOsagoDate,

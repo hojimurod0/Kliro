@@ -1,25 +1,18 @@
-import 'dart:developer';
-
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shimmer/shimmer.dart';
 
+import '../../domain/entities/osago_driver.dart';
 import '../../domain/entities/osago_insurance.dart';
 import '../../logic/bloc/osago_bloc.dart';
 import '../../logic/bloc/osago_event.dart';
 import '../../logic/bloc/osago_state.dart';
 import '../../utils/osago_utils.dart';
-import 'osago_preview_screen.dart';
-
-// -----------------------------------------------------------------------------
-// CONSTANTS & THEME
-// -----------------------------------------------------------------------------
-class AppColors {
-  static const Color primary = Color(0xFF0095F6);
-  static const Color background = Color(0xFFF5F5F5);
-  static const Color textGrey = Color(0xFF757575);
-  static const Color borderGrey = Color(0xFFE0E0E0);
-}
+import 'osago_check_information_screen.dart';
+import '../../utils/upper_case_text_formatter.dart';
 
 class OsagoCompanyScreen extends StatefulWidget {
   const OsagoCompanyScreen({super.key});
@@ -29,7 +22,6 @@ class OsagoCompanyScreen extends StatefulWidget {
 }
 
 class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
-  // --- CONTROLLERS & KEYS ---
   final _formKey = GlobalKey<FormState>();
   final _companyController = TextEditingController();
   final _dateController = TextEditingController();
@@ -37,64 +29,78 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
   final _periodController = TextEditingController();
 
   final Map<String, String> _providers = {
-    'gross': 'Gross Insurance',
     'neo': 'NEO Insurance',
-    'gusto': 'GUSTO Insurance',
+    'gross': 'GROSS Insurance',
   };
 
-  String _selectedProvider = 'gross';
+  String _selectedProvider = 'neo';
   DateTime? _startDate;
   bool _navigated = false;
+  bool _showDrivers = false;
+  bool _isCheklanganType = false;
+  final List<Map<String, dynamic>> _drivers = [];
 
   @override
   void initState() {
     super.initState();
-    log('[OSAGO_COMPANY] initState: Ekran ochildi', name: 'OSAGO');
-    
-    // State dan periodId ni olish va ko'rsatish
-    final currentState = context.read<OsagoBloc>().state;
-    log('[OSAGO_COMPANY] Current state: periodId=${currentState.periodId}, osagoType=${currentState.osagoType}', name: 'OSAGO');
-    
-    if (currentState.periodId != null) {
-      final periodDisplay = OsagoUtils.mapIdToPeriod(currentState.periodId);
-      if (periodDisplay != null) {
-        _periodController.text = periodDisplay;
-        log('[OSAGO_COMPANY] Period ID mapping: ${currentState.periodId} -> $periodDisplay', name: 'OSAGO');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final currentState = context.read<OsagoBloc>().state;
+
+      if (currentState.periodId != null) {
+        String periodDisplay;
+        if (currentState.periodId == '6') {
+          periodDisplay = 'insurance.osago.vehicle.period_6_months'.tr();
+        } else if (currentState.periodId == '12') {
+          periodDisplay = 'insurance.osago.vehicle.period_12_months'.tr();
+        } else {
+          periodDisplay = OsagoUtils.mapIdToPeriod(currentState.periodId) ?? '';
+        }
+        if (periodDisplay.isNotEmpty) {
+          _periodController.text = periodDisplay;
+        }
       }
-    }
-    
-    // OSAGO type ga qarab kompaniyani avtomatik tanlash
-    final osagoType = currentState.osagoType;
-    if (osagoType != null) {
-      final typeLower = osagoType.toLowerCase();
-      log('[OSAGO_COMPANY] OSAGO type aniqlash: $osagoType (lowercase: $typeLower)', name: 'OSAGO');
-      
-      if (typeLower.contains('cheklangan')) {
-        // Cheklangan -> Gross Insurance (gusto not implemented on server)
-        _selectedProvider = 'gross';
-        _companyController.text = _providers[_selectedProvider]!;
-        log('[OSAGO_COMPANY] ✅ Avtomatik tanlandi: Cheklangan -> Gross Insurance', name: 'OSAGO');
-      } else if (typeLower.contains('cheklanmagan')) {
-        // Cheklanmagan -> NEO Insurance
-        _selectedProvider = 'neo';
-        _companyController.text = _providers[_selectedProvider]!;
-        log('[OSAGO_COMPANY] ✅ Avtomatik tanlandi: Cheklanmagan -> NEO Insurance', name: 'OSAGO');
+
+      final osagoType = currentState.osagoType;
+      if (osagoType != null) {
+        final limitedText = 'insurance.osago.vehicle.type_limited'.tr();
+        final unlimitedText = 'insurance.osago.vehicle.type_unlimited'.tr();
+
+        if (osagoType == limitedText) {
+          _isCheklanganType = true;
+          _selectedProvider = 'neo';
+          _companyController.text = _providers[_selectedProvider]!;
+          _showDrivers = true;
+          _drivers.add({
+            'passport': TextEditingController(),
+            'birthDate': DateTime.now(),
+            'relative': 0,
+            'relativeController': TextEditingController(
+              text: 'insurance.osago.company.relationship_owner'.tr(),
+            ),
+          });
+        } else if (osagoType == unlimitedText) {
+          _isCheklanganType = false;
+          _selectedProvider = 'neo';
+          _companyController.text = _providers[_selectedProvider]!;
+          _showDrivers = false;
+        } else {
+          _companyController.text = _providers[_selectedProvider]!;
+        }
       } else {
-        // Default: Gross Insurance
         _companyController.text = _providers[_selectedProvider]!;
-        log('[OSAGO_COMPANY] ⚠️ Default kompaniya: Gross Insurance (osagoType=$osagoType)', name: 'OSAGO');
       }
-    } else {
-      // Default: Gross Insurance
-      _companyController.text = _providers[_selectedProvider]!;
-      log('[OSAGO_COMPANY] ⚠️ Default kompaniya: Gross Insurance (osagoType null)', name: 'OSAGO');
-    }
-    
-    log('[OSAGO_COMPANY] Tanlangan kompaniya: $_selectedProvider -> ${_companyController.text}', name: 'OSAGO');
+    });
   }
 
   @override
   void dispose() {
+    for (final driver in _drivers) {
+      driver['passport']?.dispose();
+      driver['relativeController']?.dispose();
+    }
+
     _companyController.dispose();
     _dateController.dispose();
     _phoneController.dispose();
@@ -102,8 +108,240 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
     super.dispose();
   }
 
-  // --- ACTIONS (Funksiyalar) ---
-  // Sanani tanlash funksiyasi
+  void _addDriver() {
+    if (_drivers.length >= 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('insurance.osago.check.limited_drivers'.tr())),
+      );
+      return;
+    }
+    setState(() {
+      _drivers.add({
+        'passport': TextEditingController(),
+        'birthDate': DateTime.now(),
+        'relative': 0,
+        'relativeController': TextEditingController(
+          text: 'insurance.osago.company.relationship_owner'.tr(),
+        ),
+      });
+    });
+  }
+
+  void _removeDriver(int index) {
+    setState(() {
+      if (index < _drivers.length) {
+        _drivers[index]['passport']?.dispose();
+        _drivers[index]['relativeController']?.dispose();
+        _drivers.removeAt(index);
+      }
+    });
+  }
+
+  static Map<int, String>? _cachedRelationshipOptions;
+
+  Map<int, String> _getRelationshipOptions() {
+    _cachedRelationshipOptions ??= {
+      0: 'insurance.osago.company.relationship_owner'.tr(),
+      1: 'insurance.osago.company.relationship_son'.tr(),
+      2: 'insurance.osago.company.relationship_daughter'.tr(),
+      3: 'insurance.osago.company.relationship_father'.tr(),
+      4: 'insurance.osago.company.relationship_mother'.tr(),
+      5: 'insurance.osago.company.relationship_brother'.tr(),
+      6: 'insurance.osago.company.relationship_sister'.tr(),
+      7: 'insurance.osago.company.relationship_husband'.tr(),
+      8: 'insurance.osago.company.relationship_wife'.tr(),
+      9: 'insurance.osago.company.relationship_other_relative'.tr(),
+      10: 'insurance.osago.company.relationship_not_relative'.tr(),
+    };
+    return _cachedRelationshipOptions!;
+  }
+
+  Widget _buildDriverCard(int index, Map<String, dynamic> driver) {
+    final passportCtrl = driver['passport'] as TextEditingController;
+    final birthDate = driver['birthDate'] as DateTime;
+    final relative = driver['relative'] as int;
+
+    TextStyle _labelStyle(BuildContext context) {
+      return TextStyle(
+        color: Theme.of(context).textTheme.bodySmall?.color,
+        fontSize: 14.sp,
+        fontWeight: FontWeight.w500,
+      );
+    }
+
+    return RepaintBoundary(
+      child: Container(
+        margin: EdgeInsets.only(bottom: 16.h),
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Theme.of(context).dividerColor, width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'insurance.osago.check.drivers'.tr() + ' ${index + 1}',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.titleLarge?.color,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => _removeDriver(index),
+                  color: Colors.red,
+                  iconSize: 20,
+                ),
+              ],
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'insurance.osago.vehicle.passport'.tr(),
+              style: _labelStyle(context),
+            ),
+            SizedBox(height: 4.h),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: passportCtrl,
+              builder: (context, value, child) {
+                return TextFormField(
+                  controller: passportCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  inputFormatters: [
+                    UpperCaseTextFormatter(),
+                    FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
+                  ],
+                  style: TextStyle(
+                    color: value.text.isEmpty
+                        ? Theme.of(context).hintColor
+                        : Theme.of(context).textTheme.bodyLarge?.color,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: "AA1234567",
+                    counterText: "",
+                  ),
+                  validator: (v) {
+                    if (!_showDrivers) return null;
+                    if (v == null || v.isEmpty) {
+                      return 'insurance.osago.vehicle.errors.enter_passport'
+                          .tr();
+                    }
+                    final cleaned = v.replaceAll(' ', '').toUpperCase();
+                    if (cleaned.length != 9 ||
+                        !RegExp(r'^[A-Z]{2}\d{7}$').hasMatch(cleaned)) {
+                      return 'insurance.osago.vehicle.errors.passport_format'
+                          .tr();
+                    }
+                    return null;
+                  },
+                );
+              },
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'insurance.osago.vehicle.driver_birth_date'.tr(),
+              style: _labelStyle(context),
+            ),
+            SizedBox(height: 4.h),
+            TextFormField(
+              readOnly: true,
+              controller: TextEditingController(
+                text: OsagoUtils.formatDateForDisplay(birthDate),
+              ),
+              decoration: InputDecoration(
+                hintText: "dd.MM.yyyy",
+                prefixIcon: Icon(
+                  Icons.calendar_today_outlined,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              onTap: () async {
+                final DateTime now = DateTime.now();
+                final DateTime firstDate = DateTime(1950);
+                final DateTime lastDate = now;
+
+                DateTime? picked = await showDatePicker(
+                  context: context,
+                  initialDate: birthDate,
+                  firstDate: firstDate,
+                  lastDate: lastDate,
+                  builder: (context, child) {
+                    return Theme(
+                      data: Theme.of(context).copyWith(
+                        primaryColor: Theme.of(context).colorScheme.primary,
+                        colorScheme: Theme.of(context).colorScheme,
+                      ),
+                      child: child!,
+                    );
+                  },
+                );
+                if (picked != null) {
+                  setState(() {
+                    driver['birthDate'] = picked;
+                  });
+                }
+              },
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              '${'insurance.osago.company.relationship_degree'.tr()} *',
+              style: _labelStyle(context),
+            ),
+            SizedBox(height: 4.h),
+            Builder(
+              builder: (context) {
+                final relationshipOptions = _getRelationshipOptions();
+
+                final currentText =
+                    relationshipOptions[relative] ?? relationshipOptions[0]!;
+                final relativeCtrl =
+                    driver['relativeController'] as TextEditingController? ??
+                    TextEditingController(text: currentText);
+                driver['relativeController'] = relativeCtrl;
+
+                if (relative >= 0 && relative <= 10) {
+                  relativeCtrl.text = relationshipOptions[relative]!;
+                }
+
+                return DropdownButtonFormField<String>(
+                  value: relativeCtrl.text,
+                  decoration: const InputDecoration(
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                  ),
+                  items: relationshipOptions.entries.map((entry) {
+                    return DropdownMenuItem<String>(
+                      value: entry.value,
+                      child: Text(entry.value),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() {
+                      relativeCtrl.text = value;
+                      final selectedId = relationshipOptions.entries
+                          .firstWhere((entry) => entry.value == value)
+                          .key;
+                      driver['relative'] = selectedId;
+                    });
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _selectDate() async {
     final DateTime now = DateTime.now();
     final DateTime firstDate = now;
@@ -116,9 +354,9 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
       lastDate: lastDate,
       builder: (context, child) {
         return Theme(
-          data: ThemeData.light().copyWith(
-            primaryColor: AppColors.primary,
-            colorScheme: const ColorScheme.light(primary: AppColors.primary),
+          data: Theme.of(context).copyWith(
+            primaryColor: Theme.of(context).colorScheme.primary,
+            colorScheme: Theme.of(context).colorScheme,
           ),
           child: child!,
         );
@@ -127,143 +365,208 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
     if (picked != null) {
       setState(() {
         _startDate = picked;
-        // Sanani dd.MM.yyyy formatiga o'tkazish
         _dateController.text = OsagoUtils.formatDateForDisplay(picked);
       });
     }
   }
 
-
-  // Period tanlash
-  void _showPeriodSelection() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(20),
-                child: Text(
-                  'Muddatni tanlang',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const Divider(height: 1),
-              ...['6 oy', '1 yil'].map((period) => ListTile(
-                    title: Text(period),
-                    onTap: () {
-                      setState(() {
-                        _periodController.text = period;
-                      });
-                      Navigator.pop(context);
-                    },
-                  )),
-            ],
+  Widget _buildShimmerField() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 120,
+            height: 14,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(4),
+            ),
           ),
-        );
-      },
+          SizedBox(height: 8.h),
+          Container(
+            width: double.infinity,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  // Formani yuborish funksiyasi
   void _submitForm() {
-    log('[OSAGO_COMPANY] Submit bosildi', name: 'OSAGO');
-    
     if (_formKey.currentState!.validate()) {
       if (_startDate == null) {
-        log('[OSAGO_COMPANY] ❌ Boshlanish sanasi tanlanmagan', name: 'OSAGO');
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Boshlanish sanasini tanlang")),
+          SnackBar(
+            content: Text(
+              'insurance.osago.company.errors.select_start_date'.tr(),
+            ),
+          ),
         );
         return;
       }
 
-      // Period ID mapping
       final periodId = OsagoUtils.mapPeriodToId(_periodController.text);
       if (periodId == null) {
-        log('[OSAGO_COMPANY] ❌ Period ID topilmadi: ${_periodController.text}', name: 'OSAGO');
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Sug'urta muddatini tanlang")),
+          SnackBar(
+            content: Text('insurance.osago.company.errors.select_period'.tr()),
+          ),
         );
         return;
       }
 
-      // Telefon raqamini normalizatsiya qilish va validatsiya
       final phoneText = _phoneController.text.trim();
       final normalizedPhone = OsagoUtils.normalizePhoneNumber(phoneText);
-      log('[OSAGO_COMPANY] Telefon raqami: $phoneText -> $normalizedPhone', name: 'OSAGO');
-      
+
       if (!OsagoUtils.isValidPhoneNumber(normalizedPhone)) {
-        log('[OSAGO_COMPANY] ❌ Telefon raqami noto\'g\'ri: $normalizedPhone', name: 'OSAGO');
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Telefon raqami noto'g'ri formatda")),
+          SnackBar(
+            content: Text('insurance.osago.company.errors.invalid_phone'.tr()),
+          ),
         );
         return;
       }
 
-      // State dan numberDriversId ni olish (calc response dan kelgan)
       final currentState = context.read<OsagoBloc>().state;
-      log('[OSAGO_COMPANY] State dan olingan: numberDriversId=${currentState.numberDriversId}, osagoType=${currentState.osagoType}', name: 'OSAGO');
-      
-      // Fallback: agar numberDriversId bo'lmasa, provider va OSAGO type dan map qilamiz
-      String numberDriversId = currentState.numberDriversId ?? '5'; // Default: limited
-      if (numberDriversId != '0' && numberDriversId != '5') {
-        log('[OSAGO_COMPANY] ⚠️ numberDriversId noto\'g\'ri ($numberDriversId), mapping qilinmoqda...', name: 'OSAGO');
-        // Noto'g'ri qiymat bo'lsa, provider va OSAGO type dan map qilamiz
-        final osagoType = currentState.osagoType;
-        final provider = _selectedProvider;
-        
-        // Provider ga qarab mapping (ustunlik)
+      final osagoType = currentState.osagoType;
+      final provider = _selectedProvider;
+      String numberDriversId;
+
+      final limitedText = 'insurance.osago.vehicle.type_limited'.tr();
+      final unlimitedText = 'insurance.osago.vehicle.type_unlimited'.tr();
+
+      if (osagoType == limitedText) {
+        numberDriversId = '5';
+      } else if (osagoType == unlimitedText) {
+        numberDriversId = '0';
+      } else {
         final providerLower = provider.toLowerCase();
         if (providerLower == 'neo') {
-          // NEO -> cheklanmagan (0) - nechta bo'lsa, hammasini qo'shadi
           numberDriversId = '0';
-          log('[OSAGO_COMPANY] Mapping: NEO -> cheklanmagan (0)', name: 'OSAGO');
-        } else if (providerLower == 'gusto') {
-          // GUSTO -> cheklangan (5) - 5 tagacha
-          numberDriversId = '5';
-          log('[OSAGO_COMPANY] Mapping: GUSTO -> cheklangan (5)', name: 'OSAGO');
         } else if (providerLower == 'gross') {
-          // GROSS -> default (5)
           numberDriversId = '5';
-          log('[OSAGO_COMPANY] Mapping: GROSS -> default (5)', name: 'OSAGO');
         } else {
-          // OSAGO type dan map qilish
-          if (osagoType != null && osagoType.toLowerCase().contains('cheklanmagan')) {
-            numberDriversId = '0';
-            log('[OSAGO_COMPANY] Mapping: OSAGO type (cheklanmagan) -> 0', name: 'OSAGO');
+          final tempNumberDriversId = currentState.numberDriversId;
+          if (tempNumberDriversId != null &&
+              (tempNumberDriversId == '0' || tempNumberDriversId == '5')) {
+            numberDriversId = tempNumberDriversId;
           } else {
             numberDriversId = '5';
-            log('[OSAGO_COMPANY] Mapping: OSAGO type (default) -> 5', name: 'OSAGO');
           }
         }
       }
 
-      log('[OSAGO_COMPANY] ✅ Final numberDriversId: $numberDriversId', name: 'OSAGO');
-
       final insurance = OsagoInsurance(
         provider: _selectedProvider,
         companyName: _providers[_selectedProvider]!,
-        periodId: periodId, // Mapping qilingan periodId
-        numberDriversId: numberDriversId, // State dan yoki calc response dan
+        periodId: periodId,
+        numberDriversId: numberDriversId,
         startDate: _startDate!,
         phoneNumber: normalizedPhone,
         ownerInn: '',
         isUnlimited: false,
       );
-      
-      log('[OSAGO_COMPANY] Insurance yaratildi: provider=$_selectedProvider, periodId=$periodId, numberDriversId=$numberDriversId, startDate=${_startDate}', name: 'OSAGO');
-      log('[OSAGO_COMPANY] LoadInsuranceCompany event yuborilmoqda', name: 'OSAGO');
-      
+
+      if (_showDrivers && _drivers.isNotEmpty) {
+        for (var i = 0; i < _drivers.length; i++) {
+          final driverData = _drivers[i];
+          final passportCtrl = driverData['passport'] as TextEditingController;
+          final passportText = passportCtrl.text
+              .replaceAll(' ', '')
+              .toUpperCase();
+
+          if (passportText.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  '${'insurance.osago.check.drivers'.tr()} ${i + 1}: ${'insurance.osago.vehicle.errors.enter_passport'.tr()}',
+                ),
+              ),
+            );
+            return;
+          }
+
+          if (passportText.length != 9) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  '${'insurance.osago.check.drivers'.tr()} ${i + 1}: ${'insurance.osago.vehicle.errors.passport_format'.tr()}',
+                ),
+              ),
+            );
+            return;
+          }
+
+          if (!RegExp(r'^[A-Z]{2}\d{7}$').hasMatch(passportText)) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  '${'insurance.osago.check.drivers'.tr()} ${i + 1}: ${'insurance.osago.vehicle.errors.passport_format'.tr()}',
+                ),
+              ),
+            );
+            return;
+          }
+        }
+      }
+
+      final currentVehicle = currentState.vehicle;
+
+      if (_showDrivers && _drivers.isNotEmpty && currentVehicle != null) {
+        final driversList = <OsagoDriver>[];
+        for (final driverData in _drivers) {
+          final passportCtrl = driverData['passport'] as TextEditingController;
+          final passportText = passportCtrl.text
+              .replaceAll(' ', '')
+              .toUpperCase();
+
+          if (passportText.length >= 9) {
+            final passportSeria = passportText.substring(0, 2);
+            final passportNumber = passportText.substring(2);
+            final birthDate = driverData['birthDate'] as DateTime;
+            final relativeId = driverData['relative'] as int;
+
+            driversList.add(
+              OsagoDriver(
+                passportSeria: passportSeria,
+                passportNumber: passportNumber,
+                driverBirthday: birthDate,
+                relative: relativeId,
+                name: null,
+                licenseSeria: null,
+                licenseNumber: null,
+              ),
+            );
+          }
+        }
+
+        if (driversList.isNotEmpty) {
+          context.read<OsagoBloc>().add(
+            LoadVehicleData(
+              vehicle: currentVehicle,
+              drivers: driversList,
+              osagoType: currentState.osagoType,
+              periodId: currentState.periodId,
+              gosNumber: currentState.gosNumber,
+              birthDate: currentState.birthDate,
+            ),
+          );
+        }
+      }
+
       _navigated = false;
-      context.read<OsagoBloc>().add(LoadInsuranceCompany(insurance));
-    } else {
-      log('[OSAGO_COMPANY] ❌ Form validatsiyasi o\'tmadi', name: 'OSAGO');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.read<OsagoBloc>().add(LoadInsuranceCompany(insurance));
+        }
+      });
     }
   }
 
@@ -272,9 +575,9 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
     return BlocListener<OsagoBloc, OsagoState>(
       listener: (context, state) {
         if (state is OsagoFailure && state.errorMessage != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.errorMessage!)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
         }
         if (state is OsagoCalcSuccess && !_navigated) {
           _navigated = true;
@@ -282,25 +585,34 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
             MaterialPageRoute(
               builder: (_) => BlocProvider.value(
                 value: context.read<OsagoBloc>(),
-                child: const OsagoPreviewScreen(),
+                child: const OsagoCheckInformationScreen(),
               ),
             ),
           );
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).cardColor,
           elevation: 0,
           centerTitle: true,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () => Navigator.of(context).pop(),
+            icon: Icon(
+              Icons.arrow_back,
+              color: Theme.of(context).textTheme.titleLarge?.color,
+            ),
+            onPressed: () {
+              _navigated = false;
+              Navigator.of(context).pop();
+            },
           ),
-          title: const Text(
-            "OSAGO",
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          title: Text(
+            'insurance.osago.company.title'.tr(),
+            style: TextStyle(
+              color: Theme.of(context).textTheme.titleLarge?.color,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         body: GestureDetector(
@@ -310,100 +622,277 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
               Expanded(
                 child: Container(
                   width: double.infinity,
-                  margin: const EdgeInsets.only(top: 10),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
+                  margin: EdgeInsets.only(top: 10.h),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(20),
                       topRight: Radius.circular(20),
                     ),
                   ),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Sug'urta kompaniyasi",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          // 1. Kompaniyani tanlash (avtomatik tanlangan)
-                          CustomInputField(
-                            controller: _companyController,
-                            label: "Kompaniyani tanlang",
-                            hintText: "Tanlash",
-                            readOnly: true,
-                            suffixIcon: Icons.keyboard_arrow_down,
-                            onTap: null, // Avtomatik tanlangan, o'zgartirib bo'lmaydi
-                            validator: (value) =>
-                                value!.isEmpty ? "Kompaniyani kiriting" : null,
-                          ),
-                          const SizedBox(height: 16),
-                          // 2. Period tanlash
-                          CustomInputField(
-                            controller: _periodController,
-                            label: "Sug'urta muddati",
-                            hintText: "Tanlang",
-                            readOnly: true,
-                            suffixIcon: Icons.keyboard_arrow_down,
-                            onTap: _showPeriodSelection,
-                            validator: (value) =>
-                                value!.isEmpty ? "Muddatni tanlang" : null,
-                          ),
-                          const SizedBox(height: 16),
-                          // 3. Boshlanish sanasi (DatePicker bilan)
-                          CustomInputField(
-                            controller: _dateController,
-                            label: "Boshlanish sanasi",
-                            hintText: "dd.MM.yyyy",
-                            prefixIcon: Icons.calendar_today_outlined,
-                            readOnly: true,
-                            onTap: _selectDate,
-                            validator: (value) =>
-                                value!.isEmpty ? "Sanani tanlang" : null,
-                          ),
-                          const SizedBox(height: 16),
-                          // 4. Telefon raqami
-                          CustomInputField(
-                            controller: _phoneController,
-                            label: "Telefon raqami",
-                            hintText: "-- --- -- --",
-                            prefixIcon: Icons.phone_outlined,
-                            isPhoneField: true,
-                            keyboardType: TextInputType.phone,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                              LengthLimitingTextInputFormatter(9),
+                  child: BlocBuilder<OsagoBloc, OsagoState>(
+                    buildWhen: (previous, current) =>
+                        previous is OsagoLoading != current is OsagoLoading,
+                    builder: (context, state) {
+                      final isLoading = state is OsagoLoading;
+                      if (isLoading) {
+                        return SingleChildScrollView(
+                          padding: EdgeInsets.all(20.w),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildShimmerField(),
+                              SizedBox(height: 16.h),
+                              _buildShimmerField(),
+                              SizedBox(height: 16.h),
+                              _buildShimmerField(),
                             ],
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return "Telefon raqamini kiriting";
-                              }
-                              final normalized = OsagoUtils.normalizePhoneNumber(value);
-                              if (!OsagoUtils.isValidPhoneNumber(normalized)) {
-                                return "9 ta raqam bo'lishi kerak";
-                              }
-                              return null;
-                            },
                           ),
-                        ],
-                      ),
-                    ),
+                        );
+                      }
+                      return SingleChildScrollView(
+                        padding: EdgeInsets.all(20.w),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'insurance.osago.company.title'.tr(),
+                                style: TextStyle(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.titleLarge?.color,
+                                ),
+                              ),
+                              SizedBox(height: 20.h),
+                              Text(
+                                'insurance.osago.company.provider'.tr(),
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.color,
+                                ),
+                              ),
+                              SizedBox(height: 8.h),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: RadioListTile<String>(
+                                      title: Text(
+                                        'insurance.osago.company.insurance_company_neo'
+                                            .tr(),
+                                      ),
+                                      value: 'neo',
+                                      groupValue: _selectedProvider,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _selectedProvider = value!;
+                                          _companyController.text =
+                                              _providers[_selectedProvider]!;
+                                        });
+                                      },
+                                      contentPadding: EdgeInsets.zero,
+                                      dense: true,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: RadioListTile<String>(
+                                      title: Text(
+                                        'insurance.osago.company.insurance_company_gross'
+                                            .tr(),
+                                      ),
+                                      value: 'gross',
+                                      groupValue: _selectedProvider,
+                                      onChanged: _isCheklanganType
+                                          ? null
+                                          : (value) {
+                                              setState(() {
+                                                _selectedProvider = value!;
+                                                _companyController.text =
+                                                    _providers[_selectedProvider]!;
+                                              });
+                                            },
+                                      contentPadding: EdgeInsets.zero,
+                                      dense: true,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 16.h),
+                              CustomInputField(
+                                controller: _dateController,
+                                label: 'insurance.osago.company.start_date'
+                                    .tr(),
+                                hintText: "dd.MM.yyyy",
+                                prefixIcon: Icons.calendar_today_outlined,
+                                readOnly: true,
+                                onTap: _selectDate,
+                                validator: (value) => value!.isEmpty
+                                    ? 'insurance.osago.company.errors.select_start_date'
+                                          .tr()
+                                    : null,
+                              ),
+                              SizedBox(height: 16.h),
+                              CustomInputField(
+                                controller: _phoneController,
+                                label: 'insurance.osago.company.phone_number'
+                                    .tr(),
+                                hintText: "-- --- -- --",
+                                prefixIcon: Icons.phone_outlined,
+                                isPhoneField: true,
+                                keyboardType: TextInputType.phone,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  LengthLimitingTextInputFormatter(9),
+                                ],
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'insurance.osago.company.errors.enter_phone'
+                                        .tr();
+                                  }
+                                  final normalized =
+                                      OsagoUtils.normalizePhoneNumber(value);
+                                  if (!OsagoUtils.isValidPhoneNumber(
+                                    normalized,
+                                  )) {
+                                    return 'insurance.osago.company.errors.invalid_phone'
+                                        .tr();
+                                  }
+                                  return null;
+                                },
+                              ),
+                              SizedBox(height: 20.h),
+                              BlocBuilder<OsagoBloc, OsagoState>(
+                                buildWhen: (previous, current) =>
+                                    previous.calcResponse !=
+                                    current.calcResponse,
+                                builder: (context, state) {
+                                  final calcResponse = state.calcResponse;
+                                  if (calcResponse == null) {
+                                    return const SizedBox.shrink();
+                                  }
+
+                                  final amount = calcResponse.amount.toInt();
+                                  final osagoTypeText =
+                                      state.osagoType ??
+                                      (_selectedProvider == 'neo'
+                                          ? 'Cheklanmagan'
+                                          : 'Cheklangan');
+
+                                  final formattedAmount = amount
+                                      .toString()
+                                      .replaceAllMapped(
+                                        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                        (Match m) => '${m[1]},',
+                                      );
+
+                                  return RepaintBoundary(
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 16.w,
+                                        vertical: 12.h,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(
+                                          context,
+                                        ).scaffoldBackgroundColor,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            '${'insurance.osago.company.calculation'.tr()} $osagoTypeText',
+                                            style: TextStyle(
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.w500,
+                                              color: Theme.of(
+                                                context,
+                                              ).textTheme.bodyMedium?.color,
+                                            ),
+                                          ),
+                                          Text(
+                                            '$formattedAmount so\'m',
+                                            style: TextStyle(
+                                              fontSize: 16.sp,
+                                              fontWeight: FontWeight.bold,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              SizedBox(height: 20.h),
+                              if (_showDrivers) ...[
+                                SizedBox(height: 8.h),
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12.w,
+                                    vertical: 8.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(
+                                      context,
+                                    ).scaffoldBackgroundColor,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'insurance.osago.company.add_driver'
+                                            .tr(),
+                                        style: TextStyle(
+                                          fontSize: 14.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: Theme.of(
+                                            context,
+                                          ).textTheme.bodyMedium?.color,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.add_circle_outline,
+                                          size: 22,
+                                        ),
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        onPressed: _addDriver,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                ..._drivers.asMap().entries.map((entry) {
+                                  final index = entry.key;
+                                  final driver = entry.value;
+                                  return _buildDriverCard(index, driver);
+                                }).toList(),
+                              ],
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
-              // Pastki Button qismi
               Container(
                 width: double.infinity,
-                color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+                color: Theme.of(context).cardColor,
+                padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 30.h),
                 child: SafeArea(
                   top: false,
                   child: BlocBuilder<OsagoBloc, OsagoState>(
@@ -414,27 +903,33 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
                       return ElevatedButton(
                         onPressed: isLoading ? null : _submitForm,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary,
+                          padding: EdgeInsets.symmetric(vertical: 16.h),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           elevation: 0,
                         ),
                         child: isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor:
-                                      AlwaysStoppedAnimation<Color>(Colors.white),
+                            ? Shimmer.fromColors(
+                                baseColor: Colors.white70,
+                                highlightColor: Colors.white,
+                                child: Text(
+                                  'insurance.osago.company.loading_data'.tr(),
+                                  style: TextStyle(
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               )
-                            : const Text(
-                                "Davom etish",
-                                style: TextStyle(
+                            : Text(
+                                'insurance.osago.vehicle.continue'.tr(),
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -452,7 +947,6 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
   }
 }
 
-// --- OPTIMAL REUSABLE WIDGET ---
 class CustomInputField extends StatelessWidget {
   final String label;
   final String hintText;
@@ -486,85 +980,206 @@ class CustomInputField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Label
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 14,
+          style: TextStyle(
+            fontSize: 14.sp,
             fontWeight: FontWeight.w500,
-            color: AppColors.textGrey,
+            color: Theme.of(context).textTheme.bodySmall?.color,
           ),
         ),
         const SizedBox(height: 8),
-        // Input Field
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          readOnly: readOnly,
-          onTap: onTap,
-          validator: validator,
-          inputFormatters: inputFormatters,
-          style: const TextStyle(fontWeight: FontWeight.w500),
-          decoration: InputDecoration(
-            contentPadding:
-                const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-            hintText: hintText,
-            hintStyle: TextStyle(color: Colors.grey[400]),
-            // Prefix Logic
-            prefixIcon: prefixIcon != null
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(prefixIcon, color: AppColors.primary, size: 22),
-                        if (isPhoneField) ...[
-                          const SizedBox(width: 8),
-                          const Text(
-                            "+998",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          Container(
-                            margin: const EdgeInsets.only(left: 8),
-                            height: 20,
-                            width: 1,
-                            color: Colors.grey[300],
-                          ),
-                          const SizedBox(width: 8),
-                        ]
-                      ],
+        controller != null
+            ? ValueListenableBuilder<TextEditingValue>(
+                valueListenable: controller!,
+                builder: (context, value, child) {
+                  return TextFormField(
+                    controller: controller,
+                    keyboardType: keyboardType,
+                    readOnly: readOnly,
+                    onTap: onTap,
+                    validator: validator,
+                    inputFormatters: inputFormatters,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: value.text.isEmpty
+                          ? Theme.of(context).hintColor
+                          : Theme.of(context).textTheme.bodyLarge?.color,
                     ),
-                  )
-                : null,
-            suffixIcon: suffixIcon != null
-                ? Icon(suffixIcon, color: Colors.grey)
-                : null,
-            // Borders
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.borderGrey),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: AppColors.primary, width: 1.5),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.red, width: 1),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.red, width: 1.5),
-            ),
-            filled: true,
-            fillColor: Colors.white,
-          ),
-        ),
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.symmetric(
+                        vertical: 16.h,
+                        horizontal: 16.w,
+                      ),
+                      hintText: hintText,
+                      hintStyle: TextStyle(color: Theme.of(context).hintColor),
+                      prefixIcon: prefixIcon != null
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    prefixIcon,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    size: 22,
+                                  ),
+                                  if (isPhoneField) ...[
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      "+998",
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).textTheme.bodyLarge?.color,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Container(
+                                      margin: const EdgeInsets.only(left: 8),
+                                      height: 20,
+                                      width: 1,
+                                      color: Theme.of(context).dividerColor,
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ],
+                                ],
+                              ),
+                            )
+                          : null,
+                      suffixIcon: suffixIcon != null
+                          ? Icon(
+                              suffixIcon,
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.color,
+                            )
+                          : null,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 1.5,
+                        ),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.error,
+                          width: 1,
+                        ),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.error,
+                          width: 1.5,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).cardColor,
+                    ),
+                  );
+                },
+              )
+            : TextFormField(
+                controller: controller,
+                keyboardType: keyboardType,
+                readOnly: readOnly,
+                onTap: onTap,
+                validator: validator,
+                inputFormatters: inputFormatters,
+                style: const TextStyle(fontWeight: FontWeight.w500),
+                decoration: InputDecoration(
+                  contentPadding: EdgeInsets.symmetric(
+                    vertical: 16.h,
+                    horizontal: 16.w,
+                  ),
+                  hintText: hintText,
+                  hintStyle: TextStyle(color: Theme.of(context).hintColor),
+                  prefixIcon: prefixIcon != null
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                prefixIcon,
+                                color: Theme.of(context).colorScheme.primary,
+                                size: 22,
+                              ),
+                              if (isPhoneField) ...[
+                                const SizedBox(width: 8),
+                                Text(
+                                  "+998",
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge?.color,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Container(
+                                  margin: const EdgeInsets.only(left: 8),
+                                  height: 20,
+                                  width: 1,
+                                  color: Theme.of(context).dividerColor,
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+                            ],
+                          ),
+                        )
+                      : null,
+                  suffixIcon: suffixIcon != null
+                      ? Icon(
+                          suffixIcon,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
+                        )
+                      : null,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).dividerColor,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.error,
+                      width: 1,
+                    ),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.error,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context).cardColor,
+                ),
+              ),
       ],
     );
   }

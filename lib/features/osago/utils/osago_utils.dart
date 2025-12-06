@@ -64,25 +64,55 @@ class OsagoUtils {
     return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
   }
 
-  /// Period mapping: "6 oy" -> "6", "1 yil" -> "12"
+  /// Period mapping: локализованные строки -> ID
+  /// Поддерживает: uz, ru, en, uz-cyr
+  /// "6 oy" / "6 месяцев" / "6 months" / "6 ой" -> "6"
+  /// "12 oy" / "12 месяцев" / "12 months" / "12 ой" -> "12"
   static String? mapPeriodToId(String? period) {
     if (period == null || period.isEmpty) return null;
     
+    final periodLower = period.toLowerCase().trim();
+    
+    // 6 месяцев варианты
+    if (periodLower.contains('6') && 
+        (periodLower.contains('oy') || 
+         periodLower.contains('месяц') || 
+         periodLower.contains('month') ||
+         periodLower.contains('ой'))) {
+      return '6';
+    }
+    
+    // 12 месяцев варианты
+    if (periodLower.contains('12') && 
+        (periodLower.contains('oy') || 
+         periodLower.contains('месяц') || 
+         periodLower.contains('month') ||
+         periodLower.contains('ой'))) {
+      return '12';
+    }
+    
+    // Fallback: точное совпадение для обратной совместимости
     final periodMap = {
       '6 oy': '6',
-      '1 yil': '12',
+      '12 oy': '12',
+      '6 месяцев': '6',
+      '12 месяцев': '12',
+      '6 months': '6',
+      '12 months': '12',
+      '6 ой': '6',
+      '12 ой': '12',
     };
     
-    return periodMap[period];
+    return periodMap[period] ?? periodMap[periodLower];
   }
 
-  /// Period ID dan period nomiga: "6" -> "6 oy", "12" -> "1 yil"
+  /// Period ID dan period nomiga: "6" -> "6 oy", "12" -> "12 oy"
   static String? mapIdToPeriod(String? periodId) {
     if (periodId == null || periodId.isEmpty) return null;
     
     final idMap = {
       '6': '6 oy',
-      '12': '1 yil',
+      '12': '12 oy',
     };
     
     return idMap[periodId];
@@ -198,6 +228,61 @@ class OsagoUtils {
       return 'Server xatosi. Iltimos, keyinroq urinib ko\'ring.';
     }
     return 'Xatolik yuz berdi: ${error.toString()}';
+  }
+
+  /// PINFL dan tug'ilgan sanani olish
+  /// PINFL format: YYMMDDXXXXXX (14 raqam)
+  /// Birinchi 6 ta raqam: YYMMDD (yil, oy, kun)
+  /// Yil: O'zbekistonda PINFL da yil 1900-2099 orasida bo'lishi mumkin
+  /// Agar YY + 2000 > hozirgi yil bo'lsa, 1900 + YY, aks holda 2000 + YY
+  static DateTime? parseBirthDateFromPinfl(String? pinfl) {
+    if (pinfl == null || pinfl.isEmpty) return null;
+    
+    // Faqat raqamlarni olish
+    final digitsOnly = pinfl.replaceAll(RegExp(r'[^\d]'), '');
+    if (digitsOnly.length < 6) return null;
+    
+    try {
+      // Birinchi 6 ta raqamni olish
+      final yearStr = digitsOnly.substring(0, 2);
+      final monthStr = digitsOnly.substring(2, 4);
+      final dayStr = digitsOnly.substring(4, 6);
+      
+      final year = int.parse(yearStr);
+      final month = int.parse(monthStr);
+      final day = int.parse(dayStr);
+      
+      // Sana validatsiyasi
+      if (month < 1 || month > 12) return null;
+      if (day < 1 || day > 31) return null;
+      
+      // Yilni aniqlash: O'zbekistonda PINFL formatida
+      // Agar YY < 50 bo'lsa, 2000 + YY (masalan: 33 -> 2033, lekin bu kelajak, shuning uchun 1933)
+      // Agar YY >= 50 bo'lsa, 1900 + YY (masalan: 95 -> 1995)
+      // Lekin agar 2000 + YY > hozirgi yil bo'lsa, 1900 + YY
+      final currentYear = DateTime.now().year;
+      int fullYear;
+      
+      if (year >= 50) {
+        // 50-99 -> 1900-1949
+        fullYear = 1900 + year;
+      } else {
+        // 0-49 -> 2000-2049 yoki 1900-1949
+        final year2000 = 2000 + year;
+        // Agar kelajak bo'lsa (hozirgi yildan katta), 1900 + YY
+        fullYear = year2000 > currentYear ? 1900 + year : year2000;
+      }
+      
+      // Qo'shimcha validatsiya: yil 1900-2099 orasida bo'lishi kerak
+      if (fullYear < 1900 || fullYear > 2099) return null;
+      
+      // Yilni tekshirish: agar 1900 yildan oldin yoki kelajakda (hozirgi yildan 10 yil keyin) bo'lsa, noto'g'ri
+      if (fullYear < 1900 || fullYear > currentYear + 10) return null;
+      
+      return DateTime(fullYear, month, day);
+    } catch (e) {
+      return null;
+    }
   }
 }
 
