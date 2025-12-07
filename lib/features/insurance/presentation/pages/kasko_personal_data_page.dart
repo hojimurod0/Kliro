@@ -8,6 +8,7 @@ import '../../utils/upper_case_text_formatter.dart';
 
 // Asosiy ranglar
 const Color _primaryBlue = Color(0xFF1976D2);
+const Color _errorRed = Color(0xFFD32F2F); // Xatolik rangi
 
 @RoutePage()
 class KaskoPersonalDataPage extends StatefulWidget {
@@ -18,6 +19,9 @@ class KaskoPersonalDataPage extends StatefulWidget {
 }
 
 class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
+  // Form Key validatsiya uchun
+  final _formKey = GlobalKey<FormState>();
+
   // Controllerlar
   final TextEditingController _passportSeriesController =
       TextEditingController();
@@ -35,7 +39,7 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
     super.dispose();
   }
 
-  // Umumiy Text Field Dizayni
+  // Umumiy Text Field Dizayni (Validatsiya dizayni qo'shildi)
   InputDecoration _commonInputDecoration({
     String? hintText,
     Widget? prefixIcon,
@@ -56,6 +60,12 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
       ),
       filled: true,
       fillColor: cardBg,
+      errorStyle: TextStyle(
+        fontSize: 12.sp,
+        fontWeight: FontWeight.w500,
+        color: _errorRed,
+      ),
+      // Oddiy holat
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.0.r),
         borderSide: BorderSide(color: borderColor, width: 1.0),
@@ -64,9 +74,20 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
         borderRadius: BorderRadius.circular(10.0.r),
         borderSide: BorderSide(color: borderColor, width: 1.0),
       ),
+      // Fokuslanganda
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.0.r),
         borderSide: const BorderSide(color: _primaryBlue, width: 1.5),
+      ),
+      // Xatolik bo'lganda
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10.0.r),
+        borderSide: const BorderSide(color: _errorRed, width: 1.0),
+      ),
+      // Xatolik bo'lib turib fokuslanganda
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10.0.r),
+        borderSide: const BorderSide(color: _errorRed, width: 1.5),
       ),
     );
   }
@@ -75,7 +96,7 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: DateTime(2000), // Default 2000 yil
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       builder: (context, child) {
@@ -96,6 +117,8 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
         _birthDateController.text =
             "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
       });
+      // Sanani tanlagandan keyin validatsiyani qayta tekshirish (qizil yozuvni o'chirish uchun)
+      _formKey.currentState?.validate();
     }
   }
 
@@ -120,6 +143,8 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
         ),
         SizedBox(height: 8.0.h),
         Row(
+          crossAxisAlignment: CrossAxisAlignment
+              .start, // Xatolik chiqqanda tekstlar siljimasligi uchun
           children: [
             // 1. Seriya (AA)
             Expanded(
@@ -133,10 +158,20 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
                   color: textColor,
                   fontSize: 20.sp,
                 ),
+                textCapitalization: TextCapitalization.characters,
                 inputFormatters: [
                   UpperCaseTextFormatter(),
                   FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z]')),
                 ],
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Kriting';
+                  }
+                  if (value.length < 2) {
+                    return 'To\'liq emas';
+                  }
+                  return null;
+                },
                 decoration: _commonInputDecoration(
                   hintText: 'AA',
                   isDark: isDark,
@@ -159,6 +194,16 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
                   fontSize: 16.sp,
                   fontWeight: FontWeight.bold,
                 ),
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Passport raqamini kiriting';
+                  }
+                  if (value.length < 7) {
+                    return 'Raqam 7 xonali bo\'lishi kerak';
+                  }
+                  return null;
+                },
                 decoration: _commonInputDecoration(
                   hintText: '1234567',
                   isDark: isDark,
@@ -199,14 +244,20 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
         GestureDetector(
           onTap: () => _selectDate(context),
           child: AbsorbPointer(
-              child: TextFormField(
-                controller: _birthDateController,
-                readOnly: true,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                ),
+            child: TextFormField(
+              controller: _birthDateController,
+              readOnly: true,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Tug\'ilgan sanani tanlang';
+                }
+                return null;
+              },
               decoration: _commonInputDecoration(
                 hintText: 'dd/mm/yyyy',
                 prefixIcon: Icon(
@@ -256,8 +307,18 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
             fontSize: 20.sp,
             fontWeight: FontWeight.bold,
           ),
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Telefon raqamni kiriting';
+            }
+            if (value.length < 9) {
+              return 'Raqam noto\'g\'ri';
+            }
+            return null;
+          },
           decoration: _commonInputDecoration(
-            hintText: '--- -- -- --',
+            hintText: '90 123 45 67',
             prefixIcon: Padding(
               padding: EdgeInsets.only(left: 16.0.w, right: 8.0.w),
               child: Row(
@@ -275,10 +336,7 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
                   ),
                   Text(
                     '  |  ',
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      color: placeholderColor,
-                    ),
+                    style: TextStyle(fontSize: 16.sp, color: placeholderColor),
                   ),
                 ],
               ),
@@ -294,6 +352,30 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
     );
   }
 
+  // Validation va Navigation funksiyasi
+  void _validateAndProceed() {
+    // Klaviaturani yopish
+    FocusScope.of(context).unfocus();
+
+    // Formni tekshirish
+    if (_formKey.currentState!.validate()) {
+      // Agar hammasi to'g'ri bo'lsa:
+      context.router.push(const KaskoPaymentTypeRoute());
+    } else {
+      // Agar xatolik bo'lsa, foydalanuvchiga bildirishnoma (ixtiyoriy)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Iltimos, barcha maydonlarni to\'g\'ri to\'ldiring',
+            style: TextStyle(fontSize: 14.sp),
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -312,10 +394,7 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
         backgroundColor: cardBg,
         elevation: 0.5,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: textColor,
-          ),
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () {
             context.router.pop();
           },
@@ -336,58 +415,64 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
       ),
       body: Stack(
         children: [
+          // SingleChildScrollView + Form
           SingleChildScrollView(
             padding: EdgeInsets.all(16.0.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                // Sarlavha
-                Text(
-                  'Shaxsiy ma\'lumotlar',
-                  style: TextStyle(
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
+            child: Form(
+              key: _formKey, // Form key shu yerda ulandi
+              autovalidateMode:
+                  AutovalidateMode.onUserInteraction, // Yozayotganda tekshirish
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  // Sarlavha
+                  Text(
+                    'Shaxsiy ma\'lumotlar',
+                    style: TextStyle(
+                      fontSize: 24.sp,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
                   ),
-                ),
-                SizedBox(height: 5.0.h),
-                // Qo'shimcha matn
-                Text(
-                  'Sug\'urta polisi uchun shaxsiy ma\'lumotlaringizni kiriting',
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
-                    color: subtitleColor,
+                  SizedBox(height: 5.0.h),
+                  // Qo'shimcha matn
+                  Text(
+                    'Sug\'urta polisi uchun shaxsiy ma\'lumotlaringizni kiriting',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: subtitleColor,
+                    ),
                   ),
-                ),
-                SizedBox(height: 30.0.h),
-                // 1. Passport seriya va raqami
-                _buildPassportInput(
-                  isDark,
-                  cardBg,
-                  textColor,
-                  borderColor,
-                  placeholderColor,
-                ),
-                // 2. Tug'ilgan kun sanasi
-                _buildBirthDateInput(
-                  context,
-                  isDark,
-                  cardBg,
-                  textColor,
-                  borderColor,
-                  placeholderColor,
-                ),
-                // 3. Telefon raqami
-                _buildPhoneNumberInput(
-                  isDark,
-                  cardBg,
-                  textColor,
-                  borderColor,
-                  placeholderColor,
-                ),
-                SizedBox(height: 40.0.h),
-              ],
+                  SizedBox(height: 30.0.h),
+                  // 1. Passport seriya va raqami
+                  _buildPassportInput(
+                    isDark,
+                    cardBg,
+                    textColor,
+                    borderColor,
+                    placeholderColor,
+                  ),
+                  // 2. Tug'ilgan kun sanasi
+                  _buildBirthDateInput(
+                    context,
+                    isDark,
+                    cardBg,
+                    textColor,
+                    borderColor,
+                    placeholderColor,
+                  ),
+                  // 3. Telefon raqami
+                  _buildPhoneNumberInput(
+                    isDark,
+                    cardBg,
+                    textColor,
+                    borderColor,
+                    placeholderColor,
+                  ),
+                  SizedBox(height: 80.0.h), // Pastki knopka uchun joy
+                ],
+              ),
             ),
           ),
           // FIXED BOTTOM BUTTON
@@ -415,10 +500,7 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
                 width: double.infinity,
                 height: 50.h,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // Keyingi sahifaga o'tish - to'lov usulini tanlash
-                    context.router.push(const KaskoPaymentTypeRoute());
-                  },
+                  onPressed: _validateAndProceed, // Yangi funksiya chaqirildi
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _primaryBlue,
                     shape: RoundedRectangleBorder(
@@ -443,4 +525,3 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
     );
   }
 }
-

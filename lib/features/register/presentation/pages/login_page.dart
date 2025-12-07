@@ -128,9 +128,7 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       final redirectUrl = 'https://kliro.uz/auth/google/callback';
-      context.read<RegisterBloc>().add(
-        GoogleRedirectRequested(redirectUrl),
-      );
+      context.read<RegisterBloc>().add(GoogleRedirectRequested(redirectUrl));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -161,7 +159,9 @@ class _LoginPageState extends State<LoginPage> {
       final displayName = googleAccount.displayName ?? '';
       final nameParts = displayName.split(' ');
       final firstName = nameParts.isNotEmpty ? nameParts.first : '';
-      final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+      final lastName = nameParts.length > 1
+          ? nameParts.sublist(1).join(' ')
+          : '';
 
       if (redirect.sessionId != null && redirect.sessionId!.isNotEmpty) {
         if (mounted) {
@@ -204,22 +204,23 @@ class _LoginPageState extends State<LoginPage> {
           if (state.status == RegisterStatus.failure) {
             // Xatolik xabari
             String errorMessage = state.error ?? "Login yoki parol noto'g'ri.";
-            
+
             // Agar xatolik "Пароль неверный" yoki shunga o'xshash bo'lsa,
             // yoki telefon raqami yoki parol noto'g'ri bo'lishi mumkin
-            if (errorMessage.toLowerCase().contains('пароль') || 
+            if (errorMessage.toLowerCase().contains('пароль') ||
                 errorMessage.toLowerCase().contains('password') ||
                 errorMessage.toLowerCase().contains('неверный') ||
                 errorMessage.toLowerCase().contains('incorrect') ||
                 errorMessage.toLowerCase().contains('invalid') ||
                 errorMessage.toLowerCase().contains('noto\'g\'ri')) {
-              errorMessage = "Telefon raqami yoki parol noto'g'ri.\n\n"
+              errorMessage =
+                  "Telefon raqami yoki parol noto'g'ri.\n\n"
                   "Tekshiring:\n"
                   "• Telefon raqamini to'g'ri kiritganingizni\n"
                   "• Parolni to'g'ri kiritganingizni (katta/kichik harflar)\n"
                   "• Agar parolni unutgan bo'lsangiz, 'Parolni unutdingizmi?' tugmasidan foydalaning";
             }
-            
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(errorMessage),
@@ -235,10 +236,11 @@ class _LoginPageState extends State<LoginPage> {
               ),
             );
           } else if (state.status == RegisterStatus.success) {
-            context.router.replace( HomeRoute());
+            context.router.replace(HomeRoute());
           }
         } else if (state.flow == RegisterFlow.googleRedirect) {
-          if (state.status == RegisterStatus.success && state.googleRedirect != null) {
+          if (state.status == RegisterStatus.success &&
+              state.googleRedirect != null) {
             _handleGoogleRedirect(state.googleRedirect!);
           } else if (state.status == RegisterStatus.failure) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -257,7 +259,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
             );
           } else if (state.status == RegisterStatus.success) {
-            context.router.replace( HomeRoute());
+            context.router.replace(HomeRoute());
           }
         }
       },
@@ -383,13 +385,12 @@ class _LoginPageState extends State<LoginPage> {
                     inputFormatters: _isPhoneMode
                         ? [
                             FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(9), // Faqat 9 ta raqam
+                            LengthLimitingTextInputFormatter(
+                              9,
+                            ), // Faqat 9 ta raqam
                           ]
                         : null,
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      color: AppColors.black,
-                    ),
+                    style: TextStyle(fontSize: 16.sp, color: AppColors.black),
                     decoration: AppInputDecoration.outline(
                       hint: _isPhoneMode
                           ? '_____'
@@ -418,15 +419,14 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             )
                           : null,
-                      prefixIcon: _isPhoneMode
-                          ? null
-                          : Icons.email_outlined,
+                      prefixIcon: _isPhoneMode ? null : Icons.email_outlined,
                     ),
                   ),
                   SizedBox(height: AppSpacing.md),
                   _buildLabel('auth.field.password_label'.tr()),
                   SizedBox(height: AppSpacing.xs),
                   TextFormField(
+                    style: TextStyle(color: Colors.blueGrey),
                     controller: _passwordController,
                     obscureText: !_isPasswordVisible,
                     decoration: AppInputDecoration.outline(
@@ -521,4 +521,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-

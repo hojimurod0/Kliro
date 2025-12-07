@@ -19,6 +19,18 @@ class OnboardingThreePage extends StatelessWidget {
         'assets/images/pilot.png',
         fit: BoxFit.cover,
         alignment: Alignment.topCenter,
+        errorBuilder: (context, error, stackTrace) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 8),
+                Text('Error: ${error.toString()}'),
+              ],
+            ),
+          );
+        },
       ),
       title: 'auth.onboarding.three_title'.tr(),
       description: 'auth.onboarding.three_desc'.tr(),

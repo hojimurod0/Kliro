@@ -19,6 +19,18 @@ class OnboardingTwoPage extends StatelessWidget {
         'assets/images/check.png',
         fit: BoxFit.cover,
         alignment: Alignment.topCenter,
+        errorBuilder: (context, error, stackTrace) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 8),
+                Text('Error: ${error.toString()}'),
+              ],
+            ),
+          );
+        },
       ),
       title: 'auth.onboarding.two_title'.tr(),
       description: 'auth.onboarding.two_desc'.tr(),

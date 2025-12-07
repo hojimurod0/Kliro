@@ -44,8 +44,11 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+
+  // Validatsiya uchun
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
+  bool _submitted = false; // Xatolikni faqat knopka bosilganda ko'rsatish uchun
 
   @override
   void dispose() {
@@ -57,23 +60,43 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
   void _showSnack(String message, {Color background = Colors.red}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         backgroundColor: background,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
 
   void _submit() {
+    setState(() => _submitted = true);
+
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
 
-    if (password.isEmpty || confirmPassword.isEmpty) {
-      _showSnack('auth.user_details.snack_password'.tr());
+    // 1. Bo'shlikka tekshirish
+    if (password.isEmpty) {
+      _showSnack('auth.user_details.snack_password'.tr()); // "Parol kiriting"
       return;
     }
 
+    // 2. Parol uzunligini tekshirish (Masalan, kamida 6 ta belgi)
+    if (password.length < 6) {
+      _showSnack("Parol kamida 6 ta belgidan iborat bo'lishi kerak");
+      return;
+    }
+
+    // 3. Parollar mosligini tekshirish
     if (password != confirmPassword) {
-      _showSnack('auth.user_details.snack_password_match'.tr());
+      _showSnack(
+        'auth.user_details.snack_password_match'.tr(),
+      ); // "Parollar mos kelmadi"
       return;
     }
 
@@ -84,17 +107,19 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
     }
 
     final isEmail = normalizedContact.contains('@');
+
+    // So'rov yuborish
     context.read<RegisterBloc>().add(
-          ResetPasswordRequested(
-            ResetPasswordParams(
-              email: isEmail ? normalizedContact : null,
-              phone: isEmail ? null : normalizedContact,
-              otp: widget.otp,
-              password: password,
-              confirmPassword: confirmPassword,
-            ),
-          ),
-        );
+      ResetPasswordRequested(
+        ResetPasswordParams(
+          email: isEmail ? normalizedContact : null,
+          phone: isEmail ? null : normalizedContact,
+          otp: widget.otp,
+          password: password,
+          confirmPassword: confirmPassword,
+        ),
+      ),
+    );
   }
 
   @override
@@ -108,15 +133,21 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
             state.message ?? 'auth.reset_password.success'.tr(),
             background: Colors.green,
           );
+          // Login sahifasiga to'liq o'tish (Stackni tozalab)
           context.router.replaceAll([const LoginRoute()]);
         } else if (state.status == RegisterStatus.failure) {
+          // Backenddan kelgan xatolikni ko'rsatish
+          // Agar backend ruscha yuborsa, bu yerda o'zgartira olmaymiz,
+          // lekin null bo'lsa standart xabar chiqaramiz.
           _showSnack(state.error ?? tr('common.error_occurred_simple'));
         }
       },
       builder: (context, state) {
         final isLoading =
             state.isLoading && state.flow == RegisterFlow.resetPassword;
+
         return Scaffold(
+          // Dark Mode fix: Fonni oq rangda qotiramiz
           backgroundColor: AppColors.white,
           body: SafeArea(
             child: SingleChildScrollView(
@@ -127,75 +158,68 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
                   SizedBox(height: AppSpacing.sm),
                   const CommonBackButton(),
                   SizedBox(height: AppSpacing.xl),
+
+                  // Sarlavha
                   Text(
                     'auth.reset_password.title'.tr(),
-                    style: AppTypography.headingXL,
+                    style: AppTypography.headingXL.copyWith(
+                      color: AppColors.black, // Matn rangi qora
+                    ),
                   ),
                   SizedBox(height: AppSpacing.xs),
+
+                  // Izoh
                   Text(
                     'auth.reset_password.subtitle'.tr(),
                     style: AppTypography.bodyPrimary,
                   ),
+
                   SizedBox(height: AppSpacing.xxl),
+
+                  // 1. Parol Input Label
                   Text(
                     'auth.field.password_label'.tr(),
                     style: AppTypography.labelSmall,
                   ),
                   SizedBox(height: AppSpacing.xs),
-                  TextField(
+
+                  // 1. Parol Input Field
+                  _buildPasswordField(
                     controller: _passwordController,
-                    obscureText: !_isPasswordVisible,
-                    decoration: InputDecoration(
-                      hintText: 'auth.field.password_hint'.tr(),
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _isPasswordVisible
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isPasswordVisible = !_isPasswordVisible;
-                          });
-                        },
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                    ),
+                    hintText: 'auth.field.password_hint'.tr(),
+                    isVisible: _isPasswordVisible,
+                    onVisibilityChanged: () {
+                      setState(() => _isPasswordVisible = !_isPasswordVisible);
+                    },
                   ),
+
                   SizedBox(height: AppSpacing.lg),
+
+                  // 2. Parolni tasdiqlash Input Label
                   Text(
                     'auth.field.confirm_password_label'.tr(),
                     style: AppTypography.labelSmall,
                   ),
                   SizedBox(height: AppSpacing.xs),
-                  TextField(
+
+                  // 2. Parolni tasdiqlash Input Field
+                  _buildPasswordField(
                     controller: _confirmPasswordController,
-                    obscureText: !_isConfirmPasswordVisible,
-                    decoration: InputDecoration(
-                      hintText: 'auth.field.confirm_password_hint'.tr(),
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _isConfirmPasswordVisible
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isConfirmPasswordVisible =
-                                !_isConfirmPasswordVisible;
-                          });
-                        },
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                    ),
+                    hintText: 'auth.field.confirm_password_hint'.tr(),
+                    isVisible: _isConfirmPasswordVisible,
+                    onVisibilityChanged: () {
+                      setState(
+                        () => _isConfirmPasswordVisible =
+                            !_isConfirmPasswordVisible,
+                      );
+                    },
+                    isConfirm:
+                        true, // Qizil border logikasi uchun (agar hohlasangiz)
                   ),
+
                   SizedBox(height: AppSpacing.xxl),
+
+                  // Asosiy tugma
                   AuthPrimaryButton(
                     label: 'auth.reset_password.submit'.tr(),
                     onPressed: _submit,
@@ -209,5 +233,78 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
       },
     );
   }
-}
 
+  // Qayta ishlatiluvchi Widget (Clean Code)
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String hintText,
+    required bool isVisible,
+    required VoidCallback onVisibilityChanged,
+    bool isConfirm = false,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: !isVisible,
+      // --- DARK MODE FIX START ---
+      style: TextStyle(
+        color: Colors.black, // Input ichidagi yozuv doim qora
+        fontSize: 16.sp,
+        fontWeight: FontWeight.w500,
+      ),
+      cursorColor: AppColors.primaryBlue,
+
+      // --- DARK MODE FIX END ---
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: TextStyle(
+          color: AppColors.grayText.withOpacity(0.6),
+          fontSize: 14.sp,
+        ),
+
+        // Orqa fon (Kulrang)
+        filled: true,
+        fillColor: AppColors
+            .grayBackground, // AppColors.grayBackground borligiga ishonch hosil qiling
+
+        prefixIcon: Icon(
+          Icons.lock_outline_rounded,
+          color: AppColors.primaryBlue.withOpacity(0.7),
+          size: 22,
+        ),
+
+        suffixIcon: IconButton(
+          icon: Icon(
+            isVisible ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+            color: AppColors.grayText,
+            size: 22,
+          ),
+          onPressed: onVisibilityChanged,
+          splashRadius: 20,
+        ),
+
+        contentPadding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 16.w),
+
+        // Borderlar
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          borderSide: BorderSide(color: AppColors.grayLight, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          borderSide: const BorderSide(
+            color: AppColors.primaryBlue,
+            width: 1.5,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        ),
+      ),
+    );
+  }
+}

@@ -9,10 +9,10 @@ import 'core/services/config/api_config_service.dart';
 import 'core/services/locale/root_service.dart';
 import 'core/services/theme/theme_controller.dart';
 import 'package:easy_localization/easy_localization.dart';
-
+ 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+ 
   // Настройка системного UI
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
