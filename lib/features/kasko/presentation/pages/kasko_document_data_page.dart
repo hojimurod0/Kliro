@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:klero/features/osago/presentation/screens/osago_vehicle_screen.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/navigation/app_router.dart';
@@ -327,49 +328,53 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
                             totalPrice: totalPrice,
                             isDark: isDark,
                           ),
-                          KaskoCarPlateInput(
+                          // KaskoCarPlateInput(
+                          //   regionController: _regionController,
+                          //   numberController: _numberController,
+                          //   isDark: isDark,
+                          //   cardBg: cardBg,
+                          //   textColor: textColor,
+                          //   regionValidator: (value) {
+                          //     if (value == null || value.trim().isEmpty) {
+                          //       return 'insurance.kasko.document_data.errors.enter_region'
+                          //           .tr();
+                          //     }
+                          //     if (value.length != 2) {
+                          //       return 'insurance.kasko.document_data.errors.region_2_digits'
+                          //           .tr();
+                          //     }
+                          //     if (!RegExp(r'^[0-9]{2}$').hasMatch(value)) {
+                          //       return 'insurance.kasko.document_data.errors.region_2_digits'
+                          //           .tr();
+                          //     }
+                          //     return null;
+                          //   },
+                          //   numberValidator: (value) {
+                          //     if (value == null || value.trim().isEmpty) {
+                          //       return 'insurance.kasko.document_data.errors.enter_car_number'
+                          //           .tr();
+                          //     }
+                          //     final cleanNumber = value
+                          //         .trim()
+                          //         .replaceAll(' ', '')
+                          //         .toUpperCase();
+                          //     if (cleanNumber.length < 6) {
+                          //       return 'insurance.kasko.document_data.errors.invalid_car_number'
+                          //           .tr();
+                          //     }
+                          //     // Format: A000AA (1 harf + 3 raqam + 2 harf)
+                          //     if (!RegExp(
+                          //       r'^[A-Z][0-9]{3}[A-Z]{2}$',
+                          //     ).hasMatch(cleanNumber)) {
+                          //       return 'insurance.kasko.document_data.errors.invalid_car_number_format'
+                          //           .tr();
+                          //     }
+                          //     return null;
+                          //   },
+                          // ),
+                          UzbekLicensePlateInput(
                             regionController: _regionController,
                             numberController: _numberController,
-                            isDark: isDark,
-                            cardBg: cardBg,
-                            textColor: textColor,
-                            regionValidator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'insurance.kasko.document_data.errors.enter_region'
-                                    .tr();
-                              }
-                              if (value.length != 2) {
-                                return 'insurance.kasko.document_data.errors.region_2_digits'
-                                    .tr();
-                              }
-                              if (!RegExp(r'^[0-9]{2}$').hasMatch(value)) {
-                                return 'insurance.kasko.document_data.errors.region_2_digits'
-                                    .tr();
-                              }
-                              return null;
-                            },
-                            numberValidator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'insurance.kasko.document_data.errors.enter_car_number'
-                                    .tr();
-                              }
-                              final cleanNumber = value
-                                  .trim()
-                                  .replaceAll(' ', '')
-                                  .toUpperCase();
-                              if (cleanNumber.length < 6) {
-                                return 'insurance.kasko.document_data.errors.invalid_car_number'
-                                    .tr();
-                              }
-                              // Format: A000AA (1 harf + 3 raqam + 2 harf)
-                              if (!RegExp(
-                                r'^[A-Z][0-9]{3}[A-Z]{2}$',
-                              ).hasMatch(cleanNumber)) {
-                                return 'insurance.kasko.document_data.errors.invalid_car_number_format'
-                                    .tr();
-                              }
-                              return null;
-                            },
                           ),
                           SizedBox(height: 20.0.h),
                           KaskoTechPassportInput(

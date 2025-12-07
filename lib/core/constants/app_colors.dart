@@ -33,14 +33,14 @@ class AppColors {
   static const Color pinkIcon = Color(0xFFFF4D8D);
   static const Color pinkBg = Color(0xFFFFEEF4);
   static const Color greenIcon = Color(0xFF1ABC9C);
-  static const Color greenBg = Color(0xFFE5F8F1);
+  static Color greenBg = Color(0xFF1ABC9C).withValues(alpha: 0.15);
 
   // Qo'shimcha pastel ranglar
-  static const Color lilacSurface = Color(0xFFEEF2FF);
+  static Color lilacSurface = Color(0xFF6366F1).withValues(alpha: 0.15);
   static const Color lilacIcon = Color(0xFF6366F1);
-  static const Color pinkSurface = Color(0xFFFDF2F8);
+  static Color pinkSurface = Color(0xFFEC4899).withValues(alpha: 0.15);
   static const Color pinkAccent = Color(0xFFEC4899);
-  static const Color skySurface = Color(0xFFF0F9FF);
+  static Color skySurface = Color(0xFF0EA5E9).withValues(alpha: 0.15);
   static const Color skyAccent = Color(0xFF0EA5E9);
   static const Color charcoal = Color(0xFF111827);
   static const Color midnight = Color(0xFF1F2937);
@@ -64,7 +64,7 @@ class AppColors {
 
   // KASKO colors
   static const Color kaskoPrimaryBlue = Color(0xFF1976D2);
-  
+
   // Dark theme colors
   static const Color darkScaffoldBg = Color(0xFF121212);
   static const Color darkCardBg = Color(0xFF1E1E1E);
@@ -72,7 +72,7 @@ class AppColors {
   static const Color darkSubtitle = Color(0xFFB3B3B3);
   static const Color darkBorder = Color(0xFF424242);
   static const Color darkPlaceholder = Color(0xFF757575);
-  
+
   // Light theme colors
   static const Color lightScaffoldBg = Color(0xFFFFFFFF);
   static const Color lightCardBg = Color(0xFFFFFFFF);
@@ -80,12 +80,16 @@ class AppColors {
   static const Color lightSubtitle = Color(0xFF757575);
   static const Color lightBorder = Color(0xFFE0E0E0);
   static const Color lightPlaceholder = Color(0xFF9E9E9E);
-  
+
   // Helper methods for theme-aware colors
-  static Color getScaffoldBg(bool isDark) => isDark ? darkScaffoldBg : lightScaffoldBg;
+  static Color getScaffoldBg(bool isDark) =>
+      isDark ? darkScaffoldBg : lightScaffoldBg;
   static Color getCardBg(bool isDark) => isDark ? darkCardBg : lightCardBg;
-  static Color getTextColor(bool isDark) => isDark ? darkTextColor : lightTextColor;
-  static Color getSubtitleColor(bool isDark) => isDark ? darkSubtitle : lightSubtitle;
+  static Color getTextColor(bool isDark) =>
+      isDark ? darkTextColor : lightTextColor;
+  static Color getSubtitleColor(bool isDark) =>
+      isDark ? darkSubtitle : lightSubtitle;
   static Color getBorderColor(bool isDark) => isDark ? darkBorder : lightBorder;
-  static Color getPlaceholderColor(bool isDark) => isDark ? darkPlaceholder : lightPlaceholder;
+  static Color getPlaceholderColor(bool isDark) =>
+      isDark ? darkPlaceholder : lightPlaceholder;
 }
