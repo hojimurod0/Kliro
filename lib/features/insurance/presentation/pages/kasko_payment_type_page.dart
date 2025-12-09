@@ -298,159 +298,165 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
           statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         ),
       ),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: EdgeInsets.all(16.0.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                // Sarlavha
-                Text(
-                  'To\'lov usulini tanlang',
-                  style: TextStyle(
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
-                ),
-                SizedBox(height: 5.h),
-                // Qadam ko'rsatkich
-                Text(
-                  'Qadam 5/5',
-                  style: TextStyle(fontSize: 14.sp, color: subtitleColor),
-                ),
-                SizedBox(height: 24.h),
-                // Ma'lumotlar ro'yxati
-                _buildInfoList(isDark, textColor, subtitleColor),
-                SizedBox(height: 24.h),
-                // To'lanadigan summa
-                Container(
-                  padding: EdgeInsets.all(16.w),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? const Color(0xFF1E3A5C)
-                        : const Color(0xFFE3F2FD),
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'To\'lanadigan summa',
-                        style: TextStyle(fontSize: 16.sp, color: subtitleColor),
-                      ),
-                      Text(
-                        _totalAmount,
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                          color: _primaryBlue,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 24.h),
-                // 1. Payme kartasi
-                _buildPaymentCard(
-                  PaymentOption.payme,
-                  'Payme',
-                  _paymeLogo(_selectedPayment == PaymentOption.payme),
-                  isDark,
-                  cardBg,
-                  borderColor,
-                ),
-                // 2. Click kartasi
-                _buildPaymentCard(
-                  PaymentOption.click,
-                  'click',
-                  _clickLogo(_selectedPayment == PaymentOption.click),
-                  isDark,
-                  cardBg,
-                  borderColor,
-                ),
-                SizedBox(height: 40.0.h),
-              ],
-            ),
-          ),
-          // FIXED BOTTOM PAYMENT BAR
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(
-                16.0.w,
-                10.0.h,
-                16.0.w,
-                10.0.h + bottomPadding,
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16.0.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            // Sarlavha
+            Text(
+              'To\'lov usulini tanlang',
+              style: TextStyle(
+                fontSize: 24.sp,
+                fontWeight: FontWeight.bold,
+                color: textColor,
               ),
+            ),
+            SizedBox(height: 5.h),
+            // Qadam ko'rsatkich
+            Text(
+              'Qadam 5/5',
+              style: TextStyle(fontSize: 14.sp, color: subtitleColor),
+            ),
+            SizedBox(height: 24.h),
+            // Ma'lumotlar ro'yxati
+            _buildInfoList(isDark, textColor, subtitleColor),
+            SizedBox(height: 24.h),
+            // To'lanadigan summa
+            Container(
+              padding: EdgeInsets.all(16.w),
               decoration: BoxDecoration(
-                color: cardBg,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    spreadRadius: 3,
-                    blurRadius: 5,
-                    offset: const Offset(0, -3),
-                  ),
-                ],
+                color: isDark
+                    ? const Color(0xFF1E3A5C)
+                    : const Color(0xFFE3F2FD),
+                borderRadius: BorderRadius.circular(10.r),
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Ortga tugmasi
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        context.router.pop();
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: borderColor),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.0.r),
-                        ),
-                        padding: EdgeInsets.symmetric(vertical: 16.h),
-                      ),
-                      child: Text(
-                        'Ortga',
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                        ),
-                      ),
-                    ),
+                  Text(
+                    'To\'lanadigan summa',
+                    style: TextStyle(fontSize: 16.sp, color: subtitleColor),
                   ),
-                  SizedBox(width: 12.w),
-                  // Davom etish tugmasi
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Keyingi sahifaga o'tish - muvaffaqiyatli yakunlanish sahifasiga
-                        context.router.push(const KaskoSuccessRoute());
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _primaryBlue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.0.r),
-                        ),
-                        elevation: 0,
-                        padding: EdgeInsets.symmetric(vertical: 16.h),
-                      ),
-                      child: Text(
-                        'Davom etish',
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
+                  Text(
+                    _totalAmount,
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                      color: _primaryBlue,
                     ),
                   ),
                 ],
               ),
             ),
+            SizedBox(height: 24.h),
+            // 1. Payme kartasi
+            _buildPaymentCard(
+              PaymentOption.payme,
+              'Payme',
+              _paymeLogo(_selectedPayment == PaymentOption.payme),
+              isDark,
+              cardBg,
+              borderColor,
+            ),
+            // 2. Click kartasi
+            _buildPaymentCard(
+              PaymentOption.click,
+              'click',
+              _clickLogo(_selectedPayment == PaymentOption.click),
+              isDark,
+              cardBg,
+              borderColor,
+            ),
+            SizedBox(height: 20.0.h), // Bottom bar uchun minimal joy
+          ],
+        ),
+      ),
+      // FIXED BOTTOM PAYMENT BAR
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.fromLTRB(
+          16.0.w,
+          16.0.h,
+          16.0.w,
+          16.0.h + bottomPadding,
+        ),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20.r),
+            topRight: Radius.circular(20.r),
           ),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 3,
+              blurRadius: 5,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Jami Summa
+              Flexible(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Jami summa',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: subtitleColor,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      _totalAmount,
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        color: _primaryBlue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 16.w),
+              // To'lash tugmasi
+              Flexible(
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50.h,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Keyingi sahifaga o'tish - muvaffaqiyatli yakunlanish sahifasiga
+                      context.router.push(const KaskoSuccessRoute());
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _primaryBlue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.0.r),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      'To\'lash',
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -22,6 +22,8 @@ PaymentLinkRequest _$PaymentLinkRequestFromJson(Map<String, dynamic> json) {
 mixin _$PaymentLinkRequest {
   @JsonKey(name: 'order_id')
   String get orderId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'contract_id')
+  String? get contractId => throw _privateConstructorUsedError;
   double get amount => throw _privateConstructorUsedError;
   @JsonKey(name: 'return_url')
   String get returnUrl => throw _privateConstructorUsedError;
@@ -42,6 +44,7 @@ abstract class $PaymentLinkRequestCopyWith<$Res> {
   @useResult
   $Res call(
       {@JsonKey(name: 'order_id') String orderId,
+      @JsonKey(name: 'contract_id') String? contractId,
       double amount,
       @JsonKey(name: 'return_url') String returnUrl,
       @JsonKey(name: 'callback_url') String callbackUrl});
@@ -61,6 +64,7 @@ class _$PaymentLinkRequestCopyWithImpl<$Res, $Val extends PaymentLinkRequest>
   @override
   $Res call({
     Object? orderId = null,
+    Object? contractId = freezed,
     Object? amount = null,
     Object? returnUrl = null,
     Object? callbackUrl = null,
@@ -70,6 +74,10 @@ class _$PaymentLinkRequestCopyWithImpl<$Res, $Val extends PaymentLinkRequest>
           ? _value.orderId
           : orderId // ignore: cast_nullable_to_non_nullable
               as String,
+      contractId: freezed == contractId
+          ? _value.contractId
+          : contractId // ignore: cast_nullable_to_non_nullable
+              as String?,
       amount: null == amount
           ? _value.amount
           : amount // ignore: cast_nullable_to_non_nullable
@@ -96,6 +104,7 @@ abstract class _$$PaymentLinkRequestImplCopyWith<$Res>
   @useResult
   $Res call(
       {@JsonKey(name: 'order_id') String orderId,
+      @JsonKey(name: 'contract_id') String? contractId,
       double amount,
       @JsonKey(name: 'return_url') String returnUrl,
       @JsonKey(name: 'callback_url') String callbackUrl});
@@ -113,6 +122,7 @@ class __$$PaymentLinkRequestImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? orderId = null,
+    Object? contractId = freezed,
     Object? amount = null,
     Object? returnUrl = null,
     Object? callbackUrl = null,
@@ -122,6 +132,10 @@ class __$$PaymentLinkRequestImplCopyWithImpl<$Res>
           ? _value.orderId
           : orderId // ignore: cast_nullable_to_non_nullable
               as String,
+      contractId: freezed == contractId
+          ? _value.contractId
+          : contractId // ignore: cast_nullable_to_non_nullable
+              as String?,
       amount: null == amount
           ? _value.amount
           : amount // ignore: cast_nullable_to_non_nullable
@@ -143,6 +157,7 @@ class __$$PaymentLinkRequestImplCopyWithImpl<$Res>
 class _$PaymentLinkRequestImpl implements _PaymentLinkRequest {
   const _$PaymentLinkRequestImpl(
       {@JsonKey(name: 'order_id') required this.orderId,
+      @JsonKey(name: 'contract_id') this.contractId,
       required this.amount,
       @JsonKey(name: 'return_url') required this.returnUrl,
       @JsonKey(name: 'callback_url') required this.callbackUrl});
@@ -154,6 +169,9 @@ class _$PaymentLinkRequestImpl implements _PaymentLinkRequest {
   @JsonKey(name: 'order_id')
   final String orderId;
   @override
+  @JsonKey(name: 'contract_id')
+  final String? contractId;
+  @override
   final double amount;
   @override
   @JsonKey(name: 'return_url')
@@ -164,7 +182,7 @@ class _$PaymentLinkRequestImpl implements _PaymentLinkRequest {
 
   @override
   String toString() {
-    return 'PaymentLinkRequest(orderId: $orderId, amount: $amount, returnUrl: $returnUrl, callbackUrl: $callbackUrl)';
+    return 'PaymentLinkRequest(orderId: $orderId, contractId: $contractId, amount: $amount, returnUrl: $returnUrl, callbackUrl: $callbackUrl)';
   }
 
   @override
@@ -173,6 +191,8 @@ class _$PaymentLinkRequestImpl implements _PaymentLinkRequest {
         (other.runtimeType == runtimeType &&
             other is _$PaymentLinkRequestImpl &&
             (identical(other.orderId, orderId) || other.orderId == orderId) &&
+            (identical(other.contractId, contractId) ||
+                other.contractId == contractId) &&
             (identical(other.amount, amount) || other.amount == amount) &&
             (identical(other.returnUrl, returnUrl) ||
                 other.returnUrl == returnUrl) &&
@@ -182,8 +202,8 @@ class _$PaymentLinkRequestImpl implements _PaymentLinkRequest {
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, orderId, amount, returnUrl, callbackUrl);
+  int get hashCode => Object.hash(
+      runtimeType, orderId, contractId, amount, returnUrl, callbackUrl);
 
   @JsonKey(ignore: true)
   @override
@@ -203,6 +223,7 @@ class _$PaymentLinkRequestImpl implements _PaymentLinkRequest {
 abstract class _PaymentLinkRequest implements PaymentLinkRequest {
   const factory _PaymentLinkRequest(
           {@JsonKey(name: 'order_id') required final String orderId,
+          @JsonKey(name: 'contract_id') final String? contractId,
           required final double amount,
           @JsonKey(name: 'return_url') required final String returnUrl,
           @JsonKey(name: 'callback_url') required final String callbackUrl}) =
@@ -214,6 +235,9 @@ abstract class _PaymentLinkRequest implements PaymentLinkRequest {
   @override
   @JsonKey(name: 'order_id')
   String get orderId;
+  @override
+  @JsonKey(name: 'contract_id')
+  String? get contractId;
   @override
   double get amount;
   @override

@@ -9,10 +9,10 @@ import 'core/services/config/api_config_service.dart';
 import 'core/services/locale/root_service.dart';
 import 'core/services/theme/theme_controller.dart';
 import 'package:easy_localization/easy_localization.dart';
- 
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
- 
+
   // Настройка системного UI
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -40,8 +40,8 @@ Future<void> main() async {
       fallbackLocale: const Locale('en'),
       saveLocale: true,
       startLocale: const Locale('en'),
-      // Optimizatsiya: faqat til kodini ishlatish (kamroq fayl yuklaydi)
-      useOnlyLangCode: true,
+      // useOnlyLangCode: false - locale'ni to'liq ko'rsatish uchun (uz_CYR uchun uz-CYR.json ishlatiladi)
+      useOnlyLangCode: false,
       // Optimizatsiya: fallback translation'larni yuklamaslik (tezroq ishlaydi)
       useFallbackTranslations: false,
       child: const App(),

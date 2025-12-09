@@ -12,19 +12,13 @@ class HomeBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     // Locale o'zgarganda rebuild qilish uchun
     final locale = context.locale;
-    
+
     return Container(
       height: 220.h,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(24.r),
           bottomRight: Radius.circular(24.r),
-        ),
-        image: const DecorationImage(
-          image: NetworkImage(
-            'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&q=80&w=1000',
-          ),
-          fit: BoxFit.cover,
         ),
         border: Border(
           bottom: BorderSide(
@@ -42,6 +36,35 @@ class HomeBanner extends StatelessWidget {
       ),
       child: Stack(
         children: [
+          // Assets dan PNG rasm yuklash
+          ClipRRect(
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(24.r),
+              bottomRight: Radius.circular(24.r),
+            ),
+            child: Image.asset(
+              'assets/images/homebannerr.png',
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                // Agar rasm topilmasa, gradient fon ko'rsatadi
+                return Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.primaryBlue.withOpacity(0.8),
+                        AppColors.primaryBlue.withOpacity(0.6),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          // Gradient overlay
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.only(
@@ -67,7 +90,9 @@ class HomeBanner extends StatelessWidget {
                 const Spacer(),
                 Text(
                   'home.banner.title'.tr(),
-                  style: AppTypography.headingXL.copyWith(color: AppColors.white),
+                  style: AppTypography.headingXL.copyWith(
+                    color: AppColors.white,
+                  ),
                   key: ValueKey('title_${locale.toString()}'),
                 ),
                 SizedBox(height: 4.h),
@@ -87,11 +112,7 @@ class HomeBanner extends StatelessWidget {
           Positioned(
             top: 20.h,
             right: 20.w,
-            child: Icon(
-              Icons.more_horiz,
-              color: AppColors.white,
-              size: 24.sp,
-            ),
+            child: Icon(Icons.more_horiz, color: AppColors.white, size: 24.sp),
           ),
         ],
       ),
@@ -106,7 +127,7 @@ class _BannerChip extends StatelessWidget {
   Widget build(BuildContext context) {
     // Locale o'zgarganda rebuild qilish uchun
     final locale = context.locale;
-    
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
       decoration: BoxDecoration(
@@ -142,7 +163,7 @@ class _BannerButton extends StatelessWidget {
   Widget build(BuildContext context) {
     // Locale o'zgarganda rebuild qilish uchun
     final locale = context.locale;
-    
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
       decoration: BoxDecoration(
@@ -169,4 +190,3 @@ class _BannerButton extends StatelessWidget {
     );
   }
 }
-

@@ -54,26 +54,24 @@ class KaskoTariffPage extends StatefulWidget {
 
 class _KaskoTariffPageState extends State<KaskoTariffPage> {
   int _selectedCardIndex = -1; // No selection by default
-  int _selectedTabIndex = 0; // 0 = Standart tariflar, 1 = Boshqa tariflar
-  List<TariffModel> _allTariffs = []; // Barcha tariflar
+  List<TariffModel> _allTariffs =
+      []; // Barcha tariflar (faqat Basic, Comfort, Premium)
   List<TariffModel> _standardTariffs = []; // Standart tariflar
-  List<TariffModel> _otherTariffs = []; // Boshqa tariflar
+  List<TariffModel> _otherTariffs = []; // Boshqa tariflar (bo'sh bo'ladi)
   List<TariffModel> _tariffs = []; // Ko'rsatiladigan tariflar
   double? _carPrice; // Mashina narxi (percent dan narxni hisoblash uchun)
   int? _carId; // Tanlangan mashina ID si (car_position_id)
   int? _year; // Tanlangan yil
   RateEntity? _selectedRateEntity; // Tanlangan rate entity (Bloc'dan keladi)
 
-  KaskoBloc? _bloc;
-
   static const bool _enableDebugLogs = false; // O'chirildi - performance uchun
 
   bool _hasInitialized =
       false; // Flag to track if we've already dispatched FetchRates
-  
+
   // Optimizatsiya: debouncing uchun timer
   Timer? _updateTimer;
-  
+
   // Optimizatsiya: konvertatsiya qilingan ma'lumotlarni cache'ga saqlash
   List<RateEntity>? _lastConvertedRates;
   List<TariffModel>? _cachedConvertedTariffs;
@@ -95,27 +93,10 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
   }
 
   // Tab bo'yicha tariflarni filtrlash
+  // Endi faqat Basic, Comfort, Premium ko'rsatiladi, shuning uchun barchasini ko'rsatamiz
   void _filterTariffsByTab() {
-    if (_selectedTabIndex == 0) {
-      // Standart tariflar
-      _tariffs = List.from(_standardTariffs);
-    } else {
-      // Boshqa tariflar
-      _tariffs = List.from(_otherTariffs);
-    }
-  }
-
-  // Tab o'zgarganda tariflarni yuklash
-  void _onTabChanged(int index) {
-    setState(() {
-      _selectedTabIndex = index;
-      _filterTariffsByTab();
-
-      // Agar "Boshqa tariflar" tanlangan bo'lsa va hali yuklanmagan bo'lsa, API'dan yuklash
-      if (index == 1 && _otherTariffs.isEmpty) {
-        _bloc?.add(const FetchRates(forceRefresh: true));
-      }
-    });
+    // Faqat Basic, Comfort, Premium ko'rsatiladi, shuning uchun barchasini ko'rsatamiz
+    _tariffs = List.from(_standardTariffs);
   }
 
   // RateEntity'dan TariffModel'ga o'tkazish
@@ -145,9 +126,67 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
 
     final List<TariffModel> tariffs = [];
 
+    // Faqat Basic, Comfort va Premium ni qoldirish uchun filtrlash
+    // Har birini faqat bir marta qo'shish
+    final allowedTariffNames = ['basic', 'comfort', 'premium'];
+    final seenNames =
+        <String>{}; // Duplicate larni oldini olish uchun (nomi bo'yicha)
+    final seenIds = <int>{}; // Duplicate larni oldini olish uchun (ID bo'yicha)
+
     // Barcha tariflarni formatlash
     for (var i = 0; i < rates.length; i++) {
       final rate = rates[i];
+      final rateNameLower = rate.name.toLowerCase().trim();
+
+      // Faqat Basic, Comfort yoki Premium ni qoldirish
+      // Aniq nomlarni tekshirish - faqat to'liq mos keladigan yoki asosiy qismi bo'lgan
+      bool isAllowed = false;
+      String matchedName = '';
+
+      for (final allowedName in allowedTariffNames) {
+        // To'liq mos kelishi yoki nomning asosiy qismi bo'lishi kerak
+        if (rateNameLower == allowedName ||
+            rateNameLower.startsWith(allowedName) ||
+            rateNameLower.contains(allowedName)) {
+          isAllowed = true;
+          matchedName = allowedName;
+          break;
+        }
+      }
+
+      if (!isAllowed) {
+        if (_enableDebugLogs) {
+          debugPrint(
+            '  ⏭️ Skipping rate [$i]: ${rate.name} (not in allowed list)',
+          );
+        }
+        continue; // Bu tarifni o'tkazib yuborish
+      }
+
+      // Duplicate larni tekshirish (nomi bo'yicha VA ID bo'yicha)
+      // Agar bir xil nom yoki bir xil ID bo'lsa, o'tkazib yuborish
+      if (seenNames.contains(matchedName) || seenIds.contains(rate.id)) {
+        if (_enableDebugLogs) {
+          debugPrint(
+            '  ⏭️ Skipping duplicate rate [$i]: ${rate.name} (id: ${rate.id}, matched: $matchedName)',
+          );
+        }
+        continue; // Duplicate ni o'tkazib yuborish
+      }
+
+      // Agar allaqachon 3 ta tarif qo'shilgan bo'lsa, to'xtatish
+      if (tariffs.length >= 3) {
+        if (_enableDebugLogs) {
+          debugPrint(
+            '  ⏭️ Maximum 3 tariffs reached, skipping rate [$i]: ${rate.name}',
+          );
+        }
+        break; // Faqat 3 ta tarif kerak
+      }
+
+      seenNames.add(matchedName);
+      seenIds.add(rate.id);
+
       if (_enableDebugLogs) {
         debugPrint('  Converting rate [$i]: ${rate.name}');
       }
@@ -232,14 +271,14 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
     if (_enableDebugLogs) {
       debugPrint('✅ Converted ${tariffs.length} tariffs');
     }
-    
+
     // Cache'ga saqlash
     _lastConvertedRates = rates;
     _cachedConvertedTariffs = tariffs;
-    
+
     return tariffs;
   }
-  
+
   // Optimizatsiya: debounced setState - ortiqcha chaqiruvlarni oldini oladi
   void _debouncedSetState(VoidCallback fn) {
     _updateTimer?.cancel();
@@ -251,6 +290,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
   }
 
   // Tariflarni Standart va Boshqa tariflarga ajratish
+  // Endi faqat Basic, Comfort, Premium ko'rsatiladi, shuning uchun barchasini standart qilamiz
   void _categorizeTariffs(List<TariffModel> allTariffs) {
     _standardTariffs = [];
     _otherTariffs = [];
@@ -261,42 +301,54 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
       return;
     }
 
-    // Standart tariflar (Basic, Comfort, Premium, Standart A, Standart B kabi)
-    final standardNames = [
-      'basic',
-      'comfort',
-      'premium',
-      'standart a',
-      'standart b',
-      'standart',
-      'standard',
-    ];
+    // Duplicate larni oldini olish uchun
+    final seenNames = <String>{};
+    final seenIds = <int>{};
+    final List<TariffModel> uniqueTariffs = [];
 
+    // Faqat unique tariflarni qo'shish
     for (final tariff in allTariffs) {
-      final titleLower = tariff.title.toLowerCase().trim();
-      final isStandard = standardNames.any(
-        (name) => titleLower.contains(name.toLowerCase()),
-      );
+      final tariffNameLower = tariff.title.toLowerCase().trim();
 
-      if (isStandard) {
-        _standardTariffs.add(tariff);
-        debugPrint('✅ Standard tariff: ${tariff.title}');
-      } else {
-        _otherTariffs.add(tariff);
-        debugPrint('📌 Other tariff: ${tariff.title}');
+      // Faqat basic, comfort, premium ni qabul qilish
+      final allowedNames = ['basic', 'comfort', 'premium'];
+      bool isAllowed = false;
+      String matchedName = '';
+
+      for (final allowedName in allowedNames) {
+        if (tariffNameLower == allowedName ||
+            tariffNameLower.startsWith(allowedName) ||
+            tariffNameLower.contains(allowedName)) {
+          isAllowed = true;
+          matchedName = allowedName;
+          break;
+        }
       }
+
+      if (!isAllowed) {
+        continue;
+      }
+
+      // Duplicate tekshirish
+      if (seenNames.contains(matchedName) || seenIds.contains(tariff.id)) {
+        continue;
+      }
+
+      // Agar allaqachon 3 ta tarif qo'shilgan bo'lsa, to'xtatish
+      if (uniqueTariffs.length >= 3) {
+        break;
+      }
+
+      seenNames.add(matchedName);
+      if (tariff.id != null) {
+        seenIds.add(tariff.id!);
+      }
+      uniqueTariffs.add(tariff);
     }
 
-    // Agar standart tariflar bo'sh bo'lsa, birinchi 2 tasini standart qilamiz
-    if (_standardTariffs.isEmpty && allTariffs.length >= 2) {
-      _standardTariffs = allTariffs.take(2).toList();
-      _otherTariffs = allTariffs.skip(2).toList();
-      debugPrint('⚠️ No standard tariffs found, using first 2 as standard');
-    } else if (_standardTariffs.isEmpty) {
-      // Agar hali ham bo'sh bo'lsa, barchasini standart qilamiz
-      _standardTariffs = List.from(allTariffs);
-      debugPrint('⚠️ No standard tariffs found, using all as standard');
-    }
+    // Faqat Basic, Comfort va Premium ko'rsatiladi, shuning uchun barchasini standart qilamiz
+    _standardTariffs = uniqueTariffs;
+    _otherTariffs = [];
 
     debugPrint(
       '📊 Categorized: ${_standardTariffs.length} standard, ${_otherTariffs.length} other',
@@ -315,21 +367,10 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
     final subtitleColor = isDark ? Colors.grey[400]! : const Color(0xFF6B7280);
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    // Bloc'ni context'dan olish yoki yaratish
-    KaskoBloc bloc;
-    try {
-      bloc = context.read<KaskoBloc>();
-      if (_enableDebugLogs) {
-        debugPrint('✅ Bloc found in context: ${bloc.hashCode}');
-      }
-    } catch (e) {
-      if (_enableDebugLogs) {
-        debugPrint('⚠️ Bloc not found in context, creating new one');
-      }
-      bloc = _getOrCreateBloc(context);
-      if (_enableDebugLogs) {
-        debugPrint('✅ Bloc created: ${bloc.hashCode}');
-      }
+    // Bloc'ni context'dan olish - har doim modul darajasidagi BLoC ishlatiladi
+    final bloc = context.read<KaskoBloc>();
+    if (_enableDebugLogs) {
+      debugPrint('✅ Bloc found in context: ${bloc.hashCode}');
     }
 
     // Build metodida car price'ni tekshirish va state'ni yangilash
@@ -349,10 +390,10 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
         // Og'ir ishlarni microtask'ga ko'chiramiz, main thread'ni bloklamaslik uchun
         Future.microtask(() {
           if (!mounted) return;
-          
+
           final convertedTariffs = _convertRatesToTariffs(currentState.rates);
           _categorizeTariffs(convertedTariffs);
-          
+
           // Debounced setState
           _debouncedSetState(() {
             _allTariffs = convertedTariffs;
@@ -389,17 +430,17 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                   _carPrice = state.carPrice.price;
                   _carId = state.carPrice.carId;
                   _year = state.carPrice.year;
-                  
+
                   if (_enableDebugLogs) {
                     debugPrint('💰 Car price saved: $_carPrice');
                     debugPrint('🚗 Car ID: $_carId, Year: $_year');
                   }
-                  
+
                   // Mashina narxi yangilanganda, tariflarni qayta hisoblash
                   // Og'ir ishlarni microtask'ga ko'chiramiz
                   Future.microtask(() {
                     if (!mounted) return;
-                    
+
                     final bloc = context.read<KaskoBloc>();
                     final currentState = bloc.state;
                     if (currentState is KaskoRatesLoaded &&
@@ -407,13 +448,13 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                       // Cache'ni tozalash, chunki car price o'zgardi
                       _lastConvertedRates = null;
                       _cachedConvertedTariffs = null;
-                      
+
                       // Tariflarni yangi narx bilan qayta hisoblash
                       final convertedTariffs = _convertRatesToTariffs(
                         currentState.rates,
                       );
                       _categorizeTariffs(convertedTariffs);
-                      
+
                       // Debounced setState
                       _debouncedSetState(() {
                         _allTariffs = convertedTariffs;
@@ -457,12 +498,15 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
 
                 // Optimizatsiya: faqat bir marta konvertatsiya qilish
                 // Agar rates o'zgarmagan bo'lsa, qayta konvertatsiya qilmaymiz
-                if (_lastConvertedRates != state.rates || _cachedConvertedTariffs == null) {
+                if (_lastConvertedRates != state.rates ||
+                    _cachedConvertedTariffs == null) {
                   // Og'ir ishlarni microtask'ga ko'chiramiz, main thread'ni bloklamaslik uchun
                   Future.microtask(() {
                     if (!mounted) return;
-                    
-                    final convertedTariffs = _convertRatesToTariffs(state.rates);
+
+                    final convertedTariffs = _convertRatesToTariffs(
+                      state.rates,
+                    );
 
                     if (convertedTariffs.isEmpty) {
                       if (_enableDebugLogs) {
@@ -539,12 +583,12 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                   // Og'ir ishlarni microtask'ga ko'chiramiz
                   Future.microtask(() {
                     if (!mounted) return;
-                    
+
                     final convertedTariffs = _convertRatesToTariffs(
                       state.rates,
                     );
                     _categorizeTariffs(convertedTariffs);
-                    
+
                     // Debounced setState
                     _debouncedSetState(() {
                       _allTariffs = convertedTariffs;
@@ -674,13 +718,19 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          "Tariflar",
-                                          style: TextStyle(
-                                            fontSize: 24.sp,
-                                            fontWeight: FontWeight.w800,
-                                            color: textColor,
-                                          ),
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              "Tariflar",
+                                              style: TextStyle(
+                                                fontSize: 24.sp,
+                                                fontWeight: FontWeight.w800,
+                                                color: textColor,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                         Container(
                                           padding: EdgeInsets.symmetric(
@@ -691,7 +741,9 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                             color: isDark
                                                 ? const Color(0xFF2A2A2A)
                                                 : const Color(0xFFF3F4F6),
-                                            borderRadius: BorderRadius.circular(8.r),
+                                            borderRadius: BorderRadius.circular(
+                                              8.r,
+                                            ),
                                           ),
                                           child: Text(
                                             "Qadam 2/5",
@@ -711,13 +763,6 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                         fontSize: 14.sp,
                                         color: subtitleColor,
                                       ),
-                                    ),
-                                    SizedBox(height: 24.h),
-                                    // Tab selector (Standart tariflar / Boshqa tariflar)
-                                    _buildTabSelector(
-                                      isDark,
-                                      textColor,
-                                      subtitleColor,
                                     ),
                                     SizedBox(height: 24.h),
                                   ]),
@@ -797,153 +842,14 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                               else
                                 // Optimizatsiya: SliverList ishlatish - faqat ko'rinadigan elementlarni render qilish
                                 SliverPadding(
-                                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 16.w,
+                                  ),
                                   sliver: SliverList(
-                                    delegate: SliverChildBuilderDelegate(
-                                      (context, index) {
-                                        final tariff = _tariffs[index];
-                                        if (_enableDebugLogs && index < 3) {
-                                          debugPrint(
-                                            '🎨 Rendering tariff card: ${tariff.title} (index: $index)',
-                                          );
-                                        }
-                                        return Padding(
-                                          padding: EdgeInsets.only(bottom: 16.h),
-                                          child: _TariffCard(
-                                            data: tariff,
-                                            isSelected: _selectedCardIndex == index,
-                                            onTap: () {
-                                              if (_enableDebugLogs) {
-                                                debugPrint(
-                                                  '👆 Tariff selected: ${tariff.title} (id: ${tariff.id})',
-                                                );
-                                              }
-
-                                              // Bloc'ga SelectRate event'ini yuborish
-                                              final bloc = context
-                                                  .read<KaskoBloc>();
-                                              final currentState = bloc.state;
-                                              if (currentState
-                                                  is KaskoRatesLoaded) {
-                                                // Tanlangan rate'ni topish
-                                                final selectedRate = currentState
-                                                    .rates
-                                                    .firstWhere(
-                                                      (rate) =>
-                                                          rate.id == tariff.id,
-                                                      orElse: () =>
-                                                          currentState.rates.first,
-                                                    );
-
-                                                // State'ni yangilash va Bloc'ga event yuborish
-                                                // Optimizatsiya: faqat o'zgarganda setState
-                                                if (_selectedCardIndex != index ||
-                                                    _selectedRateEntity?.id != selectedRate.id) {
-                                                  _debouncedSetState(() {
-                                                    _selectedCardIndex = index;
-                                                    _selectedRateEntity = selectedRate;
-                                                  });
-                                                }
-
-                                                bloc.add(SelectRate(selectedRate));
-                                                if (_enableDebugLogs) {
-                                                  debugPrint(
-                                                    '✅✅✅ SelectRate event dispatched: ${selectedRate.name} (id: ${selectedRate.id})',
-                                                  );
-                                                }
-                                              } else {
-                                                // Agar state KaskoRatesLoaded bo'lmasa, faqat UI'ni yangilash
-                                                if (_selectedCardIndex != index) {
-                                                  _debouncedSetState(
-                                                    () => _selectedCardIndex = index,
-                                                  );
-                                                }
-                                              }
-                                            },
-                                            isDark: isDark,
-                                          ),
-                                        );
-                                      },
-                                      childCount: _tariffs.length,
-                                    ),
-                                  ),
-                                ),
-                              // Tariflar ro'yxatini generatsiya qilish - Optimizatsiya: SliverList
-                              if (_tariffs.isEmpty && _allTariffs.isEmpty)
-                                // Agar hali yuklanmagan bo'lsa
-                                SliverFillRemaining(
-                                  hasScrollBody: false,
-                                  child: Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(24.w),
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          const CircularProgressIndicator(
-                                            color: Color(0xFF0085FF),
-                                            strokeWidth: 2.5,
-                                          ),
-                                          SizedBox(height: 24.h),
-                                          Text(
-                                            'Tariflar yuklanmoqda...',
-                                            style: TextStyle(
-                                              fontSize: 16.sp,
-                                              fontWeight: FontWeight.w500,
-                                              color: textColor,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                          SizedBox(height: 8.h),
-                                          Text(
-                                            'Iltimos, kuting',
-                                            style: TextStyle(
-                                              fontSize: 14.sp,
-                                              color: subtitleColor,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              else if (_tariffs.isEmpty &&
-                                  _allTariffs.isNotEmpty)
-                                // Agar kategoriyalashtirishdan keyin bo'sh bo'lsa
-                                SliverFillRemaining(
-                                  hasScrollBody: false,
-                                  child: Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(24.w),
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.info_outline,
-                                            size: 64.sp,
-                                            color: subtitleColor,
-                                          ),
-                                          SizedBox(height: 16.h),
-                                          Text(
-                                            'Bu kategoriyada tariflar topilmadi',
-                                            style: TextStyle(
-                                              fontSize: 16.sp,
-                                              color: textColor,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              else
-                                // Optimizatsiya: SliverList ishlatish - faqat ko'rinadigan elementlarni render qilish
-                                SliverList(
-                                  delegate: SliverChildBuilderDelegate(
-                                    (context, index) {
+                                    delegate: SliverChildBuilderDelegate((
+                                      context,
+                                      index,
+                                    ) {
                                       final tariff = _tariffs[index];
                                       if (_enableDebugLogs && index < 3) {
                                         debugPrint(
@@ -954,7 +860,8 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                         padding: EdgeInsets.only(bottom: 16.h),
                                         child: _TariffCard(
                                           data: tariff,
-                                          isSelected: _selectedCardIndex == index,
+                                          isSelected:
+                                              _selectedCardIndex == index,
                                           onTap: () {
                                             if (_enableDebugLogs) {
                                               debugPrint(
@@ -974,21 +881,26 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                                   .firstWhere(
                                                     (rate) =>
                                                         rate.id == tariff.id,
-                                                    orElse: () =>
-                                                        currentState.rates.first,
+                                                    orElse: () => currentState
+                                                        .rates
+                                                        .first,
                                                   );
 
                                               // State'ni yangilash va Bloc'ga event yuborish
                                               // Optimizatsiya: faqat o'zgarganda setState
                                               if (_selectedCardIndex != index ||
-                                                  _selectedRateEntity?.id != selectedRate.id) {
+                                                  _selectedRateEntity?.id !=
+                                                      selectedRate.id) {
                                                 _debouncedSetState(() {
                                                   _selectedCardIndex = index;
-                                                  _selectedRateEntity = selectedRate;
+                                                  _selectedRateEntity =
+                                                      selectedRate;
                                                 });
                                               }
 
-                                              bloc.add(SelectRate(selectedRate));
+                                              bloc.add(
+                                                SelectRate(selectedRate),
+                                              );
                                               if (_enableDebugLogs) {
                                                 debugPrint(
                                                   '✅✅✅ SelectRate event dispatched: ${selectedRate.name} (id: ${selectedRate.id})',
@@ -998,7 +910,8 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                               // Agar state KaskoRatesLoaded bo'lmasa, faqat UI'ni yangilash
                                               if (_selectedCardIndex != index) {
                                                 _debouncedSetState(
-                                                  () => _selectedCardIndex = index,
+                                                  () => _selectedCardIndex =
+                                                      index,
                                                 );
                                               }
                                             }
@@ -1006,13 +919,10 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                           isDark: isDark,
                                         ),
                                       );
-                                    },
-                                    childCount: _tariffs.length,
+                                    }, childCount: _tariffs.length),
                                   ),
                                 ),
-                              SliverToBoxAdapter(
-                                child: SizedBox(height: 8.h),
-                              ),
+                              SliverToBoxAdapter(child: SizedBox(height: 8.h)),
                             ],
                           ),
                         ),
@@ -1057,129 +967,6 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
     );
   }
 
-  // Bloc'ni olish yoki yaratish
-  KaskoBloc _getOrCreateBloc(BuildContext context) {
-    try {
-      // Avval mavjud Bloc'ni topishga harakat qilish
-      return context.read<KaskoBloc>();
-    } catch (e) {
-      debugPrint('KaskoBloc not found in context, creating new one');
-      // Agar Bloc topilmasa, ServiceLocator orqali olish
-      // Bu Bloc to'g'ri konfiguratsiya qilingan bo'ladi
-      try {
-        final bloc = ServiceLocator.resolve<KaskoBloc>();
-        debugPrint('KaskoBloc created from ServiceLocator');
-        return bloc;
-      } catch (e2) {
-        debugPrint('Error creating KaskoBloc from ServiceLocator: $e2');
-        // Agar ServiceLocator'da ham topilmasa, yangi yaratish
-        final repository = KaskoRepositoryImpl(
-          ServiceLocator.resolve<KaskoRemoteDataSource>(),
-        );
-        final bloc = KaskoBloc(
-          getCars: GetCars(repository),
-          getCarsMinimal: GetCarsMinimal(repository),
-          getRates: GetRates(repository),
-          calculateCarPrice: usecases.CalculateCarPrice(repository),
-          calculatePolicy: usecases.CalculatePolicy(repository),
-          saveOrder: usecases.SaveOrder(repository),
-          getPaymentLink: GetPaymentLink(repository),
-          checkPaymentStatus: CheckPaymentStatus(repository),
-          uploadImage: usecases.UploadImage(repository),
-        );
-        debugPrint('KaskoBloc created manually');
-        return bloc;
-      }
-    }
-  }
-
-  // Tab selector widget
-  Widget _buildTabSelector(bool isDark, Color textColor, Color subtitleColor) {
-    return Container(
-      padding: EdgeInsets.all(4.w),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF3F4F6),
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => _onTabChanged(0),
-              child: Container(
-                padding: EdgeInsets.symmetric(vertical: 12.h),
-                decoration: BoxDecoration(
-                  color: _selectedTabIndex == 0
-                      ? (isDark ? const Color(0xFF1E1E1E) : Colors.white)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8.r),
-                  boxShadow: _selectedTabIndex == 0
-                      ? [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Text(
-                  'Standart tariflar',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: _selectedTabIndex == 0
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                    color: _selectedTabIndex == 0
-                        ? const Color(0xFF0085FF)
-                        : subtitleColor,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: 8.w),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => _onTabChanged(1),
-              child: Container(
-                padding: EdgeInsets.symmetric(vertical: 12.h),
-                decoration: BoxDecoration(
-                  color: _selectedTabIndex == 1
-                      ? (isDark ? const Color(0xFF1E1E1E) : Colors.white)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8.r),
-                  boxShadow: _selectedTabIndex == 1
-                      ? [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Text(
-                  'Boshqa tariflar',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: _selectedTabIndex == 1
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                    color: _selectedTabIndex == 1
-                        ? const Color(0xFF0085FF)
-                        : subtitleColor,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   // Xulosa paneli widget
   Widget _buildSummaryPanel(
@@ -1429,6 +1216,43 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                     debugPrint('🚀🚀🚀 Navigating to KaskoDocumentDataPage...');
                     debugPrint('✅ BLoC found: ${bloc.hashCode}');
 
+                    // Avval SelectRate event yuborish (agar hali yuborilmagan bo'lsa)
+                    if (_selectedRateEntity != null) {
+                      bloc.add(SelectRate(_selectedRateEntity!));
+                    }
+
+                    // Polis hisoblash uchun kerakli ma'lumotlar
+                    final carId = bloc.selectedCarPositionId;
+                    final year = bloc.selectedYear;
+                    final price = bloc.calculatedPrice;
+
+                    if (carId != null && year != null && price != null) {
+                      // Sana hisoblash (1 yil muddat)
+                      final beginDate = DateTime.now();
+                      final endDate = DateTime(
+                        beginDate.year + 1,
+                        beginDate.month,
+                        beginDate.day,
+                      );
+
+                      // Polis hisoblash
+                      bloc.add(
+                        CalculatePolicy(
+                          carId: carId,
+                          year: year,
+                          price: price,
+                          beginDate: beginDate,
+                          endDate: endDate,
+                          driverCount: 0, // Default qiymat
+                          franchise: 0.0, // Default qiymat
+                          selectedRateId: _selectedRateEntity?.id,
+                        ),
+                      );
+                      debugPrint('📊 CalculatePolicy event yuborildi');
+                    } else {
+                      debugPrint('⚠️ CalculatePolicy uchun ma\'lumotlar yetarli emas: carId=$carId, year=$year, price=$price');
+                    }
+
                     // BLoC'ni o'tkazish bilan navigatsiya
                     Navigator.of(context)
                         .push(
@@ -1499,17 +1323,24 @@ class _TariffCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Ikkinchi rasmdagi kabi yengil ko'k rangli karta
+    // Asosiy ranglar
     final Color primaryColor = const Color(0xFF0085FF);
-    final Color lightBlueBg = const Color(
-      0xFFEFF8FF,
-    ); // Yengil ko'k rang (rasmdagi kabi)
-    final Color labelBlue = const Color(
-      0xFF0085FF,
-    ); // Label'lar uchun ko'k rang
+    final Color labelBlue = const Color(0xFF0085FF);
 
-    // HAR DOIM yengil ko'k rangli karta (rasmdagi kabi)
-    final cardBg = lightBlueBg;
+    // Dark mode uchun ranglar
+    final Color lightBlueBg = const Color(0xFFEFF8FF); // Light mode uchun
+    final Color darkBlueBg = const Color(0xFF1E3A5C); // Dark mode uchun
+
+    // Karta fon rangi
+    final cardBg = isDark ? darkBlueBg : lightBlueBg;
+
+    // Matn ranglari
+    final titleColor = isDark ? Colors.white : const Color(0xFF111827);
+    final valueColor = isDark ? Colors.white : const Color(0xFF111827);
+    final dividerColor = isDark ? Colors.grey[700]! : Colors.grey[300]!;
+    final shadowColor = isDark
+        ? Colors.black.withOpacity(0.3)
+        : Colors.black.withOpacity(0.05);
 
     return GestureDetector(
       onTap: onTap,
@@ -1525,7 +1356,7 @@ class _TariffCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: shadowColor,
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -1536,13 +1367,13 @@ class _TariffCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title - Katta qalin shrift (rasmdagi kabi qora rang)
+                // Title - Katta qalin shrift
                 Text(
                   data.title,
                   style: TextStyle(
                     fontSize: 28.sp,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF111827), // Qora rang (rasmdagi kabi)
+                    color: titleColor,
                   ),
                 ),
                 SizedBox(height: 20.h),
@@ -1568,7 +1399,7 @@ class _TariffCard extends StatelessWidget {
                           Text(
                             data.duration,
                             style: TextStyle(
-                              color: const Color(0xFF111827), // Qora rang
+                              color: valueColor,
                               fontSize: 14.sp,
                             ),
                           ),
@@ -1593,9 +1424,7 @@ class _TariffCard extends StatelessWidget {
                           Text(
                             data.description,
                             style: TextStyle(
-                              color: const Color(
-                                0xFF111827,
-                              ), // Qora rang (rasmdagi kabi)
+                              color: valueColor,
                               fontSize: 14.sp,
                             ),
                             maxLines: 2,
@@ -1610,7 +1439,7 @@ class _TariffCard extends StatelessWidget {
                 SizedBox(height: 24.h),
 
                 // Divider
-                Divider(color: Colors.grey[300], thickness: 1),
+                Divider(color: dividerColor, thickness: 1),
 
                 SizedBox(height: 16.h),
 

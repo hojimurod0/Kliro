@@ -43,8 +43,8 @@ const Color kSecondaryTextColor = Color.fromARGB(
   214,
 ); // Kichik yordamchi matn rangi
 
-void showLanguageModal(BuildContext context) {
-  showModalBottomSheet(
+Future<void> showLanguageModal(BuildContext context) async {
+  await showModalBottomSheet(
     context: context,
     isScrollControlled: true, // To'liq balandlikda bo'lishi uchun
     backgroundColor: Colors.transparent, // Orqa fonni shaffof qilish
@@ -87,7 +87,7 @@ class _LanguageActionSheetState extends State<LanguageActionSheet> {
 
   String _getLanguageTitle(Locale locale) {
     if (locale.languageCode == 'uz' && locale.countryCode == 'CYR') {
-      return "Ўзбек";
+      return "O'zbek (Kirill)";
     }
     if (locale.languageCode == 'uz') {
       return "O'zbek";
@@ -147,7 +147,9 @@ class _LanguageActionSheetState extends State<LanguageActionSheet> {
                 // 2. Variantlar guruhi (4ta til)
                 _buildOptionGroup(),
 
-                SizedBox(height: bottomPadding + 25.0), // iOS safe area + дополнительный отступ
+                SizedBox(
+                  height: bottomPadding + 25.0,
+                ), // iOS safe area + дополнительный отступ
               ],
             ),
           ),
@@ -201,17 +203,26 @@ class _LanguageActionSheetState extends State<LanguageActionSheet> {
       onTap: () async {
         // Tilni o'zgartirish funksiyasi
         try {
-          await context.setLocale(locale);
+          // Avval locale'ni saqlaymiz
           await LocalePrefs.save(locale);
+          // Keyin locale'ni o'zgartiramiz
+          await context.setLocale(locale);
           if (mounted) {
             setState(() {
               _selectedLocale = locale;
             });
             Navigator.pop(context);
+            // Profile page ni yangilash uchun
+            if (mounted) {
+              setState(() {});
+            }
           }
         } catch (e) {
-          // Xatolik bo'lsa, faqat locale'ni saqlaymiz
+          // Xatolik bo'lsa, faqat locale'ni saqlaymiz va qayta urinamiz
           await LocalePrefs.save(locale);
+          try {
+            await context.setLocale(locale);
+          } catch (_) {}
           if (mounted) {
             setState(() {
               _selectedLocale = locale;

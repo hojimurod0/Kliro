@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
@@ -30,8 +29,8 @@ class OnboardingPage extends StatefulWidget {
 }
 
 class _OnboardingPageState extends State<OnboardingPage> {
-  // DATA
-  final List<OnboardingModel> _data = [
+  // DATA - locale o'zgarganda yangilanadi
+  List<OnboardingModel> get _data => [
     OnboardingModel(
       image: 'assets/images/image.png',
       title: 'auth.onboarding.one_title',
@@ -52,11 +51,27 @@ class _OnboardingPageState extends State<OnboardingPage> {
   late final PageController _pageController;
   int _currentIndex = 0;
   bool _isLanguageSelected = false; // Til tanlash holati
+  Locale? _currentLocale; // Locale o'zgarishini kuzatish uchun
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Locale o'zgarganda rebuild qilish
+    final newLocale = context.locale;
+    if (_currentLocale == null ||
+        _currentLocale!.languageCode != newLocale.languageCode ||
+        _currentLocale!.countryCode != newLocale.countryCode) {
+      _currentLocale = newLocale;
+      if (mounted) {
+        setState(() {}); // Locale o'zgarganda rebuild qilish
+      }
+    }
   }
 
   @override
@@ -67,9 +82,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   // Til tanlanganda
   void _onLanguageSelected() {
-    setState(() {
-      _isLanguageSelected = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLanguageSelected = true;
+      });
+    }
   }
 
   // Keyingi sahifa
@@ -100,6 +117,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Locale o'zgarishini kuzatish uchun context.locale ni ishlatamiz
+    final currentLocale = context.locale;
+
     // 1. Agar til tanlanmagan bo'lsa -> Language Page
     if (!_isLanguageSelected) {
       return OnboardingLanguagePage(onSelected: _onLanguageSelected);
@@ -107,6 +127,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
     // 2. Asosiy Onboarding
     return Scaffold(
+      key: ValueKey(
+        currentLocale.toString(),
+      ), // Locale o'zgarganda rebuild qilish uchun
       backgroundColor: Colors.white,
       body: Column(
         children: [
@@ -122,7 +145,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 controller: _pageController,
                 itemCount: _data.length,
                 onPageChanged: (index) {
-                  setState(() => _currentIndex = index);
+                  if (mounted) {
+                    setState(() => _currentIndex = index);
+                  }
                 },
                 itemBuilder: (context, index) {
                   return Image.asset(
@@ -168,12 +193,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         return FadeTransition(opacity: animation, child: child);
                       },
                       child: Column(
-                        key: ValueKey<int>(_currentIndex), // Key muhim!
+                        key: ValueKey(
+                          '${_currentIndex}_${currentLocale.toString()}',
+                        ), // Locale va index o'zgarganda rebuild qilish
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
                             _data[_currentIndex].title.tr(),
+                            key: ValueKey(
+                              'title_${currentLocale.toString()}_$_currentIndex',
+                            ), // Locale va index o'zgarganda rebuild qilish
                             style: Theme.of(context).textTheme.titleLarge
                                 ?.copyWith(
                                   fontSize: 24.sp,
@@ -184,6 +214,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           SizedBox(height: 12.h),
                           Text(
                             _data[_currentIndex].desc.tr(),
+                            key: ValueKey(
+                              'desc_${currentLocale.toString()}_$_currentIndex',
+                            ), // Locale va index o'zgarganda rebuild qilish
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
                                   fontSize: 15.sp,
@@ -245,7 +278,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             foregroundColor: const Color(0xFF6F7783),
                           ),
                           child: Text(
-                            "Skip",
+                            'auth.onboarding.skip'.tr(),
                             style: TextStyle(
                               fontSize: 14.sp,
                               fontWeight: FontWeight.w600,

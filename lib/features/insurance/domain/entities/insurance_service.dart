@@ -12,6 +12,7 @@ class InsuranceService {
     required this.iconData,
     required this.buttonText,
     this.tag,
+    this.imagePath,
   });
 
   final String id; // 'osago', 'kasko', 'travel'
@@ -24,4 +25,5 @@ class InsuranceService {
   final IconData iconData;
   final String buttonText;
   final String? tag;
+  final String? imagePath; // Assets dan rasm yo'li (masalan: 'assets/images/kasko.png')
 }

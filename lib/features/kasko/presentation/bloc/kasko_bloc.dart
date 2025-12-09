@@ -43,19 +43,20 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
     on<FetchCars>(_onFetchCars);
     on<FetchCarsMinimal>(_onFetchCarsMinimal);
     on<FetchRates>(_onFetchRates);
-    
+
     // Обработчики для сохранения выбора пользователя
     on<SelectCarBrand>(_onSelectCarBrand);
     on<SelectCarModel>(_onSelectCarModel);
     on<SelectCarPosition>(_onSelectCarPosition);
     on<SelectYear>(_onSelectYear);
     on<SelectRate>(_onSelectRate);
-    
+
     // Обработчики для расчетов и операций
     on<CalculateCarPrice>(_onCalculateCarPrice);
     on<CalculatePolicy>(_onCalculatePolicy);
     on<SaveDocumentData>(_onSaveDocumentData);
     on<SavePersonalData>(_onSavePersonalData);
+    on<SavePaymentMethod>(_onSavePaymentMethod);
     on<SaveOrder>(_onSaveOrder);
     on<CreatePaymentLink>(_onCreatePaymentLink);
     on<CheckPayment>(_onCheckPayment);
@@ -85,42 +86,45 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
   // КЭШИРОВАННЫЕ ВЫБРАННЫЕ ЗНАЧЕНИЯ ПОЛЬЗОВАТЕЛЯ
   // Эти значения сохраняются между страницами
   // ============================================
-  
+
   // Выбранный бренд автомобиля (ID или название)
   String? _selectedCarBrandId;
   String? _selectedCarBrandName;
-  
+
   // Выбранная модель автомобиля (ID или название)
   String? _selectedCarModelId;
   String? _selectedCarModelName;
-  
+
   // Выбранная позиция автомобиля (комплектация)
   // car_position_id используется как carId в API
   int? _selectedCarPositionId;
   String? _selectedCarPositionName;
   CarEntity? _selectedCarEntity;
-  
+
   // Выбранный год выпуска
   int? _selectedYear;
-  
+
   // Выбранный тариф
   RateEntity? _cachedSelectedRate;
-  
+
   // Данные документа (сохраняются на странице document_data_page)
   String? _documentCarNumber;
   String? _documentVin;
   String? _documentPassportSeria;
   String? _documentPassportNumber;
-  
+
   // Личные данные (сохраняются на странице personal_data_page)
   String? _ownerName;
   String? _ownerPhone;
   String? _ownerPassport;
   String? _birthDate;
-  
+
+  // Способ оплаты (сохраняется на странице payment_type_page)
+  String? _paymentMethod; // 'payme' или 'click'
+
   // Рассчитанная цена автомобиля
   CarPriceEntity? _cachedCarPrice;
-  
+
   // Кэшированные данные расчета полиса
   CalculateEntity? _cachedCalculateResult;
 
@@ -236,20 +240,17 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
   // ============================================
 
   /// Обработчик: сохранение выбранного бренда автомобиля
-  void _onSelectCarBrand(
-    SelectCarBrand event,
-    Emitter<KaskoState> emit,
-  ) {
+  void _onSelectCarBrand(SelectCarBrand event, Emitter<KaskoState> emit) {
     _selectedCarBrandId = event.carBrandId;
     _selectedCarBrandName = event.carBrandName ?? event.carBrandId;
-    
+
     // При смене бренда сбрасываем модель и позицию
     _selectedCarModelId = null;
     _selectedCarModelName = null;
     _selectedCarPositionId = null;
     _selectedCarPositionName = null;
     _selectedCarEntity = null;
-    
+
     // State emit qilish - UI yangilanishi uchun
     // Agar cars yuklangan bo'lsa, KaskoCarsLoaded state'ni emit qilish
     if (_cachedCars != null) {
@@ -261,18 +262,15 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
   }
 
   /// Обработчик: сохранение выбранной модели автомобиля
-  void _onSelectCarModel(
-    SelectCarModel event,
-    Emitter<KaskoState> emit,
-  ) {
+  void _onSelectCarModel(SelectCarModel event, Emitter<KaskoState> emit) {
     _selectedCarModelId = event.carModelId;
     _selectedCarModelName = event.carModelName ?? event.carModelId;
-    
+
     // При смене модели сбрасываем позицию
     _selectedCarPositionId = null;
     _selectedCarPositionName = null;
     _selectedCarEntity = null;
-    
+
     // State emit qilish - UI yangilanishi uchun
     if (_cachedCars != null) {
       emit(KaskoCarsLoaded(_cachedCars!));
@@ -282,14 +280,11 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
   }
 
   /// Обработчик: сохранение выбранной позиции автомобиля (комплектация)
-  void _onSelectCarPosition(
-    SelectCarPosition event,
-    Emitter<KaskoState> emit,
-  ) {
+  void _onSelectCarPosition(SelectCarPosition event, Emitter<KaskoState> emit) {
     _selectedCarPositionId = event.carPositionId;
     _selectedCarPositionName = event.carPositionName;
     _selectedCarEntity = event.carEntity;
-    
+
     // State emit qilish - UI yangilanishi uchun
     if (_cachedCars != null) {
       emit(KaskoCarsLoaded(_cachedCars!));
@@ -299,12 +294,9 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
   }
 
   /// Обработчик: сохранение выбранного года выпуска
-  void _onSelectYear(
-    SelectYear event,
-    Emitter<KaskoState> emit,
-  ) {
+  void _onSelectYear(SelectYear event, Emitter<KaskoState> emit) {
     _selectedYear = event.year;
-    
+
     // State emit qilish - UI yangilanishi uchun
     if (_cachedCars != null) {
       emit(KaskoCarsLoaded(_cachedCars!));
@@ -376,6 +368,9 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
   ) async {
     emit(const KaskoLoading());
     try {
+      // Tanlangan tarif ID'sini olish (agar event'da yo'q bo'lsa, cached'dan olish)
+      final selectedRateId = event.selectedRateId ?? _cachedSelectedRate?.id;
+
       final result = await _calculatePolicy(
         carId: event.carId,
         year: event.year,
@@ -384,6 +379,7 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
         endDate: event.endDate,
         driverCount: event.driverCount,
         franchise: event.franchise,
+        selectedRateId: selectedRateId,
       );
       // Кэшируем результат расчета
       _cachedCalculateResult = result;
@@ -403,37 +399,60 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
     _documentVin = event.vin;
     _documentPassportSeria = event.passportSeria;
     _documentPassportNumber = event.passportNumber;
-    
+
     debugPrint('📝 Данные документа сохранены в BLoC:');
     debugPrint('  🚗 Car Number: ${event.carNumber}');
     debugPrint('  🔧 VIN: ${event.vin}');
     debugPrint('  📄 Passport: ${event.passportSeria} ${event.passportNumber}');
-    
+
     // Не меняем состояние, просто сохраняем данные
   }
 
-  void _onSavePersonalData(
-    SavePersonalData event,
-    Emitter<KaskoState> emit,
-  ) {
+  void _onSavePersonalData(SavePersonalData event, Emitter<KaskoState> emit) {
     // Сохраняем личные данные в BLoC
     _birthDate = event.birthDate;
     _ownerName = event.ownerName;
     _ownerPhone = event.ownerPhone;
     _ownerPassport = event.ownerPassport;
-    
+
     debugPrint('👤 Личные данные сохранены в BLoC:');
     debugPrint('  📅 Birth Date: ${event.birthDate}');
     debugPrint('  👤 Owner Name: ${event.ownerName}');
     debugPrint('  📱 Owner Phone: ${event.ownerPhone}');
     debugPrint('  🆔 Owner Passport: ${event.ownerPassport}');
-    
+
+    // Не меняем состояние, просто сохраняем данные
+  }
+
+  void _onSavePaymentMethod(SavePaymentMethod event, Emitter<KaskoState> emit) {
+    // Сохраняем способ оплаты в BLoC
+    _paymentMethod = event.paymentMethod;
+
+    debugPrint('💳 Способ оплаты сохранен в BLoC: ${event.paymentMethod}');
+
     // Не меняем состояние, просто сохраняем данные
   }
 
   Future<void> _onSaveOrder(SaveOrder event, Emitter<KaskoState> emit) async {
     // Используем состояние KaskoSavingOrder для индикации процесса сохранения
     emit(const KaskoSavingOrder());
+
+    // Debug: SaveOrder event ma'lumotlarini ko'rsatish
+    debugPrint('💾 _onSaveOrder chaqirildi:');
+    debugPrint('  🚗 carId: ${event.carId}');
+    debugPrint('  📅 year: ${event.year}');
+    debugPrint('  💰 price: ${event.price}');
+    debugPrint('  📅 beginDate: ${event.beginDate}');
+    debugPrint('  📅 endDate: ${event.endDate}');
+    debugPrint('  👥 driverCount: ${event.driverCount}');
+    debugPrint('  💵 franchise: ${event.franchise}');
+    debugPrint('  💰 premium: ${event.premium}');
+    debugPrint('  👤 ownerName: ${event.ownerName}');
+    debugPrint('  📱 ownerPhone: ${event.ownerPhone}');
+    debugPrint('  🆔 ownerPassport: ${event.ownerPassport}');
+    debugPrint('  🚗 carNumber: ${event.carNumber}');
+    debugPrint('  🔧 vin: ${event.vin}');
+
     try {
       final result = await _saveOrder(
         carId: event.carId,
@@ -449,10 +468,17 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
         ownerPassport: event.ownerPassport,
         carNumber: event.carNumber,
         vin: event.vin,
+        birthDate: event.birthDate,
+        tarifId: event.tarifId,
+        tarifType: event.tarifType,
       );
+      debugPrint('✅ SaveOrder muvaffaqiyatli saqlandi: ${result.orderId}');
       emit(KaskoOrderSaved(result));
     } catch (e) {
-      emit(KaskoError(_mapError(e)));
+      debugPrint('❌ SaveOrder xatosi: $e');
+      final errorMessage = _mapError(e);
+      debugPrint('📝 Xatolik xabari: $errorMessage');
+      emit(KaskoError(errorMessage));
     }
   }
 
@@ -460,15 +486,52 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
     CreatePaymentLink event,
     Emitter<KaskoState> emit,
   ) async {
+    // Получаем orderId из текущего состояния ПЕРЕД emit(KaskoLoading)
+    // потому что после emit состояние изменится и мы потеряем доступ к KaskoOrderSaved
+    int? orderId;
+    String? contractId = event.contractId;
+    final currentState = state;
+    if (currentState is KaskoOrderSaved) {
+      final savedState = currentState;
+      // Конвертируем String orderId в int
+      orderId = int.tryParse(savedState.order.orderId);
+      debugPrint('📦 OrderId получен из KaskoOrderSaved: ${savedState.order.orderId} -> $orderId');
+      // Если contractId не передан в событии, используем из сохраненного заказа
+      if (contractId == null || contractId.isEmpty) {
+        contractId = savedState.order.contractId;
+        debugPrint('📄 ContractId получен из KaskoOrderSaved: $contractId');
+      }
+    } else if (currentState is KaskoPaymentLinkCreated) {
+      // Если это повторная попытка, используем orderId из предыдущего состояния
+      final previousState = currentState;
+      orderId = previousState.orderId;
+      debugPrint('📦 OrderId получен из предыдущего KaskoPaymentLinkCreated: $orderId');
+      // Если contractId не передан в событии, используем из предыдущего payment link
+      if (contractId == null || contractId.isEmpty) {
+        contractId = previousState.paymentLink.contractId;
+        debugPrint('📄 ContractId получен из предыдущего KaskoPaymentLinkCreated: $contractId');
+      }
+    }
+    
+    // Если orderId не найден, выдаем ошибку
+    if (orderId == null) {
+      debugPrint('❌ OrderId не найден в текущем состоянии: ${currentState.runtimeType}');
+      emit(const KaskoError('OrderId не найден. Пожалуйста, попробуйте снова.'));
+      return;
+    }
+    
     emit(const KaskoLoading());
+    
     try {
       final result = await _getPaymentLink(
         orderId: event.orderId,
+        contractId: contractId,
         amount: event.amount,
         returnUrl: event.returnUrl,
         callbackUrl: event.callbackUrl,
       );
-      emit(KaskoPaymentLinkCreated(result));
+      emit(KaskoPaymentLinkCreated(result, orderId: orderId));
+      debugPrint('✅ KaskoPaymentLinkCreated создан с orderId: $orderId');
     } catch (e) {
       emit(KaskoError(_mapError(e)));
     }
@@ -552,8 +615,8 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
           } else {
             // 18 yoshdan kichik bo'lmasligi kerak
             final age = now.year - year;
-            final hasBirthdayPassed = now.month > month ||
-                (now.month == month && now.day >= day);
+            final hasBirthdayPassed =
+                now.month > month || (now.month == month && now.day >= day);
             final actualAge = hasBirthdayPassed ? age : age - 1;
 
             if (actualAge < 18) {
@@ -570,11 +633,9 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
 
     // 2. Ism familiya validatsiyasi
     if (ownerName.isEmpty) {
-      errors['ownerName'] =
-          'insurance.kasko.personal_data.errors.enter_name';
+      errors['ownerName'] = 'insurance.kasko.personal_data.errors.enter_name';
     } else if (ownerName.length < 3) {
-      errors['ownerName'] =
-          'insurance.kasko.personal_data.errors.name_min_3';
+      errors['ownerName'] = 'insurance.kasko.personal_data.errors.name_min_3';
     }
 
     // 3. Passport seriya validatsiyasi
@@ -630,6 +691,14 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
     if (error is AppException) {
       // Xatolik xabarlarini foydalanuvchi uchun tushunarli qilish
       final message = error.message;
+
+      // "Sugurtalovchi mavjud emas" xatosini tushunarli qilish
+      if (message.contains('Sugurtalovchi mavjud emas') ||
+          message.contains('sugurtalovchi') ||
+          message.contains('mavjud emas')) {
+        return 'Pasport raqamidan foydalanib sug\'urtalovchini topib bo\'lmadi. Iltimos, pasport raqamini tekshiring yoki boshqa pasport raqamini kiriting.';
+      }
+
       if (message.contains('Invalid response format')) {
         return 'Server javob formati noto\'g\'ri. Iltimos, qayta urinib ko\'ring.';
       }
@@ -657,7 +726,7 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
   String get selectedCarFullName {
     final brand = _selectedCarBrandName ?? _selectedCarBrandId;
     final model = _selectedCarModelName ?? _selectedCarModelId;
-    
+
     if (brand != null && model != null) {
       return '$brand $model';
     } else if (brand != null) {
@@ -726,28 +795,31 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
 
   /// Получить кэшированную цену автомобиля
   CarPriceEntity? get cachedCarPrice => _cachedCarPrice;
-  
+
   /// Получить кэшированный выбранный тариф
   RateEntity? get cachedSelectedRate => _cachedSelectedRate;
-  
+
   // Геттеры для данных документа
   String? get documentCarNumber => _documentCarNumber;
   String? get documentVin => _documentVin;
   String? get documentPassportSeria => _documentPassportSeria;
   String? get documentPassportNumber => _documentPassportNumber;
-  
+
   // Геттеры для личных данных
   String? get ownerName => _ownerName;
   String? get ownerPhone => _ownerPhone;
   String? get ownerPassport => _ownerPassport;
   String? get birthDate => _birthDate;
-  
+
+  // Способ оплаты
+  String? get paymentMethod => _paymentMethod;
+
   /// Получить кэшированный список автомобилей
   List<CarEntity>? get cachedCars => _cachedCars;
-  
+
   /// Получить кэшированный список тарифов
   List<RateEntity>? get cachedRates => _cachedRates;
-  
+
   /// Получить кэшированный результат расчета полиса
   CalculateEntity? get cachedCalculateResult => _cachedCalculateResult;
 }

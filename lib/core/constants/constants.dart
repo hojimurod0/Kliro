@@ -75,4 +75,14 @@ class ApiPaths {
   static const String kaskoPaymentLink = '/insurance/kasko/payment-link';
   static const String kaskoCheckPayment = '/insurance/kasko/check-payment';
   static const String kaskoImageUpload = '/insurance/kasko/image-upload';
+
+  // Travel Insurance
+  static const String travelPurpose = '/travel/purpose';
+  static const String travelDetails = '/travel/details';
+  static const String travelCalc = '/travel/calculate';
+  static const String travelCreate = '/travel/save';
+  static const String travelCheck = '/travel/check';
+  static const String travelCountry = '/travel/country';
+  static const String travelPurposes = '/travel/purposes';
+  static const String travelTarifs = '/travel/tarifs';
 }

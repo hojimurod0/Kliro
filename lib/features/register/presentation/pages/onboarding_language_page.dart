@@ -52,19 +52,23 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
   @override
   void initState() {
     super.initState();
-    _selected = const Locale('en'); // Birinchi marta English tilida ochiladi
+    // Dastlab foydalanuvchining joriy locale'ini olishga harakat qilamiz.
+    _selected = const Locale('en');
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Birinchi marta English tilida ochiladi, shuning uchun didChangeDependencies da hech narsa qilmaymiz
+    // Kontekstdagi locale'ni boshlang'ich qiymat sifatida tanlab qo'yamiz
+    _selected ??= context.locale;
   }
 
   Future<void> _apply() async {
     final chosen = _selected ?? context.locale;
-    await context.setLocale(chosen);
     await LocalePrefs.save(chosen);
+    await context.setLocale(chosen);
+    // Locale yuklanishini kutish uchun kichik kechikish
+    await Future.delayed(const Duration(milliseconds: 150));
     widget.onSelected();
   }
 
@@ -158,7 +162,9 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(cardBorderRadius),
                       side: BorderSide(
-                        color: isSelected ? primary : Colors.black.withOpacity(0.1),
+                        color: isSelected
+                            ? primary
+                            : Colors.black.withOpacity(0.1),
                         width: isSelected ? 2 : 1,
                       ),
                     ),
@@ -172,7 +178,9 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
                       },
                       controlAffinity: ListTileControlAffinity.leading,
                       activeColor: primary,
-                      fillColor: MaterialStateProperty.resolveWith<Color>((Set<MaterialState> states) {
+                      fillColor: MaterialStateProperty.resolveWith<Color>((
+                        Set<MaterialState> states,
+                      ) {
                         if (states.contains(MaterialState.selected)) {
                           return primary;
                         }

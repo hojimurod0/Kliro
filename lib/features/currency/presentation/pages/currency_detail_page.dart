@@ -55,10 +55,14 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
   String _selectedCurrencyCode = 'USD';
   // Barcha valyutalarni saqlash (callback da ishlatish uchun)
   List<CurrencyEntity> _allCurrencies = [];
+  // PageView controller for smooth slide animation
+  late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
+    // PageView controller initialization
+    _pageController = PageController(initialPage: 0);
     // Agar widget da bank parametrlari bo'lsa, uni tanlangan bank sifatida saqlaymiz
     _selectedCurrencyNotifier.value = widget.selectedCurrency;
     // Agar widget da valyuta kodi bo'lsa, uni tanlangan valyuta sifatida saqlaymiz
@@ -72,6 +76,7 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
   void dispose() {
     _tabIndexNotifier.dispose();
     _selectedCurrencyNotifier.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -153,19 +158,22 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
                 }
               }
 
+              // Находим лучшие банки для покупки и продажи
+              final bestBuyBank = filteredCurrencies.isNotEmpty
+                  ? filteredCurrencies.reduce((a, b) => a.buyRate < b.buyRate ? a : b)
+                  : null;
+              final bestSellBank = filteredCurrencies.isNotEmpty
+                  ? filteredCurrencies.reduce((a, b) => a.sellRate > b.sellRate ? a : b)
+                  : null;
+
               return ValueListenableBuilder<CurrencyEntity?>(
                 valueListenable: _selectedCurrencyNotifier,
                 builder: (context, selectedCurrency, child) {
                   return SingleChildScrollView(
-                    padding: EdgeInsets.all(16.w),
-                    child: Column(
+                      padding: EdgeInsets.all(16.w),
+                      child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (selectedCurrency != null)
-                          SelectedBankCard(currency: selectedCurrency),
-                        if (selectedCurrency == null)
-                          const CurrencySummaryCard(),
-                        SizedBox(height: 24.h),
                         Text(
                           'currency.bank_rates'.tr(),
                           style: TextStyle(
@@ -175,28 +183,98 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
                           ),
                         ),
                         SizedBox(height: 16.h),
+                        // Лучшие банки для покупки и продажи (выше переключателя) - Bitta card ichida
+                        if (bestBuyBank != null && bestSellBank != null)
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 16.h),
+                            child: Container(
+                              padding: EdgeInsets.all(16.w),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).cardColor,
+                                borderRadius: BorderRadius.circular(20.r),
+                                border: Border.all(
+                                  color: Theme.of(context).dividerColor,
+                                ),
+                                boxShadow: Theme.of(context).brightness == Brightness.dark ? null : [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: _BestBankCard(
+                                      currency: bestBuyBank,
+                                      isBuy: true,
+                                      onTap: () => _onBankSelected(bestBuyBank),
+                                    ),
+                                  ),
+                                  SizedBox(width: 12.w),
+                                  Expanded(
+                                    child: _BestBankCard(
+                                      currency: bestSellBank,
+                                      isBuy: false,
+                                      onTap: () => _onBankSelected(bestSellBank),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         // Toggle Button (State bilan ulangan)
                         ValueListenableBuilder<int>(
                           valueListenable: _tabIndexNotifier,
                           builder: (context, index, child) {
                             return CustomToggleSwitch(
                               selectedIndex: index,
-                              onChanged: (newIndex) => _tabIndexNotifier.value = newIndex,
+                              onChanged: (newIndex) {
+                                _tabIndexNotifier.value = newIndex;
+                                // Smooth page transition
+                                _pageController.animateToPage(
+                                  newIndex,
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
+                                );
+                              },
                             );
                           },
                         ),
                         SizedBox(height: 16.h),
-                        // Bank List (State bilan ulangan)
-                        ValueListenableBuilder<int>(
-                          valueListenable: _tabIndexNotifier,
-                          builder: (context, index, child) {
-                            return BankListView(
-                              currencies: filteredCurrencies,
-                              isSelling: index == 1,
-                              selectedBankName: selectedCurrency?.bankName,
-                              onBankSelected: _onBankSelected,
-                            );
-                          },
+                        // PageView for smooth slide animation between Buy and Sell
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.55,
+                          child: PageView(
+                            controller: _pageController,
+                            onPageChanged: (index) {
+                              _tabIndexNotifier.value = index;
+                            },
+                            physics: const BouncingScrollPhysics(),
+                            children: [
+                              // Buy Page
+                              BankListView(
+                                currencies: filteredCurrencies,
+                                isSelling: false,
+                                selectedBankName: selectedCurrency?.bankName,
+                                excludeBankNames: bestBuyBank != null && bestSellBank != null
+                                    ? [bestBuyBank.bankName, bestSellBank.bankName]
+                                    : [],
+                                onBankSelected: _onBankSelected,
+                              ),
+                              // Sell Page
+                              BankListView(
+                                currencies: filteredCurrencies,
+                                isSelling: true,
+                                selectedBankName: selectedCurrency?.bankName,
+                                excludeBankNames: bestBuyBank != null && bestSellBank != null
+                                    ? [bestBuyBank.bankName, bestSellBank.bankName]
+                                    : [],
+                                onBankSelected: _onBankSelected,
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -664,6 +742,7 @@ class BankListView extends StatelessWidget {
   final List<CurrencyEntity> currencies;
   final bool isSelling; // Narxni o'zgartirish uchun bayroq
   final String? selectedBankName; // Tanlangan bank nomi (ro'yxatdan chiqarish uchun)
+  final List<String> excludeBankNames; // Исключаемые банки (лучшие банки)
   final Function(CurrencyEntity)? onBankSelected; // Bank tanlanganda callback
 
   const BankListView({
@@ -671,6 +750,7 @@ class BankListView extends StatelessWidget {
     required this.currencies,
     required this.isSelling,
     this.selectedBankName,
+    this.excludeBankNames = const [],
     this.onBankSelected,
   });
 
@@ -679,27 +759,51 @@ class BankListView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Tanlangan bankni ro'yxatdan chiqaramiz
-    var filteredBanks = selectedBankName != null
-        ? currencies.where((currency) => currency.bankName != selectedBankName).toList()
-        : currencies;
+    // Tanlangan bankni va исключаемые банки ro'yxatdan chiqaramiz
+    var filteredBanks = currencies.where((currency) {
+      if (selectedBankName != null && currency.bankName == selectedBankName) {
+        return false;
+      }
+      if (excludeBankNames.contains(currency.bankName)) {
+        return false;
+      }
+      return true;
+    }).toList();
     
-    // Sortirovka: eng arzon kurslar tepada
-    // Buy bo'lsa - buyRate bo'yicha, Sell bo'lsa - sellRate bo'yicha
+    if (filteredBanks.isEmpty) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(
+            color: Theme.of(context).dividerColor,
+          ),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(32.w),
+          child: Center(
+            child: Text(
+              'currency.empty'.tr(),
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.gray500,
+                fontSize: 14.sp,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Сортируем банки
     filteredBanks.sort((a, b) {
       if (isSelling) {
-        // Sotish: eng arzon (kichik) sellRate tepada
-        return a.sellRate.compareTo(b.sellRate);
+        // Sell uchun eng balandlari tepada (tushib borish tartibida)
+        return b.sellRate.compareTo(a.sellRate);
       } else {
-        // Sotib olish: eng arzon (kichik) buyRate tepada
+        // Buy uchun eng arzonlari tepada (oshib borish tartibida)
         return a.buyRate.compareTo(b.buyRate);
       }
     });
-    
-    // Eng arzon kursni aniqlash (best offer ko'rsatish uchun)
-    final bestRate = filteredBanks.isNotEmpty
-        ? (isSelling ? filteredBanks.first.sellRate : filteredBanks.first.buyRate)
-        : null;
 
     return Container(
       decoration: BoxDecoration(
@@ -709,141 +813,238 @@ class BankListView extends StatelessWidget {
           color: Theme.of(context).dividerColor,
         ),
       ),
-      child: filteredBanks.isEmpty
-          ? Padding(
-              padding: EdgeInsets.all(32.w),
-              child: Center(
-                child: Text(
-                  'currency.empty'.tr(),
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.gray500,
-                    fontSize: 14.sp,
-                  ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: filteredBanks.length,
+        separatorBuilder: (c, i) => Divider(
+          height: 1,
+          indent: 60.w,
+          endIndent: 16.w,
+          color: Theme.of(context).dividerColor,
+        ),
+        itemBuilder: (context, index) {
+          final currency = filteredBanks[index];
+          return _buildBankListItem(context, currency, isSelling);
+        },
+      ),
+    );
+  }
+
+  Widget _buildBankListItem(BuildContext context, CurrencyEntity currency, bool isSelling) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final onlineBadgeBg = isDark ? const Color(0xFF1E3A5F) : AppColors.skySurface;
+    final onlineBadgeText = AppColors.skyAccent;
+    final greenText = AppColors.accentGreen;
+    final redText = AppColors.dangerRed;
+    
+    final displayPrice = isSelling ? currency.sellRate : currency.buyRate;
+    final priceColor = isSelling ? redText : greenText;
+
+    return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+        child: Row(
+          children: [
+            // Bank logosi
+            Container(
+              width: 40.w,
+              height: 40.w,
+              decoration: BoxDecoration(
+                color: onlineBadgeBg,
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Builder(
+                builder: (context) {
+                  final logoAsset = _getBankLogoAsset(currency.bankName);
+                  if (logoAsset != null) {
+                    final shouldContain = _shouldUseContainFit(currency.bankName);
+                    final image = Image.asset(
+                      logoAsset,
+                      fit: shouldContain ? BoxFit.contain : BoxFit.cover,
+                      filterQuality: FilterQuality.medium,
+                    );
+                    if (shouldContain) {
+                      return Padding(
+                        padding: EdgeInsets.all(6.w),
+                        child: image,
+                      );
+                    }
+                    return image;
+                  }
+                  return Icon(
+                    Icons.account_balance,
+                    color: onlineBadgeText,
+                    size: 22.sp,
+                  );
+                },
+              ),
+            ),
+            SizedBox(width: 14.w),
+            Expanded(
+              child: Text(
+                currency.bankName,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15.sp,
+                  color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal,
                 ),
               ),
-            )
-          : ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: filteredBanks.length,
-              separatorBuilder: (c, i) => Divider(
-                height: 1,
-                indent: 60.w,
-                endIndent: 16.w,
-                color: Theme.of(context).dividerColor,
-              ),
-              itemBuilder: (context, index) {
-                final currency = filteredBanks[index];
-                final isDark = Theme.of(context).brightness == Brightness.dark;
-                final onlineBadgeBg = isDark ? const Color(0xFF1E3A5F) : AppColors.skySurface;
-                final onlineBadgeText = AppColors.skyAccent;
-
-                // Agar 'Sotish' tanlangan bo'lsa, narxni o'zgartiramiz
-                final displayPrice = isSelling ? currency.sellRate : currency.buyRate;
-                final currentRate = isSelling ? currency.sellRate : currency.buyRate;
-                final isBest = bestRate != null && currentRate == bestRate;
-                
-                // Ranglar: Sotib olish - yashil, Sotish - qizil
-                final greenText = AppColors.accentGreen;
-                final redText = AppColors.dangerRed;
-                // Sotib olish yashil, sotish qizil rangda
-                final priceColor = isSelling ? redText : greenText;
-
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    // Bank tanlanganda, callback orqali parent widget ga signal beramiz
-                    if (onBankSelected != null) {
-                      onBankSelected!(currency);
-                    }
-                  },
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-                    child: Row(
-                      children: [
-                        // Bank logosi
-                        Container(
-                          width: 40.w,
-                          height: 40.w,
-                          decoration: BoxDecoration(
-                            color: onlineBadgeBg,
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Builder(
-                            builder: (context) {
-                              final logoAsset = _getBankLogoAsset(currency.bankName);
-                              if (logoAsset != null) {
-                                final shouldContain = _shouldUseContainFit(currency.bankName);
-                                final image = Image.asset(
-                                  logoAsset,
-                                  fit: shouldContain ? BoxFit.contain : BoxFit.cover,
-                                  filterQuality: FilterQuality.medium,
-                                );
-                                if (shouldContain) {
-                                  return Padding(
-                                    padding: EdgeInsets.all(6.w),
-                                    child: image,
-                                  );
-                                }
-                                return image;
-                              }
-                              return Icon(
-                                Icons.account_balance,
-                                color: onlineBadgeText,
-                                size: 22.sp,
-                              );
-                            },
-                          ),
-                        ),
-                        SizedBox(width: 14.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                currency.bankName,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15.sp,
-                                  color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal,
-                                ),
-                              ),
-                              if (isBest) ...[
-                                // Eng arzon kurs ko'rsatiladi
-                                // Sotib olish yashil, sotish qizil rangda
-                                SizedBox(height: 4.h),
-                                Text(
-                                  'currency.best_offer'.tr(),
-                                  style: TextStyle(
-                                    fontSize: 11.sp,
-                                    color: isSelling ? redText : greenText,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        Text(
-                          displayPrice
-                              .toStringAsFixed(0)
-                              .replaceAllMapped(
-                                RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                                (Match m) => '${m[1]},',
-                              ) + ' ${'currency.som'.tr()}',
-                          style: TextStyle(
-                            color: priceColor,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
             ),
+            Text(
+              displayPrice
+                  .toStringAsFixed(0)
+                  .replaceAllMapped(
+                    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                    (Match m) => '${m[1]},',
+                  ) + ' ${'currency.som'.tr()}',
+              style: TextStyle(
+                color: priceColor,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+    );
+  }
+}
+
+// Виджет для отображения лучших банков
+class _BestBankCard extends StatelessWidget {
+  final CurrencyEntity currency;
+  final bool isBuy;
+  final VoidCallback onTap;
+
+  const _BestBankCard({
+    required this.currency,
+    required this.isBuy,
+    required this.onTap,
+  });
+
+  String? _getBankLogoAsset(String bankName) => bankLogoAsset(bankName);
+  bool _shouldUseContainFit(String bankName) => bankLogoUsesContainFit(bankName);
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final onlineBadgeBg = isDark ? const Color(0xFF1E3A5F) : AppColors.skySurface;
+    final onlineBadgeText = AppColors.skyAccent;
+    final greenText = AppColors.accentGreen;
+    final redText = AppColors.dangerRed;
+    final greenBg = isDark ? const Color(0xFF1A3A2E) : AppColors.greenBg;
+    final redBg = isDark ? const Color(0xFF3A1E1E) : const Color(0xFFFEF2F2);
+    
+    final price = isBuy ? currency.buyRate : currency.sellRate;
+    final priceColor = isBuy ? greenText : redText;
+    final bgColor = isBuy ? greenBg : redBg;
+    final label = isBuy ? 'currency.buy'.tr() : 'currency.sell'.tr();
+    final icon = isBuy ? Icons.trending_up_rounded : Icons.trending_down_rounded;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(12.w),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  icon,
+                  color: priceColor,
+                  size: 16.sp,
+                ),
+                SizedBox(width: 6.w),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.midnight,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8.h),
+            // Bank logo va nomi
+            Row(
+              children: [
+                Container(
+                  width: 32.w,
+                  height: 32.w,
+                  decoration: BoxDecoration(
+                    color: onlineBadgeBg,
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Builder(
+                    builder: (context) {
+                      final logoAsset = _getBankLogoAsset(currency.bankName);
+                      if (logoAsset != null) {
+                        final shouldContain = _shouldUseContainFit(currency.bankName);
+                        final image = Image.asset(
+                          logoAsset,
+                          fit: shouldContain ? BoxFit.contain : BoxFit.cover,
+                          filterQuality: FilterQuality.medium,
+                        );
+                        if (shouldContain) {
+                          return Padding(
+                            padding: EdgeInsets.all(4.w),
+                            child: image,
+                          );
+                        }
+                        return image;
+                      }
+                      return Icon(
+                        Icons.account_balance,
+                        color: onlineBadgeText,
+                        size: 18.sp,
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    currency.bankName,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12.sp,
+                      color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              price
+                  .toStringAsFixed(0)
+                  .replaceAllMapped(
+                    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                    (Match m) => '${m[1]},',
+                  ) + ' ${'currency.som'.tr()}',
+              style: TextStyle(
+                color: priceColor,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

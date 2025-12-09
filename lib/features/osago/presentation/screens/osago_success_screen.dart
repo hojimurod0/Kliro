@@ -25,6 +25,12 @@ class OsagoSuccessScreen extends StatelessWidget {
               'insurance.osago.success.title'.tr(),
               style: TextStyle(color: Theme.of(context).textTheme.titleLarge?.color),
             ),
+            systemOverlayStyle: SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark
+                  ? Brightness.light
+                  : Brightness.dark,
+            ),
           ),
           body: Padding(
             padding: EdgeInsets.all(16.w),

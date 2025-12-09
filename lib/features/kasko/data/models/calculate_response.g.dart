@@ -9,15 +9,19 @@ part of 'calculate_response.dart';
 _$CalculateResponseImpl _$$CalculateResponseImplFromJson(
         Map<String, dynamic> json) =>
     _$CalculateResponseImpl(
-      premium: (json['premium'] as num).toDouble(),
-      carId: (json['car_id'] as num).toInt(),
-      year: (json['year'] as num).toInt(),
-      price: (json['price'] as num).toDouble(),
-      beginDate: json['begin_date'] as String,
-      endDate: json['end_date'] as String,
-      driverCount: (json['driver_count'] as num).toInt(),
-      franchise: (json['franchise'] as num).toDouble(),
+      premium: (json['premium'] as num?)?.toDouble(),
+      carId: (json['car_id'] as num?)?.toInt(),
+      year: (json['year'] as num?)?.toInt(),
+      price: (json['price'] as num?)?.toDouble(),
+      beginDate: json['begin_date'] as String?,
+      endDate: json['end_date'] as String?,
+      driverCount: (json['driver_count'] as num?)?.toInt(),
+      franchise: (json['franchise'] as num?)?.toDouble(),
       currency: json['currency'] as String?,
+      tarif1: (json['tarif_1'] as num?)?.toDouble(),
+      tarif2: (json['tarif_2'] as num?)?.toDouble(),
+      tarif3: (json['tarif_3'] as num?)?.toDouble(),
+      konstruktor: (json['konstruktor'] as num?)?.toDouble(),
       rates: (json['rates'] as List<dynamic>?)
               ?.map((e) => RateModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -36,5 +40,9 @@ Map<String, dynamic> _$$CalculateResponseImplToJson(
       'driver_count': instance.driverCount,
       'franchise': instance.franchise,
       'currency': instance.currency,
+      'tarif_1': instance.tarif1,
+      'tarif_2': instance.tarif2,
+      'tarif_3': instance.tarif3,
+      'konstruktor': instance.konstruktor,
       'rates': instance.rates,
     };

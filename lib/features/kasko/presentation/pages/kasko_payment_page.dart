@@ -1,165 +1,299 @@
+import 'dart:io';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
-import '../../../../core/navigation/app_router.dart';
-import '../bloc/kasko_bloc.dart';
-import '../bloc/kasko_event.dart';
-import '../bloc/kasko_state.dart';
+import '../../../../core/constants/app_colors.dart';
 
 @RoutePage()
 class KaskoPaymentPage extends StatelessWidget {
   final String orderId;
   final double amount;
+  final String? clickUrl;
+  final String? paymeUrl;
+  final String paymentMethod;
 
   const KaskoPaymentPage({
     super.key,
     required this.orderId,
     required this.amount,
+    this.clickUrl,
+    this.paymeUrl,
+    required this.paymentMethod,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scaffoldBg = AppColors.getScaffoldBg(isDark);
+    final cardBg = AppColors.getCardBg(isDark);
+    final textColor = AppColors.getTextColor(isDark);
+    final subtitleColor = AppColors.getSubtitleColor(isDark);
+    final borderColor = AppColors.getBorderColor(isDark);
+
+    // Payment URL ni olish
+    String? paymentUrl;
+    final effectivePaymentMethod = paymentMethod.isNotEmpty
+        ? paymentMethod
+        : 'click';
+    if (effectivePaymentMethod == 'payme') {
+      paymentUrl = paymeUrl;
+    } else if (effectivePaymentMethod == 'click') {
+      paymentUrl = clickUrl;
+    } else {
+      paymentUrl = clickUrl ?? paymeUrl;
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('KASKO - To\'lov')),
-      body: BlocListener<KaskoBloc, KaskoState>(
-        listener: (context, state) {
-          // To'lov holatini tekshirish
-          if (state is KaskoPaymentChecked) {
-            if (state.paymentStatus.status == 'paid' ||
-                state.paymentStatus.status == 'success') {
-              // To'lov muvaffaqiyatli bo'lgandan keyin success sahifasiga o'tish
-              context.router.push(const KaskoSuccessRoute());
-            }
-          }
-        },
-        child: BlocBuilder<KaskoBloc, KaskoState>(
-          builder: (context, state) {
-            if (state is KaskoLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (state is KaskoPaymentLinkCreated) {
-              return Padding(
-                padding: EdgeInsets.all(16.w),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(16.w),
-                        child: Column(
-                          children: [
-                            Text(
-                              'To\'lov summasi',
-                              style: TextStyle(fontSize: 16.sp),
-                            ),
-                            SizedBox(height: 8.h),
-                            Text(
-                              '${state.paymentLink.amount.toStringAsFixed(2)} UZS',
-                              style: TextStyle(
-                                fontSize: 24.sp,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 32.h),
-                    ElevatedButton(
-                      onPressed: () => _openPaymentUrl(
-                        context,
-                        state.paymentLink.paymentUrl,
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 16.h),
-                      ),
-                      child: const Text('To\'lovga o\'tish'),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            if (state is KaskoError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      state.message,
-                      style: TextStyle(fontSize: 16.sp),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 16.h),
-                    ElevatedButton(
-                      onPressed: () {
-                        context.read<KaskoBloc>().add(
-                          CreatePaymentLink(
-                            orderId: orderId,
-                            amount: amount,
-                            returnUrl: 'https://kliro.uz/ru/kasko/success',
-                            callbackUrl:
-                                'https://api.kliro.uz/payment/callback/kasko',
-                          ),
-                        );
-                      },
-                      child: const Text('Qayta urinib ko\'ring'),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            return Padding(
+      backgroundColor: scaffoldBg,
+      appBar: AppBar(
+        backgroundColor: cardBg,
+        elevation: 0.5,
+        title: Text(
+          'KASKO - To\'lov',
+          style: TextStyle(
+            color: textColor,
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        ),
+      ),
+      body: paymentUrl != null
+          ? Padding(
               padding: EdgeInsets.all(16.w),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Card(
+                    color: cardBg,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      side: BorderSide(color: borderColor, width: 1),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.all(16.w),
+                      child: Column(
+                        children: [
+                          Text(
+                            'To\'lov summasi',
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              color: subtitleColor,
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
+                          Text(
+                            '${amount.toStringAsFixed(2)} UZS',
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.accentGreen,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 32.h),
                   ElevatedButton(
                     onPressed: () {
-                      context.read<KaskoBloc>().add(
-                        CreatePaymentLink(
-                          orderId: orderId,
-                          amount: amount,
-                          returnUrl: 'https://kliro.uz/ru/kasko/success',
-                          callbackUrl:
-                              'https://api.kliro.uz/payment/callback/kasko',
-                        ),
-                      );
+                      _openPaymentUrl(context, paymentUrl!, paymentMethod);
                     },
                     style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.kaskoPrimaryBlue,
                       padding: EdgeInsets.symmetric(vertical: 16.h),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
                     ),
-                    child: const Text('To\'lov havolasini olish'),
+                    child: Text(
+                      'To\'lovga o\'tish',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
-            );
-          },
-        ),
-      ),
+            )
+          : Center(
+              child: Padding(
+                padding: EdgeInsets.all(24.w),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 64.sp,
+                      color: AppColors.dangerRed,
+                    ),
+                    SizedBox(height: 16.h),
+                    Text(
+                      'To\'lov havolasi topilmadi',
+                      style: TextStyle(fontSize: 16.sp, color: textColor),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 
-  Future<void> _openPaymentUrl(BuildContext context, String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      // To'lov URL ochilgandan keyin, foydalanuvchi to'lovni amalga oshiradi
-      // va returnUrl ga qaytadi. returnUrl da KaskoSuccessRoute ga o'tish kerak
-    } else {
+  Future<void> _openPaymentUrl(
+    BuildContext context,
+    String url,
+    String paymentMethod,
+  ) async {
+    // URL'dan payment method ni aniqlash (agar parametr bo'lmasa)
+    String detectedPaymentMethod = paymentMethod;
+    if (detectedPaymentMethod.isEmpty) {
+      // URL'dan payment method ni aniqlash
+      final uri = Uri.parse(url);
+      final host = uri.host.toLowerCase();
+      if (host.contains('payme')) {
+        detectedPaymentMethod = 'payme';
+      } else if (host.contains('click')) {
+        detectedPaymentMethod = 'click';
+      }
+    }
+
+    bool urlOpened = false;
+
+    // Avval payment URL ni ochishga harakat qilamiz
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        urlOpened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      // Agar payment URL ishlamasa, deep link yoki store URL dan foydalanamiz
+      urlOpened = false;
+    }
+
+    if (!context.mounted) return;
+
+    // Agar payment URL ishlamasa, deep link yoki store URL dan foydalanamiz
+    if (!urlOpened && detectedPaymentMethod.isNotEmpty) {
+      final appUrl = _getPaymentAppUrl(detectedPaymentMethod);
+
+      if (appUrl != null) {
+        try {
+          // Deep link ochishga harakat qilamiz
+          urlOpened = await launchUrlString(
+            appUrl,
+            mode: LaunchMode.externalApplication,
+          );
+        } catch (e) {
+          // Agar deep link ishlamasa, store URL dan foydalanamiz
+          urlOpened = false;
+        }
+      }
+
+      // Agar deep link ham ishlamasa, store URL dan foydalanamiz
+      if (!urlOpened) {
+        final storeUrl = _getPaymentStoreUrl(detectedPaymentMethod);
+        if (storeUrl.isNotEmpty) {
+          try {
+            final success = await launchUrlString(
+              storeUrl,
+              mode: LaunchMode.externalApplication,
+            );
+
+            if (!context.mounted) return;
+
+            if (!success) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('To\'lov havolasini ochib bo\'lmadi'),
+                  backgroundColor: AppColors.dangerRed,
+                ),
+              );
+              return;
+            }
+          } catch (e) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('To\'lov havolasini ochib bo\'lmadi'),
+                backgroundColor: AppColors.dangerRed,
+              ),
+            );
+            return;
+          }
+        } else {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('To\'lov havolasini ochib bo\'lmadi'),
+              backgroundColor: AppColors.dangerRed,
+            ),
+          );
+          return;
+        }
+      }
+    } else if (!urlOpened) {
+      // Agar payment method aniqlanmagan bo'lsa va URL ham ochilmagan bo'lsa
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось открыть ссылку: $url')),
+          SnackBar(
+            content: Text('To\'lov havolasini ochib bo\'lmadi: $url'),
+            backgroundColor: AppColors.dangerRed,
+          ),
         );
       }
     }
+  }
+
+  String? _getPaymentAppUrl(String paymentMethod) {
+    // Deep links для открытия приложений напрямую
+    if (paymentMethod == 'payme') {
+      // Payme deep link - Android va iOS uchun
+      if (Platform.isAndroid) {
+        return 'payme://';
+      } else if (Platform.isIOS) {
+        return 'payme://';
+      }
+      return null;
+    } else if (paymentMethod == 'click') {
+      // Click deep link - Android va iOS uchun
+      if (Platform.isAndroid) {
+        return 'clickuz://';
+      } else if (Platform.isIOS) {
+        return 'clickuz://';
+      }
+      return null;
+    }
+    return null;
+  }
+
+  String _getPaymentStoreUrl(String paymentMethod) {
+    // Fallback URL - agar ilova o'rnatilmagan bo'lsa, Play Store/App Store ga yo'naltiramiz
+    if (paymentMethod == 'payme') {
+      if (Platform.isAndroid) {
+        return 'https://play.google.com/store/apps/details?id=uz.dida.payme&hl=ru';
+      } else if (Platform.isIOS) {
+        return 'https://apps.apple.com/us/app/payme-%D0%BF%D0%B5%D1%80%D0%B5%D0%B2%D0%BE%D0%B4%D1%8B-%D0%B8-%D0%BF%D0%BB%D0%B0%D1%82%D0%B5%D0%B6%D0%B8/id1093525667';
+      }
+    } else if (paymentMethod == 'click') {
+      if (Platform.isAndroid) {
+        return 'https://play.google.com/store/apps/details?id=air.com.ssdsoftwaresolutions.clickuz';
+      } else if (Platform.isIOS) {
+        return 'https://apps.apple.com/uz/app/click-superapp/id768132591';
+      }
+    }
+    return '';
   }
 }

@@ -20,22 +20,30 @@ CalculateResponse _$CalculateResponseFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$CalculateResponse {
-  double get premium => throw _privateConstructorUsedError;
+  double? get premium => throw _privateConstructorUsedError;
   @JsonKey(name: 'car_id')
-  int get carId => throw _privateConstructorUsedError;
-  int get year => throw _privateConstructorUsedError;
-  double get price => throw _privateConstructorUsedError;
+  int? get carId => throw _privateConstructorUsedError;
+  int? get year => throw _privateConstructorUsedError;
+  double? get price => throw _privateConstructorUsedError;
   @JsonKey(name: 'begin_date')
-  String get beginDate => throw _privateConstructorUsedError;
+  String? get beginDate => throw _privateConstructorUsedError;
   @JsonKey(name: 'end_date')
-  String get endDate => throw _privateConstructorUsedError;
+  String? get endDate => throw _privateConstructorUsedError;
   @JsonKey(name: 'driver_count')
-  int get driverCount => throw _privateConstructorUsedError;
-  double get franchise => throw _privateConstructorUsedError;
+  int? get driverCount => throw _privateConstructorUsedError;
+  double? get franchise => throw _privateConstructorUsedError;
   String? get currency =>
+      throw _privateConstructorUsedError; // API response format: {result: true, tarif_1: 2310000, tarif_2: 3464000, tarif_3: 5774000, konstruktor: 0}
+  @JsonKey(name: 'tarif_1')
+  double? get tarif1 => throw _privateConstructorUsedError;
+  @JsonKey(name: 'tarif_2')
+  double? get tarif2 => throw _privateConstructorUsedError;
+  @JsonKey(name: 'tarif_3')
+  double? get tarif3 => throw _privateConstructorUsedError;
+  double? get konstruktor =>
       throw _privateConstructorUsedError; // Tariflar - calculate response'da keladi
   @JsonKey(name: 'rates')
-  List<RateModel> get rates => throw _privateConstructorUsedError;
+  List<RateModel>? get rates => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -50,16 +58,20 @@ abstract class $CalculateResponseCopyWith<$Res> {
       _$CalculateResponseCopyWithImpl<$Res, CalculateResponse>;
   @useResult
   $Res call(
-      {double premium,
-      @JsonKey(name: 'car_id') int carId,
-      int year,
-      double price,
-      @JsonKey(name: 'begin_date') String beginDate,
-      @JsonKey(name: 'end_date') String endDate,
-      @JsonKey(name: 'driver_count') int driverCount,
-      double franchise,
+      {double? premium,
+      @JsonKey(name: 'car_id') int? carId,
+      int? year,
+      double? price,
+      @JsonKey(name: 'begin_date') String? beginDate,
+      @JsonKey(name: 'end_date') String? endDate,
+      @JsonKey(name: 'driver_count') int? driverCount,
+      double? franchise,
       String? currency,
-      @JsonKey(name: 'rates') List<RateModel> rates});
+      @JsonKey(name: 'tarif_1') double? tarif1,
+      @JsonKey(name: 'tarif_2') double? tarif2,
+      @JsonKey(name: 'tarif_3') double? tarif3,
+      double? konstruktor,
+      @JsonKey(name: 'rates') List<RateModel>? rates});
 }
 
 /// @nodoc
@@ -75,58 +87,78 @@ class _$CalculateResponseCopyWithImpl<$Res, $Val extends CalculateResponse>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? premium = null,
-    Object? carId = null,
-    Object? year = null,
-    Object? price = null,
-    Object? beginDate = null,
-    Object? endDate = null,
-    Object? driverCount = null,
-    Object? franchise = null,
+    Object? premium = freezed,
+    Object? carId = freezed,
+    Object? year = freezed,
+    Object? price = freezed,
+    Object? beginDate = freezed,
+    Object? endDate = freezed,
+    Object? driverCount = freezed,
+    Object? franchise = freezed,
     Object? currency = freezed,
-    Object? rates = null,
+    Object? tarif1 = freezed,
+    Object? tarif2 = freezed,
+    Object? tarif3 = freezed,
+    Object? konstruktor = freezed,
+    Object? rates = freezed,
   }) {
     return _then(_value.copyWith(
-      premium: null == premium
+      premium: freezed == premium
           ? _value.premium
           : premium // ignore: cast_nullable_to_non_nullable
-              as double,
-      carId: null == carId
+              as double?,
+      carId: freezed == carId
           ? _value.carId
           : carId // ignore: cast_nullable_to_non_nullable
-              as int,
-      year: null == year
+              as int?,
+      year: freezed == year
           ? _value.year
           : year // ignore: cast_nullable_to_non_nullable
-              as int,
-      price: null == price
+              as int?,
+      price: freezed == price
           ? _value.price
           : price // ignore: cast_nullable_to_non_nullable
-              as double,
-      beginDate: null == beginDate
+              as double?,
+      beginDate: freezed == beginDate
           ? _value.beginDate
           : beginDate // ignore: cast_nullable_to_non_nullable
-              as String,
-      endDate: null == endDate
+              as String?,
+      endDate: freezed == endDate
           ? _value.endDate
           : endDate // ignore: cast_nullable_to_non_nullable
-              as String,
-      driverCount: null == driverCount
+              as String?,
+      driverCount: freezed == driverCount
           ? _value.driverCount
           : driverCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      franchise: null == franchise
+              as int?,
+      franchise: freezed == franchise
           ? _value.franchise
           : franchise // ignore: cast_nullable_to_non_nullable
-              as double,
+              as double?,
       currency: freezed == currency
           ? _value.currency
           : currency // ignore: cast_nullable_to_non_nullable
               as String?,
-      rates: null == rates
+      tarif1: freezed == tarif1
+          ? _value.tarif1
+          : tarif1 // ignore: cast_nullable_to_non_nullable
+              as double?,
+      tarif2: freezed == tarif2
+          ? _value.tarif2
+          : tarif2 // ignore: cast_nullable_to_non_nullable
+              as double?,
+      tarif3: freezed == tarif3
+          ? _value.tarif3
+          : tarif3 // ignore: cast_nullable_to_non_nullable
+              as double?,
+      konstruktor: freezed == konstruktor
+          ? _value.konstruktor
+          : konstruktor // ignore: cast_nullable_to_non_nullable
+              as double?,
+      rates: freezed == rates
           ? _value.rates
           : rates // ignore: cast_nullable_to_non_nullable
-              as List<RateModel>,
+              as List<RateModel>?,
     ) as $Val);
   }
 }
@@ -140,16 +172,20 @@ abstract class _$$CalculateResponseImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {double premium,
-      @JsonKey(name: 'car_id') int carId,
-      int year,
-      double price,
-      @JsonKey(name: 'begin_date') String beginDate,
-      @JsonKey(name: 'end_date') String endDate,
-      @JsonKey(name: 'driver_count') int driverCount,
-      double franchise,
+      {double? premium,
+      @JsonKey(name: 'car_id') int? carId,
+      int? year,
+      double? price,
+      @JsonKey(name: 'begin_date') String? beginDate,
+      @JsonKey(name: 'end_date') String? endDate,
+      @JsonKey(name: 'driver_count') int? driverCount,
+      double? franchise,
       String? currency,
-      @JsonKey(name: 'rates') List<RateModel> rates});
+      @JsonKey(name: 'tarif_1') double? tarif1,
+      @JsonKey(name: 'tarif_2') double? tarif2,
+      @JsonKey(name: 'tarif_3') double? tarif3,
+      double? konstruktor,
+      @JsonKey(name: 'rates') List<RateModel>? rates});
 }
 
 /// @nodoc
@@ -163,58 +199,78 @@ class __$$CalculateResponseImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? premium = null,
-    Object? carId = null,
-    Object? year = null,
-    Object? price = null,
-    Object? beginDate = null,
-    Object? endDate = null,
-    Object? driverCount = null,
-    Object? franchise = null,
+    Object? premium = freezed,
+    Object? carId = freezed,
+    Object? year = freezed,
+    Object? price = freezed,
+    Object? beginDate = freezed,
+    Object? endDate = freezed,
+    Object? driverCount = freezed,
+    Object? franchise = freezed,
     Object? currency = freezed,
-    Object? rates = null,
+    Object? tarif1 = freezed,
+    Object? tarif2 = freezed,
+    Object? tarif3 = freezed,
+    Object? konstruktor = freezed,
+    Object? rates = freezed,
   }) {
     return _then(_$CalculateResponseImpl(
-      premium: null == premium
+      premium: freezed == premium
           ? _value.premium
           : premium // ignore: cast_nullable_to_non_nullable
-              as double,
-      carId: null == carId
+              as double?,
+      carId: freezed == carId
           ? _value.carId
           : carId // ignore: cast_nullable_to_non_nullable
-              as int,
-      year: null == year
+              as int?,
+      year: freezed == year
           ? _value.year
           : year // ignore: cast_nullable_to_non_nullable
-              as int,
-      price: null == price
+              as int?,
+      price: freezed == price
           ? _value.price
           : price // ignore: cast_nullable_to_non_nullable
-              as double,
-      beginDate: null == beginDate
+              as double?,
+      beginDate: freezed == beginDate
           ? _value.beginDate
           : beginDate // ignore: cast_nullable_to_non_nullable
-              as String,
-      endDate: null == endDate
+              as String?,
+      endDate: freezed == endDate
           ? _value.endDate
           : endDate // ignore: cast_nullable_to_non_nullable
-              as String,
-      driverCount: null == driverCount
+              as String?,
+      driverCount: freezed == driverCount
           ? _value.driverCount
           : driverCount // ignore: cast_nullable_to_non_nullable
-              as int,
-      franchise: null == franchise
+              as int?,
+      franchise: freezed == franchise
           ? _value.franchise
           : franchise // ignore: cast_nullable_to_non_nullable
-              as double,
+              as double?,
       currency: freezed == currency
           ? _value.currency
           : currency // ignore: cast_nullable_to_non_nullable
               as String?,
-      rates: null == rates
+      tarif1: freezed == tarif1
+          ? _value.tarif1
+          : tarif1 // ignore: cast_nullable_to_non_nullable
+              as double?,
+      tarif2: freezed == tarif2
+          ? _value.tarif2
+          : tarif2 // ignore: cast_nullable_to_non_nullable
+              as double?,
+      tarif3: freezed == tarif3
+          ? _value.tarif3
+          : tarif3 // ignore: cast_nullable_to_non_nullable
+              as double?,
+      konstruktor: freezed == konstruktor
+          ? _value.konstruktor
+          : konstruktor // ignore: cast_nullable_to_non_nullable
+              as double?,
+      rates: freezed == rates
           ? _value._rates
           : rates // ignore: cast_nullable_to_non_nullable
-              as List<RateModel>,
+              as List<RateModel>?,
     ));
   }
 }
@@ -223,57 +279,75 @@ class __$$CalculateResponseImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$CalculateResponseImpl implements _CalculateResponse {
   const _$CalculateResponseImpl(
-      {required this.premium,
-      @JsonKey(name: 'car_id') required this.carId,
-      required this.year,
-      required this.price,
-      @JsonKey(name: 'begin_date') required this.beginDate,
-      @JsonKey(name: 'end_date') required this.endDate,
-      @JsonKey(name: 'driver_count') required this.driverCount,
-      required this.franchise,
+      {this.premium,
+      @JsonKey(name: 'car_id') this.carId,
+      this.year,
+      this.price,
+      @JsonKey(name: 'begin_date') this.beginDate,
+      @JsonKey(name: 'end_date') this.endDate,
+      @JsonKey(name: 'driver_count') this.driverCount,
+      this.franchise,
       this.currency,
-      @JsonKey(name: 'rates') final List<RateModel> rates = const []})
+      @JsonKey(name: 'tarif_1') this.tarif1,
+      @JsonKey(name: 'tarif_2') this.tarif2,
+      @JsonKey(name: 'tarif_3') this.tarif3,
+      this.konstruktor,
+      @JsonKey(name: 'rates') final List<RateModel>? rates = const []})
       : _rates = rates;
 
   factory _$CalculateResponseImpl.fromJson(Map<String, dynamic> json) =>
       _$$CalculateResponseImplFromJson(json);
 
   @override
-  final double premium;
+  final double? premium;
   @override
   @JsonKey(name: 'car_id')
-  final int carId;
+  final int? carId;
   @override
-  final int year;
+  final int? year;
   @override
-  final double price;
+  final double? price;
   @override
   @JsonKey(name: 'begin_date')
-  final String beginDate;
+  final String? beginDate;
   @override
   @JsonKey(name: 'end_date')
-  final String endDate;
+  final String? endDate;
   @override
   @JsonKey(name: 'driver_count')
-  final int driverCount;
+  final int? driverCount;
   @override
-  final double franchise;
+  final double? franchise;
   @override
   final String? currency;
+// API response format: {result: true, tarif_1: 2310000, tarif_2: 3464000, tarif_3: 5774000, konstruktor: 0}
+  @override
+  @JsonKey(name: 'tarif_1')
+  final double? tarif1;
+  @override
+  @JsonKey(name: 'tarif_2')
+  final double? tarif2;
+  @override
+  @JsonKey(name: 'tarif_3')
+  final double? tarif3;
+  @override
+  final double? konstruktor;
 // Tariflar - calculate response'da keladi
-  final List<RateModel> _rates;
+  final List<RateModel>? _rates;
 // Tariflar - calculate response'da keladi
   @override
   @JsonKey(name: 'rates')
-  List<RateModel> get rates {
+  List<RateModel>? get rates {
+    final value = _rates;
+    if (value == null) return null;
     if (_rates is EqualUnmodifiableListView) return _rates;
     // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_rates);
+    return EqualUnmodifiableListView(value);
   }
 
   @override
   String toString() {
-    return 'CalculateResponse(premium: $premium, carId: $carId, year: $year, price: $price, beginDate: $beginDate, endDate: $endDate, driverCount: $driverCount, franchise: $franchise, currency: $currency, rates: $rates)';
+    return 'CalculateResponse(premium: $premium, carId: $carId, year: $year, price: $price, beginDate: $beginDate, endDate: $endDate, driverCount: $driverCount, franchise: $franchise, currency: $currency, tarif1: $tarif1, tarif2: $tarif2, tarif3: $tarif3, konstruktor: $konstruktor, rates: $rates)';
   }
 
   @override
@@ -294,6 +368,11 @@ class _$CalculateResponseImpl implements _CalculateResponse {
                 other.franchise == franchise) &&
             (identical(other.currency, currency) ||
                 other.currency == currency) &&
+            (identical(other.tarif1, tarif1) || other.tarif1 == tarif1) &&
+            (identical(other.tarif2, tarif2) || other.tarif2 == tarif2) &&
+            (identical(other.tarif3, tarif3) || other.tarif3 == tarif3) &&
+            (identical(other.konstruktor, konstruktor) ||
+                other.konstruktor == konstruktor) &&
             const DeepCollectionEquality().equals(other._rates, _rates));
   }
 
@@ -310,6 +389,10 @@ class _$CalculateResponseImpl implements _CalculateResponse {
       driverCount,
       franchise,
       currency,
+      tarif1,
+      tarif2,
+      tarif3,
+      konstruktor,
       const DeepCollectionEquality().hash(_rates));
 
   @JsonKey(ignore: true)
@@ -329,46 +412,61 @@ class _$CalculateResponseImpl implements _CalculateResponse {
 
 abstract class _CalculateResponse implements CalculateResponse {
   const factory _CalculateResponse(
-          {required final double premium,
-          @JsonKey(name: 'car_id') required final int carId,
-          required final int year,
-          required final double price,
-          @JsonKey(name: 'begin_date') required final String beginDate,
-          @JsonKey(name: 'end_date') required final String endDate,
-          @JsonKey(name: 'driver_count') required final int driverCount,
-          required final double franchise,
+          {final double? premium,
+          @JsonKey(name: 'car_id') final int? carId,
+          final int? year,
+          final double? price,
+          @JsonKey(name: 'begin_date') final String? beginDate,
+          @JsonKey(name: 'end_date') final String? endDate,
+          @JsonKey(name: 'driver_count') final int? driverCount,
+          final double? franchise,
           final String? currency,
-          @JsonKey(name: 'rates') final List<RateModel> rates}) =
+          @JsonKey(name: 'tarif_1') final double? tarif1,
+          @JsonKey(name: 'tarif_2') final double? tarif2,
+          @JsonKey(name: 'tarif_3') final double? tarif3,
+          final double? konstruktor,
+          @JsonKey(name: 'rates') final List<RateModel>? rates}) =
       _$CalculateResponseImpl;
 
   factory _CalculateResponse.fromJson(Map<String, dynamic> json) =
       _$CalculateResponseImpl.fromJson;
 
   @override
-  double get premium;
+  double? get premium;
   @override
   @JsonKey(name: 'car_id')
-  int get carId;
+  int? get carId;
   @override
-  int get year;
+  int? get year;
   @override
-  double get price;
+  double? get price;
   @override
   @JsonKey(name: 'begin_date')
-  String get beginDate;
+  String? get beginDate;
   @override
   @JsonKey(name: 'end_date')
-  String get endDate;
+  String? get endDate;
   @override
   @JsonKey(name: 'driver_count')
-  int get driverCount;
+  int? get driverCount;
   @override
-  double get franchise;
+  double? get franchise;
   @override
   String? get currency;
+  @override // API response format: {result: true, tarif_1: 2310000, tarif_2: 3464000, tarif_3: 5774000, konstruktor: 0}
+  @JsonKey(name: 'tarif_1')
+  double? get tarif1;
+  @override
+  @JsonKey(name: 'tarif_2')
+  double? get tarif2;
+  @override
+  @JsonKey(name: 'tarif_3')
+  double? get tarif3;
+  @override
+  double? get konstruktor;
   @override // Tariflar - calculate response'da keladi
   @JsonKey(name: 'rates')
-  List<RateModel> get rates;
+  List<RateModel>? get rates;
   @override
   @JsonKey(ignore: true)
   _$$CalculateResponseImplCopyWith<_$CalculateResponseImpl> get copyWith =>

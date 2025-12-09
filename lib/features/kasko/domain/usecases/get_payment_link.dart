@@ -8,12 +8,14 @@ class GetPaymentLink {
 
   Future<PaymentLinkEntity> call({
     required String orderId,
+    String? contractId,
     required double amount,
     required String returnUrl,
     required String callbackUrl,
   }) {
     return _repository.getPaymentLink(
       orderId: orderId,
+      contractId: contractId,
       amount: amount,
       returnUrl: returnUrl,
       callbackUrl: callbackUrl,

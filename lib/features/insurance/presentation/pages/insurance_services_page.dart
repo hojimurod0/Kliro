@@ -26,21 +26,17 @@ class _InsuranceServicesPageState extends State<InsuranceServicesPage> {
   @override
   void initState() {
     super.initState();
-    // Repository va UseCase larni DI (GetIt) orqali chaqirish tavsiya etiladi,
-    // lekin hozircha mavjud kod asosida qoldiramiz.
     _getInsuranceServices = GetInsuranceServices(
       InsuranceRepositoryImpl(
         localDataSource: const InsuranceLocalDataSource(),
       ),
     );
-    // EasyLocalization ishga tushishini kutish uchun biroz kechiktirish
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadServices();
     });
   }
 
   Future<void> _loadServices() async {
-    // Agar ma'lumot tez kelsa, loading ko'rsatmaslik uchun
     if (!mounted) return;
 
     try {
@@ -70,7 +66,6 @@ class _InsuranceServicesPageState extends State<InsuranceServicesPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    // Skrinshotdagi asosiy orqa fon rangi (juda och kulrang)
     final backgroundColor = isDark
         ? const Color(0xFF121212)
         : const Color(0xFFF5F7FA);
@@ -165,12 +160,8 @@ class InsuranceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Header: Icon + Title + Tag
           _buildHeader(context, isDark),
-
           SizedBox(height: 12.h),
-
-          // 2. Description
           Text(
             service.description,
             style: TextStyle(
@@ -180,29 +171,21 @@ class InsuranceCard extends StatelessWidget {
               fontWeight: FontWeight.w400,
             ),
           ),
-
           SizedBox(height: 16.h),
-
-          // 3. Features List (Kulrang blok ichida)
           _buildFeaturesList(context, isDark),
-
           SizedBox(height: 16.h),
-
-          // 4. Button
           SizedBox(
             width: double.infinity,
             height: 48.h,
             child: ElevatedButton(
               onPressed: () {
-                // OSAGO uchun maxsus sahifa
+                // OSAGO, KASKO va Travel uchun navigatsiya
                 if (service.id == 'osago') {
                   context.router.push(const OsagoModuleRoute());
                 } else if (service.id == 'kasko') {
-                  // KASKO uchun maxsus sahifa
                   context.router.push(const KaskoModuleRoute());
-                } else {
-                  // Boshqa sug'urta turlari uchun boshqa logika
-                  // TODO: Navigate logic for other insurance types
+                } else if (service.id == 'travel') {
+                  context.router.push(const TravelModuleRoute());
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -218,7 +201,7 @@ class InsuranceCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    service.buttonText, // "Rasmiylashtirish"
+                    service.buttonText,
                     style: TextStyle(
                       fontSize: 15.sp,
                       fontWeight: FontWeight.w600,
@@ -244,29 +227,39 @@ class InsuranceCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Service Icon
               Container(
                 width: 48.w,
                 height: 48.w,
                 padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
-                  color: service.lightColor, // Och fon rangi
+                  color: service.lightColor,
                   borderRadius: BorderRadius.circular(12.r),
                 ),
-                child: Icon(
-                  service.iconData,
-                  color: service.primaryColor,
-                  size: 24.sp,
-                ),
+                child: service.imagePath != null
+                    ? Image.asset(
+                        service.imagePath!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(
+                            service.iconData,
+                            color: service.primaryColor,
+                            size: 24.sp,
+                          );
+                        },
+                      )
+                    : Icon(
+                        service.iconData,
+                        color: service.primaryColor,
+                        size: 24.sp,
+                      ),
               ),
               SizedBox(width: 12.w),
-              // Texts
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      service.title.toUpperCase(), // Masalan: "OSAGO"
+                      service.title.toUpperCase(),
                       style: TextStyle(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w800,
@@ -275,7 +268,7 @@ class InsuranceCard extends StatelessWidget {
                     ),
                     SizedBox(height: 2.h),
                     Text(
-                      service.subtitle, // Masalan: "Majburiy sug'urta"
+                      service.subtitle,
                       style: TextStyle(
                         fontSize: 13.sp,
                         fontWeight: FontWeight.w600,
@@ -290,12 +283,11 @@ class InsuranceCard extends StatelessWidget {
             ],
           ),
         ),
-        // Tag (agar mavjud bo'lsa)
         if (service.tag != null)
           Container(
             padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFA726), // Skrinshotdagi to'q sariq rang
+              color: const Color(0xFFFFA726),
               borderRadius: BorderRadius.circular(6.r),
               boxShadow: [
                 BoxShadow(
@@ -308,14 +300,10 @@ class InsuranceCard extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.auto_awesome, // Yulduzcha yoki magic icon
-                  color: Colors.white,
-                  size: 12.sp,
-                ),
+                Icon(Icons.auto_awesome, color: Colors.white, size: 12.sp),
                 SizedBox(width: 4.w),
                 Text(
-                  service.tag!, // "Ommabop"
+                  service.tag!,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 11.sp,
@@ -334,9 +322,7 @@ class InsuranceCard extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 12.w),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF2C2C2C)
-            : const Color(0xFFF8F9FA), // Kulrang fon
+        color: isDark ? const Color(0xFF2C2C2C) : const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Column(
@@ -346,9 +332,8 @@ class InsuranceCard extends StatelessWidget {
             padding: EdgeInsets.only(bottom: 6.h),
             child: Row(
               children: [
-                // Skrinshotdagi check belgisi (aylana ichida)
                 Icon(
-                  Icons.check_circle_outline_rounded, // Yoki oddiy check_circle
+                  Icons.check_circle_outline_rounded,
                   size: 18.sp,
                   color: service.primaryColor,
                 ),

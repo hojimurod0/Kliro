@@ -19,8 +19,9 @@ class HomeHeader extends StatelessWidget {
         future: AuthService.instance.fetchActiveUser(),
         builder: (context, snapshot) {
           final user = snapshot.data;
-          final initials = user?.initials ?? '?';
+          final initials = user?.initials;
           final firstName = user?.firstName ?? '';
+          final hasValidInitials = initials != null && initials.isNotEmpty;
           return Row(
             children: [
               GestureDetector(
@@ -33,36 +34,49 @@ class HomeHeader extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   child: Center(
-                    child: Text(
-                      initials,
-                      style: AppTypography.headingL.copyWith(
-                        color: AppColors.white,
-                        fontSize: 16.sp,
-                      ),
-                    ),
+                    child: hasValidInitials
+                        ? Text(
+                            initials,
+                            style: AppTypography.headingL.copyWith(
+                              color: AppColors.white,
+                              fontSize: 16.sp,
+                            ),
+                          )
+                        : Icon(
+                            Icons.person,
+                            color: AppColors.white,
+                            size: 24.sp,
+                          ),
                   ),
                 ),
               ),
               SizedBox(width: 12.w),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'home.welcome'.tr(),
-                    style: AppTypography.bodyPrimary.copyWith(
-                      fontSize: 12.sp,
-                      color: Theme.of(context).textTheme.bodySmall?.color,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'home.welcome'.tr(),
+                      style: AppTypography.bodyPrimary.copyWith(
+                        fontSize: 12.sp,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
-                  ),
-                  Text(
-                    firstName.isNotEmpty ? firstName : 'home.welcome'.tr(),
-                    style: AppTypography.headingL.copyWith(
-                      color: Theme.of(context).textTheme.titleLarge?.color,
+                    Text(
+                      firstName.isNotEmpty ? firstName : 'home.welcome'.tr(),
+                      style: AppTypography.headingL.copyWith(
+                        color: Theme.of(context).textTheme.titleLarge?.color,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const Spacer(),
+              SizedBox(width: 8.w),
               const _CircleIcon(icon: Icons.search),
               SizedBox(width: 8.w),
               Stack(
@@ -115,4 +129,3 @@ class _CircleIcon extends StatelessWidget {
     );
   }
 }
-

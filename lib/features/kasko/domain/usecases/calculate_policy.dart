@@ -14,6 +14,7 @@ class CalculatePolicy {
     required DateTime endDate,
     required int driverCount,
     required double franchise,
+    int? selectedRateId,
   }) {
     return _repository.calculatePolicy(
       carId: carId,
@@ -23,6 +24,7 @@ class CalculatePolicy {
       endDate: endDate,
       driverCount: driverCount,
       franchise: franchise,
+      selectedRateId: selectedRateId,
     );
   }
 }

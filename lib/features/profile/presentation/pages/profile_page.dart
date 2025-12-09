@@ -61,7 +61,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String _getLanguageText() {
     final locale = context.locale;
     if (locale.languageCode == 'uz' && locale.countryCode == 'CYR') {
-      return "O'zbek tili (Kiril)";
+      return "O'zbek (Kirill)";
     }
     if (locale.languageCode == 'uz') {
       return "O'zbekcha";
@@ -242,8 +242,12 @@ class _ProfilePageState extends State<ProfilePage> {
                   icon: Icons.language,
                   title: tr('profile.language'),
                   trailingText: _getLanguageText(),
-                  onTap: () {
-                    showLanguageModal(context);
+                  onTap: () async {
+                    await showLanguageModal(context);
+                    // Locale o'zgarganda UI ni yangilash
+                    if (mounted) {
+                      setState(() {});
+                    }
                   },
                 ),
                 _buildSettingItem(
@@ -404,10 +408,7 @@ class _ProfilePageState extends State<ProfilePage> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.3),
-          width: 1.5,
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
       ),
       child: Material(
         color: Colors.transparent,
@@ -657,5 +658,4 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
-
 }

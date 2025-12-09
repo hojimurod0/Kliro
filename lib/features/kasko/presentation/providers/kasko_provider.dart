@@ -211,6 +211,9 @@ class KaskoProvider extends ChangeNotifier {
     required String ownerPassport,
     required String carNumber,
     required String vin,
+    required String birthDate,
+    required int tarifId,
+    required int tarifType,
   }) async {
     _isSavingOrder = true;
     _errorMessage = null;
@@ -231,6 +234,9 @@ class KaskoProvider extends ChangeNotifier {
         ownerPassport: ownerPassport,
         carNumber: carNumber,
         vin: vin,
+        birthDate: birthDate,
+        tarifId: tarifId,
+        tarifType: tarifType,
       );
       _savedOrder = result;
       _isSavingOrder = false;
@@ -347,4 +353,3 @@ class KaskoProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
-

@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../logic/bloc/osago_bloc.dart';
@@ -72,6 +73,12 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
             titleTextStyle: TextStyle(
               color: Theme.of(context).textTheme.titleLarge?.color,
             ),
+            systemOverlayStyle: SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark
+                  ? Brightness.light
+                  : Brightness.dark,
+            ),
           ),
           body: Stack(
             children: [
@@ -115,13 +122,13 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
                           _buildPaymentMethodCard(
                             'payme',
                             'insurance.osago.payment.payment_method_payme'.tr(),
-                            _buildPaymeLogo(),
+                            _buildPaymeLogo(context),
                           ),
                           const SizedBox(height: 12),
                           _buildPaymentMethodCard(
                             'click',
                             'insurance.osago.payment.payment_method_click'.tr(),
-                            _buildClickLogo(),
+                            _buildClickLogo(context),
                           ),
                         ],
                       ),
@@ -134,7 +141,9 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
                       color: Theme.of(context).cardColor,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.black.withOpacity(0.3)
+                              : Colors.black.withOpacity(0.05),
                           blurRadius: 10,
                           offset: const Offset(0, -2),
                         ),
@@ -201,7 +210,9 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
               if (isLoading)
                 Positioned.fill(
                   child: ColoredBox(
-                    color: Colors.black38,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.black.withOpacity(0.7)
+                        : Colors.black.withOpacity(0.38),
                     child: Center(
                       child: CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(
@@ -360,7 +371,9 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
               height: 50,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Theme.of(context).cardColor
+                    : Colors.white,
               ),
               child: logo,
             ),
@@ -405,11 +418,12 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
     );
   }
 
-  Widget _buildPaymeLogo() {
+  Widget _buildPaymeLogo(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.white,
+        color: isDark ? Theme.of(context).cardColor : Colors.white,
       ),
       child: Center(
         child: Column(
@@ -418,7 +432,7 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
             Text(
               'pay',
               style: TextStyle(
-                color: Colors.black,
+                color: isDark ? Colors.white : Colors.black,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
@@ -437,7 +451,7 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
     );
   }
 
-  Widget _buildClickLogo() {
+  Widget _buildClickLogo(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
@@ -449,7 +463,9 @@ class _OsagoPaymentScreenState extends State<OsagoPaymentScreen> {
           height: 20,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Theme.of(context).cardColor
+                : Colors.white,
           ),
           child: Center(
             child: Container(

@@ -14,6 +14,7 @@ class InsuranceServiceModel extends InsuranceService {
     required super.iconData,
     required super.buttonText,
     super.tag,
+    super.imagePath,
   });
 
   factory InsuranceServiceModel.fromData({
@@ -27,6 +28,7 @@ class InsuranceServiceModel extends InsuranceService {
     required IconData iconData,
     required String buttonText,
     String? tag,
+    String? imagePath,
   }) {
     return InsuranceServiceModel(
       id: id,
@@ -39,6 +41,7 @@ class InsuranceServiceModel extends InsuranceService {
       iconData: iconData,
       buttonText: buttonText,
       tag: tag,
+      imagePath: imagePath,
     );
   }
 }

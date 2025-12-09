@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 import '../../../../core/errors/app_exception.dart';
 import '../../domain/entities/car_entity.dart';
 import '../../domain/entities/calculate_entity.dart';
@@ -93,6 +95,7 @@ class KaskoRepositoryImpl implements KaskoRepository {
     required DateTime endDate,
     required int driverCount,
     required double franchise,
+    int? selectedRateId,
   }) async {
     try {
       final request = CalculateRequest(
@@ -105,7 +108,10 @@ class KaskoRepositoryImpl implements KaskoRepository {
         franchise: franchise,
       );
       final response = await _remoteDataSource.calculatePolicy(request);
-      return _mapCalculateResponseToEntity(response);
+      return _mapCalculateResponseToEntity(
+        response,
+        selectedRateId: selectedRateId,
+      );
     } catch (e) {
       throw AppException(
         message: 'Failed to calculate policy: ${e.toString()}',
@@ -128,22 +134,59 @@ class KaskoRepositoryImpl implements KaskoRepository {
     required String ownerPassport,
     required String carNumber,
     required String vin,
+    required String birthDate,
+    required int tarifId,
+    required int tarifType,
   }) async {
     try {
+      // Извлекаем серию и номер паспорта (первые 2 символа - серия, остальные - номер)
+      final passportSeries = ownerPassport.length >= 2 
+          ? ownerPassport.substring(0, 2).toUpperCase()
+          : '';
+      final passportNumber = ownerPassport.length > 2 
+          ? ownerPassport.substring(2)
+          : ownerPassport;
+
+      // Извлекаем телефон без +998
+      String phone = ownerPhone;
+      if (phone.startsWith('+998')) {
+        phone = phone.substring(4);
+      } else if (phone.startsWith('998')) {
+        phone = phone.substring(3);
+      }
+
+      // Преобразуем дату рождения из формата DD/MM/YYYY в DD-MM-YYYY
+      String formattedBirthDate = birthDate;
+      if (birthDate.contains('/')) {
+        formattedBirthDate = birthDate.replaceAll('/', '-');
+      }
+
+      // Разделяем VIN на серию (первые 3 символа) и номер (остальные)
+      final vinSeria = vin.length >= 3 ? vin.substring(0, 3) : vin;
+      final vinNumber = vin.length > 3 ? vin.substring(3) : '';
+
+      // Преобразуем цену в строку
+      final priceString = price.toInt().toString();
+
+      // Формируем запрос с новой структурой
       final request = SaveOrderRequest(
-        carId: carId,
-        year: year,
-        price: price,
-        beginDate: _formatDate(beginDate),
-        endDate: _formatDate(endDate),
-        driverCount: driverCount,
-        franchise: franchise,
-        premium: premium,
-        ownerName: ownerName,
-        ownerPhone: ownerPhone,
-        ownerPassport: ownerPassport,
-        carNumber: carNumber,
-        vin: vin,
+        sugurtalovchi: Sugurtalovchi(
+          passportSeries: passportSeries,
+          passportNumber: passportNumber,
+          birthday: formattedBirthDate,
+          phone: phone,
+        ),
+        car: CarData(
+          carNomer: carNumber,
+          seria: vinSeria,
+          number: vinNumber,
+          priceOfCar: priceString,
+        ),
+        beginDate: _formatDateDDMMYYYY(beginDate),
+        liability: price.toInt(),
+        premium: premium.toInt(),
+        tarifId: tarifId,
+        tarifType: tarifType,
       );
       final response = await _remoteDataSource.saveOrder(request);
       return _mapSaveOrderResponseToEntity(response);
@@ -155,6 +198,7 @@ class KaskoRepositoryImpl implements KaskoRepository {
   @override
   Future<PaymentLinkEntity> getPaymentLink({
     required String orderId,
+    String? contractId,
     required double amount,
     required String returnUrl,
     required String callbackUrl,
@@ -162,6 +206,7 @@ class KaskoRepositoryImpl implements KaskoRepository {
     try {
       final request = PaymentLinkRequest(
         orderId: orderId,
+        contractId: contractId,
         amount: amount,
         returnUrl: returnUrl,
         callbackUrl: callbackUrl,
@@ -252,41 +297,116 @@ class KaskoRepositoryImpl implements KaskoRepository {
     );
   }
 
-  CalculateEntity _mapCalculateResponseToEntity(CalculateResponse response) {
+  CalculateEntity _mapCalculateResponseToEntity(
+    CalculateResponse response, {
+    int? selectedRateId,
+  }) {
+    // API response format: {result: true, tarif_1: 2310000, tarif_2: 3464000, tarif_3: 5774000, konstruktor: 0}
+    // Tanlangan tarif ID'siga mos premium'ni olish
+    double? calculatedPremium;
+    if (selectedRateId != null) {
+      switch (selectedRateId) {
+        case 1:
+          calculatedPremium = response.tarif1;
+          break;
+        case 2:
+          calculatedPremium = response.tarif2;
+          break;
+        case 3:
+          calculatedPremium = response.tarif3;
+          break;
+        default:
+          calculatedPremium =
+              response.tarif1 ?? response.tarif2 ?? response.tarif3;
+      }
+    } else {
+      // Agar tanlangan tarif yo'q bo'lsa, birinchi tarifni ishlatish
+      calculatedPremium = response.tarif1 ?? response.tarif2 ?? response.tarif3;
+    }
+
     return CalculateEntity(
-      premium: response.premium,
-      carId: response.carId,
-      year: response.year,
-      price: response.price,
-      beginDate: _parseDate(response.beginDate),
-      endDate: _parseDate(response.endDate),
-      driverCount: response.driverCount,
-      franchise: response.franchise,
+      premium: calculatedPremium ?? response.premium ?? 0.0,
+      carId: response.carId ?? 0,
+      year: response.year ?? 0,
+      price: response.price ?? 0.0,
+      beginDate: response.beginDate != null
+          ? _parseDate(response.beginDate!)
+          : DateTime.now(),
+      endDate: response.endDate != null
+          ? _parseDate(response.endDate!)
+          : DateTime.now().add(const Duration(days: 365)),
+      driverCount: response.driverCount ?? 0,
+      franchise: response.franchise ?? 0.0,
       currency: response.currency,
       // Tariflarni map qilish
-      rates: response.rates.map(_mapRateModelToEntity).toList(),
+      rates: (response.rates ?? []).map(_mapRateModelToEntity).toList(),
     );
   }
 
   SaveOrderEntity _mapSaveOrderResponseToEntity(SaveOrderResponse response) {
-    return SaveOrderEntity(
-      orderId: response.orderId,
-      premium: response.premium,
-      carId: response.carId,
-      ownerName: response.ownerName,
-      ownerPhone: response.ownerPhone,
+    debugPrint('🔄 Mapping SaveOrderResponse to Entity:');
+    debugPrint('  📦 orderId: ${response.orderId}');
+    debugPrint('  📄 contractId: ${response.contractId}');
+    debugPrint('  💰 premium: ${response.premium}');
+    debugPrint('  🚗 carId: ${response.carId}');
+    debugPrint('  🔵 clickUrl (url): ${response.url}');
+    debugPrint('  🟢 paymeUrl: ${response.paymeUrl}');
+    debugPrint('  📄 urlShartnoma: ${response.urlShartnoma}');
+    
+    final entity = SaveOrderEntity(
+      orderId: response.orderId ?? '',
+      contractId: response.contractId,
+      premium: response.premium ?? 0.0,
+      carId: response.carId ?? 0,
+      ownerName: response.ownerName ?? '',
+      ownerPhone: response.ownerPhone ?? '',
       status: response.status,
+      clickUrl: response.url, // Click URL из поля 'url'
+      paymeUrl: response.paymeUrl, // Payme URL
+      urlShartnoma: response.urlShartnoma, // Contract document URL
     );
+    
+    debugPrint('✅ Mapped entity:');
+    debugPrint('  orderId: ${entity.orderId}');
+    debugPrint('  contractId: ${entity.contractId}');
+    debugPrint('  clickUrl: ${entity.clickUrl}');
+    debugPrint('  paymeUrl: ${entity.paymeUrl}');
+    return entity;
   }
 
   PaymentLinkEntity _mapPaymentLinkResponseToEntity(
     PaymentLinkResponse response,
   ) {
-    return PaymentLinkEntity(
-      paymentUrl: response.paymentUrl,
-      orderId: response.orderId,
-      amount: response.amount,
-    );
+    debugPrint('🔄 Mapping PaymentLinkResponse to Entity:');
+    debugPrint('  🔵 clickUrl: ${response.clickUrl}');
+    debugPrint('  🔵 url (fallback for click): ${response.url}');
+    debugPrint('  🟢 paymeUrl: ${response.paymeUrl}');
+    debugPrint('  🟢 payme_url (fallback for payme): ${response.paymeUrlOld}');
+    debugPrint('  📦 orderId: ${response.orderId}');
+    debugPrint('  📄 contractId: ${response.contractId}');
+    debugPrint('  💰 amount: ${response.amount}, amountUzs: ${response.amountUzs}');
+    
+    try {
+      final entity = PaymentLinkEntity(
+        // Используем url как Click URL, если clickUrl не указан
+        clickUrl: response.clickUrl ?? response.url,
+        // Используем payme_url как Payme URL, если paymeUrl не указан
+        paymeUrl: response.paymeUrl ?? response.paymeUrlOld,
+        paymentUrl: response.paymentUrl ?? response.url ?? response.paymeUrlOld,
+        orderId: response.orderId,
+        contractId: response.contractId,
+        amount: response.amountUzs ?? response.amount ?? 0.0,
+      );
+      debugPrint('✅ PaymentLinkEntity yaratildi:');
+      debugPrint('  🔵 clickUrl: ${entity.clickUrl}');
+      debugPrint('  🟢 paymeUrl: ${entity.paymeUrl}');
+      debugPrint('  💰 amount: ${entity.amount}');
+      return entity;
+    } catch (e, stackTrace) {
+      debugPrint('❌ PaymentLinkEntity mapping error: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   CheckPaymentEntity _mapCheckPaymentResponseToEntity(
@@ -313,6 +433,10 @@ class KaskoRepositoryImpl implements KaskoRepository {
 
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  String _formatDateDDMMYYYY(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}';
   }
 
   DateTime _parseDate(String dateString) {

@@ -25,6 +25,7 @@ abstract class KaskoRepository {
     required DateTime endDate,
     required int driverCount,
     required double franchise,
+    int? selectedRateId,
   });
   Future<SaveOrderEntity> saveOrder({
     required int carId,
@@ -40,9 +41,13 @@ abstract class KaskoRepository {
     required String ownerPassport,
     required String carNumber,
     required String vin,
+    required String birthDate,
+    required int tarifId,
+    required int tarifType,
   });
   Future<PaymentLinkEntity> getPaymentLink({
     required String orderId,
+    String? contractId,
     required double amount,
     required String returnUrl,
     required String callbackUrl,

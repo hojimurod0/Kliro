@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../../core/navigation/app_router.dart';
 import '../bloc/kasko_bloc.dart';
@@ -28,13 +32,10 @@ class KaskoPaymentTypePage extends StatefulWidget {
 class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
   // Tanlangan to'lov turi
   PaymentOption _selectedPayment = PaymentOption.payme;
-  
-  // Ma'lumotlar Bloc state'dan olinadi
-  double? _premium;
-  String? _orderId;
 
   // 1. To'lov turi kartasi (Radio button kabi)
   Widget _buildPaymentCard(
+    BuildContext context,
     PaymentOption option,
     String title,
     Widget logo,
@@ -56,6 +57,13 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
           _selectedPayment = option;
           print('Tanlangan to\'lov turi: $title');
         });
+        // Сохраняем способ оплаты в BLoC
+        final bloc = context.read<KaskoBloc>();
+        bloc.add(
+          SavePaymentMethod(
+            paymentMethod: option == PaymentOption.payme ? 'payme' : 'click',
+          ),
+        );
       },
       child: Container(
         margin: EdgeInsets.only(bottom: 10.0.h),
@@ -185,360 +193,796 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
 
     return BlocConsumer<KaskoBloc, KaskoState>(
       listener: (context, state) {
-        // CalculatePolicy natijasini saqlash
-        if (state is KaskoPolicyCalculated) {
-          setState(() {
-            _premium = state.calculateResult.premium;
-          });
-        }
-        
-        // SaveOrder natijasini saqlash
-        if (state is KaskoOrderSaved) {
-          setState(() {
-            _orderId = state.order.orderId;
-            _premium = state.order.premium;
-          });
-        }
-        
-        // PaymentLink yaratilgandan keyin to'lov sahifasiga o'tish
-        if (state is KaskoPaymentLinkCreated) {
-          context.router.push(
-            KaskoPaymentRoute(
-              orderId: _orderId ?? '',
-              amount: _premium ?? 0,
-            ),
-          );
-        }
-        
         // Xatolik holati
         if (state is KaskoError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
         }
       },
       builder: (context, state) {
-        // State'dan premium ni olish
-        if (state is KaskoPolicyCalculated && _premium == null) {
-          _premium = state.calculateResult.premium;
-        }
-        if (state is KaskoOrderSaved && _orderId == null) {
-          _orderId = state.order.orderId;
-          _premium = state.order.premium;
+        // Agar loading holati bo'lsa, loading ko'rsatish
+        if (state is KaskoLoading) {
+          return Scaffold(
+            backgroundColor: scaffoldBg,
+            appBar: AppBar(
+              backgroundColor: cardBg,
+              elevation: 0.5,
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back, color: textColor),
+                onPressed: () {
+                  context.router.pop();
+                },
+              ),
+              title: Text(
+                'KASKO',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                  fontSize: 18.sp,
+                ),
+              ),
+              centerTitle: true,
+              systemOverlayStyle: SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                statusBarIconBrightness: isDark
+                    ? Brightness.light
+                    : Brightness.dark,
+              ),
+            ),
+            body: const Center(child: CircularProgressIndicator()),
+          );
         }
 
-        return Scaffold(
-      backgroundColor: scaffoldBg,
-      appBar: AppBar(
-        backgroundColor: cardBg,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: textColor,
-          ),
-          onPressed: () {
-            context.router.pop();
-          },
-        ),
-        title: Text(
-          'KASKO',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: textColor,
-            fontSize: 18.sp,
-          ),
-        ),
-        centerTitle: true,
-        systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-        ),
-      ),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Asosiy kontent (chap tomonda)
-          Expanded(
-            flex: 2,
-            child: Stack(
-              children: [
-                SingleChildScrollView(
-                  padding: EdgeInsets.all(16.0.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      // Qadam ko'rsatkichi va sarlavha
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'To\'lov usulini tanlang',
-                            style: TextStyle(
-                              fontSize: 24.sp,
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            ),
-                          ),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12.w,
-                              vertical: 6.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? const Color(0xFF2A2A2A)
-                                  : const Color(0xFFF3F4F6),
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            child: Text(
-                              'Qadam 5/5',
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w600,
-                                color: subtitleColor,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20.0.h),
-                      // Ma'lumotlar ro'yxati (web sahifadagi kabi)
-                      _buildInfoList(isDark, textColor, subtitleColor),
-                      SizedBox(height: 24.0.h),
-                      // 1. Payme kartasi
-                      _buildPaymentCard(
-                        PaymentOption.payme,
-                        'Payme',
-                        _paymeLogo(_selectedPayment == PaymentOption.payme),
-                        isDark,
-                        cardBg,
-                        borderColor,
-                      ),
-                      // 2. Click kartasi
-                      _buildPaymentCard(
-                        PaymentOption.click,
-                        'click',
-                        _clickLogo(_selectedPayment == PaymentOption.click),
-                        isDark,
-                        cardBg,
-                        borderColor,
-                      ),
-                      SizedBox(height: 100.0.h), // Bottom button uchun joy
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Xulosa paneli (o'ng tomonda) - faqat desktop'da ko'rsatish
-          if (MediaQuery.of(context).size.width > 600)
-            Container(
-              width: 300.w,
-              margin: EdgeInsets.only(
-                top: 20.h,
-                right: 16.w,
-                bottom: 20.h,
+        // State'dan orderId ni olish
+        final orderId = _getOrderId(state);
+
+        // Agar orderId null bo'lsa va loading emas, xabar ko'rsatish
+        if (orderId == null) {
+          return Scaffold(
+            backgroundColor: scaffoldBg,
+            appBar: AppBar(
+              backgroundColor: cardBg,
+              elevation: 0.5,
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back, color: textColor),
+                onPressed: () {
+                  context.router.pop();
+                },
               ),
-              padding: EdgeInsets.all(20.w),
-              decoration: BoxDecoration(
-                color: cardBg,
-                borderRadius: BorderRadius.circular(12.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: _buildSummaryPanel(
-                context.read<KaskoBloc>(),
-                isDark,
-                textColor,
-                subtitleColor,
-              ),
-            ),
-        ],
-      ),
-      // FIXED BOTTOM PAYMENT BAR
-      bottomNavigationBar: Container(
-        padding: EdgeInsets.fromLTRB(
-          16.0.w,
-          10.0.h,
-          16.0.w,
-          10.0.h + bottomPadding,
-        ),
-        decoration: BoxDecoration(
-          color: cardBg,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 3,
-              blurRadius: 5,
-              offset: const Offset(0, -3),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Ortga tugmasi
-            TextButton(
-              onPressed: () {
-                context.router.pop();
-              },
-              child: Text(
-                'Ortga',
+              title: Text(
+                'KASKO',
                 style: TextStyle(
-                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
                   color: textColor,
+                  fontSize: 18.sp,
                 ),
               ),
+              centerTitle: true,
+              systemOverlayStyle: SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                statusBarIconBrightness: isDark
+                    ? Brightness.light
+                    : Brightness.dark,
+              ),
             ),
-            // Jami Summa va To'lash tugmasi
-            Row(
-              children: [
-                // Jami Summa
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
+            body: Center(
+              child: Padding(
+                padding: EdgeInsets.all(24.0.w),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      'To\'lanadigan summa',
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: subtitleColor,
-                      ),
+                    Icon(
+                      Icons.error_outline,
+                      size: 64.sp,
+                      color: Colors.orange,
                     ),
-                    SizedBox(height: 4.h),
+                    SizedBox(height: 16.h),
                     Text(
-                      _formatAmount(_premium),
+                      'Ma\'lumotlar to\'liq emas',
                       style: TextStyle(
-                        fontSize: 18.sp,
+                        fontSize: 20.sp,
                         fontWeight: FontWeight.bold,
-                        color: _primaryBlue,
+                        color: textColor,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      'Avval buyurtmani saqlang',
+                      style: TextStyle(fontSize: 16.sp, color: subtitleColor),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 24.h),
+                    ElevatedButton(
+                      onPressed: () {
+                        context.router.pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _primaryBlue,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 32.w,
+                          vertical: 12.h,
+                        ),
+                      ),
+                      child: Text(
+                        'Ortga qaytish',
+                        style: TextStyle(fontSize: 16.sp, color: Colors.white),
                       ),
                     ),
                   ],
                 ),
-                SizedBox(width: 16.w),
-                // To'lash tugmasi
-                SizedBox(
-                  height: 50.h,
-                  child: ElevatedButton(
-                    onPressed: (state is KaskoLoading || _premium == null)
-                        ? null
-                        : () {
-                            _handlePayment(context);
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _primaryBlue,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0.r),
+              ),
+            ),
+          );
+        }
+
+        return Scaffold(
+          backgroundColor: scaffoldBg,
+          appBar: AppBar(
+            backgroundColor: cardBg,
+            elevation: 0.5,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back, color: textColor),
+              onPressed: () {
+                context.router.pop();
+              },
+            ),
+            title: Text(
+              'KASKO',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: textColor,
+                fontSize: 18.sp,
+              ),
+            ),
+            centerTitle: true,
+            systemOverlayStyle: SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: isDark
+                  ? Brightness.light
+                  : Brightness.dark,
+            ),
+          ),
+          body: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Asosiy kontent (chap tomonda)
+              Expanded(
+                flex: 2,
+                child: Stack(
+                  children: [
+                    SingleChildScrollView(
+                      padding: EdgeInsets.all(16.0.w),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          // Qadam ko'rsatkichi va sarlavha
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'To\'lov usulini tanlang',
+                                style: TextStyle(
+                                  fontSize: 24.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12.w,
+                                  vertical: 6.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color(0xFF2A2A2A)
+                                      : const Color(0xFFF3F4F6),
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: Text(
+                                  'Qadam 5/5',
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: subtitleColor,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 20.0.h),
+                          // Ma'lumotlar ro'yxati (web sahifadagi kabi)
+                          // BlocBuilder bilan o'rab olish, ma'lumotlar o'zgarganda yangilanishi uchun
+                          BlocBuilder<KaskoBloc, KaskoState>(
+                            buildWhen: (previous, current) {
+                              // Har safar yangilash (ma'lumotlar private field'larda)
+                              return true;
+                            },
+                            builder: (context, state) {
+                              final bloc = context.read<KaskoBloc>();
+                              return _buildInfoList(
+                                bloc,
+                                isDark,
+                                textColor,
+                                subtitleColor,
+                              );
+                            },
+                          ),
+                          SizedBox(height: 24.0.h),
+                          // 1. Payme kartasi
+                          _buildPaymentCard(
+                            context,
+                            PaymentOption.payme,
+                            'Payme',
+                            _paymeLogo(_selectedPayment == PaymentOption.payme),
+                            isDark,
+                            cardBg,
+                            borderColor,
+                          ),
+                          // 2. Click kartasi
+                          _buildPaymentCard(
+                            context,
+                            PaymentOption.click,
+                            'click',
+                            _clickLogo(_selectedPayment == PaymentOption.click),
+                            isDark,
+                            cardBg,
+                            borderColor,
+                          ),
+                          SizedBox(height: 100.0.h), // Bottom button uchun joy
+                        ],
                       ),
-                      elevation: 0,
-                      minimumSize: Size(120.w, 50.h),
                     ),
-                    child: Text(
-                      'Davom etish',
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                  ],
+                ),
+              ),
+              // Xulosa paneli (o'ng tomonda) - faqat desktop'da ko'rsatish
+              if (MediaQuery.of(context).size.width > 600)
+                Container(
+                  width: 300.w,
+                  margin: EdgeInsets.only(top: 20.h, right: 16.w, bottom: 20.h),
+                  padding: EdgeInsets.all(20.w),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(12.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
-                    ),
+                    ],
                   ),
+                  child: _buildSummaryPanel(
+                    context.read<KaskoBloc>(),
+                    isDark,
+                    textColor,
+                    subtitleColor,
+                  ),
+                ),
+            ],
+          ),
+          // FIXED BOTTOM PAYMENT BAR
+          bottomNavigationBar: Container(
+            padding: EdgeInsets.fromLTRB(
+              16.0.w,
+              16.0.h,
+              16.0.w,
+              16.0.h + bottomPadding,
+            ),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20.r),
+                topRight: Radius.circular(20.r),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  spreadRadius: 3,
+                  blurRadius: 5,
+                  offset: const Offset(0, -3),
                 ),
               ],
             ),
-          ],
-        ),
-      ),
-    );
+            child: SafeArea(
+              child: BlocBuilder<KaskoBloc, KaskoState>(
+                builder: (context, blocState) {
+                  // Premium ni yangilangan state bilan qayta hisoblash
+                  final currentBloc = context.read<KaskoBloc>();
+                  final currentPremium = _getPremium(blocState, currentBloc);
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Jami Summa
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Jami summa',
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                color: subtitleColor,
+                              ),
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              _formatAmount(currentPremium),
+                              style: TextStyle(
+                                fontSize: 20.sp,
+                                fontWeight: FontWeight.bold,
+                                color: _primaryBlue,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 16.w),
+                      // To'lash tugmasi - tanlangan to'lov turi bo'yicha URL ochish
+                      Flexible(
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 50.h,
+                          child: ElevatedButton(
+                            onPressed:
+                                (blocState is KaskoLoading ||
+                                    currentPremium == null ||
+                                    blocState is! KaskoOrderSaved)
+                                ? null
+                                : () {
+                                    _handlePaymentDirect(context, blocState);
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _primaryBlue,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.0.r),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'To\'lash',
+                              style: TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
       },
     );
   }
 
-  void _handlePayment(BuildContext context) {
+  // To'lovni to'g'ridan-to'g'ri ochish (save API'dan kelgan URL'lar bilan)
+  void _handlePaymentDirect(BuildContext context, KaskoState state) {
+    debugPrint('🔍 _handlePaymentDirect chaqirildi');
+    debugPrint('🔍 Current state type: ${state.runtimeType}');
+
     final bloc = context.read<KaskoBloc>();
-    final currentState = bloc.state;
-    
-    // Agar order allaqachon saqlangan bo'lsa, payment link yaratish
-    if (currentState is KaskoOrderSaved) {
-      bloc.add(
-        CreatePaymentLink(
-          orderId: currentState.order.orderId,
-          amount: currentState.order.premium,
-          returnUrl: 'https://kliro.uz/ru/kasko/success',
-          callbackUrl: 'https://api.kliro.uz/payment/callback/kasko',
-        ),
+
+    // Tanlangan to'lov turini olish
+    String? paymentMethod = bloc.paymentMethod;
+    if (paymentMethod == null || paymentMethod.isEmpty) {
+      // Agar paymentMethod tanlanmagan bo'lsa, tanlangan option'dan olish
+      paymentMethod = _selectedPayment == PaymentOption.payme
+          ? 'payme'
+          : 'click';
+      debugPrint(
+        '⚠️ PaymentMethod BLoC\'dan topilmadi, selected option dan olinyapti: $paymentMethod',
       );
-    } else if (_orderId != null && _premium != null) {
-      // Agar orderId va premium mavjud bo'lsa, payment link yaratish
-      bloc.add(
-        CreatePaymentLink(
-          orderId: _orderId!,
-          amount: _premium!,
-          returnUrl: 'https://kliro.uz/ru/kasko/success',
-          callbackUrl: 'https://api.kliro.uz/payment/callback/kasko',
-        ),
-      );
+    }
+
+    // SaveOrder'dan URL'larni olish
+    if (state is KaskoOrderSaved) {
+      final order = state.order;
+      final clickUrl = order.clickUrl;
+      final paymeUrl = order.paymeUrl;
+
+      debugPrint('✅ Order ma\'lumotlari:');
+      debugPrint('  📦 orderId: ${order.orderId}');
+      debugPrint('  📄 contractId: ${order.contractId}');
+      debugPrint('  💳 paymentMethod: $paymentMethod');
+      debugPrint('  🔵 clickUrl: $clickUrl');
+      debugPrint('  🟢 paymeUrl: $paymeUrl');
+      debugPrint('  📄 urlShartnoma: ${order.urlShartnoma}');
+
+      // Tanlangan to'lov turi bo'yicha URL ni olish
+      String? paymentUrl;
+      if (paymentMethod == 'payme') {
+        paymentUrl = paymeUrl;
+        debugPrint('💳 Payme tanlandi, URL: $paymentUrl');
+      } else if (paymentMethod == 'click') {
+        paymentUrl = clickUrl;
+        debugPrint('💳 Click tanlandi, URL: $paymentUrl');
+      }
+
+      if (paymentUrl != null && paymentUrl.isNotEmpty) {
+        debugPrint('✅ Payment URL topildi, ochilmoqda...');
+        // URL ni ochish
+        _openPaymentUrlDirect(context, paymentUrl, paymentMethod);
+      } else {
+        debugPrint('❌ Payment URL topilmadi: paymentMethod=$paymentMethod');
+        debugPrint('  🔵 clickUrl: $clickUrl');
+        debugPrint('  🟢 paymeUrl: $paymeUrl');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'To\'lov havolasi topilmadi. Iltimos, qayta urinib ko\'ring.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } else {
-      // Ma'lumotlar to'liq emas
+      debugPrint('❌ KaskoOrderSaved state topilmadi');
+      debugPrint('  Current state: ${state.runtimeType}');
+
+      // State'dan order ni olishga harakat qilish (BlocBuilder orqali)
+      // Agar state KaskoOrderSaved emas bo'lsa, foydalanuvchiga xabar berish
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ma\'lumotlar to\'liq emas. Iltimos, qayta urinib ko\'ring.'),
+        SnackBar(
+          content: Text(
+            'Buyurtma ma\'lumotlari topilmadi. Iltimos, qayta urinib ko\'ring.',
+          ),
           backgroundColor: Colors.red,
         ),
       );
     }
   }
 
+  // To'g'ridan-to'g'ri URL ochish (payment link yaratmasdan)
+  Future<void> _openPaymentUrlDirect(
+    BuildContext context,
+    String url,
+    String paymentMethod,
+  ) async {
+    bool urlOpened = false;
+
+    debugPrint('🔗 Payment URL ochilmoqda: $url');
+
+    // Avval payment URL ni to'g'ridan-to'g'ri ochishga harakat qilamiz
+    // Bir nechta LaunchMode bilan sinab ko'ramiz
+    try {
+      final uri = Uri.parse(url);
+      debugPrint('🔗 Parsed URI: $uri');
+
+      // 1. externalApplication mode bilan sinab ko'ramiz (brauzerda ochadi)
+      try {
+        urlOpened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+        if (urlOpened) {
+          debugPrint('✅ Payment URL externalApplication mode bilan ochildi');
+          return;
+        }
+      } catch (e) {
+        debugPrint('⚠️ externalApplication mode xatosi: $e');
+      }
+
+      // 2. platformDefault mode bilan sinab ko'ramiz
+      if (!urlOpened) {
+        try {
+          urlOpened = await launchUrl(uri, mode: LaunchMode.platformDefault);
+
+          if (urlOpened) {
+            debugPrint('✅ Payment URL platformDefault mode bilan ochildi');
+            return;
+          }
+        } catch (e) {
+          debugPrint('⚠️ platformDefault mode xatosi: $e');
+        }
+      }
+
+      // 3. launchUrlString bilan sinab ko'ramiz
+      if (!urlOpened) {
+        try {
+          debugPrint('🔄 launchUrlString bilan sinab ko\'ramiz...');
+          urlOpened = await launchUrlString(
+            url,
+            mode: LaunchMode.externalApplication,
+          );
+
+          if (urlOpened) {
+            debugPrint('✅ Payment URL launchUrlString bilan ochildi');
+            return;
+          }
+        } catch (e) {
+          debugPrint('⚠️ launchUrlString xatosi: $e');
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Payment URL ochishda umumiy xatolik: $e');
+      urlOpened = false;
+    }
+
+    if (!context.mounted) return;
+
+    // Agar payment URL ishlamasa, foydalanuvchiga xabar beramiz
+    // Deep link yoki store URL'ga o'tmasdan, chunki API'dan kelgan URL asosiy
+    if (!urlOpened) {
+      debugPrint('❌ Payment URL ochilmadi');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'To\'lov havolasini ochib bo\'lmadi. Iltimos, brauzerda ochib ko\'ring: $url',
+            ),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Nusxa olish',
+              onPressed: () {
+                // URL'ni clipboard'ga nusxalash
+                Clipboard.setData(ClipboardData(text: url));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('URL nusxalandi'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  // Deep link URL'larini olish
+  String? _getPaymentAppUrl(String paymentMethod) {
+    if (paymentMethod == 'payme') {
+      return 'payme://';
+    } else if (paymentMethod == 'click') {
+      return 'clickuz://';
+    }
+    return null;
+  }
+
+  // Store URL'larini olish
+  String _getPaymentStoreUrl(String paymentMethod) {
+    if (paymentMethod == 'payme') {
+      if (Platform.isAndroid) {
+        return 'https://play.google.com/store/apps/details?id=uz.dida.payme&hl=ru';
+      } else if (Platform.isIOS) {
+        return 'https://apps.apple.com/us/app/payme-%D0%BF%D0%B5%D1%80%D0%B5%D0%B2%D0%BE%D0%B4%D1%8B-%D0%B8-%D0%BF%D0%BB%D0%B0%D1%82%D0%B5%D0%B6%D0%B8/id1093525667';
+      }
+    } else if (paymentMethod == 'click') {
+      if (Platform.isAndroid) {
+        return 'https://play.google.com/store/apps/details?id=air.com.ssdsoftwaresolutions.clickuz';
+      } else if (Platform.isIOS) {
+        return 'https://apps.apple.com/uz/app/click-superapp/id768132591';
+      }
+    }
+    return '';
+  }
+
+  // State'dan orderId ni olish
+  String? _getOrderId(KaskoState state) {
+    if (state is KaskoOrderSaved) {
+      final orderId = state.order.orderId;
+      debugPrint('✅ OrderId KaskoOrderSaved dan: $orderId');
+      return orderId;
+    }
+    if (state is KaskoPaymentLinkCreated) {
+      final orderId = state.orderId.toString();
+      debugPrint('✅ OrderId KaskoPaymentLinkCreated dan: $orderId');
+      return orderId;
+    }
+    // Agar KaskoLoading bo'lsa, BLoC'dan oldingi state'ni tekshirish
+    if (state is KaskoLoading) {
+      // Bu holatda BLoC'dan orderId ni olish mumkin emas, chunki state o'zgardi
+      // Lekin bu faqat loading holati, shuning uchun null qaytaramiz
+      // UI'da loading ko'rsatiladi
+      debugPrint('⏳ Loading holati, orderId topilmaydi');
+      return null;
+    }
+    debugPrint('⚠️ OrderId topilmadi, state: ${state.runtimeType}');
+    return null;
+  }
+
+  // State'dan premium ni olish
+  double? _getPremium(KaskoState state, KaskoBloc bloc) {
+    debugPrint('🔍 Premium qidirilmoqda...');
+    debugPrint('🔍 Current state: ${state.runtimeType}');
+
+    // BLoC'dan cached calculate result ni avval tekshirish (eng ishonchli manba)
+    final cachedResult = bloc.cachedCalculateResult;
+    if (cachedResult != null && cachedResult.premium > 0) {
+      debugPrint(
+        '✅ Premium cachedCalculateResult dan: ${cachedResult.premium}',
+      );
+      return cachedResult.premium;
+    }
+
+    // Avval state'dan premium ni olish
+    if (state is KaskoPolicyCalculated) {
+      debugPrint(
+        '✅ Premium KaskoPolicyCalculated dan: ${state.calculateResult.premium}',
+      );
+      if (state.calculateResult.premium > 0) {
+        return state.calculateResult.premium;
+      }
+    }
+
+    if (state is KaskoOrderSaved) {
+      debugPrint('✅ Premium KaskoOrderSaved dan: ${state.order.premium}');
+      // Agar premium 0.0 bo'lsa, boshqa manbalarni tekshirish
+      if (state.order.premium > 0) {
+        return state.order.premium;
+      }
+      // Premium 0.0 bo'lsa, keyingi manbalarni tekshirish
+      debugPrint(
+        '⚠️ KaskoOrderSaved da premium 0.0, boshqa manbalarni tekshiryapmiz...',
+      );
+    }
+
+    // Agar state'dan premium topilmasa, tanlangan tarif va mashina narxidan hisoblash
+    final selectedRate = bloc.selectedRate ?? bloc.cachedSelectedRate;
+    debugPrint(
+      '🔍 Selected rate: ${selectedRate?.name} (id: ${selectedRate?.id})',
+    );
+    debugPrint('🔍 Rate percent: ${selectedRate?.percent}');
+    debugPrint('🔍 Rate minPremium: ${selectedRate?.minPremium}');
+
+    // Mashina narxini olish (calculatedPrice yoki cachedCarPrice)
+    double? carPriceValue = bloc.calculatedPrice;
+    if (carPriceValue == null) {
+      final carPrice = bloc.cachedCarPrice;
+      carPriceValue = carPrice?.price;
+    }
+    debugPrint('🔍 Car price: $carPriceValue');
+
+    if (selectedRate != null) {
+      // Tariflar sahifasidagi kabi hisoblash
+      double calculatedPrice = 0.0;
+
+      debugPrint('🔍 Tarif ma\'lumotlari:');
+      debugPrint('  - Name: ${selectedRate.name}');
+      debugPrint('  - Percent: ${selectedRate.percent}');
+      debugPrint('  - MinPremium: ${selectedRate.minPremium}');
+      debugPrint('  - CarPrice: $carPriceValue');
+
+      // Agar tarifda percent bo'lsa va car price bo'lsa, percent dan narxni hisoblash
+      if (selectedRate.percent != null &&
+          carPriceValue != null &&
+          carPriceValue > 0) {
+        // Backend'dan percent 1, 1.5, 2.5 kabi FOIZ ko'rinishida keladi,
+        // shuning uchun narxni hisoblashda 100 ga bo'lamiz:
+        // 1%  => carPrice * 1 / 100
+        // 1.5% => carPrice * 1.5 / 100
+        // 2.5% => carPrice * 2.5 / 100
+        calculatedPrice = carPriceValue * selectedRate.percent! / 100;
+        debugPrint(
+          '✅ Premium hisoblandi (percent): $carPriceValue * ${selectedRate.percent}% / 100 = $calculatedPrice',
+        );
+        if (calculatedPrice > 0) {
+          return calculatedPrice;
+        }
+      }
+
+      // Agar minPremium bo'lsa, uni ishlatish
+      if (selectedRate.minPremium != null && selectedRate.minPremium! > 0) {
+        calculatedPrice = selectedRate.minPremium!;
+        debugPrint('✅ Premium minPremium dan: $calculatedPrice');
+        return calculatedPrice;
+      }
+
+      debugPrint(
+        '⚠️ Premium hisoblanmadi: percent=${selectedRate.percent}, minPremium=${selectedRate.minPremium}, carPrice=$carPriceValue',
+      );
+    }
+
+    // Agar hech narsa topilmasa, null qaytarish
+    debugPrint(
+      '⚠️ Premium topilmadi: selectedRate=${selectedRate?.name}, carPrice=$carPriceValue',
+    );
+    return null;
+  }
+
   // Ma'lumotlar ro'yxati (web sahifadagi kabi)
-  Widget _buildInfoList(bool isDark, Color textColor, Color subtitleColor) {
-    final bloc = context.read<KaskoBloc>();
+  Widget _buildInfoList(
+    KaskoBloc bloc,
+    bool isDark,
+    Color textColor,
+    Color subtitleColor,
+  ) {
     final currentState = bloc.state;
-    
+
     // State'dan ma'lumotlarni olish
     String program = 'Basic';
-    
+
     // Tanlangan tarif
     final selectedRate = bloc.selectedRate ?? bloc.cachedSelectedRate;
     if (selectedRate != null) {
       program = selectedRate.name;
-    } else if (currentState is KaskoRatesLoaded && currentState.selectedRate != null) {
+    } else if (currentState is KaskoRatesLoaded &&
+        currentState.selectedRate != null) {
       program = currentState.selectedRate!.name;
     }
-    
+
     // Данные документа из BLoC
     String carNumber = bloc.documentCarNumber ?? '--';
     String techPassport = bloc.documentVin ?? '--';
-    
+
     // Личные данные из BLoC
-    String ownerName = bloc.ownerName ?? '--';
     String birthDate = bloc.birthDate ?? '--';
     String phone = bloc.ownerPhone ?? '--';
     String passport = bloc.ownerPassport ?? '--';
-    
-    // Форматирование номера телефона (+998901234567 -> +998 90 123 45 67)
-    if (phone != '--' && phone.length >= 13) {
-      final phoneWithoutPlus = phone.substring(1); // Убираем +
-      if (phoneWithoutPlus.length == 12) {
-        phone = '+${phoneWithoutPlus.substring(0, 3)} ${phoneWithoutPlus.substring(3, 5)} ${phoneWithoutPlus.substring(5, 8)} ${phoneWithoutPlus.substring(8, 10)} ${phoneWithoutPlus.substring(10)}';
+
+    // Mashina narxi (Qoplash summasi)
+    String coverageAmount = '--';
+    final carPrice = bloc.cachedCarPrice;
+    if (carPrice != null && carPrice.price > 0) {
+      coverageAmount = _formatAmount(carPrice.price);
+    } else if (currentState is KaskoCarPriceCalculated) {
+      coverageAmount = _formatAmount(currentState.carPrice.price);
+    } else if (currentState is KaskoPolicyCalculated) {
+      // Agar policy calculated bo'lsa, price ni olish
+      if (currentState.calculateResult.price > 0) {
+        coverageAmount = _formatAmount(currentState.calculateResult.price);
       }
     }
-    
+
+    // Debug: ma'lumotlarni console'ga chiqarish
+    debugPrint('📋 To\'lov sahifasida ma\'lumotlar:');
+    debugPrint('  🚗 Avtomobil raqami: $carNumber');
+    debugPrint('  📄 Texnik pasport: $techPassport');
+    debugPrint('  📅 Tug\'ilgan sana: $birthDate');
+    debugPrint('  📱 Telefon: $phone');
+    debugPrint('  🆔 Passport: $passport');
+    debugPrint('  💳 To\'lov usuli: ${bloc.paymentMethod ?? '--'}');
+    debugPrint('  💰 Qoplash summasi: $coverageAmount');
+
+    // Форматирование номера автомобиля (01A000AA -> 70D405DB formatida)
+    // Avtomobil raqami allaqachon to'g'ri formatda saqlanadi (masalan: 01A000AA)
+    // Faqat bo'shliqlarni olib tashlash va katta harflarga o'tkazish
+    if (carNumber != '--' && carNumber.isNotEmpty) {
+      carNumber = carNumber.replaceAll(' ', '').toUpperCase();
+    }
+
+    // Форматирование техпаспорта (AAG0000000 -> AAG 0000000)
+    if (techPassport != '--' && techPassport.length >= 10) {
+      final cleanPassport = techPassport.replaceAll(' ', '').toUpperCase();
+      if (cleanPassport.length >= 10) {
+        try {
+          final series = cleanPassport.substring(0, 3); // 3 harf
+          final number = cleanPassport.substring(3); // 7 raqam
+          techPassport = '$series $number';
+        } catch (e) {
+          // Xatolik bo'lsa, asl qiymatni qoldirish
+        }
+      }
+    }
+
+    // Форматирование номера телефона (+998901234567 -> +998 90 123 45 67)
+    if (phone != '--' && phone.length >= 13) {
+      final phoneWithoutPlus = phone.replaceAll(' ', '').replaceAll('+', '');
+      if (phoneWithoutPlus.length == 12) {
+        // Format: +998 90 123 45 67
+        phone =
+            '+${phoneWithoutPlus.substring(0, 3)} ${phoneWithoutPlus.substring(3, 5)} ${phoneWithoutPlus.substring(5, 8)} ${phoneWithoutPlus.substring(8, 10)} ${phoneWithoutPlus.substring(10)}';
+      }
+    }
+
     // Форматирование паспорта (AA1234567 -> AA 1234567)
     if (passport != '--' && passport.length >= 2) {
       final series = passport.substring(0, 2);
       final number = passport.substring(2);
       passport = '$series $number';
     }
-    
+
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -550,15 +994,31 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
         children: [
           _buildInfoRow('Dastur:', program, isDark, textColor, subtitleColor),
           SizedBox(height: 12.h),
-          _buildInfoRow('Ism familiya:', ownerName, isDark, textColor, subtitleColor),
+          _buildInfoRow(
+            'Avtomobil raqami:',
+            carNumber,
+            isDark,
+            textColor,
+            subtitleColor,
+          ),
           SizedBox(height: 12.h),
-          _buildInfoRow('Avtomobil raqami:', carNumber, isDark, textColor, subtitleColor),
-          SizedBox(height: 12.h),
-          _buildInfoRow('Texnik pasport:', techPassport, isDark, textColor, subtitleColor),
+          _buildInfoRow(
+            'Texnik pasport:',
+            techPassport,
+            isDark,
+            textColor,
+            subtitleColor,
+          ),
           SizedBox(height: 12.h),
           _buildInfoRow('Pasport:', passport, isDark, textColor, subtitleColor),
           SizedBox(height: 12.h),
-          _buildInfoRow('Tug\'ilgan sana:', birthDate, isDark, textColor, subtitleColor),
+          _buildInfoRow(
+            'Tug\'ilgan sana:',
+            birthDate,
+            isDark,
+            textColor,
+            subtitleColor,
+          ),
           SizedBox(height: 12.h),
           _buildInfoRow('Telefon:', phone, isDark, textColor, subtitleColor),
         ],
@@ -578,10 +1038,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 14.sp,
-            color: subtitleColor,
-          ),
+          style: TextStyle(fontSize: 14.sp, color: subtitleColor),
         ),
         Text(
           value,
@@ -609,16 +1066,17 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
     String period = '1 yil';
 
     final currentState = bloc.state;
-    
+
     // Mashina ma'lumotlari
     final carFullName = bloc.selectedCarFullName;
     if (carFullName.isNotEmpty) {
       carName = carFullName;
-    } else if (currentState is KaskoCarsLoaded && currentState.cars.isNotEmpty) {
+    } else if (currentState is KaskoCarsLoaded &&
+        currentState.cars.isNotEmpty) {
       final car = currentState.cars.first;
       carName = car.name;
     }
-    
+
     // Tanlangan tarif ma'lumotlari
     if (currentState is KaskoRatesLoaded && currentState.selectedRate != null) {
       final rate = currentState.selectedRate!;
@@ -628,17 +1086,17 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
         coverage = rate.description.isNotEmpty ? rate.description : '--';
       }
     }
-    
+
     // Premium ma'lumotlari
-    if (_premium != null) {
-      premium = NumberFormat('#,###').format(_premium!.toInt()) + ' so\'m';
-    } else if (currentState is KaskoPolicyCalculated) {
-      premium = NumberFormat('#,###')
-              .format(currentState.calculateResult.premium.toInt()) +
+    if (currentState is KaskoOrderSaved) {
+      premium =
+          NumberFormat('#,###').format(currentState.order.premium.toInt()) +
           ' so\'m';
-    } else if (currentState is KaskoOrderSaved) {
-      premium = NumberFormat('#,###')
-              .format(currentState.order.premium.toInt()) +
+    } else if (currentState is KaskoPolicyCalculated) {
+      premium =
+          NumberFormat(
+            '#,###',
+          ).format(currentState.calculateResult.premium.toInt()) +
           ' so\'m';
     }
 
@@ -654,13 +1112,37 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
           ),
         ),
         SizedBox(height: 20.h),
-        _buildSummaryRow('Sug\'urta davri', period, isDark, textColor, subtitleColor),
+        _buildSummaryRow(
+          'Sug\'urta davri',
+          period,
+          isDark,
+          textColor,
+          subtitleColor,
+        ),
         SizedBox(height: 14.h),
-        _buildSummaryRow('Avtomobil', carName, isDark, textColor, subtitleColor),
+        _buildSummaryRow(
+          'Avtomobil',
+          carName,
+          isDark,
+          textColor,
+          subtitleColor,
+        ),
         SizedBox(height: 14.h),
-        _buildSummaryRow('Qoplash miqdori', coverage, isDark, textColor, subtitleColor),
+        _buildSummaryRow(
+          'Qoplash miqdori',
+          coverage,
+          isDark,
+          textColor,
+          subtitleColor,
+        ),
         SizedBox(height: 14.h),
-        _buildSummaryRow('To\'lanadigan summa', premium, isDark, textColor, subtitleColor),
+        _buildSummaryRow(
+          'To\'lanadigan summa',
+          premium,
+          isDark,
+          textColor,
+          subtitleColor,
+        ),
         SizedBox(height: 20.h),
         InkWell(
           onTap: () {
@@ -692,10 +1174,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 14.sp,
-            color: subtitleColor,
-          ),
+          style: TextStyle(fontSize: 14.sp, color: subtitleColor),
         ),
         Text(
           value,
@@ -709,4 +1188,3 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
     );
   }
 }
-

@@ -127,6 +127,7 @@ class CalculatePolicy extends KaskoEvent {
   final DateTime endDate;
   final int driverCount;
   final double franchise;
+  final int? selectedRateId;
 
   const CalculatePolicy({
     required this.carId,
@@ -136,18 +137,20 @@ class CalculatePolicy extends KaskoEvent {
     required this.endDate,
     required this.driverCount,
     required this.franchise,
+    this.selectedRateId,
   });
 
   @override
   List<Object?> get props => [
-    carId,
-    year,
-    price,
-    beginDate,
-    endDate,
-    driverCount,
-    franchise,
-  ];
+        carId,
+        year,
+        price,
+        beginDate,
+        endDate,
+        driverCount,
+        franchise,
+        selectedRateId,
+      ];
 }
 
 class SaveOrder extends KaskoEvent {
@@ -164,6 +167,9 @@ class SaveOrder extends KaskoEvent {
   final String ownerPassport;
   final String carNumber;
   final String vin;
+  final String birthDate;
+  final int tarifId;
+  final int tarifType;
 
   const SaveOrder({
     required this.carId,
@@ -179,6 +185,9 @@ class SaveOrder extends KaskoEvent {
     required this.ownerPassport,
     required this.carNumber,
     required this.vin,
+    required this.birthDate,
+    required this.tarifId,
+    required this.tarifType,
   });
 
   @override
@@ -196,6 +205,9 @@ class SaveOrder extends KaskoEvent {
     ownerPassport,
     carNumber,
     vin,
+    birthDate,
+    tarifId,
+    tarifType,
   ];
 }
 
@@ -218,19 +230,21 @@ class SaveDocumentData extends KaskoEvent {
 
 class CreatePaymentLink extends KaskoEvent {
   final String orderId;
+  final String? contractId;
   final double amount;
   final String returnUrl;
   final String callbackUrl;
 
   const CreatePaymentLink({
     required this.orderId,
+    this.contractId,
     required this.amount,
     required this.returnUrl,
     required this.callbackUrl,
   });
 
   @override
-  List<Object?> get props => [orderId, amount, returnUrl, callbackUrl];
+  List<Object?> get props => [orderId, contractId, amount, returnUrl, callbackUrl];
 }
 
 class CheckPayment extends KaskoEvent {
@@ -305,4 +319,14 @@ class SavePersonalData extends KaskoEvent {
         ownerPhone,
         ownerPassport,
       ];
+}
+
+/// Event: To'lov usulini BLoC'da saqlash
+class SavePaymentMethod extends KaskoEvent {
+  final String paymentMethod; // 'payme' или 'click'
+
+  const SavePaymentMethod({required this.paymentMethod});
+
+  @override
+  List<Object?> get props => [paymentMethod];
 }

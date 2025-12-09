@@ -46,6 +46,15 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
+      // Настройка статус-бара для темного режима
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      SystemChrome.setSystemUIOverlayStyle(
+        SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        ),
+      );
+
       final currentState = context.read<OsagoBloc>().state;
 
       if (currentState.periodId != null) {
@@ -371,9 +380,10 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
   }
 
   Widget _buildShimmerField() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+      baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+      highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -381,7 +391,7 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
             width: 120,
             height: 14,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -390,7 +400,7 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
             width: double.infinity,
             height: 56,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(12),
             ),
           ),
@@ -613,6 +623,12 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
               color: Theme.of(context).textTheme.titleLarge?.color,
               fontWeight: FontWeight.bold,
             ),
+          ),
+          systemOverlayStyle: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark
+                ? Brightness.light
+                : Brightness.dark,
           ),
         ),
         body: GestureDetector(
@@ -917,13 +933,18 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
                         ),
                         child: isLoading
                             ? Shimmer.fromColors(
-                                baseColor: Colors.white70,
-                                highlightColor: Colors.white,
+                                baseColor: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey[700]!
+                                    : Colors.white70,
+                                highlightColor: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey[600]!
+                                    : Colors.white,
                                 child: Text(
                                   'insurance.osago.company.loading_data'.tr(),
                                   style: TextStyle(
                                     fontSize: 16.sp,
                                     fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).colorScheme.onPrimary,
                                   ),
                                 ),
                               )

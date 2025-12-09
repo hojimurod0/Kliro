@@ -113,7 +113,11 @@ class _LargeServiceCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _ServiceIcon(icon: icon, iconColor: iconColor, bgColor: iconBgColor),
+            _ServiceIcon(
+              icon: icon,
+              iconColor: iconColor,
+              bgColor: iconBgColor,
+            ),
             const Spacer(),
             Text(
               title,
@@ -194,7 +198,11 @@ class _BankCardWithCurrency extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _ServiceIcon(icon: icon, iconColor: iconColor, bgColor: iconBgColor),
+                _ServiceIcon(
+                  icon: icon,
+                  iconColor: iconColor,
+                  bgColor: iconBgColor,
+                ),
                 SizedBox(height: 10.h),
                 Text(
                   title,
@@ -210,7 +218,8 @@ class _BankCardWithCurrency extends StatelessWidget {
                       Icon(
                         Icons.attach_money,
                         size: 14.sp,
-                        color: Theme.of(context).textTheme.bodyMedium?.color ??
+                        color:
+                            Theme.of(context).textTheme.bodyMedium?.color ??
                             const Color(0xFF6B7280),
                       ),
                       SizedBox(width: 4.w),
@@ -219,7 +228,9 @@ class _BankCardWithCurrency extends StatelessWidget {
                           cheapestCurrency.bankName,
                           style: AppTypography.bodySecondary.copyWith(
                             fontSize: 12.sp,
-                            color: Theme.of(context).textTheme.bodyMedium?.color,
+                            color: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium?.color,
                             fontWeight: FontWeight.w600,
                           ),
                           maxLines: 1,
@@ -259,8 +270,10 @@ class _BankCardWithCurrency extends StatelessWidget {
                                       tr('currency.buy'),
                                       style: TextStyle(
                                         fontSize: 10.sp,
-                                        color: Theme.of(context)
-                                                .textTheme.bodyMedium?.color ??
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).textTheme.bodyMedium?.color ??
                                             const Color(0xFF374151),
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -316,8 +329,10 @@ class _BankCardWithCurrency extends StatelessWidget {
                                       tr('currency.sell'),
                                       style: TextStyle(
                                         fontSize: 10.sp,
-                                        color: Theme.of(context)
-                                                .textTheme.bodyMedium?.color ??
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).textTheme.bodyMedium?.color ??
                                             const Color(0xFF374151),
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -528,4 +543,3 @@ class HomeWideServiceCard extends StatelessWidget {
     );
   }
 }
-

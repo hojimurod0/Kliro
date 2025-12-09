@@ -20,6 +20,9 @@ class SaveOrder {
     required String ownerPassport,
     required String carNumber,
     required String vin,
+    required String birthDate,
+    required int tarifId,
+    required int tarifType,
   }) {
     return _repository.saveOrder(
       carId: carId,
@@ -35,6 +38,9 @@ class SaveOrder {
       ownerPassport: ownerPassport,
       carNumber: carNumber,
       vin: vin,
+      birthDate: birthDate,
+      tarifId: tarifId,
+      tarifType: tarifType,
     );
   }
 }

@@ -15,6 +15,7 @@ import '../bloc/kasko_state.dart';
 import '../widgets/kasko_car_plate_input.dart';
 import '../widgets/kasko_info_card.dart';
 import '../widgets/kasko_tech_passport_input.dart';
+import 'kasko_personal_data_page.dart';
 
 @RoutePage()
 class KaskoDocumentDataPage extends StatefulWidget {
@@ -216,6 +217,144 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
     return '--';
   }
 
+  // Виджет для отображения личных данных и способа оплаты
+  Widget _buildPersonalDataAndPaymentCard(
+    KaskoBloc bloc,
+    bool isDark,
+    Color textColor,
+    Color subtitleColor,
+    Color cardBg,
+  ) {
+    final personalCardBg = isDark
+        ? const Color(0xFF1E3A5C)
+        : const Color(0xFFE3F2FD);
+
+    // Получаем личные данные из BLoC
+    final ownerName = bloc.ownerName ?? '--';
+    final birthDate = bloc.birthDate ?? '--';
+    final phone = bloc.ownerPhone ?? '--';
+    final passport = bloc.ownerPassport ?? '--';
+    final paymentMethod = bloc.paymentMethod ?? '--';
+
+    // Форматирование номера телефона
+    String formattedPhone = phone;
+    if (phone != '--' && phone.length >= 13) {
+      final phoneWithoutPlus = phone.substring(1);
+      if (phoneWithoutPlus.length == 12) {
+        formattedPhone =
+            '+${phoneWithoutPlus.substring(0, 3)} ${phoneWithoutPlus.substring(3, 5)} ${phoneWithoutPlus.substring(5, 8)} ${phoneWithoutPlus.substring(8, 10)} ${phoneWithoutPlus.substring(10)}';
+      }
+    }
+
+    // Форматирование паспорта
+    String formattedPassport = passport;
+    if (passport != '--' && passport.length >= 2) {
+      final series = passport.substring(0, 2);
+      final number = passport.substring(2);
+      formattedPassport = '$series $number';
+    }
+
+    // Форматирование способа оплаты
+    String formattedPaymentMethod = paymentMethod;
+    if (paymentMethod == 'payme') {
+      formattedPaymentMethod = 'Payme';
+    } else if (paymentMethod == 'click') {
+      formattedPaymentMethod = 'click';
+    }
+
+    return Container(
+      padding: EdgeInsets.all(16.0.w),
+      margin: EdgeInsets.only(bottom: 20.0.h),
+      decoration: BoxDecoration(
+        color: personalCardBg,
+        borderRadius: BorderRadius.circular(15.0.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Shaxsiy ma\'lumotlar va to\'lov usuli',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          SizedBox(height: 16.h),
+          if (ownerName != '--')
+            _buildPersonalDataRow(
+              'Ism familiya:',
+              ownerName,
+              isDark,
+              textColor,
+              subtitleColor,
+            ),
+          if (birthDate != '--')
+            _buildPersonalDataRow(
+              'Tug\'ilgan sana:',
+              birthDate,
+              isDark,
+              textColor,
+              subtitleColor,
+            ),
+          if (formattedPhone != '--')
+            _buildPersonalDataRow(
+              'Telefon:',
+              formattedPhone,
+              isDark,
+              textColor,
+              subtitleColor,
+            ),
+          if (formattedPassport != '--')
+            _buildPersonalDataRow(
+              'Passport:',
+              formattedPassport,
+              isDark,
+              textColor,
+              subtitleColor,
+            ),
+          if (formattedPaymentMethod != '--')
+            _buildPersonalDataRow(
+              'To\'lov usuli:',
+              formattedPaymentMethod,
+              isDark,
+              textColor,
+              subtitleColor,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPersonalDataRow(
+    String label,
+    String value,
+    bool isDark,
+    Color textColor,
+    Color subtitleColor,
+  ) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(fontSize: 14.sp, color: subtitleColor),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Сохранение данных документа
   void _saveDocumentData(KaskoBloc bloc) {
     // Формируем номер автомобиля (регион + номер без пробелов)
@@ -231,6 +370,10 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
     final techNumber = _texPassportNumberController.text.trim();
     final vin = '$techSeries$techNumber';
 
+    debugPrint('💾 Сохранение данных документа:');
+    debugPrint('  🚗 Car Number: $carNumber (region: $region, number: $number)');
+    debugPrint('  🔧 VIN: $vin (series: $techSeries, number: $techNumber)');
+
     // Сохраняем данные в BLoC через событие
     bloc.add(
       SaveDocumentData(
@@ -240,6 +383,15 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
         passportNumber: '',
       ),
     );
+    
+    // Проверяем, что данные сохранились
+    Future.delayed(const Duration(milliseconds: 100), () {
+      final savedCarNumber = bloc.documentCarNumber;
+      final savedVin = bloc.documentVin;
+      debugPrint('✅ Проверка сохраненных данных:');
+      debugPrint('  🚗 Saved Car Number: $savedCarNumber');
+      debugPrint('  🔧 Saved VIN: $savedVin');
+    });
   }
 
   @override
@@ -327,6 +479,14 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
                             tariffName: tariffName,
                             totalPrice: totalPrice,
                             isDark: isDark,
+                          ),
+                          // Личные данные и способ оплаты
+                          _buildPersonalDataAndPaymentCard(
+                            bloc,
+                            isDark,
+                            textColor,
+                            subtitleColor,
+                            cardBg,
                           ),
                           // KaskoCarPlateInput(
                           //   regionController: _regionController,
@@ -453,8 +613,14 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
                                   if (_formKey.currentState!.validate()) {
                                     // Validatsiya o'tdi - ma'lumotlarni saqlash va keyingi sahifaga o'tish
                                     _saveDocumentData(bloc);
-                                    context.router.push(
-                                      const KaskoPersonalDataRoute(),
+                                    // BLoC'ni o'tkazish bilan navigatsiya
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => BlocProvider.value(
+                                          value: bloc,
+                                          child: const KaskoPersonalDataPage(),
+                                        ),
+                                      ),
                                     );
                                   }
                                   // Agar validatsiya o'tmasa, xatolar maydonlar ostida ko'rsatiladi

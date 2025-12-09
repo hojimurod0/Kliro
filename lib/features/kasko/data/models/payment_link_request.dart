@@ -7,6 +7,7 @@ part 'payment_link_request.g.dart';
 class PaymentLinkRequest with _$PaymentLinkRequest {
   const factory PaymentLinkRequest({
     @JsonKey(name: 'order_id') required String orderId,
+    @JsonKey(name: 'contract_id') String? contractId,
     required double amount,
     @JsonKey(name: 'return_url') required String returnUrl,
     @JsonKey(name: 'callback_url') required String callbackUrl,

@@ -80,11 +80,12 @@ class KaskoOrderSaved extends KaskoState {
 
 class KaskoPaymentLinkCreated extends KaskoState {
   final PaymentLinkEntity paymentLink;
+  final int orderId;
 
-  const KaskoPaymentLinkCreated(this.paymentLink);
+  const KaskoPaymentLinkCreated(this.paymentLink, {required this.orderId});
 
   @override
-  List<Object?> get props => [paymentLink];
+  List<Object?> get props => [paymentLink, orderId];
 }
 
 class KaskoPaymentChecked extends KaskoState {

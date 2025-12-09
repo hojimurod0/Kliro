@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/osago_vehicle.dart';
@@ -26,14 +27,14 @@ class _OsagoOwnerScreenState extends State<OsagoOwnerScreen> {
     return BlocListener<OsagoBloc, OsagoState>(
       listener: (context, state) {
         if (state is OsagoFailure && state.errorMessage != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.errorMessage!)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
           _navigated = false; // Reset navigation flag on error
         }
         // Navigate to order confirmation screen after policy is created
-        if (state is OsagoCreateSuccess && 
-            state.createResponse != null && 
+        if (state is OsagoCreateSuccess &&
+            state.createResponse != null &&
             !_navigated) {
           _navigated = true;
           Navigator.of(context).push(
@@ -61,6 +62,13 @@ class _OsagoOwnerScreenState extends State<OsagoOwnerScreen> {
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
+          systemOverlayStyle: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness:
+                Theme.of(context).brightness == Brightness.dark
+                ? Brightness.light
+                : Brightness.dark,
+          ),
         ),
         body: BlocBuilder<OsagoBloc, OsagoState>(
           builder: (context, state) {
@@ -68,9 +76,7 @@ class _OsagoOwnerScreenState extends State<OsagoOwnerScreen> {
             final ownerName = state.ownerName;
 
             if (vehicle == null) {
-              return Center(
-                child: Text('insurance.osago.owner.no_data'.tr()),
-              );
+              return Center(child: Text('insurance.osago.owner.no_data'.tr()));
             }
 
             return Column(
@@ -87,22 +93,17 @@ class _OsagoOwnerScreenState extends State<OsagoOwnerScreen> {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).textTheme.titleLarge?.color,
+                            color: Theme.of(
+                              context,
+                            ).textTheme.titleLarge?.color,
                           ),
                         ),
                         const SizedBox(height: 20),
                         // Mashina egasi ma'lumotlari kartochkasi
-                        _buildOwnerInfoCard(
-                          context,
-                          vehicle,
-                          ownerName,
-                        ),
+                        _buildOwnerInfoCard(context, vehicle, ownerName),
                         const SizedBox(height: 20),
                         // Avtomobil ma'lumotlari kartochkasi
-                        _buildVehicleInfoCard(
-                          context,
-                          vehicle,
-                        ),
+                        _buildVehicleInfoCard(context, vehicle),
                       ],
                     ),
                   ),
@@ -119,18 +120,32 @@ class _OsagoOwnerScreenState extends State<OsagoOwnerScreen> {
                         if (!_navigated && mounted) {
                           // Calc va Create policy ni chaqirish
                           final currentState = context.read<OsagoBloc>().state;
-                          if (currentState.insurance != null && currentState.vehicle != null) {
+                          if (currentState.insurance != null &&
+                              currentState.vehicle != null) {
                             // Agar calcResponse bo'lmasa, calc ni chaqiramiz
                             if (currentState.calcResponse == null) {
-                              log('[OSAGO_OWNER] CalcRequested event yuborilmoqda', name: 'OSAGO');
-                              context.read<OsagoBloc>().add(const CalcRequested());
+                              log(
+                                '[OSAGO_OWNER] CalcRequested event yuborilmoqda',
+                                name: 'OSAGO',
+                              );
+                              context.read<OsagoBloc>().add(
+                                const CalcRequested(),
+                              );
                             } else if (currentState.createResponse == null) {
                               // Agar calcResponse bo'lsa, lekin createResponse bo'lmasa, create ni chaqiramiz
-                              log('[OSAGO_OWNER] CreatePolicyRequested event yuborilmoqda', name: 'OSAGO');
-                              context.read<OsagoBloc>().add(const CreatePolicyRequested());
+                              log(
+                                '[OSAGO_OWNER] CreatePolicyRequested event yuborilmoqda',
+                                name: 'OSAGO',
+                              );
+                              context.read<OsagoBloc>().add(
+                                const CreatePolicyRequested(),
+                              );
                             } else {
                               // Agar ikkalasi ham bo'lsa, to'g'ridan-to'g'ri navigation
-                              log('[OSAGO_OWNER] To\'g\'ridan-to\'g\'ri navigation', name: 'OSAGO');
+                              log(
+                                '[OSAGO_OWNER] To\'g\'ridan-to\'g\'ri navigation',
+                                name: 'OSAGO',
+                              );
                               _navigated = true;
                               Navigator.of(context).push(
                                 MaterialPageRoute(
@@ -146,7 +161,9 @@ class _OsagoOwnerScreenState extends State<OsagoOwnerScreen> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -192,10 +209,13 @@ class _OsagoOwnerScreenState extends State<OsagoOwnerScreen> {
     }
 
     // Format passport
-    final passportDisplay = '${vehicle.ownerPassportSeria} ${vehicle.ownerPassportNumber}';
+    final passportDisplay =
+        '${vehicle.ownerPassportSeria} ${vehicle.ownerPassportNumber}';
 
     // Format birth date
-    final birthDateDisplay = OsagoUtils.formatDateForDisplay(vehicle.ownerBirthDate);
+    final birthDateDisplay = OsagoUtils.formatDateForDisplay(
+      vehicle.ownerBirthDate,
+    );
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -271,10 +291,7 @@ class _OsagoOwnerScreenState extends State<OsagoOwnerScreen> {
   }
 
   // Avtomobil ma'lumotlari kartochkasi
-  Widget _buildVehicleInfoCard(
-    BuildContext context,
-    OsagoVehicle vehicle,
-  ) {
+  Widget _buildVehicleInfoCard(BuildContext context, OsagoVehicle vehicle) {
     final theme = Theme.of(context);
     final cardBg = theme.cardColor;
     final textColor = theme.textTheme.titleLarge?.color ?? Colors.white;
@@ -361,10 +378,7 @@ class _OsagoOwnerScreenState extends State<OsagoOwnerScreen> {
             flex: 3,
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               textAlign: TextAlign.right,
             ),
           ),
@@ -373,4 +387,3 @@ class _OsagoOwnerScreenState extends State<OsagoOwnerScreen> {
     );
   }
 }
-

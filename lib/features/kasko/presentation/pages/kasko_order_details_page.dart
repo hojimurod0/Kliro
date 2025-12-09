@@ -5,9 +5,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/navigation/app_router.dart';
 import '../bloc/kasko_bloc.dart';
 import '../bloc/kasko_state.dart';
+import 'kasko_payment_type_page.dart';
 
 // Asosiy ranglar
 const Color _primaryBlue = Color(0xFF1976D2);
@@ -101,15 +103,27 @@ class KaskoOrderDetailsPage extends StatelessWidget {
         : '--';
     final tariffName = bloc.selectedRate?.name ?? bloc.cachedSelectedRate?.name ?? '--';
     
-    // Muddat va qoplash ma'lumotlarini olish
+    // Muddat, qoplash va sug'urta davri ma'lumotlarini olish
     String duration = '12 oy';
+    String insurancePeriod = '1 йил';
+    String coverageAmount = '--';
     String coverage = 'To\'liq zarar qoplash 100%';
     
     if (state is KaskoPolicyCalculated) {
       final beginDate = state.calculateResult.beginDate;
       final endDate = state.calculateResult.endDate;
-      final months = ((endDate.difference(beginDate).inDays) / 30).round();
+      final days = endDate.difference(beginDate).inDays;
+      final months = (days / 30).round();
+      final years = (days / 365).round();
+      
       duration = '$months oy';
+      insurancePeriod = years > 0 ? '$years йил' : '1 йил';
+      
+      // Қоплаш миқдори (Сумма покрытия)
+      final formattedCoverage = NumberFormat('#,###').format(
+        state.calculateResult.price.toInt(),
+      );
+      coverageAmount = '${formattedCoverage.replaceAll(',', ' ')} UZS';
       
       if (state.calculateResult.franchise > 0) {
         coverage = 'Franchise: ${state.calculateResult.franchise.toStringAsFixed(0)} so\'m';
@@ -118,8 +132,18 @@ class KaskoOrderDetailsPage extends StatelessWidget {
       final calcResult = bloc.cachedCalculateResult!;
       final beginDate = calcResult.beginDate;
       final endDate = calcResult.endDate;
-      final months = ((endDate.difference(beginDate).inDays) / 30).round();
+      final days = endDate.difference(beginDate).inDays;
+      final months = (days / 30).round();
+      final years = (days / 365).round();
+      
       duration = '$months oy';
+      insurancePeriod = years > 0 ? '$years йил' : '1 йил';
+      
+      // Қоплаш миқдори (Сумма покрытия)
+      final formattedCoverage = NumberFormat('#,###').format(
+        calcResult.price.toInt(),
+      );
+      coverageAmount = '${formattedCoverage.replaceAll(',', ' ')} UZS';
       
       if (calcResult.franchise > 0) {
         coverage = 'Franchise: ${calcResult.franchise.toStringAsFixed(0)} so\'m';
@@ -135,10 +159,19 @@ class KaskoOrderDetailsPage extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // 1. Avtomobil
+          // 1. Суғурта даври (Срок страхования)
+          _buildInfoRow(
+            icon: Icons.calendar_today_outlined,
+            label: 'Суғурта даври',
+            value: insurancePeriod,
+            isDark: isDark,
+            textColor: textColor,
+            subtitleColor: subtitleColor,
+          ),
+          // 2. Avtomobil
           _buildInfoRow(
             icon: Icons.directions_car_outlined,
-            label: 'Avtomobil',
+            label: 'Автомобил',
             value: carModel,
             isBold: true,
             isDark: isDark,
@@ -156,7 +189,17 @@ class KaskoOrderDetailsPage extends StatelessWidget {
               ),
             ),
           ),
-          // 2. Tarif
+          // 3. Қоплаш миқдори (Сумма покрытия)
+          _buildInfoRow(
+            icon: Icons.account_balance_wallet_outlined,
+            label: 'Қоплаш миқдори',
+            value: coverageAmount,
+            isBold: true,
+            isDark: isDark,
+            textColor: textColor,
+            subtitleColor: subtitleColor,
+          ),
+          // 4. Tarif
           _buildInfoRow(
             icon: Icons.security_outlined,
             label: 'Tarif',
@@ -166,7 +209,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
             textColor: textColor,
             subtitleColor: subtitleColor,
           ),
-          // 3. Muddat
+          // 5. Muddat
           _buildInfoRow(
             icon: Icons.calendar_today_outlined,
             label: 'Muddat',
@@ -175,7 +218,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
             textColor: textColor,
             subtitleColor: subtitleColor,
           ),
-          // 4. Qoplash
+          // 6. Qoplash
           _buildInfoRow(
             icon: Icons.description_outlined,
             label: 'Qoplash',
@@ -189,6 +232,96 @@ class KaskoOrderDetailsPage extends StatelessWidget {
     );
   }
   
+  // Avtomobil raqamini formatlash
+  // Format: "01A000AA" -> "01 A 000 AA"
+  String _formatCarNumber(String? carNumber) {
+    if (carNumber == null || carNumber.isEmpty || carNumber == '--') {
+      return '--';
+    }
+    
+    // Bo'shliqlarni olib tashlash va katta harflarga o'tkazish
+    final cleanNumber = carNumber.replaceAll(' ', '').toUpperCase();
+    
+    // Format: Region (2 raqam) + Number (1 harf + 3 raqam + 2 harf)
+    // Jami: 2 + 6 = 8 belgi
+    if (cleanNumber.length < 8) {
+      return carNumber; // Agar format noto'g'ri bo'lsa, asl qiymatni qaytarish
+    }
+    
+    try {
+      // Region (2 ta raqam)
+      final region = cleanNumber.substring(0, 2);
+      
+      // Number qismi (6 ta belgi: 1 harf + 3 raqam + 2 harf)
+      final numberPart = cleanNumber.substring(2);
+      
+      if (numberPart.length < 6) {
+        return carNumber;
+      }
+      
+      // Number qismini formatlash: A 000 AA
+      final firstLetter = numberPart[0];
+      final digits = numberPart.substring(1, 4);
+      final lastLetters = numberPart.substring(4);
+      
+      // Format: "01 A 000 AA"
+      return '$region $firstLetter $digits $lastLetters';
+    } catch (e) {
+      // Xatolik bo'lsa, asl qiymatni qaytarish
+      return carNumber;
+    }
+  }
+
+  // Telefon raqamini formatlash
+  // Format: "+998901234567" -> "+998 90 123 45 67"
+  String _formatPhoneNumber(String? phone) {
+    if (phone == null || phone.isEmpty || phone == '--') {
+      return '--';
+    }
+    
+    // + ni olib tashlash
+    final cleanPhone = phone.replaceAll('+', '').replaceAll(' ', '');
+    
+    if (cleanPhone.length < 12) {
+      return phone;
+    }
+    
+    try {
+      // Format: +998 90 123 45 67
+      final countryCode = cleanPhone.substring(0, 3); // 998
+      final operatorCode = cleanPhone.substring(3, 5); // 90
+      final part1 = cleanPhone.substring(5, 8); // 123
+      final part2 = cleanPhone.substring(8, 10); // 45
+      final part3 = cleanPhone.substring(10); // 67
+      
+      return '+$countryCode $operatorCode $part1 $part2 $part3';
+    } catch (e) {
+      return phone;
+    }
+  }
+
+  // Passport raqamini formatlash
+  // Format: "AA1234567" -> "AA 1234567"
+  String _formatPassport(String? passport) {
+    if (passport == null || passport.isEmpty || passport == '--') {
+      return '--';
+    }
+    
+    final cleanPassport = passport.replaceAll(' ', '').toUpperCase();
+    
+    if (cleanPassport.length < 2) {
+      return passport;
+    }
+    
+    try {
+      final series = cleanPassport.substring(0, 2);
+      final number = cleanPassport.substring(2);
+      return '$series $number';
+    } catch (e) {
+      return passport;
+    }
+  }
+
   // 3. Hujjatlar va shaxsiy ma'lumotlar kartasi
   Widget _buildDocumentAndPersonalCard(
     KaskoBloc bloc,
@@ -198,13 +331,13 @@ class KaskoOrderDetailsPage extends StatelessWidget {
   ) {
     final cardBg = isDark ? const Color(0xFF1E3A5C) : _cardLightBlue;
 
-    // Ma'lumotlarni BLoC'dan olish
-    final carNumber = bloc.documentCarNumber ?? '--';
+    // Ma'lumotlarni BLoC'dan olish va formatlash
+    final carNumber = _formatCarNumber(bloc.documentCarNumber);
     final vin = bloc.documentVin ?? '--';
     final ownerName = bloc.ownerName ?? '--';
-    final ownerPhone = bloc.ownerPhone ?? '--';
+    final ownerPhone = _formatPhoneNumber(bloc.ownerPhone);
     final birthDate = bloc.birthDate ?? '--';
-    final passport = bloc.ownerPassport ?? '--';
+    final passport = _formatPassport(bloc.ownerPassport);
 
     return Container(
       padding: EdgeInsets.all(16.0.w),
@@ -279,6 +412,16 @@ class KaskoOrderDetailsPage extends StatelessWidget {
             textColor: textColor,
             subtitleColor: subtitleColor,
           ),
+          // Способ оплаты
+          if (bloc.paymentMethod != null && bloc.paymentMethod!.isNotEmpty)
+            _buildInfoRow(
+              icon: Icons.payment_outlined,
+              label: 'To\'lov usuli',
+              value: bloc.paymentMethod == 'payme' ? 'Payme' : (bloc.paymentMethod == 'click' ? 'click' : bloc.paymentMethod!),
+              isDark: isDark,
+              textColor: textColor,
+              subtitleColor: subtitleColor,
+            ),
         ],
       ),
     );
@@ -332,14 +475,14 @@ class KaskoOrderDetailsPage extends StatelessWidget {
       final formatted = NumberFormat('#,###').format(
         state.calculateResult.premium.toInt(),
       );
-      return '${formatted.replaceAll(',', ' ')} so\'m';
+      return '${formatted.replaceAll(',', ' ')} UZS';
     }
     
     if (state is KaskoOrderSaved) {
       final formatted = NumberFormat('#,###').format(
         state.order.premium.toInt(),
       );
-      return '${formatted.replaceAll(',', ' ')} so\'m';
+      return '${formatted.replaceAll(',', ' ')} UZS';
     }
     
     final calcResult = bloc.cachedCalculateResult;
@@ -347,7 +490,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
       final formatted = NumberFormat('#,###').format(
         calcResult.premium.toInt(),
       );
-      return '${formatted.replaceAll(',', ' ')} so\'m';
+      return '${formatted.replaceAll(',', ' ')} UZS';
     }
     
     return '--';
@@ -356,10 +499,10 @@ class KaskoOrderDetailsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final scaffoldBg = isDark ? const Color(0xFF121212) : Colors.white;
-    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
-    final subtitleColor = isDark ? Colors.grey[400]! : Colors.grey.shade600;
+    final scaffoldBg = AppColors.getScaffoldBg(isDark);
+    final cardBg = AppColors.getCardBg(isDark);
+    final textColor = AppColors.getTextColor(isDark);
+    final subtitleColor = AppColors.getSubtitleColor(isDark);
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return BlocBuilder<KaskoBloc, KaskoState>(
@@ -444,7 +587,9 @@ class KaskoOrderDetailsPage extends StatelessWidget {
                     color: cardBg,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: isDark 
+                            ? Colors.black.withOpacity(0.3)
+                            : Colors.grey.withOpacity(0.1),
                         spreadRadius: 3,
                         blurRadius: 5,
                         offset: const Offset(0, -3),
@@ -454,13 +599,13 @@ class KaskoOrderDetailsPage extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Jami Summa
+                      // Тўланадиган сумма (Сумма к оплате)
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Jami summa',
+                            'Тўланадиган сумма',
                             style: TextStyle(
                               fontSize: 14.sp,
                               color: subtitleColor,
@@ -482,8 +627,16 @@ class KaskoOrderDetailsPage extends StatelessWidget {
                         height: 50.h,
                         child: ElevatedButton(
                           onPressed: () {
-                            // Keyingi sahifaga o'tish - to'lov turi
-                            context.router.push(const KaskoPaymentTypeRoute());
+                            // BLoC'ni o'tkazish bilan navigatsiya
+                            final bloc = context.read<KaskoBloc>();
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => BlocProvider.value(
+                                  value: bloc,
+                                  child: const KaskoPaymentTypePage(),
+                                ),
+                              ),
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _primaryBlue,

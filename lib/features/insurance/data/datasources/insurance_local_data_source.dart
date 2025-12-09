@@ -52,6 +52,7 @@ class InsuranceLocalDataSource {
         lightColor: lightBlue,
         iconData: Icons.directions_car_filled,
         buttonText: safeTr('insurance.osago.button_text'),
+        imagePath: 'assets/images/car.png',
       ),
       InsuranceServiceModel(
         id: 'kasko',
@@ -69,6 +70,7 @@ class InsuranceLocalDataSource {
         iconData: Icons.shield,
         buttonText: safeTr('insurance.kasko.button_text'),
         tag: safeTr('insurance.kasko.tag'),
+        imagePath: 'assets/images/kasko.png',
       ),
       InsuranceServiceModel(
         id: 'travel',
@@ -84,6 +86,7 @@ class InsuranceLocalDataSource {
         lightColor: lightGreen,
         iconData: Icons.airplanemode_active,
         buttonText: safeTr('insurance.travel.button_text'),
+        imagePath: 'assets/images/sugurtapilot.png',
       ),
     ];
   }

@@ -293,22 +293,60 @@ class KaskoRemoteDataSourceImpl implements KaskoRemoteDataSource {
   @override
   Future<SaveOrderResponse> saveOrder(SaveOrderRequest request) async {
     try {
+      // Debug: Request ma'lumotlarini ko'rsatish
+      debugPrint('📤 SaveOrder Request: ${request.toJson()}');
+      
       final response = await _dio.post(
         ApiPaths.kaskoSave,
         data: request.toJson(),
       );
       final responseData = _ensureMap(response.data);
+      
+      // Debug: Response ma'lumotlarini ko'rsatish
+      debugPrint('📥 SaveOrder Response: $responseData');
 
-      // Nested struktura tekshiruvi
-      if (responseData.containsKey('data')) {
+      // Nested struktura tekshiruvi - сначала проверяем 'response', потом 'data'
+      Map<String, dynamic>? dataToParse;
+      
+      if (responseData.containsKey('response')) {
+        final responseObj = responseData['response'];
+        if (responseObj is Map<String, dynamic>) {
+          dataToParse = responseObj;
+          debugPrint('✅ SaveOrder response found in "response" field');
+          debugPrint('📦 Response object: $dataToParse');
+          // URL'larni tekshirish
+          debugPrint('  🔵 url (click): ${dataToParse['url']}');
+          debugPrint('  🟢 payme_url: ${dataToParse['payme_url']}');
+          debugPrint('  📄 url_shartnoma: ${dataToParse['url_shartnoma']}');
+          debugPrint('  📦 order_id: ${dataToParse['order_id']}');
+          debugPrint('  📄 contract_id: ${dataToParse['contract_id']}');
+        }
+      } else if (responseData.containsKey('data')) {
         final data = responseData['data'];
         if (data is Map<String, dynamic>) {
-          return SaveOrderResponse.fromJson(data);
+          dataToParse = data;
+          debugPrint('✅ SaveOrder response found in "data" field');
         }
-        throw const ApiException(message: 'Response data field is not a Map');
+      }
+      
+      if (dataToParse != null) {
+        debugPrint('📦 Parsing SaveOrderResponse from: $dataToParse');
+        final result = SaveOrderResponse.fromJson(dataToParse);
+        debugPrint('✅ Parsed SaveOrderResponse:');
+        debugPrint('  📦 orderId: ${result.orderId}');
+        debugPrint('  📄 contractId: ${result.contractId}');
+        debugPrint('  🔵 clickUrl (url): ${result.url}');
+        debugPrint('  🟢 paymeUrl: ${result.paymeUrl}');
+        debugPrint('  📄 urlShartnoma: ${result.urlShartnoma}');
+        debugPrint('  💰 premium: ${result.premium}');
+        return result;
       }
 
-      return SaveOrderResponse.fromJson(responseData);
+      // Fallback - пытаемся парсить сам responseData
+      debugPrint('⚠️ Using fallback parsing from responseData');
+      final fallbackResult = SaveOrderResponse.fromJson(responseData);
+      debugPrint('✅ Fallback parsed: orderId=${fallbackResult.orderId}, url=${fallbackResult.url}, paymeUrl=${fallbackResult.paymeUrl}');
+      return fallbackResult;
     } on DioException catch (error) {
       _handleDioError(error);
     } on ApiException {
@@ -327,16 +365,47 @@ class KaskoRemoteDataSourceImpl implements KaskoRemoteDataSource {
       );
       final responseData = _ensureMap(response.data);
 
-      // Nested struktura tekshiruvi
-      if (responseData.containsKey('data')) {
+      // Nested struktura tekshiruvi - сначала проверяем 'response', потом 'data'
+      Map<String, dynamic>? dataToParse;
+      
+      if (responseData.containsKey('response')) {
+        final responseObj = responseData['response'];
+        if (responseObj is Map<String, dynamic>) {
+          dataToParse = responseObj;
+        }
+      } else if (responseData.containsKey('data')) {
         final data = responseData['data'];
         if (data is Map<String, dynamic>) {
-          return PaymentLinkResponse.fromJson(data);
+          dataToParse = data;
         }
-        throw const ApiException(message: 'Response data field is not a Map');
+      }
+      
+      if (dataToParse != null) {
+        debugPrint('✅ PaymentLink response found in nested structure');
+        debugPrint('📦 Parsing PaymentLinkResponse from: $dataToParse');
+        try {
+          final result = PaymentLinkResponse.fromJson(dataToParse);
+          debugPrint('✅ Parsed clickUrl: ${result.clickUrl}');
+          debugPrint('✅ Parsed paymeUrl: ${result.paymeUrl}');
+          debugPrint('✅ Parsed contractId: ${result.contractId}');
+          debugPrint('✅ Parsed amountUzs: ${result.amountUzs}');
+          return result;
+        } catch (e, stackTrace) {
+          debugPrint('❌ PaymentLinkResponse parsing error: $e');
+          debugPrint('❌ Stack trace: $stackTrace');
+          rethrow;
+        }
       }
 
-      return PaymentLinkResponse.fromJson(responseData);
+      // Fallback - пытаемся парсить сам responseData
+      debugPrint('⚠️ Using fallback parsing from responseData');
+      try {
+        return PaymentLinkResponse.fromJson(responseData);
+      } catch (e, stackTrace) {
+        debugPrint('❌ PaymentLinkResponse fallback parsing error: $e');
+        debugPrint('❌ Stack trace: $stackTrace');
+        rethrow;
+      }
     } on DioException catch (error) {
       _handleDioError(error);
     } on ApiException {

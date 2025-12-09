@@ -9,6 +9,7 @@ import '../../../../core/navigation/app_router.dart';
 import '../../../bank/domain/entities/bank_service.dart';
 import '../../../bank/domain/repositories/bank_repository.dart';
 import '../../../bank/domain/usecases/get_bank_services.dart';
+import '../../../bank/domain/usecases/get_currencies.dart';
 
 @RoutePage()
 class BankServicesPage extends StatefulWidget {
@@ -20,6 +21,7 @@ class BankServicesPage extends StatefulWidget {
 
 class _BankServicesPageState extends State<BankServicesPage> {
   late final GetBankServices _getBankServices;
+  late final GetCurrencies _getCurrencies;
   Future<List<BankService>>? _servicesFuture;
   Locale? _currentLocale;
   bool _isInitialized = false;
@@ -27,9 +29,51 @@ class _BankServicesPageState extends State<BankServicesPage> {
   @override
   void initState() {
     super.initState();
-    _getBankServices = GetBankServices(
-      ServiceLocator.resolve<BankRepository>(),
-    );
+    final bankRepository = ServiceLocator.resolve<BankRepository>();
+    _getBankServices = GetBankServices(bankRepository);
+    _getCurrencies = GetCurrencies(bankRepository);
+  }
+
+  Future<void> _navigateToCurrencyDetail(BuildContext context) async {
+    try {
+      // Загружаем данные о валютах
+      final currencies = await _getCurrencies();
+      
+      // Фильтруем по USD
+      final usdCurrencies = currencies.where((c) => 
+        c.currencyCode.toUpperCase() == 'USD'
+      ).toList();
+      
+      if (usdCurrencies.isNotEmpty) {
+        // Находим банк с лучшим (самым дешевым) курсом покупки
+        usdCurrencies.sort((a, b) => a.buyRate.compareTo(b.buyRate));
+        final bestBuyBank = usdCurrencies.first;
+        
+        // Открываем детальную страницу с этим банком
+        if (mounted) {
+          context.router.push(CurrencyDetailRoute(
+            bankName: bestBuyBank.bankName,
+            currencyCode: bestBuyBank.currencyCode,
+            buyRate: bestBuyBank.buyRate,
+            sellRate: bestBuyBank.sellRate,
+          ));
+        }
+      } else {
+        // Если USD не найден, открываем детальную страницу без банка
+        if (mounted) {
+          context.router.push(CurrencyDetailRoute(
+            currencyCode: 'USD',
+          ));
+        }
+      }
+    } catch (e) {
+      // При ошибке открываем детальную страницу без банка
+      if (mounted) {
+        context.router.push(CurrencyDetailRoute(
+          currencyCode: 'USD',
+        ));
+      }
+    }
   }
 
   @override
@@ -177,7 +221,7 @@ class _BankServicesPageState extends State<BankServicesPage> {
               VoidCallback? onTap;
               final titleKey = service.titleKey;
               if (titleKey == 'currency') {
-                onTap = () => context.router.push(CurrencyRatesRoute());
+                onTap = () => _navigateToCurrencyDetail(context);
               } else if (titleKey == 'micro_loan') {
                 onTap = () => context.router.push(MicroLoanRoute());
               } else if (titleKey == 'deposit') {

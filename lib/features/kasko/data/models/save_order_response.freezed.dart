@@ -21,15 +21,23 @@ SaveOrderResponse _$SaveOrderResponseFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$SaveOrderResponse {
   @JsonKey(name: 'order_id')
-  String get orderId => throw _privateConstructorUsedError;
-  double get premium => throw _privateConstructorUsedError;
+  String? get orderId => throw _privateConstructorUsedError;
+  double? get premium => throw _privateConstructorUsedError;
   @JsonKey(name: 'car_id')
-  int get carId => throw _privateConstructorUsedError;
+  int? get carId => throw _privateConstructorUsedError;
   @JsonKey(name: 'owner_name')
-  String get ownerName => throw _privateConstructorUsedError;
+  String? get ownerName => throw _privateConstructorUsedError;
   @JsonKey(name: 'owner_phone')
-  String get ownerPhone => throw _privateConstructorUsedError;
+  String? get ownerPhone => throw _privateConstructorUsedError;
   String? get status => throw _privateConstructorUsedError;
+  String? get message => throw _privateConstructorUsedError;
+  String? get url => throw _privateConstructorUsedError;
+  @JsonKey(name: 'url_shartnoma')
+  String? get urlShartnoma => throw _privateConstructorUsedError;
+  @JsonKey(name: 'payme_url')
+  String? get paymeUrl => throw _privateConstructorUsedError;
+  @JsonKey(name: 'contract_id')
+  String? get contractId => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -44,12 +52,17 @@ abstract class $SaveOrderResponseCopyWith<$Res> {
       _$SaveOrderResponseCopyWithImpl<$Res, SaveOrderResponse>;
   @useResult
   $Res call(
-      {@JsonKey(name: 'order_id') String orderId,
-      double premium,
-      @JsonKey(name: 'car_id') int carId,
-      @JsonKey(name: 'owner_name') String ownerName,
-      @JsonKey(name: 'owner_phone') String ownerPhone,
-      String? status});
+      {@JsonKey(name: 'order_id') String? orderId,
+      double? premium,
+      @JsonKey(name: 'car_id') int? carId,
+      @JsonKey(name: 'owner_name') String? ownerName,
+      @JsonKey(name: 'owner_phone') String? ownerPhone,
+      String? status,
+      String? message,
+      String? url,
+      @JsonKey(name: 'url_shartnoma') String? urlShartnoma,
+      @JsonKey(name: 'payme_url') String? paymeUrl,
+      @JsonKey(name: 'contract_id') String? contractId});
 }
 
 /// @nodoc
@@ -65,37 +78,62 @@ class _$SaveOrderResponseCopyWithImpl<$Res, $Val extends SaveOrderResponse>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? orderId = null,
-    Object? premium = null,
-    Object? carId = null,
-    Object? ownerName = null,
-    Object? ownerPhone = null,
+    Object? orderId = freezed,
+    Object? premium = freezed,
+    Object? carId = freezed,
+    Object? ownerName = freezed,
+    Object? ownerPhone = freezed,
     Object? status = freezed,
+    Object? message = freezed,
+    Object? url = freezed,
+    Object? urlShartnoma = freezed,
+    Object? paymeUrl = freezed,
+    Object? contractId = freezed,
   }) {
     return _then(_value.copyWith(
-      orderId: null == orderId
+      orderId: freezed == orderId
           ? _value.orderId
           : orderId // ignore: cast_nullable_to_non_nullable
-              as String,
-      premium: null == premium
+              as String?,
+      premium: freezed == premium
           ? _value.premium
           : premium // ignore: cast_nullable_to_non_nullable
-              as double,
-      carId: null == carId
+              as double?,
+      carId: freezed == carId
           ? _value.carId
           : carId // ignore: cast_nullable_to_non_nullable
-              as int,
-      ownerName: null == ownerName
+              as int?,
+      ownerName: freezed == ownerName
           ? _value.ownerName
           : ownerName // ignore: cast_nullable_to_non_nullable
-              as String,
-      ownerPhone: null == ownerPhone
+              as String?,
+      ownerPhone: freezed == ownerPhone
           ? _value.ownerPhone
           : ownerPhone // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       status: freezed == status
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
+              as String?,
+      message: freezed == message
+          ? _value.message
+          : message // ignore: cast_nullable_to_non_nullable
+              as String?,
+      url: freezed == url
+          ? _value.url
+          : url // ignore: cast_nullable_to_non_nullable
+              as String?,
+      urlShartnoma: freezed == urlShartnoma
+          ? _value.urlShartnoma
+          : urlShartnoma // ignore: cast_nullable_to_non_nullable
+              as String?,
+      paymeUrl: freezed == paymeUrl
+          ? _value.paymeUrl
+          : paymeUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      contractId: freezed == contractId
+          ? _value.contractId
+          : contractId // ignore: cast_nullable_to_non_nullable
               as String?,
     ) as $Val);
   }
@@ -110,12 +148,17 @@ abstract class _$$SaveOrderResponseImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {@JsonKey(name: 'order_id') String orderId,
-      double premium,
-      @JsonKey(name: 'car_id') int carId,
-      @JsonKey(name: 'owner_name') String ownerName,
-      @JsonKey(name: 'owner_phone') String ownerPhone,
-      String? status});
+      {@JsonKey(name: 'order_id') String? orderId,
+      double? premium,
+      @JsonKey(name: 'car_id') int? carId,
+      @JsonKey(name: 'owner_name') String? ownerName,
+      @JsonKey(name: 'owner_phone') String? ownerPhone,
+      String? status,
+      String? message,
+      String? url,
+      @JsonKey(name: 'url_shartnoma') String? urlShartnoma,
+      @JsonKey(name: 'payme_url') String? paymeUrl,
+      @JsonKey(name: 'contract_id') String? contractId});
 }
 
 /// @nodoc
@@ -129,37 +172,62 @@ class __$$SaveOrderResponseImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? orderId = null,
-    Object? premium = null,
-    Object? carId = null,
-    Object? ownerName = null,
-    Object? ownerPhone = null,
+    Object? orderId = freezed,
+    Object? premium = freezed,
+    Object? carId = freezed,
+    Object? ownerName = freezed,
+    Object? ownerPhone = freezed,
     Object? status = freezed,
+    Object? message = freezed,
+    Object? url = freezed,
+    Object? urlShartnoma = freezed,
+    Object? paymeUrl = freezed,
+    Object? contractId = freezed,
   }) {
     return _then(_$SaveOrderResponseImpl(
-      orderId: null == orderId
+      orderId: freezed == orderId
           ? _value.orderId
           : orderId // ignore: cast_nullable_to_non_nullable
-              as String,
-      premium: null == premium
+              as String?,
+      premium: freezed == premium
           ? _value.premium
           : premium // ignore: cast_nullable_to_non_nullable
-              as double,
-      carId: null == carId
+              as double?,
+      carId: freezed == carId
           ? _value.carId
           : carId // ignore: cast_nullable_to_non_nullable
-              as int,
-      ownerName: null == ownerName
+              as int?,
+      ownerName: freezed == ownerName
           ? _value.ownerName
           : ownerName // ignore: cast_nullable_to_non_nullable
-              as String,
-      ownerPhone: null == ownerPhone
+              as String?,
+      ownerPhone: freezed == ownerPhone
           ? _value.ownerPhone
           : ownerPhone // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       status: freezed == status
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
+              as String?,
+      message: freezed == message
+          ? _value.message
+          : message // ignore: cast_nullable_to_non_nullable
+              as String?,
+      url: freezed == url
+          ? _value.url
+          : url // ignore: cast_nullable_to_non_nullable
+              as String?,
+      urlShartnoma: freezed == urlShartnoma
+          ? _value.urlShartnoma
+          : urlShartnoma // ignore: cast_nullable_to_non_nullable
+              as String?,
+      paymeUrl: freezed == paymeUrl
+          ? _value.paymeUrl
+          : paymeUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      contractId: freezed == contractId
+          ? _value.contractId
+          : contractId // ignore: cast_nullable_to_non_nullable
               as String?,
     ));
   }
@@ -169,36 +237,54 @@ class __$$SaveOrderResponseImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$SaveOrderResponseImpl implements _SaveOrderResponse {
   const _$SaveOrderResponseImpl(
-      {@JsonKey(name: 'order_id') required this.orderId,
-      required this.premium,
-      @JsonKey(name: 'car_id') required this.carId,
-      @JsonKey(name: 'owner_name') required this.ownerName,
-      @JsonKey(name: 'owner_phone') required this.ownerPhone,
-      this.status});
+      {@JsonKey(name: 'order_id') this.orderId,
+      this.premium,
+      @JsonKey(name: 'car_id') this.carId,
+      @JsonKey(name: 'owner_name') this.ownerName,
+      @JsonKey(name: 'owner_phone') this.ownerPhone,
+      this.status,
+      this.message,
+      this.url,
+      @JsonKey(name: 'url_shartnoma') this.urlShartnoma,
+      @JsonKey(name: 'payme_url') this.paymeUrl,
+      @JsonKey(name: 'contract_id') this.contractId});
 
   factory _$SaveOrderResponseImpl.fromJson(Map<String, dynamic> json) =>
       _$$SaveOrderResponseImplFromJson(json);
 
   @override
   @JsonKey(name: 'order_id')
-  final String orderId;
+  final String? orderId;
   @override
-  final double premium;
+  final double? premium;
   @override
   @JsonKey(name: 'car_id')
-  final int carId;
+  final int? carId;
   @override
   @JsonKey(name: 'owner_name')
-  final String ownerName;
+  final String? ownerName;
   @override
   @JsonKey(name: 'owner_phone')
-  final String ownerPhone;
+  final String? ownerPhone;
   @override
   final String? status;
+  @override
+  final String? message;
+  @override
+  final String? url;
+  @override
+  @JsonKey(name: 'url_shartnoma')
+  final String? urlShartnoma;
+  @override
+  @JsonKey(name: 'payme_url')
+  final String? paymeUrl;
+  @override
+  @JsonKey(name: 'contract_id')
+  final String? contractId;
 
   @override
   String toString() {
-    return 'SaveOrderResponse(orderId: $orderId, premium: $premium, carId: $carId, ownerName: $ownerName, ownerPhone: $ownerPhone, status: $status)';
+    return 'SaveOrderResponse(orderId: $orderId, premium: $premium, carId: $carId, ownerName: $ownerName, ownerPhone: $ownerPhone, status: $status, message: $message, url: $url, urlShartnoma: $urlShartnoma, paymeUrl: $paymeUrl, contractId: $contractId)';
   }
 
   @override
@@ -213,13 +299,32 @@ class _$SaveOrderResponseImpl implements _SaveOrderResponse {
                 other.ownerName == ownerName) &&
             (identical(other.ownerPhone, ownerPhone) ||
                 other.ownerPhone == ownerPhone) &&
-            (identical(other.status, status) || other.status == status));
+            (identical(other.status, status) || other.status == status) &&
+            (identical(other.message, message) || other.message == message) &&
+            (identical(other.url, url) || other.url == url) &&
+            (identical(other.urlShartnoma, urlShartnoma) ||
+                other.urlShartnoma == urlShartnoma) &&
+            (identical(other.paymeUrl, paymeUrl) ||
+                other.paymeUrl == paymeUrl) &&
+            (identical(other.contractId, contractId) ||
+                other.contractId == contractId));
   }
 
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
-      runtimeType, orderId, premium, carId, ownerName, ownerPhone, status);
+      runtimeType,
+      orderId,
+      premium,
+      carId,
+      ownerName,
+      ownerPhone,
+      status,
+      message,
+      url,
+      urlShartnoma,
+      paymeUrl,
+      contractId);
 
   @JsonKey(ignore: true)
   @override
@@ -238,32 +343,51 @@ class _$SaveOrderResponseImpl implements _SaveOrderResponse {
 
 abstract class _SaveOrderResponse implements SaveOrderResponse {
   const factory _SaveOrderResponse(
-      {@JsonKey(name: 'order_id') required final String orderId,
-      required final double premium,
-      @JsonKey(name: 'car_id') required final int carId,
-      @JsonKey(name: 'owner_name') required final String ownerName,
-      @JsonKey(name: 'owner_phone') required final String ownerPhone,
-      final String? status}) = _$SaveOrderResponseImpl;
+          {@JsonKey(name: 'order_id') final String? orderId,
+          final double? premium,
+          @JsonKey(name: 'car_id') final int? carId,
+          @JsonKey(name: 'owner_name') final String? ownerName,
+          @JsonKey(name: 'owner_phone') final String? ownerPhone,
+          final String? status,
+          final String? message,
+          final String? url,
+          @JsonKey(name: 'url_shartnoma') final String? urlShartnoma,
+          @JsonKey(name: 'payme_url') final String? paymeUrl,
+          @JsonKey(name: 'contract_id') final String? contractId}) =
+      _$SaveOrderResponseImpl;
 
   factory _SaveOrderResponse.fromJson(Map<String, dynamic> json) =
       _$SaveOrderResponseImpl.fromJson;
 
   @override
   @JsonKey(name: 'order_id')
-  String get orderId;
+  String? get orderId;
   @override
-  double get premium;
+  double? get premium;
   @override
   @JsonKey(name: 'car_id')
-  int get carId;
+  int? get carId;
   @override
   @JsonKey(name: 'owner_name')
-  String get ownerName;
+  String? get ownerName;
   @override
   @JsonKey(name: 'owner_phone')
-  String get ownerPhone;
+  String? get ownerPhone;
   @override
   String? get status;
+  @override
+  String? get message;
+  @override
+  String? get url;
+  @override
+  @JsonKey(name: 'url_shartnoma')
+  String? get urlShartnoma;
+  @override
+  @JsonKey(name: 'payme_url')
+  String? get paymeUrl;
+  @override
+  @JsonKey(name: 'contract_id')
+  String? get contractId;
   @override
   @JsonKey(ignore: true)
   _$$SaveOrderResponseImplCopyWith<_$SaveOrderResponseImpl> get copyWith =>

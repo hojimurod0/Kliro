@@ -93,12 +93,28 @@ class _UzbekLicensePlateInputState extends State<UzbekLicensePlateInput> {
 
   @override
   Widget build(BuildContext context) {
+    // Dark mode tekshiruvi
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Ranglar
+    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final borderColor = widget.hasError
+        ? Colors.red
+        : (isDark ? Colors.grey[600]! : Colors.black);
+    final dividerColor = isDark ? Colors.grey[600]! : Colors.black;
+    final hintColor = isDark ? Colors.grey[500]! : Colors.grey.shade300;
+    final boltColor = isDark ? Colors.grey[500]! : Colors.grey.shade400;
+    final shadowColor = isDark
+        ? Colors.black.withOpacity(0.5)
+        : Colors.black.withOpacity(0.08);
+
     // Shrift uslubi (Haqiqiy raqamga o'xshash)
-    const TextStyle plateTextStyle = TextStyle(
+    final TextStyle plateTextStyle = TextStyle(
       fontFamily: 'Roboto',
       fontSize: 26, // Biroz kichraytirdik, sig'ishi uchun
       fontWeight: FontWeight.w900,
-      color: Colors.black,
+      color: textColor,
       height: 1.2,
     );
 
@@ -106,16 +122,13 @@ class _UzbekLicensePlateInputState extends State<UzbekLicensePlateInput> {
       height: 58, // Standart balandlik
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(8),
-        // Tashqi qora ramka (Aslida bo'lishi shart)
-        border: Border.all(
-          color: widget.hasError ? Colors.red : Colors.black,
-          width: 1.5,
-        ),
+        // Tashqi ramka
+        border: Border.all(color: borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: shadowColor,
             blurRadius: 6,
             offset: const Offset(0, 3),
           ),
@@ -161,10 +174,15 @@ class _UzbekLicensePlateInputState extends State<UzbekLicensePlateInput> {
                     width: 6,
                     height: 6,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade400,
+                      color: boltColor,
                       shape: BoxShape.circle,
-                      boxShadow: const [
-                        BoxShadow(color: Colors.black12, blurRadius: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDark
+                              ? Colors.black.withOpacity(0.5)
+                              : Colors.black12,
+                          blurRadius: 1,
+                        ),
                       ],
                     ),
                   ),
@@ -174,7 +192,7 @@ class _UzbekLicensePlateInputState extends State<UzbekLicensePlateInput> {
           ),
 
           // 2. VERTIKAL CHIZIQ
-          Container(width: 1.5, height: double.infinity, color: Colors.black),
+          Container(width: 1.5, height: double.infinity, color: dividerColor),
 
           // 3. ASOSIY RAQAM (Avtomatik Formatlash bilan)
           Expanded(
@@ -195,9 +213,7 @@ class _UzbekLicensePlateInputState extends State<UzbekLicensePlateInput> {
                     // Input ichidagi chiziqlarni yo'qotish
                     decoration: InputDecoration(
                       hintText: "A 123 AA",
-                      hintStyle: plateTextStyle.copyWith(
-                        color: Colors.grey.shade300,
-                      ),
+                      hintStyle: plateTextStyle.copyWith(color: hintColor),
                       border: InputBorder.none,
                       focusedBorder: InputBorder.none,
                       enabledBorder: InputBorder.none,
@@ -231,10 +247,15 @@ class _UzbekLicensePlateInputState extends State<UzbekLicensePlateInput> {
                     width: 6,
                     height: 6,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade400,
+                      color: boltColor,
                       shape: BoxShape.circle,
-                      boxShadow: const [
-                        BoxShadow(color: Colors.black12, blurRadius: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDark
+                              ? Colors.black.withOpacity(0.5)
+                              : Colors.black12,
+                          blurRadius: 1,
+                        ),
                       ],
                     ),
                   ),
@@ -321,6 +342,18 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
     _passportCtrl.addListener(_onPassportChanged);
     _techSeriesCtrl.addListener(_onTechPassportChanged);
     _techNumberCtrl.addListener(_onTechPassportChanged);
+    // Настройка статус-бара для темного режима
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        SystemChrome.setSystemUIOverlayStyle(
+          SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+          ),
+        );
+      }
+    });
   }
 
   void _onPassportChanged() {
@@ -550,9 +583,7 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(
-          0xFFF9F9FB,
-        ), // Light background for contrast
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           title: Text('insurance.osago.vehicle.title'.tr()),
           backgroundColor: Theme.of(context).cardColor,
@@ -565,6 +596,12 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
             color: Theme.of(context).textTheme.titleLarge?.color,
             fontSize: 18,
             fontWeight: FontWeight.w700,
+          ),
+          systemOverlayStyle: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark
+                ? Brightness.light
+                : Brightness.dark,
           ),
         ),
         body: GestureDetector(
@@ -615,10 +652,10 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
                               decoration: InputDecoration(
                                 hintText: "AA1234567",
                                 hintStyle: TextStyle(
-                                  color: Colors.grey.shade400,
+                                  color: Theme.of(context).hintColor,
                                 ),
                                 filled: true,
-                                fillColor: Colors.white,
+                                fillColor: Theme.of(context).cardColor,
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16,
                                   vertical: 16,
@@ -626,13 +663,13 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide(
-                                    color: Colors.grey.shade300,
+                                    color: Theme.of(context).dividerColor,
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide(
-                                    color: Colors.grey.shade300,
+                                    color: Theme.of(context).dividerColor,
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
@@ -644,8 +681,8 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
                                 ),
                                 errorBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.red,
+                                  borderSide: BorderSide(
+                                    color: Theme.of(context).colorScheme.error,
                                   ),
                                 ),
                               ),
@@ -726,7 +763,9 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
                   color: Theme.of(context).cardColor,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.black.withOpacity(0.3)
+                          : Colors.black.withOpacity(0.05),
                       blurRadius: 10,
                       offset: const Offset(0, -5),
                     ),
