@@ -26,6 +26,76 @@ class ApiConstants {
   static String get effectiveBaseUrl => _customBaseUrl ?? baseUrl;
 }
 
+/// Trust Insurance API Configuration
+/// 
+/// Bu config Trust Accident Insurance API uchun credentials va base URL ni boshqaradi.
+/// 
+/// **MUHIM:** Production'da haqiqiy credentials ishlating!
+/// 
+/// **Variant 1:** Environment variables (Tavsiya etiladi)
+/// ```bash
+/// flutter run --dart-define=TRUST_API_BASE_URL=https://api.trust-insurance.uz \
+///            --dart-define=TRUST_LOGIN=your_username \
+///            --dart-define=TRUST_PASSWORD=your_password
+/// ```
+/// 
+/// **Variant 2:** Bu faylda to'g'ridan-to'g'ri o'zgartiring (pastda)
+class TrustInsuranceConfig {
+  TrustInsuranceConfig._();
+
+  // Trust Insurance API Base URL
+  // Environment variable: TRUST_API_BASE_URL
+  static String get baseUrl {
+    const envUrl = String.fromEnvironment('TRUST_API_BASE_URL', defaultValue: '');
+    if (envUrl.isNotEmpty) {
+      return envUrl;
+    }
+    // Trust Insurance API ham api.kliro.uz da joylashgan
+    return 'https://api.kliro.uz';
+  }
+
+  // Trust Insurance Basic Auth Username
+  // Environment variable: TRUST_LOGIN
+  static String get username {
+    const envUsername = String.fromEnvironment('TRUST_LOGIN', defaultValue: '');
+    if (envUsername.isNotEmpty) {
+      return envUsername;
+    }
+    // ⚠️ BU YERNI HAQIQIY USERNAME BILAN O'ZGARTIRING!
+    // Yoki environment variable ishlating: --dart-define=TRUST_LOGIN=username
+    return '';
+  }
+
+  // Trust Insurance Basic Auth Password
+  // Environment variable: TRUST_PASSWORD
+  static String get password {
+    const envPassword = String.fromEnvironment('TRUST_PASSWORD', defaultValue: '');
+    if (envPassword.isNotEmpty) {
+      return envPassword;
+    }
+    // ⚠️ BU YERNI HAQIQIY PASSWORD BILAN O'ZGARTIRING!
+    // Yoki environment variable ishlating: --dart-define=TRUST_PASSWORD=password
+    return '';
+  }
+
+  /// Config to'g'ri sozlanganligini tekshirish
+  static bool get isConfigured {
+    // Faqat username va password mavjudligini tekshiramiz
+    // Base URL default bo'lishi mumkin, lekin credentials bo'lishi kerak
+    return baseUrl.isNotEmpty && 
+           username.isNotEmpty && 
+           password.isNotEmpty;
+  }
+
+  /// Config haqida ma'lumot
+  static String get configInfo {
+    return 'Base URL: $baseUrl\n'
+           'Username: ${username.isEmpty ? "NOT SET" : "***"}\n'
+           'Password: ${password.isEmpty ? "NOT SET" : "***"}\n'
+           'Configured: $isConfigured';
+  }
+}
+
 class ApiPaths {
   ApiPaths._();
 

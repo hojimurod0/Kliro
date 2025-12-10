@@ -25,6 +25,7 @@ import '../../features/kasko/kasko_module.dart';
 import '../../features/osago/osago_module.dart';
 import '../../features/travel/travel/travel_module.dart';
 import '../../features/travel/travel/presentation/screens/travel_order_information_screen.dart';
+import '../../features/accident/accident_module.dart';
 import '../../features/micro_loan/presentation/pages/micro_loan_page.dart';
 import '../../features/profile/presentation/pages/profile_edit_page.dart';
 import '../../features/profile/presentation/pages/about_app_page.dart';
@@ -84,6 +85,7 @@ class AppRouter extends _$AppRouter {
     AutoRoute(page: OsagoModuleRoute.page),
     AutoRoute(page: TravelModuleRoute.page),
     AutoRoute(page: TravelOrderInformationRoute.page),
+    AutoRoute(page: AccidentModuleRoute.page),
     AutoRoute(page: AutoCreditRoute.page),
     AutoRoute(page: MortgageRoute.page),
     AutoRoute(page: CardsRoute.page),

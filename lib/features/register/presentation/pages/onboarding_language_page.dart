@@ -32,6 +32,13 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
     return l.toLanguageTag();
   }
 
+  // Локалларни солиштириш учун ёрдамчи функция
+  bool _isLocaleEqual(Locale? locale1, Locale locale2) {
+    if (locale1 == null) return false;
+    return locale1.languageCode == locale2.languageCode &&
+        locale1.countryCode == locale2.countryCode;
+  }
+
   String _getCtaText(Locale locale) {
     final country = locale.countryCode?.toUpperCase();
     if (locale.languageCode == 'uz' && country == 'CYR') {
@@ -60,16 +67,137 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Kontekstdagi locale'ni boshlang'ich qiymat sifatida tanlab qo'yamiz
-    _selected ??= context.locale;
+    // Locale o'zgarganda yangilash
+    final currentLocale = context.locale;
+    if (_selected == null || !_isLocaleEqual(_selected, currentLocale)) {
+      _selected = currentLocale;
+      debugPrint('OnboardingLanguagePage: Locale updated: ${currentLocale.languageCode}_${currentLocale.countryCode ?? 'null'}');
+    }
   }
 
   Future<void> _apply() async {
-    final chosen = _selected ?? context.locale;
-    await LocalePrefs.save(chosen);
-    await context.setLocale(chosen);
-    // Locale yuklanishini kutish uchun kichik kechikish
-    await Future.delayed(const Duration(milliseconds: 150));
-    widget.onSelected();
+    if (!mounted) return;
+
+    try {
+      // Локални текшириш - агар кирилл локали бўлса, тўғри форматда бўлишини текшириш
+      final localeToSet = _selected ?? context.locale;
+      debugPrint(
+        'Onboarding: Changing locale to: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}',
+      );
+
+      // Avval locale'ni saqlaymiz
+      await LocalePrefs.save(localeToSet);
+      debugPrint(
+        'Onboarding: Locale saved: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}',
+      );
+
+      // Keyin locale'ni o'zgartiramiz
+      // EasyLocalization xatolikni o'zi boshqaradi, lekin biz yana ham xavfsizlikni ta'minlaymiz
+      if (mounted) {
+        debugPrint(
+          'Onboarding: Setting locale: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}',
+        );
+
+        // Локални текшириш ва ўрнатиш
+        try {
+          // Кирилл локали учун қўшимча вақт бериш
+          if (localeToSet.languageCode == 'uz' && localeToSet.countryCode == 'CYR') {
+            await Future.delayed(const Duration(milliseconds: 100));
+          }
+          await context.setLocale(localeToSet);
+          
+          // Локалнинг тўғри ўрнатилганини текшириш
+          final actualLocale = context.locale;
+          debugPrint(
+            'Onboarding: Locale set successfully: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}',
+          );
+          debugPrint(
+            'Onboarding: Actual locale after set: ${actualLocale.languageCode}_${actualLocale.countryCode ?? 'null'}',
+          );
+          
+          // Локалнинг мос келишини текшириш
+          if (actualLocale.languageCode != localeToSet.languageCode ||
+              actualLocale.countryCode != localeToSet.countryCode) {
+            debugPrint('Onboarding: WARNING: Locale mismatch! Expected: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}, Got: ${actualLocale.languageCode}_${actualLocale.countryCode ?? 'null'}');
+          }
+
+          // Таржима файлини текшириш
+          try {
+            final testTranslation = tr('app_title');
+            debugPrint('Onboarding: Translation test: app_title = $testTranslation');
+          } catch (e) {
+            debugPrint('Onboarding: Translation error: $e');
+            // Таржима хатоси бўлса ҳам, локал ўрнатилди, шунинг учун давом этиш
+          }
+        } catch (setLocaleError) {
+          debugPrint('Onboarding: Error setting locale: $setLocaleError');
+          // Агар локални ўрнатишда хато бўлса, fallback локални ишлатиш
+          if (mounted) {
+            try {
+              // Кирилл локали учун алохида ишлаш
+              if (localeToSet.languageCode == 'uz' &&
+                  localeToSet.countryCode == 'CYR') {
+                // Кирилл локали учун қайта уриниш
+                await Future.delayed(const Duration(milliseconds: 200));
+                await context.setLocale(localeToSet);
+                debugPrint('Onboarding: Cyrillic locale set after retry');
+              } else {
+                // Бошқа локаллар учун fallback
+                await context.setLocale(const Locale('en'));
+                debugPrint('Onboarding: Fallback to English locale');
+              }
+            } catch (fallbackError) {
+              debugPrint('Onboarding: Fallback locale error: $fallbackError');
+              // Хатолик бўлса ҳам, локал сақланди, шунинг учун давом этиш
+            }
+          }
+        }
+
+        // Locale yuklanishini kutish uchun kichik kechikish
+        // Bu vaqt ichida barcha widget'lar qayta build bo'lishi uchun
+        // Кирилл локали учун қўшимча вақт бериш
+        if (localeToSet.languageCode == 'uz' && localeToSet.countryCode == 'CYR') {
+          await Future.delayed(const Duration(milliseconds: 300));
+        } else {
+          await Future.delayed(const Duration(milliseconds: 200));
+        }
+        
+        // Locale'ning тўғри ўрнатилганини текшириш
+        if (mounted) {
+          final finalLocale = context.locale;
+          debugPrint('Onboarding: Final locale before navigation: ${finalLocale.languageCode}_${finalLocale.countryCode ?? 'null'}');
+          
+          // Локалнинг мос келишини яна бир бор текшириш
+          if (finalLocale.languageCode != localeToSet.languageCode ||
+              finalLocale.countryCode != localeToSet.countryCode) {
+            debugPrint('Onboarding: WARNING: Final locale mismatch! Expected: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}, Got: ${finalLocale.languageCode}_${finalLocale.countryCode ?? 'null'}');
+            // Агар локал мос келмаса, қайта уриниш
+            if (mounted) {
+              try {
+                await context.setLocale(localeToSet);
+                debugPrint('Onboarding: Retry setLocale successful');
+              } catch (e) {
+                debugPrint('Onboarding: Retry setLocale failed: $e');
+              }
+            }
+          }
+          
+          // Qo'shimcha rebuild uchun bir marta setState chaqirish
+          // Bu parent widget'ga locale o'zgarganini bildiradi
+          if (mounted) {
+            widget.onSelected();
+          }
+        }
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Onboarding: Error in locale apply: $e');
+      debugPrint('Onboarding: Stack trace: $stackTrace');
+      // Хатолик бўлса ҳам, локал сақланди ва давом этиш
+      if (mounted) {
+        await Future.delayed(const Duration(milliseconds: 200));
+        widget.onSelected();
+      }
+    }
   }
 
   @override
@@ -155,7 +283,7 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
                 separatorBuilder: (_, __) => SizedBox(height: cardSpacing),
                 itemBuilder: (context, i) {
                   final l = _locales[i];
-                  final isSelected = _selected == l;
+                  final isSelected = _isLocaleEqual(_selected, l);
                   return Card(
                     elevation: 0,
                     color: Colors.white,

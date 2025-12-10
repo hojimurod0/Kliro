@@ -88,6 +88,22 @@ class InsuranceLocalDataSource {
         buttonText: safeTr('travel.button_text'),
         imagePath: 'assets/images/sugurtapilot.png',
       ),
+      InsuranceServiceModel(
+        id: 'accident',
+        title: safeTr('insurance.accident.title'),
+        subtitle: safeTr('insurance.accident.subtitle'),
+        description: safeTr('insurance.accident.description'),
+        features: [
+          safeTr('insurance.accident.feature_1'),
+          safeTr('insurance.accident.feature_2'),
+          safeTr('insurance.accident.feature_3'),
+        ],
+        primaryColor: orangePrimary,
+        lightColor: lightOrange,
+        iconData: Icons.medical_services,
+        buttonText: safeTr('insurance.accident.button_text'),
+        imagePath: 'assets/images/kasko.png',
+      ),
     ];
   }
 }

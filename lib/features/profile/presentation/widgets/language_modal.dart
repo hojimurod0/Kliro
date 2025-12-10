@@ -82,7 +82,15 @@ class _LanguageActionSheetState extends State<LanguageActionSheet> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _selectedLocale ??= context.locale;
+    // Locale o'zgarganda yangilash
+    final currentLocale = context.locale;
+    if (_selectedLocale == null ||
+        !_isLocaleEqual(_selectedLocale!, currentLocale)) {
+      _selectedLocale = currentLocale;
+      debugPrint(
+        'LanguageModal: Locale updated: ${currentLocale.languageCode}_${currentLocale.countryCode ?? 'null'}',
+      );
+    }
   }
 
   String _getLanguageTitle(Locale locale) {
@@ -103,9 +111,14 @@ class _LanguageActionSheetState extends State<LanguageActionSheet> {
 
   @override
   Widget build(BuildContext context) {
-    // Ensure locale is initialized
-    if (_selectedLocale == null) {
-      _selectedLocale = context.locale;
+    // Ensure locale is initialized and updated
+    final currentLocale = context.locale;
+    if (_selectedLocale == null ||
+        !_isLocaleEqual(_selectedLocale, currentLocale)) {
+      _selectedLocale = currentLocale;
+      debugPrint(
+        'LanguageModal.build: Locale initialized/updated: ${currentLocale.languageCode}_${currentLocale.countryCode ?? 'null'}',
+      );
     }
 
     final double screenHeight = MediaQuery.of(context).size.height;
@@ -185,6 +198,13 @@ class _LanguageActionSheetState extends State<LanguageActionSheet> {
     );
   }
 
+  // Локалларни солиштириш учун ёрдамчи функция
+  bool _isLocaleEqual(Locale? locale1, Locale locale2) {
+    if (locale1 == null) return false;
+    return locale1.languageCode == locale2.languageCode &&
+        locale1.countryCode == locale2.countryCode;
+  }
+
   // 3. Har bir variant elementi uchun yordamchi widget
   Widget _buildOptionItem({
     required Locale locale,
@@ -192,8 +212,7 @@ class _LanguageActionSheetState extends State<LanguageActionSheet> {
     bool isMiddle = false,
     bool isLast = false,
   }) {
-    final bool isSelected =
-        _selectedLocale != null && _selectedLocale == locale;
+    final bool isSelected = _isLocaleEqual(_selectedLocale, locale);
 
     // Tanlangan variant uchun maxsus stil
     Color bgColor = isSelected ? kSelectedBgColor : kUnselectedBgColor;
@@ -202,32 +221,239 @@ class _LanguageActionSheetState extends State<LanguageActionSheet> {
     return InkWell(
       onTap: () async {
         // Tilni o'zgartirish funksiyasi
+        if (!mounted) return;
+
         try {
+          // Локални текшириш - агар кирилл локали бўлса, тўғри форматда бўлишини текшириш
+          final localeToSet = locale;
+          debugPrint(
+            'Changing locale to: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}',
+          );
+
           // Avval locale'ni saqlaymiz
-          await LocalePrefs.save(locale);
+          await LocalePrefs.save(localeToSet);
+          debugPrint(
+            'Locale saved: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}',
+          );
+
           // Keyin locale'ni o'zgartiramiz
-          await context.setLocale(locale);
+          // EasyLocalization xatolikni o'zi boshqaradi, lekin biz yana ham xavfsizlikni ta'minlaymiz
           if (mounted) {
-            setState(() {
-              _selectedLocale = locale;
-            });
-            Navigator.pop(context);
-            // Profile page ni yangilash uchun
+            debugPrint(
+              'Setting locale: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}',
+            );
+
+            // Локални текшириш ва ўрнатиш
+            try {
+              // Кирилл локали учун қўшимча вақт бериш
+              if (localeToSet.languageCode == 'uz' &&
+                  localeToSet.countryCode == 'CYR') {
+                debugPrint(
+                  'LanguageModal: Cyrillic locale detected, adding delay...',
+                );
+                await Future.delayed(const Duration(milliseconds: 200));
+              }
+
+              // Локални ўрнатиш
+              debugPrint('LanguageModal: Calling setLocale...');
+              await context.setLocale(localeToSet);
+
+              // Кирилл локали учун қўшимча вақт бериш (setLocale дан кейин)
+              if (localeToSet.languageCode == 'uz' &&
+                  localeToSet.countryCode == 'CYR') {
+                await Future.delayed(const Duration(milliseconds: 150));
+              }
+
+              // Локалнинг тўғри ўрнатилганини текшириш
+              final actualLocale = context.locale;
+              debugPrint(
+                'Locale set successfully: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}',
+              );
+              debugPrint(
+                'Actual locale after set: ${actualLocale.languageCode}_${actualLocale.countryCode ?? 'null'}',
+              );
+
+              // Локалнинг мос келишини текшириш
+              if (actualLocale.languageCode != localeToSet.languageCode ||
+                  actualLocale.countryCode != localeToSet.countryCode) {
+                debugPrint(
+                  'WARNING: Locale mismatch! Expected: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}, Got: ${actualLocale.languageCode}_${actualLocale.countryCode ?? 'null'}',
+                );
+
+                // Агар локал мос келмаса, қайта уриниш
+                if (mounted) {
+                  debugPrint('LanguageModal: Retrying setLocale...');
+                  try {
+                    if (localeToSet.languageCode == 'uz' &&
+                        localeToSet.countryCode == 'CYR') {
+                      await Future.delayed(const Duration(milliseconds: 200));
+                    }
+                    await context.setLocale(localeToSet);
+                    final retryLocale = context.locale;
+                    debugPrint(
+                      'LanguageModal: Retry locale: ${retryLocale.languageCode}_${retryLocale.countryCode ?? 'null'}',
+                    );
+                  } catch (e) {
+                    debugPrint('LanguageModal: Retry failed: $e');
+                  }
+                }
+              }
+
+              // Таржима файлини текшириш
+              try {
+                final testTranslation = tr('app_title');
+                debugPrint('Translation test: app_title = $testTranslation');
+              } catch (e) {
+                debugPrint('Translation error: $e');
+                // Таржима хатоси бўлса ҳам, локал ўрнатилди, шунинг учун давом этиш
+              }
+            } catch (setLocaleError) {
+              debugPrint('Error setting locale: $setLocaleError');
+              // Агар локални ўрнатишда хато бўлса, fallback локални ишлатиш
+              if (mounted) {
+                try {
+                  // Кирилл локали учун алохида ишлаш
+                  if (localeToSet.languageCode == 'uz' &&
+                      localeToSet.countryCode == 'CYR') {
+                    // Кирилл локали учун қайта уриниш
+                    debugPrint('LanguageModal: Retrying Cyrillic locale...');
+                    await Future.delayed(const Duration(milliseconds: 200));
+                    await context.setLocale(localeToSet);
+
+                    // Яна бир бор текшириш
+                    await Future.delayed(const Duration(milliseconds: 100));
+                    final retryLocale = context.locale;
+                    debugPrint(
+                      'LanguageModal: Cyrillic locale after retry: ${retryLocale.languageCode}_${retryLocale.countryCode ?? 'null'}',
+                    );
+
+                    if (retryLocale.languageCode != localeToSet.languageCode ||
+                        retryLocale.countryCode != localeToSet.countryCode) {
+                      debugPrint(
+                        'LanguageModal: Cyrillic locale still not matching, trying one more time...',
+                      );
+                      await Future.delayed(const Duration(milliseconds: 200));
+                      await context.setLocale(localeToSet);
+                    }
+                  } else {
+                    // Бошқа локаллар учун fallback
+                    await context.setLocale(const Locale('en'));
+                    debugPrint('Fallback to English locale');
+                  }
+                } catch (fallbackError) {
+                  debugPrint('Fallback locale error: $fallbackError');
+                  // Хатолик бўлса ҳам, локал сақланди, шунинг учун давом этиш
+                }
+              }
+            }
+
             if (mounted) {
-              setState(() {});
+              setState(() {
+                _selectedLocale = localeToSet;
+              });
+
+              debugPrint('LanguageModal: Locale changed, closing modal');
+
+              // Кирилл локали учун қўшимча вақт бериш (модал ёпилишидан олдин)
+              if (localeToSet.languageCode == 'uz' &&
+                  localeToSet.countryCode == 'CYR') {
+                debugPrint(
+                  'LanguageModal: Cyrillic locale - adding extra delay before closing modal',
+                );
+                await Future.delayed(const Duration(milliseconds: 200));
+
+                // Яна бир бор локални текшириш ва қўллаш
+                final checkLocale = context.locale;
+                if (checkLocale.languageCode != localeToSet.languageCode ||
+                    checkLocale.countryCode != localeToSet.countryCode) {
+                  debugPrint(
+                    'LanguageModal: Cyrillic locale not applied, retrying...',
+                  );
+                  await context.setLocale(localeToSet);
+                  await Future.delayed(const Duration(milliseconds: 100));
+                }
+              }
+
+              // Modalni yopish
+              Navigator.pop(context);
+
+              // Qo'shimcha rebuild uchun - bu barcha widget'larni yangilash uchun
+              // Locale o'zgarganda MaterialApp qayta build bo'lishi uchun
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                if (mounted) {
+                  // Locale o'zgarganini tasdiqlash
+                  try {
+                    // Кирилл локали учун қўшимча вақт бериш
+                    if (localeToSet.languageCode == 'uz' &&
+                        localeToSet.countryCode == 'CYR') {
+                      await Future.delayed(const Duration(milliseconds: 100));
+                    }
+
+                    final finalLocale = context.locale;
+                    debugPrint(
+                      'LanguageModal: Final locale after modal close: ${finalLocale.languageCode}_${finalLocale.countryCode ?? 'null'}',
+                    );
+
+                    // Агар локал мос келмаса, қайта уриниш
+                    if (finalLocale.languageCode != localeToSet.languageCode ||
+                        finalLocale.countryCode != localeToSet.countryCode) {
+                      debugPrint(
+                        'LanguageModal: Locale still not matching, retrying setLocale...',
+                      );
+                      try {
+                        await context.setLocale(localeToSet);
+                        await Future.delayed(const Duration(milliseconds: 100));
+                        final retryLocale = context.locale;
+                        debugPrint(
+                          'LanguageModal: Retry locale: ${retryLocale.languageCode}_${retryLocale.countryCode ?? 'null'}',
+                        );
+                      } catch (e) {
+                        debugPrint('LanguageModal: Retry setLocale failed: $e');
+                      }
+                    }
+                  } catch (e) {
+                    debugPrint(
+                      'LanguageModal: Error checking final locale: $e',
+                    );
+                  }
+                }
+              });
             }
           }
-        } catch (e) {
-          // Xatolik bo'lsa, faqat locale'ni saqlaymiz va qayta urinamiz
-          await LocalePrefs.save(locale);
-          try {
-            await context.setLocale(locale);
-          } catch (_) {}
+        } catch (e, stackTrace) {
+          debugPrint('Error in locale change: $e');
+          debugPrint('Stack trace: $stackTrace');
+
+          // Xatolik bo'lsa, locale'ni saqlash ва qayta urinish
           if (mounted) {
-            setState(() {
-              _selectedLocale = locale;
-            });
-            Navigator.pop(context);
+            try {
+              // Locale'ni yana saqlashga harakat qilamiz
+              await LocalePrefs.save(locale);
+
+              // setLocale'ni yana chaqirishga harakat qilamiz
+              if (mounted) {
+                // Кирилл локали учун қўшимча вақт бериш
+                if (locale.languageCode == 'uz' &&
+                    locale.countryCode == 'CYR') {
+                  await Future.delayed(const Duration(milliseconds: 200));
+                }
+                await context.setLocale(locale);
+                debugPrint('Locale set after error retry');
+              }
+            } catch (e2) {
+              // Agar yana xatolik bo'lsa, debug uchun log qilamiz
+              debugPrint('Locale o\'zgartirishda xatolik: $e2');
+              // Хатолик бўлса ҳам, локал сақланди ва UI ни янгилаш керак
+            }
+
+            if (mounted) {
+              setState(() {
+                _selectedLocale = locale;
+              });
+
+              // Modalni yopish (xatolik bo'lsa ham)
+              Navigator.pop(context);
+            }
           }
         }
       },

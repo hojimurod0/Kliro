@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -60,7 +61,17 @@ import '../../../features/kasko/domain/usecases/get_rates.dart';
 import '../../../features/kasko/domain/usecases/save_order.dart';
 import '../../../features/kasko/domain/usecases/upload_image.dart';
 import '../../../features/kasko/presentation/bloc/kasko_bloc.dart';
+import '../../../features/accident/data/datasources/trust_insurance_remote_data_source.dart';
+import '../../../features/accident/data/datasources/trust_insurance_dio_client.dart';
+import '../../../features/accident/data/repositories/accident_repository_impl.dart';
+import '../../../features/accident/domain/repositories/accident_repository.dart';
+import '../../../features/accident/domain/usecases/get_tariffs.dart';
+import '../../../features/accident/domain/usecases/get_regions.dart';
+import '../../../features/accident/domain/usecases/create_insurance.dart';
+import '../../../features/accident/domain/usecases/check_payment.dart';
+import '../../../features/accident/presentation/bloc/accident_bloc.dart';
 import '../../services/auth/auth_service.dart';
+import '../../constants/constants.dart';
 import '../client/dio_client.dart';
 
 class ServiceLocator {
@@ -173,6 +184,30 @@ class ServiceLocator {
         () => KaskoRemoteDataSourceImpl(_getIt<Dio>()),
       );
     }
+    // Trust Insurance Data Sources
+    if (!_getIt.isRegistered<TrustInsuranceDioClient>()) {
+      // Config tekshiruvi
+      if (!TrustInsuranceConfig.isConfigured) {
+        debugPrint('⚠️ WARNING: Trust Insurance config not fully configured!');
+        debugPrint(TrustInsuranceConfig.configInfo);
+        debugPrint('Please configure credentials before using Trust Insurance API');
+      }
+      
+      _getIt.registerLazySingleton<TrustInsuranceDioClient>(
+        () => TrustInsuranceDioClient(
+          baseUrl: TrustInsuranceConfig.baseUrl,
+          username: TrustInsuranceConfig.username,
+          password: TrustInsuranceConfig.password,
+        ),
+      );
+    }
+    if (!_getIt.isRegistered<TrustInsuranceRemoteDataSource>()) {
+      _getIt.registerLazySingleton<TrustInsuranceRemoteDataSource>(
+        () => TrustInsuranceRemoteDataSourceImpl(
+          _getIt<TrustInsuranceDioClient>().client,
+        ),
+      );
+    }
   }
 
   static void _registerRepositories() {
@@ -237,6 +272,14 @@ class ServiceLocator {
     if (!_getIt.isRegistered<KaskoRepository>()) {
       _getIt.registerLazySingleton<KaskoRepository>(
         () => KaskoRepositoryImpl(_getIt<KaskoRemoteDataSource>()),
+      );
+    }
+    // Accident Repository
+    if (!_getIt.isRegistered<AccidentRepository>()) {
+      _getIt.registerLazySingleton<AccidentRepository>(
+        () => AccidentRepositoryImpl(
+          remoteDataSource: _getIt<TrustInsuranceRemoteDataSource>(),
+        ),
       );
     }
   }
@@ -313,6 +356,15 @@ class ServiceLocator {
       () => CheckPaymentStatus(_getIt<KaskoRepository>()),
     );
     _registerLazy<UploadImage>(() => UploadImage(_getIt<KaskoRepository>()));
+    // Accident Use Cases
+    _registerLazy<GetTariffs>(() => GetTariffs(_getIt<AccidentRepository>()));
+    _registerLazy<GetRegions>(() => GetRegions(_getIt<AccidentRepository>()));
+    _registerLazy<CreateInsurance>(
+      () => CreateInsurance(_getIt<AccidentRepository>()),
+    );
+    _registerLazy<CheckPayment>(
+      () => CheckPayment(_getIt<AccidentRepository>()),
+    );
   }
 
   static void _registerLazy<T extends Object>(T Function() factoryFunc) {
@@ -372,6 +424,15 @@ class ServiceLocator {
         getPaymentLink: _getIt(),
         checkPaymentStatus: _getIt(),
         uploadImage: _getIt(),
+      ),
+    );
+    // Accident BLoC
+    _getIt.registerFactory<AccidentBloc>(
+      () => AccidentBloc(
+        getTariffs: _getIt(),
+        getRegions: _getIt(),
+        createInsurance: _getIt(),
+        checkPayment: _getIt(),
       ),
     );
   }
