@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../widgets/main_bottom_navigation.dart';
@@ -11,10 +12,7 @@ import '../../../profile/presentation/pages/profile_page.dart';
 class MainNavigationPage extends StatefulWidget {
   final TabItem initialTab;
 
-  const MainNavigationPage({
-    super.key,
-    this.initialTab = TabItem.home,
-  });
+  const MainNavigationPage({super.key, this.initialTab = TabItem.home});
 
   @override
   State<MainNavigationPage> createState() => _MainNavigationPageState();
@@ -22,19 +20,24 @@ class MainNavigationPage extends StatefulWidget {
 
 class _MainNavigationPageState extends State<MainNavigationPage> {
   late TabItem _currentTab;
-  late final List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
     _currentTab = widget.initialTab;
-    _pages = [
+  }
+
+  List<Widget> _buildPages(BuildContext context) {
+    // Locale o'zgarishini kuzatish uchun context.locale ni ishlatamiz
+    final locale = context.locale;
+    return [
       HomePage(
+        key: ValueKey('home_${locale.toString()}'),
         onTabChange: _handleTabChange,
       ),
-      const ServicesPage(),
-      const FavoritesPage(),
-      const ProfilePage(),
+      ServicesPage(key: ValueKey('services_${locale.toString()}')),
+      FavoritesPage(key: ValueKey('favorites_${locale.toString()}')),
+      ProfilePage(key: ValueKey('profile_${locale.toString()}')),
     ];
   }
 
@@ -47,12 +50,16 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Locale o'zgarishini kuzatish uchun context.locale ni ishlatamiz
+    final locale = context.locale;
     return Scaffold(
       body: IndexedStack(
+        key: ValueKey('indexed_stack_${locale.toString()}'),
         index: _currentTab.index,
-        children: _pages,
+        children: _buildPages(context),
       ),
       bottomNavigationBar: MainBottomNavigation(
+        key: ValueKey('bottom_nav_${locale.toString()}'),
         currentTab: _currentTab,
         onTabChanged: _handleTabChange,
       ),
@@ -60,4 +67,3 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     );
   }
 }
-

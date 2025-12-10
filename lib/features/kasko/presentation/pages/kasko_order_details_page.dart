@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,13 +22,15 @@ class KaskoOrderDetailsPage extends StatelessWidget {
   const KaskoOrderDetailsPage({super.key});
 
   // Sug'urta qamrovi ro'yxati
-  final List<String> _insuranceCoverages = const [
-    'Avtomobilga yetkazilgan zarar',
-    'O\'g\'irlik va talonda',
-    'Tabiiy ofatlar',
-    'Uchinchi shaxslar zarari',
-    '24/7 yordam xizmati',
-  ];
+  List<String> _getInsuranceCoverages(BuildContext context) {
+    return [
+      'insurance.kasko.order_details.vehicle_damage'.tr(),
+      'insurance.kasko.order_details.theft_and_robbery'.tr(),
+      'insurance.kasko.order_details.natural_disasters'.tr(),
+      'insurance.kasko.order_details.third_party_damage'.tr(),
+      'insurance.kasko.order_details.assistance_service'.tr(),
+    ];
+  }
 
   // Qayta ishlatiladigan ma'lumot qatori (karta ichida)
   Widget _buildInfoRow({
@@ -62,10 +65,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    color: subtitleColor,
-                  ),
+                  style: TextStyle(fontSize: 14.sp, color: subtitleColor),
                 ),
                 SizedBox(height: 2.h),
                 Text(
@@ -99,34 +99,36 @@ class KaskoOrderDetailsPage extends StatelessWidget {
         ? bloc.selectedCarFullName
         : '--';
     final carYear = bloc.selectedYear != null
-        ? '${bloc.selectedYear}-yil'
+        ? '${bloc.selectedYear} ${tr('common.year')}'
         : '--';
-    final tariffName = bloc.selectedRate?.name ?? bloc.cachedSelectedRate?.name ?? '--';
-    
+    final tariffName =
+        bloc.selectedRate?.name ?? bloc.cachedSelectedRate?.name ?? '--';
+
     // Muddat, qoplash va sug'urta davri ma'lumotlarini olish
-    String duration = '12 oy';
-    String insurancePeriod = '1 йил';
+    String duration = '12 ${tr('common.months')}';
+    String insurancePeriod = '1 ${tr('common.year')}';
     String coverageAmount = '--';
-    String coverage = 'To\'liq zarar qoplash 100%';
-    
+    String coverage = tr('insurance.kasko.order_details.full_coverage');
+
     if (state is KaskoPolicyCalculated) {
       final beginDate = state.calculateResult.beginDate;
       final endDate = state.calculateResult.endDate;
       final days = endDate.difference(beginDate).inDays;
       final months = (days / 30).round();
       final years = (days / 365).round();
-      
-      duration = '$months oy';
-      insurancePeriod = years > 0 ? '$years йил' : '1 йил';
-      
+
+      duration = '$months ${tr('common.months')}';
+      insurancePeriod = years > 0 ? '$years ${tr('common.years')}' : '1 ${tr('common.year')}';
+
       // Қоплаш миқдори (Сумма покрытия)
-      final formattedCoverage = NumberFormat('#,###').format(
-        state.calculateResult.price.toInt(),
-      );
-      coverageAmount = '${formattedCoverage.replaceAll(',', ' ')} UZS';
-      
+      final formattedCoverage = NumberFormat(
+        '#,###',
+      ).format(state.calculateResult.price.toInt());
+      coverageAmount = '${formattedCoverage.replaceAll(',', ' ')} ${tr('common.soum')}';
+
       if (state.calculateResult.franchise > 0) {
-        coverage = 'Franchise: ${state.calculateResult.franchise.toStringAsFixed(0)} so\'m';
+        coverage =
+            '${tr('insurance.kasko.order_details.franchise')}: ${state.calculateResult.franchise.toStringAsFixed(0)} ${tr('common.soum')}';
       }
     } else if (bloc.cachedCalculateResult != null) {
       final calcResult = bloc.cachedCalculateResult!;
@@ -135,18 +137,19 @@ class KaskoOrderDetailsPage extends StatelessWidget {
       final days = endDate.difference(beginDate).inDays;
       final months = (days / 30).round();
       final years = (days / 365).round();
-      
-      duration = '$months oy';
-      insurancePeriod = years > 0 ? '$years йил' : '1 йил';
-      
+
+      duration = '$months ${tr('common.months')}';
+      insurancePeriod = years > 0 ? '$years ${tr('common.years')}' : '1 ${tr('common.year')}';
+
       // Қоплаш миқдори (Сумма покрытия)
-      final formattedCoverage = NumberFormat('#,###').format(
-        calcResult.price.toInt(),
-      );
-      coverageAmount = '${formattedCoverage.replaceAll(',', ' ')} UZS';
-      
+      final formattedCoverage = NumberFormat(
+        '#,###',
+      ).format(calcResult.price.toInt());
+      coverageAmount = '${formattedCoverage.replaceAll(',', ' ')} ${tr('common.soum')}';
+
       if (calcResult.franchise > 0) {
-        coverage = 'Franchise: ${calcResult.franchise.toStringAsFixed(0)} so\'m';
+        coverage =
+            'Franchise: ${calcResult.franchise.toStringAsFixed(0)} so\'m';
       }
     }
 
@@ -162,7 +165,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
           // 1. Суғурта даври (Срок страхования)
           _buildInfoRow(
             icon: Icons.calendar_today_outlined,
-            label: 'Суғурта даври',
+            label: 'insurance.kasko.order_details.insurance_period'.tr(),
             value: insurancePeriod,
             isDark: isDark,
             textColor: textColor,
@@ -171,7 +174,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
           // 2. Avtomobil
           _buildInfoRow(
             icon: Icons.directions_car_outlined,
-            label: 'Автомобил',
+            label: 'insurance.kasko.order_details.vehicle'.tr(),
             value: carModel,
             isBold: true,
             isDark: isDark,
@@ -183,16 +186,13 @@ class KaskoOrderDetailsPage extends StatelessWidget {
             padding: EdgeInsets.only(left: 55.w, bottom: 20.h),
             child: Text(
               carYear,
-              style: TextStyle(
-                fontSize: 16.sp,
-                color: textColor,
-              ),
+              style: TextStyle(fontSize: 16.sp, color: textColor),
             ),
           ),
           // 3. Қоплаш миқдори (Сумма покрытия)
           _buildInfoRow(
             icon: Icons.account_balance_wallet_outlined,
-            label: 'Қоплаш миқдори',
+            label: 'insurance.kasko.order_details.coverage_amount'.tr(),
             value: coverageAmount,
             isBold: true,
             isDark: isDark,
@@ -202,7 +202,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
           // 4. Tarif
           _buildInfoRow(
             icon: Icons.security_outlined,
-            label: 'Tarif',
+            label: 'insurance.kasko.order_details.tariff'.tr(),
             value: tariffName,
             isBold: true,
             isDark: isDark,
@@ -212,7 +212,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
           // 5. Muddat
           _buildInfoRow(
             icon: Icons.calendar_today_outlined,
-            label: 'Muddat',
+            label: 'insurance.kasko.order_details.duration'.tr(),
             value: duration,
             isDark: isDark,
             textColor: textColor,
@@ -221,7 +221,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
           // 6. Qoplash
           _buildInfoRow(
             icon: Icons.description_outlined,
-            label: 'Qoplash',
+            label: 'insurance.kasko.order_details.coverage'.tr(),
             value: coverage,
             isDark: isDark,
             textColor: textColor,
@@ -231,39 +231,39 @@ class KaskoOrderDetailsPage extends StatelessWidget {
       ),
     );
   }
-  
+
   // Avtomobil raqamini formatlash
   // Format: "01A000AA" -> "01 A 000 AA"
   String _formatCarNumber(String? carNumber) {
     if (carNumber == null || carNumber.isEmpty || carNumber == '--') {
       return '--';
     }
-    
+
     // Bo'shliqlarni olib tashlash va katta harflarga o'tkazish
     final cleanNumber = carNumber.replaceAll(' ', '').toUpperCase();
-    
+
     // Format: Region (2 raqam) + Number (1 harf + 3 raqam + 2 harf)
     // Jami: 2 + 6 = 8 belgi
     if (cleanNumber.length < 8) {
       return carNumber; // Agar format noto'g'ri bo'lsa, asl qiymatni qaytarish
     }
-    
+
     try {
       // Region (2 ta raqam)
       final region = cleanNumber.substring(0, 2);
-      
+
       // Number qismi (6 ta belgi: 1 harf + 3 raqam + 2 harf)
       final numberPart = cleanNumber.substring(2);
-      
+
       if (numberPart.length < 6) {
         return carNumber;
       }
-      
+
       // Number qismini formatlash: A 000 AA
       final firstLetter = numberPart[0];
       final digits = numberPart.substring(1, 4);
       final lastLetters = numberPart.substring(4);
-      
+
       // Format: "01 A 000 AA"
       return '$region $firstLetter $digits $lastLetters';
     } catch (e) {
@@ -278,14 +278,14 @@ class KaskoOrderDetailsPage extends StatelessWidget {
     if (phone == null || phone.isEmpty || phone == '--') {
       return '--';
     }
-    
+
     // + ni olib tashlash
     final cleanPhone = phone.replaceAll('+', '').replaceAll(' ', '');
-    
+
     if (cleanPhone.length < 12) {
       return phone;
     }
-    
+
     try {
       // Format: +998 90 123 45 67
       final countryCode = cleanPhone.substring(0, 3); // 998
@@ -293,7 +293,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
       final part1 = cleanPhone.substring(5, 8); // 123
       final part2 = cleanPhone.substring(8, 10); // 45
       final part3 = cleanPhone.substring(10); // 67
-      
+
       return '+$countryCode $operatorCode $part1 $part2 $part3';
     } catch (e) {
       return phone;
@@ -306,13 +306,13 @@ class KaskoOrderDetailsPage extends StatelessWidget {
     if (passport == null || passport.isEmpty || passport == '--') {
       return '--';
     }
-    
+
     final cleanPassport = passport.replaceAll(' ', '').toUpperCase();
-    
+
     if (cleanPassport.length < 2) {
       return passport;
     }
-    
+
     try {
       final series = cleanPassport.substring(0, 2);
       final number = cleanPassport.substring(2);
@@ -350,7 +350,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Hujjatlar va shaxsiy ma\'lumotlar',
+            'insurance.kasko.order_details.documents_and_personal'.tr(),
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.bold,
@@ -361,7 +361,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
           // Avtomobil raqami
           _buildInfoRow(
             icon: Icons.directions_car_outlined,
-            label: 'Avtomobil raqami',
+            label: 'insurance.kasko.order_details.vehicle_number'.tr(),
             value: carNumber,
             isDark: isDark,
             textColor: textColor,
@@ -370,7 +370,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
           // VIN / Tex passport
           _buildInfoRow(
             icon: Icons.description_outlined,
-            label: 'VIN / Tex passport',
+            label: 'insurance.kasko.order_details.vin_tech_passport'.tr(),
             value: vin,
             isDark: isDark,
             textColor: textColor,
@@ -379,7 +379,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
           // Ism familiya
           _buildInfoRow(
             icon: Icons.person_outline,
-            label: 'Ism familiya',
+            label: 'insurance.kasko.order_details.full_name'.tr(),
             value: ownerName,
             isDark: isDark,
             textColor: textColor,
@@ -388,7 +388,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
           // Tug'ilgan sana
           _buildInfoRow(
             icon: Icons.calendar_today_outlined,
-            label: 'Tug\'ilgan sana',
+            label: 'insurance.kasko.order_details.birth_date'.tr(),
             value: birthDate,
             isDark: isDark,
             textColor: textColor,
@@ -397,7 +397,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
           // Telefon raqami
           _buildInfoRow(
             icon: Icons.phone_outlined,
-            label: 'Telefon raqami',
+            label: 'insurance.kasko.order_details.phone_number'.tr(),
             value: ownerPhone,
             isDark: isDark,
             textColor: textColor,
@@ -406,7 +406,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
           // Passport
           _buildInfoRow(
             icon: Icons.badge_outlined,
-            label: 'Passport',
+            label: 'insurance.kasko.order_details.passport'.tr(),
             value: passport,
             isDark: isDark,
             textColor: textColor,
@@ -416,8 +416,12 @@ class KaskoOrderDetailsPage extends StatelessWidget {
           if (bloc.paymentMethod != null && bloc.paymentMethod!.isNotEmpty)
             _buildInfoRow(
               icon: Icons.payment_outlined,
-              label: 'To\'lov usuli',
-              value: bloc.paymentMethod == 'payme' ? 'Payme' : (bloc.paymentMethod == 'click' ? 'click' : bloc.paymentMethod!),
+              label: 'insurance.kasko.order_details.payment_method'.tr(),
+              value: bloc.paymentMethod == 'payme'
+                  ? 'Payme'
+                  : (bloc.paymentMethod == 'click'
+                        ? 'click'
+                        : bloc.paymentMethod!),
               isDark: isDark,
               textColor: textColor,
               subtitleColor: subtitleColor,
@@ -428,12 +432,16 @@ class KaskoOrderDetailsPage extends StatelessWidget {
   }
 
   // 2. Sug'urta qamrovi ro'yxati
-  Widget _buildCoverageList(bool isDark, Color textColor) {
+  Widget _buildCoverageList(
+    BuildContext context,
+    bool isDark,
+    Color textColor,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Sug\'urta qamrovi',
+          'insurance.kasko.order_details.insurance_coverage'.tr(),
           style: TextStyle(
             fontSize: 20.sp,
             fontWeight: FontWeight.bold,
@@ -442,24 +450,17 @@ class KaskoOrderDetailsPage extends StatelessWidget {
         ),
         SizedBox(height: 15.h),
         // Ro'yxat elementlari
-        ..._insuranceCoverages.map((coverage) {
+        ..._getInsuranceCoverages(context).map((coverage) {
           return Padding(
             padding: EdgeInsets.only(bottom: 10.0.h),
             child: Row(
               children: [
-                Icon(
-                  Icons.check_circle,
-                  color: _iconBlue,
-                  size: 22.sp,
-                ),
+                Icon(Icons.check_circle, color: _iconBlue, size: 22.sp),
                 SizedBox(width: 10.w),
                 Expanded(
                   child: Text(
                     coverage,
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      color: textColor,
-                    ),
+                    style: TextStyle(fontSize: 16.sp, color: textColor),
                   ),
                 ),
               ],
@@ -472,27 +473,27 @@ class KaskoOrderDetailsPage extends StatelessWidget {
 
   String _getTotalAmount(KaskoBloc bloc, KaskoState state) {
     if (state is KaskoPolicyCalculated) {
-      final formatted = NumberFormat('#,###').format(
-        state.calculateResult.premium.toInt(),
-      );
+      final formatted = NumberFormat(
+        '#,###',
+      ).format(state.calculateResult.premium.toInt());
       return '${formatted.replaceAll(',', ' ')} UZS';
     }
-    
+
     if (state is KaskoOrderSaved) {
-      final formatted = NumberFormat('#,###').format(
-        state.order.premium.toInt(),
-      );
+      final formatted = NumberFormat(
+        '#,###',
+      ).format(state.order.premium.toInt());
       return '${formatted.replaceAll(',', ' ')} UZS';
     }
-    
+
     final calcResult = bloc.cachedCalculateResult;
     if (calcResult != null) {
-      final formatted = NumberFormat('#,###').format(
-        calcResult.premium.toInt(),
-      );
+      final formatted = NumberFormat(
+        '#,###',
+      ).format(calcResult.premium.toInt());
       return '${formatted.replaceAll(',', ' ')} UZS';
     }
-    
+
     return '--';
   }
 
@@ -516,16 +517,13 @@ class KaskoOrderDetailsPage extends StatelessWidget {
             backgroundColor: cardBg,
             elevation: 0.5,
             leading: IconButton(
-              icon: Icon(
-                Icons.arrow_back,
-                color: textColor,
-              ),
+              icon: Icon(Icons.arrow_back, color: textColor),
               onPressed: () {
                 context.router.pop();
               },
             ),
             title: Text(
-              'KASKO',
+              'insurance.kasko.title'.tr(),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: textColor,
@@ -535,7 +533,9 @@ class KaskoOrderDetailsPage extends StatelessWidget {
             centerTitle: true,
             systemOverlayStyle: SystemUiOverlayStyle(
               statusBarColor: Colors.transparent,
-              statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+              statusBarIconBrightness: isDark
+                  ? Brightness.light
+                  : Brightness.dark,
             ),
           ),
           body: Stack(
@@ -547,7 +547,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
                   children: <Widget>[
                     // Sarlavha
                     Text(
-                      'Buyurtma tafsilotlari',
+                      'insurance.kasko.order_details.title'.tr(),
                       style: TextStyle(
                         fontSize: 24.sp,
                         fontWeight: FontWeight.bold,
@@ -557,18 +557,26 @@ class KaskoOrderDetailsPage extends StatelessWidget {
                     SizedBox(height: 5.0.h),
                     // Qo'shimcha matn
                     Text(
-                      'Barcha ma\'lumotlarni tekshiring va to\'lovni amalga oshiring',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        color: subtitleColor,
-                      ),
+                      'insurance.kasko.order_details.subtitle'.tr(),
+                      style: TextStyle(fontSize: 16.sp, color: subtitleColor),
                     ),
                     // 1. Buyurtma kartasi
-                    _buildOrderCard(bloc, state, isDark, textColor, subtitleColor),
+                    _buildOrderCard(
+                      bloc,
+                      state,
+                      isDark,
+                      textColor,
+                      subtitleColor,
+                    ),
                     // 2. Hujjatlar va shaxsiy ma'lumotlar kartasi
-                    _buildDocumentAndPersonalCard(bloc, isDark, textColor, subtitleColor),
+                    _buildDocumentAndPersonalCard(
+                      bloc,
+                      isDark,
+                      textColor,
+                      subtitleColor,
+                    ),
                     // 3. Sug'urta qamrovi ro'yxati
-                    _buildCoverageList(isDark, textColor),
+                    _buildCoverageList(context, isDark, textColor),
                     SizedBox(height: 40.0.h),
                   ],
                 ),
@@ -587,7 +595,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
                     color: cardBg,
                     boxShadow: [
                       BoxShadow(
-                        color: isDark 
+                        color: isDark
                             ? Colors.black.withOpacity(0.3)
                             : Colors.grey.withOpacity(0.1),
                         spreadRadius: 3,
@@ -605,7 +613,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Тўланадиган сумма',
+                            'insurance.kasko.order_details.amount_to_pay'.tr(),
                             style: TextStyle(
                               fontSize: 14.sp,
                               color: subtitleColor,
@@ -647,7 +655,7 @@ class KaskoOrderDetailsPage extends StatelessWidget {
                             minimumSize: Size(120.w, 50.h),
                           ),
                           child: Text(
-                            'To\'lash',
+                            'insurance.kasko.order_details.pay'.tr(),
                             style: TextStyle(
                               fontSize: 18.sp,
                               fontWeight: FontWeight.bold,
@@ -667,4 +675,3 @@ class KaskoOrderDetailsPage extends StatelessWidget {
     );
   }
 }
-

@@ -42,8 +42,8 @@ Future<void> main() async {
       startLocale: const Locale('en'),
       // useOnlyLangCode: false - locale'ni to'liq ko'rsatish uchun (uz_CYR uchun uz-CYR.json ishlatiladi)
       useOnlyLangCode: false,
-      // Optimizatsiya: fallback translation'larni yuklamaslik (tezroq ishlaydi)
-      useFallbackTranslations: false,
+      // Fallback translation'larni yuklash - agar tarjima topilmasa, fallback locale'dan foydalanadi
+      useFallbackTranslations: true,
       child: const App(),
     ),
   );

@@ -120,7 +120,7 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Tug\'ilgan kun sanasi',
+          'insurance.kasko.personal_data_page.birth_date_label'.tr(),
           style: TextStyle(
             fontSize: 16.sp,
             fontWeight: FontWeight.w500,
@@ -436,7 +436,7 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Avtomobil hujjatlari',
+            'insurance.kasko.personal_data_page.vehicle_documents'.tr(),
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.bold,
@@ -446,7 +446,7 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
           SizedBox(height: 16.h),
           if (carNumber != '--')
             _buildDocumentDataRow(
-              'Avtomobil raqami:',
+              'insurance.kasko.personal_data_page.vehicle_number_label'.tr(),
               formattedCarNumber,
               isDark,
               textColor,
@@ -454,7 +454,7 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
             ),
           if (vin != '--')
             _buildDocumentDataRow(
-              'VIN / Tex passport:',
+              'insurance.kasko.personal_data_page.vin_tech_passport_label'.tr(),
               vin,
               isDark,
               textColor,
@@ -610,7 +610,7 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
 
       debugPrint('❌ Отсутствуют данные: $missingFields');
       _showError(
-        'Ma\'lumotlar to\'liq emas. Iltimos, oldingi sahifalarga qayting.',
+        'insurance.kasko.personal_data_page.incomplete_data_error'.tr(),
       );
       return;
     }

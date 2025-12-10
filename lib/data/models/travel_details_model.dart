@@ -6,11 +6,17 @@ part 'travel_details_model.g.dart';
 /// Модель деталей путешествия
 @JsonSerializable()
 class TravelDetailsModel extends Equatable {
+  @JsonKey(name: 'session_id')
   final String sessionId;
+  @JsonKey(name: 'start_date')
   final String startDate; // DD-MM-YYYY
+  @JsonKey(name: 'end_date')
   final String endDate; // DD-MM-YYYY
+  @JsonKey(name: 'travelers_birthdates')
   final List<String> travelersBirthdates; // DD-MM-YYYY
+  @JsonKey(name: 'annual_policy')
   final bool annualPolicy;
+  @JsonKey(name: 'covid_protection')
   final bool covidProtection;
 
   const TravelDetailsModel({

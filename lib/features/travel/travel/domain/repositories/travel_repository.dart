@@ -14,6 +14,7 @@ abstract class TravelRepository {
     required String sessionId,
     required List<TravelPerson> persons,
     required TravelInsurance insurance,
+    double? amount,
   });
 
   Future<TravelCheckResult> check({required String sessionId});

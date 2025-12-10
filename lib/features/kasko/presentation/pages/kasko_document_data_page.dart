@@ -273,7 +273,7 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Shaxsiy ma\'lumotlar va to\'lov usuli',
+            'insurance.kasko.document_data.personal_data_and_payment'.tr(),
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.bold,
@@ -283,7 +283,7 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
           SizedBox(height: 16.h),
           if (ownerName != '--')
             _buildPersonalDataRow(
-              'Ism familiya:',
+              'insurance.kasko.document_data.full_name_label'.tr(),
               ownerName,
               isDark,
               textColor,
@@ -291,7 +291,7 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
             ),
           if (birthDate != '--')
             _buildPersonalDataRow(
-              'Tug\'ilgan sana:',
+              'insurance.kasko.document_data.birth_date_label'.tr(),
               birthDate,
               isDark,
               textColor,
@@ -299,7 +299,7 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
             ),
           if (formattedPhone != '--')
             _buildPersonalDataRow(
-              'Telefon:',
+              'insurance.kasko.document_data.phone_label'.tr(),
               formattedPhone,
               isDark,
               textColor,
@@ -307,7 +307,7 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
             ),
           if (formattedPassport != '--')
             _buildPersonalDataRow(
-              'Passport:',
+              'insurance.kasko.document_data.passport_label'.tr(),
               formattedPassport,
               isDark,
               textColor,
@@ -315,7 +315,7 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
             ),
           if (formattedPaymentMethod != '--')
             _buildPersonalDataRow(
-              'To\'lov usuli:',
+              'insurance.kasko.document_data.payment_method_label'.tr(),
               formattedPaymentMethod,
               isDark,
               textColor,
@@ -371,7 +371,9 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
     final vin = '$techSeries$techNumber';
 
     debugPrint('💾 Сохранение данных документа:');
-    debugPrint('  🚗 Car Number: $carNumber (region: $region, number: $number)');
+    debugPrint(
+      '  🚗 Car Number: $carNumber (region: $region, number: $number)',
+    );
     debugPrint('  🔧 VIN: $vin (series: $techSeries, number: $techNumber)');
 
     // Сохраняем данные в BLoC через событие
@@ -383,7 +385,7 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
         passportNumber: '',
       ),
     );
-    
+
     // Проверяем, что данные сохранились
     Future.delayed(const Duration(milliseconds: 100), () {
       final savedCarNumber = bloc.documentCarNumber;
@@ -616,10 +618,12 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
                                     // BLoC'ni o'tkazish bilan navigatsiya
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
-                                        builder: (context) => BlocProvider.value(
-                                          value: bloc,
-                                          child: const KaskoPersonalDataPage(),
-                                        ),
+                                        builder: (context) =>
+                                            BlocProvider.value(
+                                              value: bloc,
+                                              child:
+                                                  const KaskoPersonalDataPage(),
+                                            ),
                                       ),
                                     );
                                   }

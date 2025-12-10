@@ -51,6 +51,15 @@ class LoggingInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
+    // 404 xatolikni /travel/purposes endpoint uchun loglamaymiz
+    // chunki bu endpoint mavjud emas va biz fallback ma'lumotlardan foydalanamiz
+    if (err.response?.statusCode == 404 &&
+        err.requestOptions.uri.toString().contains('/travel/purposes')) {
+      // Faqat handler.next() ni chaqiramiz, loglamaymiz
+      handler.next(err);
+      return;
+    }
+
     final errorDetails = StringBuffer();
     errorDetails.writeln(
       '[DIO][ERROR] ${err.requestOptions.method} ${err.requestOptions.uri}',
@@ -69,16 +78,12 @@ class LoggingInterceptor extends Interceptor {
         'Tekshiring: Server ishlamayaptimi? Internet aloqasi bormi?',
       );
     } else if (err.type == DioExceptionType.connectionTimeout) {
-      errorDetails.writeln(
-        '⚠️ CONNECTION TIMEOUT: Serverga ulanib bo\'lmadi!',
-      );
+      errorDetails.writeln('⚠️ CONNECTION TIMEOUT: Serverga ulanib bo\'lmadi!');
       errorDetails.writeln(
         'Tekshiring: Server manzili to\'g\'rimi? Server ishlamayaptimi?',
       );
     } else if (err.type == DioExceptionType.connectionError) {
-      errorDetails.writeln(
-        '⚠️ CONNECTION ERROR: Serverga ulanib bo\'lmadi!',
-      );
+      errorDetails.writeln('⚠️ CONNECTION ERROR: Serverga ulanib bo\'lmadi!');
       errorDetails.writeln(
         'Tekshiring: Internet aloqasi bormi? Server ishlamayaptimi?',
       );

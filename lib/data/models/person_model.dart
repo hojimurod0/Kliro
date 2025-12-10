@@ -7,13 +7,18 @@ part 'person_model.g.dart';
 @JsonSerializable()
 class PersonModel extends Equatable {
   final int type;
+  @JsonKey(name: 'passportSeries')
   final String passportSeries;
+  @JsonKey(name: 'passportNumber')
   final String passportNumber;
   final String birthday; // DD-MM-YYYY
   final String phone;
   final String pinfl;
+  @JsonKey(name: 'last_name')
   final String lastName;
+  @JsonKey(name: 'first_name')
   final String firstName;
+  @JsonKey(name: 'middle_name')
   final String? middleName;
 
   const PersonModel({

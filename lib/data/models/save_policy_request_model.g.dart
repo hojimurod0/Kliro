@@ -9,10 +9,10 @@ part of 'save_policy_request_model.dart';
 SavePolicyRequestModel _$SavePolicyRequestModelFromJson(
         Map<String, dynamic> json) =>
     SavePolicyRequestModel(
-      sessionId: json['sessionId'] as String,
+      sessionId: json['session_id'] as String,
       provider: json['provider'] as String,
-      summaAll: (json['summaAll'] as num).toDouble(),
-      programId: json['programId'] as String,
+      summaAll: (json['summa_all'] as num).toDouble(),
+      programId: json['program_id'] as String,
       sugurtalovchi:
           PersonModel.fromJson(json['sugurtalovchi'] as Map<String, dynamic>),
       travelers: (json['travelers'] as List<dynamic>)
@@ -23,10 +23,10 @@ SavePolicyRequestModel _$SavePolicyRequestModelFromJson(
 Map<String, dynamic> _$SavePolicyRequestModelToJson(
         SavePolicyRequestModel instance) =>
     <String, dynamic>{
-      'sessionId': instance.sessionId,
+      'session_id': instance.sessionId,
       'provider': instance.provider,
-      'summaAll': instance.summaAll,
-      'programId': instance.programId,
+      'summa_all': instance.summaAll,
+      'program_id': instance.programId,
       'sugurtalovchi': instance.sugurtalovchi,
       'travelers': instance.travelers,
     };

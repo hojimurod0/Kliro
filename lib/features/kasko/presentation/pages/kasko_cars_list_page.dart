@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -34,7 +35,7 @@ class KaskoCarsListPage extends StatelessWidget {
           backgroundColor: cardBg,
           elevation: 0.5,
           title: Text(
-            'KASKO - Avtomobillar',
+            'insurance.kasko.cars_list.title'.tr(),
             style: TextStyle(
               color: textColor,
               fontSize: 18.sp,
@@ -90,7 +91,7 @@ class KaskoCarsListPage extends StatelessWidget {
                           ),
                         ),
                         child: Text(
-                          'Qayta urinib ko\'ring',
+                          'insurance.kasko.cars_list.retry'.tr(),
                           style: TextStyle(
                             fontSize: 16.sp,
                             color: Colors.white,
@@ -118,7 +119,7 @@ class KaskoCarsListPage extends StatelessWidget {
                         ),
                         SizedBox(height: 16.h),
                         Text(
-                          'Avtomobillar topilmadi',
+                          'insurance.kasko.cars_list.not_found'.tr(),
                           style: TextStyle(
                             fontSize: 16.sp,
                             color: textColor,
@@ -163,7 +164,7 @@ class KaskoCarsListPage extends StatelessWidget {
                             Padding(
                               padding: EdgeInsets.only(top: 4.h),
                               child: Text(
-                                'Marka: ${car.brand}',
+                                '${'insurance.kasko.cars_list.brand'.tr()}: ${car.brand}',
                                 style: TextStyle(
                                   fontSize: 14.sp,
                                   color: subtitleColor,
@@ -172,7 +173,7 @@ class KaskoCarsListPage extends StatelessWidget {
                             ),
                           if (car.model != null)
                             Text(
-                              'Model: ${car.model}',
+                              '${'insurance.kasko.cars_list.model'.tr()}: ${car.model}',
                               style: TextStyle(
                                 fontSize: 14.sp,
                                 color: subtitleColor,
@@ -180,7 +181,7 @@ class KaskoCarsListPage extends StatelessWidget {
                             ),
                           if (car.year != null)
                             Text(
-                              'Yil: ${car.year}',
+                              '${'insurance.kasko.cars_list.year'.tr()}: ${car.year}',
                               style: TextStyle(
                                 fontSize: 14.sp,
                                 color: subtitleColor,

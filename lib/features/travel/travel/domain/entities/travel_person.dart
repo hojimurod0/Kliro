@@ -8,11 +8,13 @@ class TravelPerson extends Equatable {
     required this.passportNumber,
     required this.birthDate,
     this.middleName,
+    this.pinfl,
   });
 
   final String firstName;
   final String lastName;
   final String? middleName;
+  final String? pinfl;
   final String passportSeria;
   final String passportNumber;
   final DateTime birthDate;
@@ -22,6 +24,7 @@ class TravelPerson extends Equatable {
         firstName,
         lastName,
         middleName,
+        pinfl,
         passportSeria,
         passportNumber,
         birthDate,

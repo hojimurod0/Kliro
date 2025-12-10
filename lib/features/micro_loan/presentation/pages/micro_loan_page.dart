@@ -13,6 +13,7 @@ import '../../../../core/widgets/primary_search_filter_bar.dart';
 import '../../../common/utils/amount_formatter.dart';
 import '../../../common/utils/bank_assets.dart';
 import '../../../common/utils/bank_data.dart';
+import '../../../common/utils/text_localizer.dart';
 import '../../domain/entities/microcredit_entity.dart';
 import '../../domain/entities/microcredit_filter.dart';
 import '../bloc/microcredit_bloc.dart';
@@ -326,16 +327,16 @@ class _MicrocreditCardState extends State<_MicrocreditCard> {
   List<String> _getAdvantages() {
     final advantages = <String>[];
     if (widget.item.rate.isNotEmpty) {
-      advantages.add('Foiz stavkasi ${widget.item.rate}');
+      advantages.add('${tr('micro_loan.interest_rate_label')} ${localizeApiText(widget.item.rate)}');
     }
     if (widget.item.term.isNotEmpty) {
-      advantages.add('Muddat ${widget.item.term}');
+      advantages.add('${tr('micro_loan.term_label')} ${localizeApiText(widget.item.term)}');
     }
     if (widget.item.amount.isNotEmpty) {
-      advantages.add('Maksimal summa ${widget.item.amount}');
+      advantages.add('${tr('micro_loan.max_amount_label')} ${widget.item.amount}');
     }
     if (advantages.isEmpty) {
-      advantages.add('Bankning amal qiluvchi mikrokredit takliflari');
+      advantages.add(tr('micro_loan.default_advantages'));
     }
     return advantages;
   }
@@ -477,7 +478,7 @@ class _MicrocreditCardState extends State<_MicrocreditCard> {
                 child: _InfoBlock(
                   icon: Icons.percent_rounded,
                   label: tr('micro_loan.interest_rate'),
-                  value: widget.item.rate,
+                  value: localizeApiText(widget.item.rate),
                   isAccent: true,
                 ),
               ),
@@ -486,7 +487,7 @@ class _MicrocreditCardState extends State<_MicrocreditCard> {
                 child: _InfoBlock(
                   icon: Icons.calendar_month_outlined,
                   label: tr('micro_loan.term'),
-                  value: widget.item.term,
+                  value: localizeApiText(widget.item.term),
                 ),
               ),
               SizedBox(width: 8.w),
@@ -581,7 +582,7 @@ class _MicrocreditCardState extends State<_MicrocreditCard> {
             height: 46.h,
             child: ElevatedButton(
               onPressed: () async {
-                final opened = await openBankApplication(widget.item.bankName);
+                final opened = await openBankWebsite(widget.item.bankName);
                 if (!opened) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

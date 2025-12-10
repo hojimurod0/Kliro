@@ -124,7 +124,28 @@
     "hotels_subtitle": "1000+ отелей",
     "news": "Новости",
     "view_all": "Смотреть все >",
+    "news_items": {
+      "item1": {
+        "title": "Расширяются цифровые платежные системы",
+        "tag": "Финансы",
+        "date": "25 октября, 2024"
+      },
+      "item2": {
+        "title": "Искусственный интеллект в банковских услугах",
+        "tag": "Технологии",
+        "date": "24 октября, 2024"
+      },
+      "item3": {
+        "title": "Новые пакеты представлены на страховом рынке",
+        "tag": "Страхование",
+        "date": "22 октября, 2024"
+      }
+    },
     "home": "Главная",
+    "services": "Услуги",
+    "favorites": "Избранное",
+    "favorites_empty": "Избранное пусто",
+    "favorites_empty_subtitle": "Добавьте любимые услуги",
     "banner": {
       "travel": "ПУТЕШЕСТВИЯ",
       "title": "Откройте мир",
@@ -201,7 +222,13 @@
     "months": "месяцев",
     "million": "млн сум",
     "thousand_usd": "тыс. USD",
-    "updated_recently": "Обновлено только что"
+    "updated_recently": "Обновлено только что",
+    "interest_rate_label": "Процентная ставка",
+    "term_label": "Срок",
+    "min_amount_label": "Мин. сумма",
+    "default_advantages": "Текущие предложения банка по вкладам",
+    "empty_title": "Вклады не найдены",
+    "empty_subtitle": "Измените фильтры или обновите список."
   },
   "currency": {
     "title": "Курсы валют",
@@ -223,7 +250,10 @@
     "best_sell": "Лучшая продажа",
     "bank_rates": "Курсы валют в банках",
     "best_offer": "Лучшее предложение",
-    "som": "сум"
+    "som": "сум",
+    "per_day": "за день",
+    "bank_name_hamkorbank": "Хамкорбанк",
+    "bank_name_universal": "Универсал банк"
   },
   "micro_loan": {
     "title": "Микрокредит",
@@ -252,9 +282,11 @@
     "asc": "По возрастанию",
     "desc": "По убыванию",
     "open_link": "Открыть ссылку: {0}",
-    "interest_rate_label": "Процент",
+    "interest_rate_label": "Процентная ставка",
     "amount_label": "Сумма",
     "term_label": "Срок",
+    "max_amount_label": "Максимальная сумма",
+    "default_advantages": "Текущие предложения банка по микрокредитам",
     "only_online_applications": "Только онлайн заявки"
   },
   "mortgage": {
@@ -310,7 +342,17 @@
     "thousand_soum": "тыс сум",
     "soum": "сум",
     "per_month": "/ месяц",
-    "default_advantages": "Действующие предложения автокредитов банка"
+    "default_advantages": "Действующие предложения автокредитов банка",
+    "filters": "Фильтры",
+    "interest_rate_label": "Процентная ставка",
+    "term_label": "Срок",
+    "payment_type_label": "Способ оплаты",
+    "rate_option_16_20": "16-20%",
+    "rate_option_21_25": "21-25%",
+    "rate_option_26_plus": "26%+",
+    "term_option_5_years": "5 лет",
+    "term_option_7_years": "7 лет",
+    "term_option_8_plus_years": "8+ лет"
   },
   "transfers": {
     "title": "Приложения для переводов",
@@ -455,7 +497,20 @@
     "sort": "Сортировать",
     "something_went_wrong": "Что-то пошло не так. Попробуйте снова.",
     "error_occurred": "Произошла ошибка: {0}",
-    "error_occurred_simple": "Произошла ошибка"
+    "error_occurred_simple": "Произошла ошибка",
+    "billion": "млрд",
+    "million": "млн",
+    "thousand": "тыс",
+    "from": "от",
+    "to": "до",
+    "up_to": "до",
+    "percent": "%",
+    "year": "год",
+    "years": "лет",
+    "month": "месяц",
+    "months": "месяцев",
+    "soum": "сум",
+    "uzs": "УЗС"
   },
   "insurance": {
     "title": "Страховые услуги",
@@ -707,7 +762,7 @@
         "enter_car_number": "Введите номер автомобиля",
         "enter_vin": "Введите VIN"
       },
-      "personal_data": {
+    "personal_data": {
         "title": "Личные данные",
         "subtitle": "Введите ваши личные данные для страхового полиса",
         "passport_series_number": "Серия и номер паспорта",
@@ -735,6 +790,15 @@
         "tech_passport": "Технический паспорт",
         "calculate": "Рассчитать",
         "match_info": "Информация должна полностью соответствовать информации в техническом паспорте",
+        "personal_data_and_payment": "Личные данные и способ оплаты",
+        "full_name_label": "ФИО:",
+        "birth_date_label": "Дата рождения:",
+        "phone_label": "Телефон:",
+        "passport_label": "Паспорт:",
+        "payment_method_label": "Способ оплаты:",
+        "vehicle_documents": "Документы автомобиля",
+        "vehicle_number_label": "Номер автомобиля:",
+        "vin_tech_passport_label": "VIN / Технический паспорт:",
         "errors": {
           "fill_all_fields": "Пожалуйста, заполните все поля",
           "invalid_car_number": "Номер автомобиля введен не полностью",
@@ -747,16 +811,211 @@
           "series_3_letters": "Серия должна состоять из 3 букв",
           "number_7_digits": "Номер должен состоять из 7 цифр"
         }
+      },
+      "tariff": {
+        "title": "Тарифы",
+        "step_indicator": "Шаг 2/5",
+        "subtitle": "Выберите подходящий тариф страхования",
+        "loading": "Загрузка тарифов...",
+        "please_wait": "Пожалуйста, подождите",
+        "retry": "Повторить",
+        "not_found": "Тарифы не найдены",
+        "conversion_failed": "Тарифы не удалось конвертировать",
+        "no_tariffs_in_category": "В этой категории тарифы не найдены",
+        "continue": "Продолжить",
+        "select_tariff": "Пожалуйста, выберите тариф",
+        "select_car": "Пожалуйста, выберите автомобиль",
+        "select_year": "Пожалуйста, выберите год",
+        "summary": "Итоги",
+        "insurance_period": "Срок страхования",
+        "vehicle": "Автомобиль",
+        "coverage_amount": "Сумма покрытия",
+        "amount_to_pay": "Сумма к оплате",
+        "insurance_rules": "Правила страхования",
+        "duration": "Длительность:",
+        "coverage": "Покрытие:",
+        "som": "сум",
+        "coverage_label": "покрытие",
+        "insurance_tariff": "Страховой тариф",
+        "tariff": "Тариф"
+      },
+      "order_details": {
+        "title": "Детали заказа",
+        "subtitle": "Проверьте всю информацию и произведите оплату",
+        "insurance_period": "Срок страхования",
+        "vehicle": "Автомобиль",
+        "coverage_amount": "Сумма покрытия",
+        "tariff": "Тариф",
+        "duration": "Срок",
+        "coverage": "Покрытие",
+        "documents_and_personal": "Документы и личные данные",
+        "vehicle_number": "Номер автомобиля",
+        "vin_tech_passport": "VIN / Технический паспорт",
+        "full_name": "ФИО",
+        "birth_date": "Дата рождения",
+        "phone_number": "Номер телефона",
+        "passport": "Паспорт",
+        "payment_method": "Способ оплаты",
+        "insurance_coverage": "Страховое покрытие",
+        "vehicle_damage": "Повреждение автомобиля",
+        "theft_and_robbery": "Угон и кража",
+        "natural_disasters": "Стихийные бедствия",
+        "third_party_damage": "Ущерб третьим лицам",
+        "assistance_service": "Служба помощи 24/7",
+        "amount_to_pay": "Сумма к оплате",
+        "pay": "Оплатить",
+        "full_coverage": "Полное покрытие ущерба 100%",
+        "franchise": "Франшиза"
+      },
+      "payment_type": {
+        "title": "Выберите способ оплаты",
+        "step_indicator": "Шаг 5/5",
+        "program": "Программа:",
+        "vehicle_number": "Номер автомобиля:",
+        "tech_passport": "Технический паспорт:",
+        "passport": "Паспорт:",
+        "birth_date": "Дата рождения:",
+        "phone": "Телефон:",
+        "total_amount": "Общая сумма",
+        "pay": "Оплатить",
+        "summary": "Итоги",
+        "insurance_period": "Срок страхования",
+        "vehicle": "Автомобиль",
+        "coverage_amount": "Сумма покрытия",
+        "amount_to_pay": "Сумма к оплате",
+        "insurance_rules": "Правила страхования",
+        "incomplete_data": "Данные неполные",
+        "save_order_first": "Сначала сохраните заказ",
+        "go_back": "Вернуться назад",
+        "payment_link_not_found": "Ссылка на оплату не найдена. Пожалуйста, попробуйте снова.",
+        "order_data_not_found": "Данные заказа не найдены. Пожалуйста, попробуйте снова.",
+        "failed_to_open_link": "Не удалось открыть ссылку на оплату. Пожалуйста, откройте в браузере: {url}",
+        "copy": "Копировать",
+        "url_copied": "URL скопирован"
+      },
+      "payment_page": {
+        "title": "КАСКО - Оплата",
+        "amount": "Сумма к оплате",
+        "go_to_payment": "Перейти к оплате",
+        "link_not_found": "Ссылка на оплату не найдена"
+      },
+      "success": {
+        "title": "Успешно! ✅",
+        "policy_number": "Номер полиса",
+        "vehicle": "Автомобиль",
+        "date": "Дата",
+        "amount": "Сумма",
+        "download_policy": "Скачать полис",
+        "share": "Поделиться",
+        "close": "Закрыть"
+      },
+      "cars_list": {
+        "title": "КАСКО - Автомобили",
+        "not_found": "Автомобили не найдены",
+        "retry": "Повторить",
+        "brand": "Марка",
+        "model": "Модель",
+        "year": "Год"
+      },
+      "personal_data_page": {
+        "birth_date_label": "Дата рождения",
+        "vehicle_documents": "Документы автомобиля",
+        "vehicle_number_label": "Номер автомобиля:",
+        "vin_tech_passport_label": "VIN / Технический паспорт:",
+        "incomplete_data_error": "Данные неполные. Пожалуйста, вернитесь на предыдущие страницы."
       }
-    },
-    "travel": {
+    }
+  },
+  "travel": {
       "title": "Страхование путешествий",
       "subtitle": "Безопасное путешествие",
       "description": "Медицинская помощь и защита от других рисков во время пребывания за границей",
       "feature_1": "Медицинская помощь",
       "feature_2": "Потеря багажа",
       "feature_3": "Отмена рейса",
-      "button_text": "Оформить"
+      "button_text": "Оформить",
+      "persons_screen": {
+        "title": "Страхование путешествий",
+        "subtitle": "Информация о поездке",
+        "description": "Введите основную информацию о вашей поездке",
+        "where_going": "Куда вы едете?",
+        "travel_purpose": "Цель поездки",
+        "start_date": "Начало",
+        "end_date": "Конец",
+        "additional_protection": "Дополнительная защита",
+        "annual_insurance": "Годовое страхование",
+        "annual_description": "Защита на весь год",
+        "covid_protection": "Защита от COVID-19",
+        "covid_description": "Расходы на лечение коронавируса",
+        "travelers": "Путешественники",
+        "add": "Добавить",
+        "traveler": "Путешественник",
+        "birth_date": "Дата рождения",
+        "select_date": "Выберите дату",
+        "continue": "Продолжить",
+        "countries_loading": "Загрузка стран...",
+        "select_country": "Выберите страну",
+        "select_purpose": "Выберите цель"
+      },
+    "personal_data": {
+        "title": "Страхование путешествий",
+        "personal_info": "Личная информация",
+        "subtitle": "Информация о страхователе и путешественнике",
+        "insurer": "Страхователь",
+        "traveler": "Путешественник",
+        "full_name": "Полное имя",
+        "pinfl": "ПИНФЛ",
+        "passport_series_number": "Серия и номер паспорта",
+        "birth_date": "Дата рождения",
+        "phone_number": "Номер телефона",
+        "foreign_citizen": "Иностранный гражданин",
+        "continue": "Продолжить",
+        "enter_full_name": "Введите полное имя",
+        "enter_pinfl": "Введите ПИНФЛ",
+        "enter_passport": "Введите данные паспорта",
+        "select_birth_date": "Выберите дату рождения",
+        "enter_phone": "Введите номер телефона полностью"
+      },
+    "select_insurance": {
+        "title": "Страхование путешествий",
+        "select_company": "Выберите страховую компанию",
+        "select_tariff": "Выберите наиболее подходящий тариф",
+        "continue": "Продолжить",
+        "policy_price": "Стоимость полиса",
+        "sum": "сум",
+        "selected": "Выбрано",
+        "select_insurance": "Выбрать страхование",
+        "companies_not_found": "Компании не найдены",
+        "retry": "Повторить",
+        "error_country_not_found": "Тарифы для этой страны не найдены. Пожалуйста, выберите другую страну.",
+        "error_network": "Нет подключения к интернету. Пожалуйста, проверьте подключение к интернету."
+      },
+    "order_info": {
+      "title": "Информация о заказе",
+      "travel_insurance": "Страхование путешествий",
+      "check_all_info": "Проверьте всю информацию",
+      "payment": "Оплата",
+      "process_payment": "Осуществить оплату",
+      "payment_link_not_found": "Ссылка на оплату не найдена",
+      "retry": "Повторить",
+      "error": "Произошла ошибка",
+      "total_amount": "Общая сумма",
+      "country": "Страна",
+      "travel_purpose": "Цель поездки",
+      "insurance_company": "Страховая компания",
+      "start_date": "Дата начала",
+      "end_date": "Дата окончания",
+      "phone": "Телефон",
+      "email": "Email",
+      "full_name": "ФИО",
+      "passport": "Паспорт",
+      "birth_date": "Дата рождения",
+      "travelers": "Путешественники",
+      "payment_method": "Способ оплаты"
     }
+  },
+  "splash": {
+    "loading": "Загрузка...",
+    "video_error": "Ошибка загрузки видео"
   }
 }

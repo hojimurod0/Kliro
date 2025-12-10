@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -54,7 +55,7 @@ class KaskoPaymentPage extends StatelessWidget {
         backgroundColor: cardBg,
         elevation: 0.5,
         title: Text(
-          'KASKO - To\'lov',
+          'insurance.kasko.payment_page.title'.tr(),
           style: TextStyle(
             color: textColor,
             fontSize: 18.sp,
@@ -85,7 +86,7 @@ class KaskoPaymentPage extends StatelessWidget {
                       child: Column(
                         children: [
                           Text(
-                            'To\'lov summasi',
+                            'insurance.kasko.payment_page.amount'.tr(),
                             style: TextStyle(
                               fontSize: 16.sp,
                               color: subtitleColor,
@@ -117,7 +118,7 @@ class KaskoPaymentPage extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      'To\'lovga o\'tish',
+                      'insurance.kasko.payment_page.go_to_payment'.tr(),
                       style: TextStyle(
                         fontSize: 16.sp,
                         color: Colors.white,
@@ -141,7 +142,7 @@ class KaskoPaymentPage extends StatelessWidget {
                     ),
                     SizedBox(height: 16.h),
                     Text(
-                      'To\'lov havolasi topilmadi',
+                      'insurance.kasko.payment_page.link_not_found'.tr(),
                       style: TextStyle(fontSize: 16.sp, color: textColor),
                       textAlign: TextAlign.center,
                     ),
@@ -227,7 +228,7 @@ class KaskoPaymentPage extends StatelessWidget {
             if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('To\'lov havolasini ochib bo\'lmadi'),
+                content: Text('insurance.kasko.payment_page.link_not_found'.tr()),
                 backgroundColor: AppColors.dangerRed,
               ),
             );

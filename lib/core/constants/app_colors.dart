@@ -49,11 +49,13 @@ class AppColors {
   static const Color darkTextAutoCredit = Color(0xFF212529);
   static const Color mutedText = Color(0xFF6C757D);
   static const Color veryMutedText = Color(0xFFA0A0A0);
-  static const Color cardBackground = Colors.white;
+  // Theme-aware colors - use getCardBg(isDark) instead
+  static Color getCardBackground(bool isDark) => isDark ? darkCardBg : lightCardBg;
   static const Color metricBoxBackground = Color(0xFFF8F9FA);
   static const Color accentGreen = Color(0xFF28A745);
   static const Color accentPurple = Color(0xFF6F42C1);
-  static const Color cardTagBackground = Colors.white;
+  // Theme-aware colors - use getCardBg(isDark) instead
+  static Color getCardTagBackground(bool isDark) => isDark ? darkCardBg : lightCardBg;
 
   // Telefon uchun gradient
   static LinearGradient get phoneGradient => LinearGradient(

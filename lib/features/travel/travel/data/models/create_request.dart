@@ -2,29 +2,26 @@ class CreateRequest {
   const CreateRequest({
     required this.sessionId,
     required this.provider,
-    required this.persons,
-    required this.startDate,
-    required this.endDate,
-    required this.phoneNumber,
-    this.email,
+    required this.summaAll,
+    required this.programId,
+    required this.sugurtalovchi,
+    required this.travelers,
   });
 
   final String sessionId;
   final String provider;
-  final List<Map<String, dynamic>> persons;
-  final String startDate;
-  final String endDate;
-  final String phoneNumber;
-  final String? email;
+  final int summaAll;
+  final String programId;
+  final Map<String, dynamic> sugurtalovchi;
+  final List<Map<String, dynamic>> travelers;
 
   Map<String, dynamic> toJson() => {
         'session_id': sessionId,
         'provider': provider,
-        'persons': persons,
-        'start_date': startDate,
-        'end_date': endDate,
-        'phone_number': phoneNumber,
-        if (email != null) 'email': email,
+        'summa_all': summaAll,
+        'program_id': programId,
+        'sugurtalovchi': sugurtalovchi,
+        'travelers': travelers,
       };
 }
 

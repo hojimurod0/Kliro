@@ -12,11 +12,13 @@ class CreateTravelPolicy {
     required String sessionId,
     required List<TravelPerson> persons,
     required TravelInsurance insurance,
+    double? amount,
   }) {
     return _repository.create(
       sessionId: sessionId,
       persons: persons,
       insurance: insurance,
+      amount: amount,
     );
   }
 }

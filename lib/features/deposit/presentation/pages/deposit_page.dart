@@ -13,6 +13,7 @@ import '../../../../core/widgets/primary_search_filter_bar.dart';
 import '../../../common/utils/amount_formatter.dart';
 import '../../../common/utils/bank_assets.dart';
 import '../../../common/utils/bank_data.dart';
+import '../../../common/utils/text_localizer.dart';
 import '../../domain/entities/deposit_entity.dart';
 import '../../domain/entities/deposit_filter.dart';
 import '../bloc/deposit_bloc.dart';
@@ -289,10 +290,10 @@ class _DepositCardState extends State<_DepositCard> {
   List<String> _getAdvantages() {
     final advantages = <String>[];
     if (widget.item.rate.isNotEmpty) {
-      advantages.add('${tr('deposit.interest_rate_label')} ${widget.item.rate}');
+      advantages.add('${tr('deposit.interest_rate_label')} ${localizeApiText(widget.item.rate)}');
     }
     if (widget.item.term.isNotEmpty) {
-      advantages.add('${tr('deposit.term_label')} ${widget.item.term}');
+      advantages.add('${tr('deposit.term_label')} ${localizeApiText(widget.item.term)}');
     }
     if (widget.item.amount.isNotEmpty) {
       advantages.add('${tr('deposit.min_amount_label')} ${widget.item.amount}');
@@ -414,7 +415,7 @@ class _DepositCardState extends State<_DepositCard> {
                 child: _InfoBlock(
                   icon: Icons.percent_rounded,
                   label: tr('deposit.interest_rate'),
-                  value: widget.item.rate,
+                  value: localizeApiText(widget.item.rate),
                   isAccent: true,
                 ),
               ),
@@ -423,7 +424,7 @@ class _DepositCardState extends State<_DepositCard> {
                 child: _InfoBlock(
                   icon: Icons.calendar_month_outlined,
                   label: tr('deposit.term'),
-                  value: widget.item.term,
+                  value: localizeApiText(widget.item.term),
                 ),
               ),
               SizedBox(width: 8.w),
@@ -518,7 +519,7 @@ class _DepositCardState extends State<_DepositCard> {
             height: 46.h,
             child: ElevatedButton(
               onPressed: () async {
-                final opened = await openBankApplication(widget.item.bankName);
+                final opened = await openBankWebsite(widget.item.bankName);
                 if (!opened && mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

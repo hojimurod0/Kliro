@@ -9,9 +9,7 @@ part of 'save_order_response.dart';
 _$SaveOrderResponseImpl _$$SaveOrderResponseImplFromJson(
         Map<String, dynamic> json) =>
     _$SaveOrderResponseImpl(
-      orderId: json['order_id'] == null
-          ? null
-          : json['order_id'].toString(),
+      orderId: json['order_id'] as String?,
       premium: (json['premium'] as num?)?.toDouble(),
       carId: (json['car_id'] as num?)?.toInt(),
       ownerName: json['owner_name'] as String?,
@@ -21,9 +19,7 @@ _$SaveOrderResponseImpl _$$SaveOrderResponseImplFromJson(
       url: json['url'] as String?,
       urlShartnoma: json['url_shartnoma'] as String?,
       paymeUrl: json['payme_url'] as String?,
-      contractId: json['contract_id'] == null
-          ? null
-          : json['contract_id'].toString(),
+      contractId: json['contract_id'] as String?,
     );
 
 Map<String, dynamic> _$$SaveOrderResponseImplToJson(

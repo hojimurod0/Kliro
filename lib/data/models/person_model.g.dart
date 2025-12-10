@@ -13,9 +13,9 @@ PersonModel _$PersonModelFromJson(Map<String, dynamic> json) => PersonModel(
       birthday: json['birthday'] as String,
       phone: json['phone'] as String,
       pinfl: json['pinfl'] as String,
-      lastName: json['lastName'] as String,
-      firstName: json['firstName'] as String,
-      middleName: json['middleName'] as String?,
+      lastName: json['last_name'] as String,
+      firstName: json['first_name'] as String,
+      middleName: json['middle_name'] as String?,
     );
 
 Map<String, dynamic> _$PersonModelToJson(PersonModel instance) =>
@@ -26,7 +26,7 @@ Map<String, dynamic> _$PersonModelToJson(PersonModel instance) =>
       'birthday': instance.birthday,
       'phone': instance.phone,
       'pinfl': instance.pinfl,
-      'lastName': instance.lastName,
-      'firstName': instance.firstName,
-      'middleName': instance.middleName,
+      'last_name': instance.lastName,
+      'first_name': instance.firstName,
+      'middle_name': instance.middleName,
     };

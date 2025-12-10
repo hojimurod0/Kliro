@@ -5,12 +5,92 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../../../core/dio/singletons/service_locator.dart';
+import '../../../register/domain/params/auth_params.dart';
+import '../../../register/domain/usecases/update_profile.dart';
 
 @RoutePage()
-class ProfileEditPage extends StatelessWidget {
+class ProfileEditPage extends StatefulWidget {
   const ProfileEditPage({super.key});
 
+  @override
+  State<ProfileEditPage> createState() => _ProfileEditPageState();
+}
+
+class _ProfileEditPageState extends State<ProfileEditPage> {
   static const double _buttonHeight = 50.0;
+  
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _birthDateController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  
+  bool _isLoading = false;
+  
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _birthDateController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+  
+  Future<void> _saveProfile() async {
+    if (_firstNameController.text.trim().isEmpty || 
+        _lastNameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(tr('profile_edit.fill_required_fields')),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      final updateProfile = ServiceLocator.resolve<UpdateProfile>();
+      await updateProfile(
+        UpdateProfileParams(
+          firstName: _firstNameController.text.trim(),
+          lastName: _lastNameController.text.trim(),
+        ),
+      );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tr('profile_edit.saved_successfully')),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Xatolik: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +139,7 @@ class ProfileEditPage extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _ProfileInputField(
+                      controller: _firstNameController,
                       label: tr('profile_edit.first_name'),
                       icon: Icons.person_outline,
                       hintText: 'Behruz',
@@ -67,6 +148,7 @@ class ProfileEditPage extends StatelessWidget {
                   SizedBox(width: 12.w),
                   Expanded(
                     child: _ProfileInputField(
+                      controller: _lastNameController,
                       label: tr('profile_edit.last_name'),
                       icon: Icons.person_outline,
                       hintText: 'Dilmurodov',
@@ -76,24 +158,28 @@ class ProfileEditPage extends StatelessWidget {
               ),
               SizedBox(height: 15.h),
               _ProfileInputField(
+                controller: _emailController,
                 label: tr('profile_edit.email'),
                 icon: Icons.email_outlined,
                 hintText: 'example@gmail.com',
               ),
               SizedBox(height: 15.h),
               _ProfileInputField(
+                controller: _phoneController,
                 label: tr('profile_edit.phone'),
                 icon: Icons.call_outlined,
                 hintText: '+998 99 999-99-99',
               ),
               SizedBox(height: 15.h),
               _ProfileInputField(
+                controller: _birthDateController,
                 label: tr('profile_edit.birth_date'),
                 icon: Icons.calendar_today_outlined,
                 hintText: '01.12.2000',
               ),
               SizedBox(height: 15.h),
               _ProfileInputField(
+                controller: _addressController,
                 label: tr('profile_edit.address'),
                 icon: Icons.location_on_outlined,
                 hintText: 'Toshkent, Uzbekistan',
@@ -140,11 +226,20 @@ class ProfileEditPage extends StatelessWidget {
                         ),
                       ),
                       child: TextButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(
-                          Icons.save_outlined,
-                          color: Colors.white,
-                        ),
+                        onPressed: _isLoading ? null : _saveProfile,
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.save_outlined,
+                                color: Colors.white,
+                              ),
                         label: Text(
                           tr('profile_edit.save'),
                           style: AppTypography.bodyPrimary.copyWith(
@@ -169,11 +264,13 @@ class ProfileEditPage extends StatelessWidget {
 
 class _ProfileInputField extends StatelessWidget {
   const _ProfileInputField({
+    this.controller,
     required this.label,
     required this.icon,
     required this.hintText,
   });
 
+  final TextEditingController? controller;
   final String label;
   final IconData icon;
   final String hintText;
@@ -203,6 +300,7 @@ class _ProfileInputField extends StatelessWidget {
             ),
           ),
           child: TextField(
+            controller: controller,
             style: AppTypography.bodyPrimary.copyWith(
               color: Theme.of(context).textTheme.bodyLarge?.color ?? AppColors.black,
               fontSize: 16.sp,

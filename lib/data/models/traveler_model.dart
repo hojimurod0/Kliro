@@ -6,11 +6,15 @@ part 'traveler_model.g.dart';
 /// Модель путешественника
 @JsonSerializable()
 class TravelerModel extends Equatable {
+  @JsonKey(name: 'passportSeries')
   final String passportSeries;
+  @JsonKey(name: 'passportNumber')
   final String passportNumber;
   final String birthday; // DD-MM-YYYY
   final String pinfl;
+  @JsonKey(name: 'last_name')
   final String lastName;
+  @JsonKey(name: 'first_name')
   final String firstName;
 
   const TravelerModel({
