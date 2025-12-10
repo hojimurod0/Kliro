@@ -10,6 +10,7 @@ import '../../../bank/domain/entities/currency_entity.dart';
 import '../../../bank/presentation/bloc/currency_bloc.dart';
 import '../../../bank/presentation/bloc/currency_event.dart';
 import '../../../bank/presentation/bloc/currency_state.dart';
+import '../../../common/utils/bank_assets.dart';
 
 class HomeServicesGrid extends StatelessWidget {
   final VoidCallback onBankTap;
@@ -157,24 +158,6 @@ class _BankCardWithCurrency extends StatelessWidget {
     required this.onTap,
   });
 
-  CurrencyEntity? _getCheapestUSDCurrency(List<CurrencyEntity> currencies) {
-    final usdCurrencies = currencies
-        .where((c) => c.currencyCode.toUpperCase() == 'USD')
-        .toList();
-    if (usdCurrencies.isEmpty) return null;
-    usdCurrencies.sort((a, b) => a.buyRate.compareTo(b.buyRate));
-    return usdCurrencies.first;
-  }
-
-  String _formatCurrency(double value) {
-    return value
-        .toStringAsFixed(0)
-        .replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -185,9 +168,28 @@ class _BankCardWithCurrency extends StatelessWidget {
 
     return BlocBuilder<CurrencyBloc, CurrencyState>(
       builder: (context, state) {
-        CurrencyEntity? cheapestCurrency;
+        CurrencyEntity? bestBuyBank;
+        CurrencyEntity? bestSellBank;
+        bool isLoading = state is CurrencyLoading;
+
         if (state is CurrencyLoaded) {
-          cheapestCurrency = _getCheapestUSDCurrency(state.currencies);
+          // Valyuta sahifasidagi kabi bir xil logika
+          // USD bo'yicha filtrlash (valyuta sahifasidagi kabi)
+          var filteredCurrencies = List<CurrencyEntity>.from(state.currencies);
+          filteredCurrencies = filteredCurrencies
+              .where((currency) => currency.currencyCode.toUpperCase() == 'USD')
+              .toList();
+
+          // Eng arzon sotib olish kursi va eng baland sotish kursi
+          // (valyuta sahifasidagi kabi reduce metodi)
+          if (filteredCurrencies.isNotEmpty) {
+            bestBuyBank = filteredCurrencies.reduce(
+              (a, b) => a.buyRate < b.buyRate ? a : b,
+            );
+            bestSellBank = filteredCurrencies.reduce(
+              (a, b) => a.sellRate > b.sellRate ? a : b,
+            );
+          }
         }
 
         return GestureDetector(
@@ -212,157 +214,57 @@ class _BankCardWithCurrency extends StatelessWidget {
                 ),
                 SizedBox(height: 6.h),
                 const Spacer(),
-                if (cheapestCurrency != null) ...[
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.attach_money,
-                        size: 14.sp,
-                        color:
-                            Theme.of(context).textTheme.bodyMedium?.color ??
-                            const Color(0xFF6B7280),
-                      ),
-                      SizedBox(width: 4.w),
-                      Expanded(
-                        child: Text(
-                          cheapestCurrency.bankName,
-                          style: AppTypography.bodySecondary.copyWith(
-                            fontSize: 12.sp,
-                            color: Theme.of(
-                              context,
-                            ).textTheme.bodyMedium?.color,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                if (isLoading) ...[
+                  // Loading state
+                  SizedBox(
+                    height: 60.h,
+                    child: Center(
+                      child: SizedBox(
+                        width: 20.w,
+                        height: 20.w,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                  SizedBox(height: 10.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10.w,
-                            vertical: 6.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: greenBg,
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.trending_up_rounded,
-                                    color: greenText,
-                                    size: 12.sp,
-                                  ),
-                                  SizedBox(width: 3.w),
-                                  Flexible(
-                                    child: Text(
-                                      tr('currency.buy'),
-                                      style: TextStyle(
-                                        fontSize: 10.sp,
-                                        color:
-                                            Theme.of(
-                                              context,
-                                            ).textTheme.bodyMedium?.color ??
-                                            const Color(0xFF374151),
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 3.h),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  _formatCurrency(cheapestCurrency.buyRate),
-                                  style: TextStyle(
-                                    fontSize: 13.sp,
-                                    fontWeight: FontWeight.w700,
-                                    color: greenText,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Expanded(
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10.w,
-                            vertical: 6.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: redBg,
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.trending_down_rounded,
-                                    color: redText,
-                                    size: 12.sp,
-                                  ),
-                                  SizedBox(width: 3.w),
-                                  Flexible(
-                                    child: Text(
-                                      tr('currency.sell'),
-                                      style: TextStyle(
-                                        fontSize: 10.sp,
-                                        color:
-                                            Theme.of(
-                                              context,
-                                            ).textTheme.bodyMedium?.color ??
-                                            const Color(0xFF374151),
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 3.h),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  _formatCurrency(cheapestCurrency.sellRate),
-                                  style: TextStyle(
-                                    fontSize: 13.sp,
-                                    fontWeight: FontWeight.w700,
-                                    color: redText,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                ] else if (bestBuyBank != null && bestSellBank != null) ...[
+                  // Best Buy Bank - eng past buyRate
+                  _MiniBankCard(
+                    bank: bestBuyBank,
+                    isBuy: true,
+                    greenBg: greenBg,
+                    greenText: greenText,
                   ),
+                  SizedBox(height: 8.h),
+                  // Best Sell Bank - eng baland sellRate
+                  _MiniBankCard(
+                    bank: bestSellBank,
+                    isBuy: false,
+                    greenBg: redBg,
+                    greenText: redText,
+                  ),
+                ] else if (bestBuyBank != null || bestSellBank != null) ...[
+                  // Agar faqat bitta bank topilsa
+                  if (bestBuyBank != null)
+                    _MiniBankCard(
+                      bank: bestBuyBank,
+                      isBuy: true,
+                      greenBg: greenBg,
+                      greenText: greenText,
+                    ),
+                  if (bestBuyBank != null && bestSellBank != null)
+                    SizedBox(height: 8.h),
+                  if (bestSellBank != null)
+                    _MiniBankCard(
+                      bank: bestSellBank,
+                      isBuy: false,
+                      greenBg: redBg,
+                      greenText: redText,
+                    ),
                 ] else ...[
-                  // Placeholder для kurslar yuklanmaganda ham bir xil o'lcham saqlash uchun
+                  // Placeholder - agar kurslar topilmasa
                   SizedBox(
                     height: 60.h,
                     child: Center(
@@ -480,6 +382,162 @@ class _ServiceIcon extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius.r),
       ),
       child: Icon(icon, color: iconColor, size: 0.5 * size.sp),
+    );
+  }
+}
+
+class _MiniBankCard extends StatelessWidget {
+  final CurrencyEntity bank;
+  final bool isBuy;
+  final Color greenBg;
+  final Color greenText;
+
+  const _MiniBankCard({
+    required this.bank,
+    required this.isBuy,
+    required this.greenBg,
+    required this.greenText,
+  });
+
+  String _formatCurrency(double value) {
+    return value
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+      decoration: BoxDecoration(
+        color: greenBg,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Row(
+        children: [
+          // Bank logo
+          _MiniBankLogo(bankName: bank.bankName),
+          SizedBox(width: 8.w),
+          // Bank name and rate
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isBuy
+                          ? Icons.trending_up_rounded
+                          : Icons.trending_down_rounded,
+                      color: greenText,
+                      size: 10.sp,
+                    ),
+                    SizedBox(width: 4.w),
+                    Flexible(
+                      child: Text(
+                        bank.bankName,
+                        style: AppTypography.bodySecondary.copyWith(
+                          fontSize: 11.sp,
+                          color: Theme.of(context).textTheme.titleLarge?.color,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 2.h),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      _formatCurrency(isBuy ? bank.buyRate : bank.sellRate),
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.bold,
+                        color: greenText,
+                      ),
+                    ),
+                    SizedBox(width: 3.w),
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 1.h),
+                      child: Text(
+                        tr('currency.som'),
+                        style: TextStyle(
+                          fontSize: 9.sp,
+                          color: greenText.withOpacity(0.7),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniBankLogo extends StatelessWidget {
+  final String bankName;
+
+  const _MiniBankLogo({required this.bankName});
+
+  @override
+  Widget build(BuildContext context) {
+    final logoAsset = bankLogoAsset(bankName);
+    final shouldContain = bankLogoUsesContainFit(bankName);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFEFF6FF);
+
+    return Container(
+      width: 28.w,
+      height: 28.w,
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: logoAsset != null
+          ? Builder(
+              builder: (context) {
+                final image = Image.asset(
+                  logoAsset,
+                  fit: shouldContain ? BoxFit.contain : BoxFit.cover,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (context, error, stackTrace) {
+                    return _buildPlaceholder();
+                  },
+                );
+                if (shouldContain) {
+                  return Padding(padding: EdgeInsets.all(4.w), child: image);
+                }
+                return image;
+              },
+            )
+          : _buildPlaceholder(),
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return Center(
+      child: Text(
+        bankName.isNotEmpty ? bankName[0].toUpperCase() : 'B',
+        style: TextStyle(
+          fontSize: 12.sp,
+          fontWeight: FontWeight.bold,
+          color: AppColors.skyAccent,
+        ),
+      ),
     );
   }
 }

@@ -842,7 +842,7 @@ class _BankCardCardState extends State<_BankCardCard> {
         height: 56,
         child: ElevatedButton(
           onPressed: () async {
-            final opened = await openBankApplication(offer.bankName);
+            final opened = await openBankWebsite(offer.bankName);
             if (!opened && context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

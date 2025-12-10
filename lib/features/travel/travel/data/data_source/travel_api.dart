@@ -36,11 +36,28 @@ class TravelApi {
           statusCode: response.statusCode,
         );
       }
-      final dataMap = responseData['data'] as Map<String, dynamic>?;
-      if (dataMap == null) {
-        throw const AppException(message: 'Missing response data');
+      // ✅ YANGI FORMAT: result to'g'ridan-to'g'ri response'da
+      // Response format: {result: {apex: {programs: []}}, success: true}
+      // Session ID request'dan olinadi
+      final result = responseData['result'] as Map<String, dynamic>?;
+      if (result != null) {
+        // Session ID ni request'dan qo'shamiz
+        final jsonWithSessionId = {
+          ...responseData,
+          'session_id': data.sessionId,
+        };
+        // ✅ programId ni data'dan olish (agar mavjud bo'lsa)
+        final programId = data.programId;
+        return CalcResponse.fromJson(jsonWithSessionId, programId: programId);
       }
-      return CalcResponse.fromJson(dataMap);
+      
+      // Eski format uchun fallback
+      final dataMap = responseData['data'] as Map<String, dynamic>?;
+      if (dataMap != null) {
+        return CalcResponse.fromJson(dataMap, programId: data.programId);
+      }
+      
+      throw const AppException(message: 'Missing response data');
     } on DioException catch (error) {
       _handleDioError(error);
     }
@@ -61,11 +78,20 @@ class TravelApi {
           statusCode: response.statusCode,
         );
       }
-      final dataMap = responseData['data'] as Map<String, dynamic>?;
-      if (dataMap == null) {
-        throw const AppException(message: 'Missing response data');
+      // ✅ YANGI FORMAT: result to'g'ridan-to'g'ri response'da
+      // Response format: {result: {provider: "apex", response: {...}, session_id: "..."}, success: true}
+      final result = responseData['result'] as Map<String, dynamic>?;
+      if (result != null) {
+        return CreateResponse.fromJson(responseData);
       }
-      return CreateResponse.fromJson(dataMap);
+      
+      // Eski format uchun fallback
+      final dataMap = responseData['data'] as Map<String, dynamic>?;
+      if (dataMap != null) {
+        return CreateResponse.fromJson(dataMap);
+      }
+      
+      throw const AppException(message: 'Missing response data');
     } on DioException catch (error) {
       _handleDioError(error);
     }
@@ -243,6 +269,10 @@ class TravelApi {
 
       throw const AppException(message: 'Неверный формат ответа сервера');
     } on DioException catch (error) {
+      // 404 xatolikni maxsus qayta ishlash (endpoint mavjud emas)
+      if (error.response?.statusCode == 404) {
+        return []; // Bo'sh ro'yxat qaytaradi, bloc fallback ma'lumotlardan foydalanadi
+      }
       _handleDioError(error);
     }
   }

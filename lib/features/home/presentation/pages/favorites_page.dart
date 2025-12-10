@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -9,7 +10,7 @@ class FavoritesPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Sevimlilar'),
+        title: Text('home.favorites'.tr()),
         automaticallyImplyLeading: false,
       ),
       body: Center(
@@ -25,7 +26,7 @@ class FavoritesPage extends StatelessWidget {
               ),
               SizedBox(height: 20.h),
               Text(
-                'Sevimlilar bo\'sh',
+                tr('home.favorites_empty'),
                 style: TextStyle(
                   fontSize: 18.sp,
                   color: Colors.grey[600],
@@ -34,7 +35,7 @@ class FavoritesPage extends StatelessWidget {
               ),
               SizedBox(height: 8.h),
               Text(
-                'Sevimli xizmatlarni qo\'shing',
+                tr('home.favorites_empty_subtitle'),
                 style: TextStyle(
                   fontSize: 14.sp,
                   color: Colors.grey[500],

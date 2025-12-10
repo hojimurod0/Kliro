@@ -8,9 +8,12 @@ part 'save_policy_request_model.g.dart';
 /// Модель запроса сохранения полиса
 @JsonSerializable()
 class SavePolicyRequestModel extends Equatable {
+  @JsonKey(name: 'session_id')
   final String sessionId;
   final String provider;
+  @JsonKey(name: 'summa_all')
   final double summaAll;
+  @JsonKey(name: 'program_id')
   final String programId;
   final PersonModel sugurtalovchi;
   final List<TravelerModel> travelers;

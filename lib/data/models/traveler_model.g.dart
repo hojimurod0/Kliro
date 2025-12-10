@@ -12,8 +12,8 @@ TravelerModel _$TravelerModelFromJson(Map<String, dynamic> json) =>
       passportNumber: json['passportNumber'] as String,
       birthday: json['birthday'] as String,
       pinfl: json['pinfl'] as String,
-      lastName: json['lastName'] as String,
-      firstName: json['firstName'] as String,
+      lastName: json['last_name'] as String,
+      firstName: json['first_name'] as String,
     );
 
 Map<String, dynamic> _$TravelerModelToJson(TravelerModel instance) =>
@@ -22,6 +22,6 @@ Map<String, dynamic> _$TravelerModelToJson(TravelerModel instance) =>
       'passportNumber': instance.passportNumber,
       'birthday': instance.birthday,
       'pinfl': instance.pinfl,
-      'lastName': instance.lastName,
-      'firstName': instance.firstName,
+      'last_name': instance.lastName,
+      'first_name': instance.firstName,
     };

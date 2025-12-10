@@ -42,29 +42,38 @@ class HomeBanner extends StatelessWidget {
               bottomLeft: Radius.circular(24.r),
               bottomRight: Radius.circular(24.r),
             ),
-            child: Image.asset(
-              'assets/images/homebannerr.png',
-              width: double.infinity,
-              height: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                // Agar rasm topilmasa, gradient fon ko'rsatadi
-                return Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.primaryBlue.withOpacity(0.8),
-                        AppColors.primaryBlue.withOpacity(0.6),
-                      ],
+            child: ColorFiltered(
+              // Rasmni yoritish va rangini kuchaytirish uchun ColorFilter
+              colorFilter: ColorFilter.matrix([
+                1.6, 0, 0, 0, 0,    // Red channel - juda kuchaytirilgan
+                0, 1.6, 0, 0, 0,    // Green channel - juda kuchaytirilgan
+                0, 0, 1.6, 0, 0,    // Blue channel - juda kuchaytirilgan
+                0, 0, 0, 1, 0.4,    // Alpha va brightness juda oshirilgan
+              ]),
+              child: Image.asset(
+                'assets/images/homebannerr.png',
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  // Agar rasm topilmasa, gradient fon ko'rsatadi
+                  return Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.primaryBlue.withOpacity(0.8),
+                          AppColors.primaryBlue.withOpacity(0.6),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
-          // Gradient overlay
+          // Gradient overlay - yengilashtirilgan (qorong'iroq qilmaydi)
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.only(
@@ -75,8 +84,8 @@ class HomeBanner extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  AppColors.black.withOpacity(0.1),
-                  AppColors.black.withOpacity(0.7),
+                  AppColors.black.withOpacity(0.0),  // Yuqorida gradient yo'q
+                  AppColors.black.withOpacity(0.15),  // Pastda minimal gradient
                 ],
               ),
             ),

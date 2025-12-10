@@ -13,6 +13,7 @@ import '../../../../core/widgets/primary_search_filter_bar.dart';
 import '../../../common/utils/amount_formatter.dart';
 import '../../../common/utils/bank_assets.dart';
 import '../../../common/utils/bank_data.dart';
+import '../../../common/utils/text_localizer.dart';
 import '../../domain/entities/mortgage_entity.dart';
 import '../../domain/entities/mortgage_filter.dart';
 import '../bloc/mortgage_bloc.dart';
@@ -333,8 +334,8 @@ class _MortgageCard extends StatelessWidget {
           _MortgagePropertyBadge(propertyType: item.propertyType),
           SizedBox(height: 16.h),
           _MortgageInfoGrid(
-            interestRate: item.interestRate,
-            term: item.term,
+            interestRate: localizeApiText(item.interestRate),
+            term: localizeApiText(item.term),
             amount: formattedMaxSum,
             downPayment: item.downPayment,
           ),
@@ -641,10 +642,10 @@ class _MortgageBenefitsSectionState extends State<_MortgageBenefitsSection> {
     }
     final advantages = <String>[];
     if (widget.item.interestRate.isNotEmpty) {
-      advantages.add('${tr('mortgage.interest_rate')} ${widget.item.interestRate}');
+      advantages.add('${tr('mortgage.interest_rate')} ${localizeApiText(widget.item.interestRate)}');
     }
     if (widget.item.term.isNotEmpty) {
-      advantages.add('${tr('mortgage.term')} ${widget.item.term}');
+      advantages.add('${tr('mortgage.term')} ${localizeApiText(widget.item.term)}');
     }
     if (widget.item.maxSum.isNotEmpty) {
       advantages.add('${tr('mortgage.amount')} ${widget.item.maxSum}');
@@ -756,7 +757,7 @@ class _MortgageApplyButton extends StatelessWidget {
       height: 50.h,
       child: ElevatedButton(
         onPressed: () async {
-          final opened = await openBankApplication(bankName);
+          final opened = await openBankWebsite(bankName);
           if (!opened && context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

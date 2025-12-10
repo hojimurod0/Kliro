@@ -169,7 +169,7 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
       emit(_failureState('Avtomobil ma\'lumotlari topilmadi'));
       return;
     }
-    
+
     // MUHIM: Agar state OsagoVehicleFilled bo'lsa va drivers mavjud bo'lsa, ularni saqlash
     // Bu LoadVehicleData event dan keyin kelgan drivers ni saqlashni ta'minlaydi
     List<OsagoDriver> currentDrivers = state.drivers;
@@ -258,7 +258,7 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
       '[OSAGO_BLOC] Updated insurance yaratildi: isUnlimited=${updatedInsurance.isUnlimited}',
       name: 'OSAGO',
     );
-    
+
     // MUHIM: Drivers ni tekshirish va log qilish
     log(
       '[OSAGO_BLOC] LoadInsuranceCompany: currentDrivers count=${currentDrivers.length}',

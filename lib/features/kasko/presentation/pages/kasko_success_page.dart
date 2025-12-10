@@ -1,10 +1,12 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../bloc/kasko_bloc.dart';
 import '../bloc/kasko_state.dart';
 
@@ -151,15 +153,15 @@ class KaskoSuccessPage extends StatelessWidget {
 
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final scaffoldBg = isDark
-            ? Colors.black.withOpacity(0.6)
-            : Colors.black.withOpacity(0.4);
-        final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-        final textColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
-        final subtitleColor = isDark ? Colors.grey[400]! : const Color(0xFF8E9BA6);
-        final borderColor = isDark ? Colors.grey[700]! : const Color(0xFFE0E6EB);
+            ? AppColors.darkScaffoldBg.withOpacity(0.95)
+            : AppColors.lightScaffoldBg.withOpacity(0.95);
+        final cardBg = isDark ? AppColors.darkCardBg : AppColors.lightCardBg;
+        final textColor = isDark ? AppColors.darkTextColor : AppColors.lightTextColor;
+        final subtitleColor = isDark ? AppColors.darkSubtitle : AppColors.lightSubtitle;
+        final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
         final detailCardBg = isDark ? const Color(0xFF1E3A5C) : _cardLightBlue;
         final iconContainerBg = isDark ? const Color(0xFF1E3A5C) : _iconLightBlue;
-        final dividerColor = isDark ? Colors.grey[700]! : const Color(0xFFE1EBF2);
+        final dividerColor = isDark ? AppColors.darkBorder : const Color(0xFFE1EBF2);
 
         return Scaffold(
       backgroundColor: scaffoldBg,
@@ -207,7 +209,7 @@ class KaskoSuccessPage extends StatelessWidget {
 
                 // 2. SARLAVHA
                 Text(
-                  "Muvaffaqiyatli! ✅",
+                  'insurance.kasko.success.title'.tr(),
                   style: TextStyle(
                     fontSize: 22.sp,
                     fontWeight: FontWeight.w800,
@@ -249,7 +251,7 @@ class KaskoSuccessPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "Polis raqami",
+                                'insurance.kasko.success.policy_number'.tr(),
                                 style: TextStyle(
                                   color: subtitleColor,
                                   fontSize: 13.sp,
@@ -281,7 +283,7 @@ class KaskoSuccessPage extends StatelessWidget {
                       // Tafsilotlar qatorlari
                       _buildDetailRow(
                         Icons.directions_car_outlined,
-                        "Avtomobil",
+                        'insurance.kasko.success.vehicle'.tr(),
                         carName,
                         isDark: isDark,
                         textColor: textColor,
@@ -290,7 +292,7 @@ class KaskoSuccessPage extends StatelessWidget {
                       SizedBox(height: 14.h),
                       _buildDetailRow(
                         Icons.calendar_today_outlined,
-                        "Sana",
+                        'insurance.kasko.success.date'.tr(),
                         date,
                         isDark: isDark,
                         textColor: textColor,
@@ -299,7 +301,7 @@ class KaskoSuccessPage extends StatelessWidget {
                       SizedBox(height: 14.h),
                       _buildDetailRow(
                         Icons.attach_money_rounded,
-                        "Summa",
+                        'insurance.kasko.success.amount'.tr(),
                         amount,
                         isBlueValue: true,
                         isDark: isDark,
@@ -315,7 +317,7 @@ class KaskoSuccessPage extends StatelessWidget {
                 // Polisni yuklab olish
                 _buildOutlineButton(
                   Icons.download_rounded,
-                  "Polisni yuklab olish",
+                  'insurance.kasko.success.download_policy'.tr(),
                   isDark,
                   cardBg,
                   textColor,
@@ -326,7 +328,7 @@ class KaskoSuccessPage extends StatelessWidget {
                 // Ulashish
                 _buildOutlineButton(
                   Icons.share_outlined,
-                  "Ulashish",
+                  'insurance.kasko.success.share'.tr(),
                   isDark,
                   cardBg,
                   textColor,
@@ -360,7 +362,7 @@ class KaskoSuccessPage extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      "Yopish",
+                      'insurance.kasko.success.close'.tr(),
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,

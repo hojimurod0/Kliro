@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -12,7 +13,7 @@ class ServicesPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Xizmatlar'),
+        title: Text('home.services'.tr()),
         automaticallyImplyLeading: false,
       ),
       body: ListView(
@@ -20,63 +21,63 @@ class ServicesPage extends StatelessWidget {
         children: [
           _buildServiceCard(
             context,
-            'Bank xizmatlari',
+            tr('bank.services'),
             Icons.account_balance,
             () => context.router.push(BankServicesRoute()),
           ),
           SizedBox(height: 16.h),
           _buildServiceCard(
             context,
-            'Sug\'urta xizmatlari',
+            tr('insurance.title'),
             Icons.shield,
             () => context.router.push(InsuranceServicesRoute()),
           ),
           SizedBox(height: 16.h),
           _buildServiceCard(
             context,
-            'Valyuta kurslari',
+            tr('bank.currency'),
             Icons.currency_exchange,
             () => context.router.push(CurrencyDetailRoute()),
           ),
           SizedBox(height: 16.h),
           _buildServiceCard(
             context,
-            'Kartalar',
+            tr('bank.cards'),
             Icons.credit_card,
             () => context.router.push(const CardsRoute()),
           ),
           SizedBox(height: 16.h),
           _buildServiceCard(
             context,
-            'Depozitlar',
+            tr('bank.deposit'),
             Icons.savings,
             () => context.router.push(DepositRoute()),
           ),
           SizedBox(height: 16.h),
           _buildServiceCard(
             context,
-            'Avtokredit',
+            tr('bank.auto_credit'),
             Icons.directions_car,
             () => context.router.push(const AutoCreditRoute()),
           ),
           SizedBox(height: 16.h),
           _buildServiceCard(
             context,
-            'Ipoteka',
+            tr('bank.mortgage'),
             Icons.home,
             () => context.router.push(const MortgageRoute()),
           ),
           SizedBox(height: 16.h),
           _buildServiceCard(
             context,
-            'Mikrokredit',
+            tr('bank.micro_loan'),
             Icons.money,
             () => context.router.push(MicroLoanRoute()),
           ),
           SizedBox(height: 16.h),
           _buildServiceCard(
             context,
-            'Pul o\'tkazmalar',
+            tr('transfers.title'),
             Icons.swap_horiz,
             () => context.router.push(const TransferAppsRoute()),
           ),

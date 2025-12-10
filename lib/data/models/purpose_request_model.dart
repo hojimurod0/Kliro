@@ -6,6 +6,7 @@ part 'purpose_request_model.g.dart';
 /// Модель запроса цели путешествия
 @JsonSerializable()
 class PurposeRequestModel extends Equatable {
+  @JsonKey(name: 'purpose_id')
   final int purposeId;
   final List<String> destinations;
 

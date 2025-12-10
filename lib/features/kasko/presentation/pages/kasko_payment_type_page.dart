@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/navigation/app_router.dart';
 import '../bloc/kasko_bloc.dart';
 import '../bloc/kasko_event.dart';
@@ -184,11 +186,11 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final scaffoldBg = isDark ? const Color(0xFF121212) : Colors.white;
-    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
-    final subtitleColor = isDark ? Colors.grey[400]! : Colors.grey.shade600;
-    final borderColor = isDark ? Colors.grey[800]! : Colors.grey.shade300;
+    final scaffoldBg = isDark ? AppColors.darkScaffoldBg : AppColors.lightScaffoldBg;
+    final cardBg = isDark ? AppColors.darkCardBg : AppColors.lightCardBg;
+    final textColor = isDark ? AppColors.darkTextColor : AppColors.lightTextColor;
+    final subtitleColor = isDark ? AppColors.darkSubtitle : AppColors.lightSubtitle;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return BlocConsumer<KaskoBloc, KaskoState>(
@@ -215,7 +217,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
                 },
               ),
               title: Text(
-                'KASKO',
+                'insurance.kasko.title'.tr(),
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: textColor,
@@ -251,7 +253,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
                 },
               ),
               title: Text(
-                'KASKO',
+                'insurance.kasko.title'.tr(),
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: textColor,
@@ -279,7 +281,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
                     ),
                     SizedBox(height: 16.h),
                     Text(
-                      'Ma\'lumotlar to\'liq emas',
+                      'insurance.kasko.payment_type.incomplete_data'.tr(),
                       style: TextStyle(
                         fontSize: 20.sp,
                         fontWeight: FontWeight.bold,
@@ -289,7 +291,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
                     ),
                     SizedBox(height: 8.h),
                     Text(
-                      'Avval buyurtmani saqlang',
+                      'insurance.kasko.payment_type.save_order_first'.tr(),
                       style: TextStyle(fontSize: 16.sp, color: subtitleColor),
                       textAlign: TextAlign.center,
                     ),
@@ -306,7 +308,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
                         ),
                       ),
                       child: Text(
-                        'Ortga qaytish',
+                        'insurance.kasko.payment_type.go_back'.tr(),
                         style: TextStyle(fontSize: 16.sp, color: Colors.white),
                       ),
                     ),
@@ -362,7 +364,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'To\'lov usulini tanlang',
+                                'insurance.kasko.payment_type.title'.tr(),
                                 style: TextStyle(
                                   fontSize: 24.sp,
                                   fontWeight: FontWeight.bold,
@@ -381,7 +383,8 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
                                   borderRadius: BorderRadius.circular(8.r),
                                 ),
                                 child: Text(
-                                  'Qadam 5/5',
+                                  'insurance.kasko.payment_type.step_indicator'
+                                      .tr(),
                                   style: TextStyle(
                                     fontSize: 12.sp,
                                     fontWeight: FontWeight.w600,
@@ -504,7 +507,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Jami summa',
+                              'insurance.kasko.payment_type.total_amount'.tr(),
                               style: TextStyle(
                                 fontSize: 14.sp,
                                 color: subtitleColor,
@@ -545,7 +548,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
                               elevation: 0,
                             ),
                             child: Text(
-                              'To\'lash',
+                              'insurance.kasko.payment_type.pay'.tr(),
                               style: TextStyle(
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.bold,
@@ -620,7 +623,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'To\'lov havolasi topilmadi. Iltimos, qayta urinib ko\'ring.',
+              'insurance.kasko.payment_type.payment_link_not_found'.tr(),
             ),
             backgroundColor: Colors.red,
           ),
@@ -635,7 +638,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Buyurtma ma\'lumotlari topilmadi. Iltimos, qayta urinib ko\'ring.',
+            'insurance.kasko.payment_type.order_data_not_found'.tr(),
           ),
           backgroundColor: Colors.red,
         ),
@@ -717,19 +720,23 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'To\'lov havolasini ochib bo\'lmadi. Iltimos, brauzerda ochib ko\'ring: $url',
+              'insurance.kasko.payment_type.failed_to_open_link'.tr(
+                namedArgs: {'url': url},
+              ),
             ),
             backgroundColor: Colors.orange,
             duration: const Duration(seconds: 5),
             action: SnackBarAction(
-              label: 'Nusxa olish',
+              label: 'insurance.kasko.payment_type.copy'.tr(),
               onPressed: () {
                 // URL'ni clipboard'ga nusxalash
                 Clipboard.setData(ClipboardData(text: url));
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('URL nusxalandi'),
-                    duration: Duration(seconds: 2),
+                  SnackBar(
+                    content: Text(
+                      'insurance.kasko.payment_type.url_copied'.tr(),
+                    ),
+                    duration: const Duration(seconds: 2),
                   ),
                 );
               },
@@ -992,10 +999,16 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildInfoRow('Dastur:', program, isDark, textColor, subtitleColor),
+          _buildInfoRow(
+            'insurance.kasko.payment_type.program'.tr(),
+            program,
+            isDark,
+            textColor,
+            subtitleColor,
+          ),
           SizedBox(height: 12.h),
           _buildInfoRow(
-            'Avtomobil raqami:',
+            'insurance.kasko.payment_type.vehicle_number'.tr(),
             carNumber,
             isDark,
             textColor,
@@ -1003,24 +1016,36 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
           ),
           SizedBox(height: 12.h),
           _buildInfoRow(
-            'Texnik pasport:',
+            'insurance.kasko.payment_type.tech_passport'.tr(),
             techPassport,
             isDark,
             textColor,
             subtitleColor,
           ),
           SizedBox(height: 12.h),
-          _buildInfoRow('Pasport:', passport, isDark, textColor, subtitleColor),
+          _buildInfoRow(
+            'insurance.kasko.payment_type.passport'.tr(),
+            passport,
+            isDark,
+            textColor,
+            subtitleColor,
+          ),
           SizedBox(height: 12.h),
           _buildInfoRow(
-            'Tug\'ilgan sana:',
+            'insurance.kasko.payment_type.birth_date'.tr(),
             birthDate,
             isDark,
             textColor,
             subtitleColor,
           ),
           SizedBox(height: 12.h),
-          _buildInfoRow('Telefon:', phone, isDark, textColor, subtitleColor),
+          _buildInfoRow(
+            'insurance.kasko.payment_type.phone'.tr(),
+            phone,
+            isDark,
+            textColor,
+            subtitleColor,
+          ),
         ],
       ),
     );
@@ -1063,7 +1088,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
     String carName = '--';
     String coverage = '--';
     String premium = '--';
-    String period = '1 yil';
+    String period = '1 ${tr('common.year')}';
 
     final currentState = bloc.state;
 
@@ -1104,7 +1129,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Xulosa',
+          'insurance.kasko.payment_type.summary'.tr(),
           style: TextStyle(
             fontSize: 18.sp,
             fontWeight: FontWeight.w700,
@@ -1113,7 +1138,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
         ),
         SizedBox(height: 20.h),
         _buildSummaryRow(
-          'Sug\'urta davri',
+          'insurance.kasko.payment_type.insurance_period'.tr(),
           period,
           isDark,
           textColor,
@@ -1121,7 +1146,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
         ),
         SizedBox(height: 14.h),
         _buildSummaryRow(
-          'Avtomobil',
+          'insurance.kasko.payment_type.vehicle'.tr(),
           carName,
           isDark,
           textColor,
@@ -1129,7 +1154,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
         ),
         SizedBox(height: 14.h),
         _buildSummaryRow(
-          'Qoplash miqdori',
+          'insurance.kasko.payment_type.coverage_amount'.tr(),
           coverage,
           isDark,
           textColor,
@@ -1137,7 +1162,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
         ),
         SizedBox(height: 14.h),
         _buildSummaryRow(
-          'To\'lanadigan summa',
+          'insurance.kasko.payment_type.amount_to_pay'.tr(),
           premium,
           isDark,
           textColor,
@@ -1150,7 +1175,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
             // TODO: PDF ochish
           },
           child: Text(
-            'Sug\'urta qoidalari',
+            'insurance.kasko.payment_type.insurance_rules'.tr(),
             style: TextStyle(
               fontSize: 14.sp,
               color: const Color(0xFF0085FF),

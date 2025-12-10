@@ -8,7 +8,7 @@ part of 'purpose_request_model.dart';
 
 PurposeRequestModel _$PurposeRequestModelFromJson(Map<String, dynamic> json) =>
     PurposeRequestModel(
-      purposeId: (json['purposeId'] as num).toInt(),
+      purposeId: (json['purpose_id'] as num).toInt(),
       destinations: (json['destinations'] as List<dynamic>)
           .map((e) => e as String)
           .toList(),
@@ -17,6 +17,6 @@ PurposeRequestModel _$PurposeRequestModelFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$PurposeRequestModelToJson(
         PurposeRequestModel instance) =>
     <String, dynamic>{
-      'purposeId': instance.purposeId,
+      'purpose_id': instance.purposeId,
       'destinations': instance.destinations,
     };

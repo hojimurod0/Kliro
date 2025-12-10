@@ -124,7 +124,28 @@
     "hotels_subtitle": "1000+ mehmonxona",
     "news": "Yangiliklar",
     "view_all": "Barchasini ko'rish >",
+    "news_items": {
+      "item1": {
+        "title": "Raqamli to'lov tizimlari kengaymoqda",
+        "tag": "Moliya",
+        "date": "25-oktabr, 2024"
+      },
+      "item2": {
+        "title": "Bank xizmatlarida sun'iy intellekt texnologiyalari",
+        "tag": "Texnologiya",
+        "date": "24-oktabr, 2024"
+      },
+      "item3": {
+        "title": "Sug'urta bozorida yangi paketlar taqdim etildi",
+        "tag": "Sug'urta",
+        "date": "22-oktabr, 2024"
+      }
+    },
     "home": "Bosh sahifa",
+    "services": "Xizmatlar",
+    "favorites": "Sevimlilar",
+    "favorites_empty": "Sevimlilar bo'sh",
+    "favorites_empty_subtitle": "Sevimli xizmatlarni qo'shing",
     "banner": {
       "travel": "SAYOHAT",
       "title": "Dunyoni kashf eting",
@@ -205,7 +226,9 @@
     "interest_rate_label": "Foiz stavkasi",
     "term_label": "Muddat",
     "min_amount_label": "Min. summa",
-    "default_advantages": "Bankning amal qiluvchi omonat takliflari"
+    "default_advantages": "Bankning amal qiluvchi omonat takliflari",
+    "empty_title": "Omonatlar topilmadi",
+    "empty_subtitle": "Filtrlarni o'zgartiring yoki ro'yxatni yangilang."
   },
   "currency": {
     "title": "Valyuta kursi",
@@ -227,7 +250,10 @@
     "best_sell": "Eng yaxshi sotish",
     "bank_rates": "Banklardagi valyuta kurslari",
     "best_offer": "Eng yaxshi taklif",
-    "som": "so'm"
+    "som": "so'm",
+    "per_day": "bir kunda",
+    "bank_name_hamkorbank": "Hamkorbank",
+    "bank_name_universal": "Universal bank"
   },
   "micro_loan": {
     "title": "Mikroqarz",
@@ -256,9 +282,11 @@
     "asc": "O'sish tartibi",
     "desc": "Kamayish tartibi",
     "open_link": "Havolani ochish: {0}",
-    "interest_rate_label": "Foiz",
+    "interest_rate_label": "Foiz stavkasi",
     "amount_label": "Summa",
     "term_label": "Muddat",
+    "max_amount_label": "Maksimal summa",
+    "default_advantages": "Bankning amal qiluvchi mikrokredit takliflari",
     "only_online_applications": "Faqat onlayn arizalar"
   },
   "mortgage": {
@@ -314,7 +342,17 @@
     "thousand_soum": "ming so'm",
     "soum": "so'm",
     "per_month": "/ oy",
-    "default_advantages": "Bankning amal qiluvchi avtokredit takliflari"
+    "default_advantages": "Bankning amal qiluvchi avtokredit takliflari",
+    "filters": "Filtrlar",
+    "interest_rate_label": "Foiz stavkasi",
+    "term_label": "Muddat",
+    "payment_type_label": "To'lov turi",
+    "rate_option_16_20": "16-20%",
+    "rate_option_21_25": "21-25%",
+    "rate_option_26_plus": "26%+",
+    "term_option_5_years": "5 yil",
+    "term_option_7_years": "7 yil",
+    "term_option_8_plus_years": "8+ yil"
   },
   "transfers": {
     "title": "O'tkazma ilovalar",
@@ -459,7 +497,20 @@
     "sort": "Saralash",
     "something_went_wrong": "Nimadir xato ketdi. Qayta urinib ko'ring.",
     "error_occurred": "Xatolik yuz berdi: {0}",
-    "error_occurred_simple": "Xatolik yuz berdi"
+    "error_occurred_simple": "Xatolik yuz berdi",
+    "billion": "mlrd",
+    "million": "mln",
+    "thousand": "ming",
+    "from": "dan",
+    "to": "gacha",
+    "up_to": "gacha",
+    "percent": "%",
+    "year": "yil",
+    "years": "yil",
+    "month": "oy",
+    "months": "oy",
+    "soum": "so'm",
+    "uzs": "UZS"
   },
   "insurance": {
     "title": "Sug'urta xizmatlari",
@@ -711,7 +762,7 @@
         "enter_car_number": "Avtomobil raqamini kiriting",
         "enter_vin": "VIN kiriting"
       },
-      "personal_data": {
+    "personal_data": {
         "title": "Shaxsiy ma'lumotlar",
         "subtitle": "Sug'urta polisi uchun shaxsiy ma'lumotlaringizni kiriting",
         "passport_series_number": "Passport seriyasi va raqami",
@@ -740,6 +791,15 @@
         "tech_passport": "Tex passport",
         "calculate": "Hisoblash",
         "match_info": "Ma'lumotlar texpasportdagi ma'lumotlarga to'liq mos kelishi kerak",
+        "personal_data_and_payment": "Shaxsiy ma'lumotlar va to'lov usuli",
+        "full_name_label": "Ism familiya:",
+        "birth_date_label": "Tug'ilgan sana:",
+        "phone_label": "Telefon:",
+        "passport_label": "Passport:",
+        "payment_method_label": "To'lov usuli:",
+        "vehicle_documents": "Avtomobil hujjatlari",
+        "vehicle_number_label": "Avtomobil raqami:",
+        "vin_tech_passport_label": "VIN / Tex passport:",
         "errors": {
           "fill_all_fields": "Iltimos, barcha maydonlarni to'ldiring",
           "invalid_car_number": "Avtomobil raqami to'liq kiritilmagan",
@@ -752,16 +812,211 @@
           "series_3_letters": "Seriya 3 ta harfdan iborat bo'lishi kerak",
           "number_7_digits": "Raqam 7 raqamdan iborat bo'lishi kerak"
         }
+      },
+      "tariff": {
+        "title": "Tariflar",
+        "step_indicator": "Qadam 2/5",
+        "subtitle": "O'zingizga mos bo'lgan sug'urta tarifini tanlang",
+        "loading": "Tariflar yuklanmoqda...",
+        "please_wait": "Iltimos, kuting",
+        "retry": "Qayta urinib ko'ring",
+        "not_found": "Tariflar topilmadi",
+        "conversion_failed": "Tariflar konvertatsiya qilinmadi",
+        "no_tariffs_in_category": "Bu kategoriyada tariflar topilmadi",
+        "continue": "Davom etish",
+        "select_tariff": "Iltimos, tarifni tanlang",
+        "select_car": "Iltimos, avtomobilni tanlang",
+        "select_year": "Iltimos, yilni tanlang",
+        "summary": "Xulosa",
+        "insurance_period": "Sug'urta davri",
+        "vehicle": "Avtomobil",
+        "coverage_amount": "Qoplash miqdori",
+        "amount_to_pay": "To'lanadigan summa",
+        "insurance_rules": "Sug'urta qoidalari",
+        "duration": "Davomiyligi:",
+        "coverage": "Qoplash:",
+        "som": "so'm",
+        "coverage_label": "qoplash",
+        "insurance_tariff": "Sug'urta tarifi",
+        "tariff": "Tarif"
+      },
+      "order_details": {
+        "title": "Buyurtma tafsilotlari",
+        "subtitle": "Barcha ma'lumotlarni tekshiring va to'lovni amalga oshiring",
+        "insurance_period": "Sug'urta davri",
+        "vehicle": "Avtomobil",
+        "coverage_amount": "Qoplash miqdori",
+        "tariff": "Tarif",
+        "duration": "Muddat",
+        "coverage": "Qoplash",
+        "documents_and_personal": "Hujjatlar va shaxsiy ma'lumotlar",
+        "vehicle_number": "Avtomobil raqami",
+        "vin_tech_passport": "VIN / Tex passport",
+        "full_name": "Ism familiya",
+        "birth_date": "Tug'ilgan sana",
+        "phone_number": "Telefon raqami",
+        "passport": "Passport",
+        "payment_method": "To'lov usuli",
+        "insurance_coverage": "Sug'urta qamrovi",
+        "vehicle_damage": "Avtomobilga yetkazilgan zarar",
+        "theft_and_robbery": "O'g'irlik va talonda",
+        "natural_disasters": "Tabiiy ofatlar",
+        "third_party_damage": "Uchinchi shaxslar zarari",
+        "assistance_service": "24/7 yordam xizmati",
+        "amount_to_pay": "To'lanadigan summa",
+        "pay": "To'lash",
+        "full_coverage": "To'liq zarar qoplash 100%",
+        "franchise": "Franchise"
+      },
+      "payment_type": {
+        "title": "To'lov usulini tanlang",
+        "step_indicator": "Qadam 5/5",
+        "program": "Dastur:",
+        "vehicle_number": "Avtomobil raqami:",
+        "tech_passport": "Texnik pasport:",
+        "passport": "Pasport:",
+        "birth_date": "Tug'ilgan sana:",
+        "phone": "Telefon:",
+        "total_amount": "Jami summa",
+        "pay": "To'lash",
+        "summary": "Xulosa",
+        "insurance_period": "Sug'urta davri",
+        "vehicle": "Avtomobil",
+        "coverage_amount": "Qoplash miqdori",
+        "amount_to_pay": "To'lanadigan summa",
+        "insurance_rules": "Sug'urta qoidalari",
+        "incomplete_data": "Ma'lumotlar to'liq emas",
+        "save_order_first": "Avval buyurtmani saqlang",
+        "go_back": "Ortga qaytish",
+        "payment_link_not_found": "To'lov havolasi topilmadi. Iltimos, qayta urinib ko'ring.",
+        "order_data_not_found": "Buyurtma ma'lumotlari topilmadi. Iltimos, qayta urinib ko'ring.",
+        "failed_to_open_link": "To'lov havolasini ochib bo'lmadi. Iltimos, brauzerda ochib ko'ring: {url}",
+        "copy": "Nusxa olish",
+        "url_copied": "URL nusxalandi"
+      },
+      "payment_page": {
+        "title": "KASKO - To'lov",
+        "amount": "To'lov summasi",
+        "go_to_payment": "To'lovga o'tish",
+        "link_not_found": "To'lov havolasi topilmadi"
+      },
+      "success": {
+        "title": "Muvaffaqiyatli! ✅",
+        "policy_number": "Polis raqami",
+        "vehicle": "Avtomobil",
+        "date": "Sana",
+        "amount": "Summa",
+        "download_policy": "Polisni yuklab olish",
+        "share": "Ulashish",
+        "close": "Yopish"
+      },
+      "cars_list": {
+        "title": "KASKO - Avtomobillar",
+        "not_found": "Avtomobillar topilmadi",
+        "retry": "Qayta urinib ko'ring",
+        "brand": "Marka",
+        "model": "Model",
+        "year": "Yil"
+      },
+      "personal_data_page": {
+        "birth_date_label": "Tug'ilgan kun sanasi",
+        "vehicle_documents": "Avtomobil hujjatlari",
+        "vehicle_number_label": "Avtomobil raqami:",
+        "vin_tech_passport_label": "VIN / Tex passport:",
+        "incomplete_data_error": "Ma'lumotlar to'liq emas. Iltimos, oldingi sahifalarga qayting."
       }
-    },
-    "travel": {
-      "title": "Sayohat sug'urtasi",
-      "subtitle": "Xavfsiz sayohat",
-      "description": "Xorijda bo'lish davomida tibbiy yordam va boshqa xavflardan himoya",
-      "feature_1": "Tibbiy yordam",
-      "feature_2": "Bagaj yo'qolishi",
-      "feature_3": "Parvoz bekor qilish",
-      "button_text": "Rasmiylashtirish"
     }
+  },
+  "travel": {
+    "title": "Sayohat sug'urtasi",
+    "subtitle": "Xavfsiz sayohat",
+    "description": "Xorijda bo'lish davomida tibbiy yordam va boshqa xavflardan himoya",
+    "feature_1": "Tibbiy yordam",
+    "feature_2": "Bagaj yo'qolishi",
+    "feature_3": "Parvoz bekor qilish",
+    "button_text": "Rasmiylashtirish",
+    "persons_screen": {
+        "title": "Sayohat sug'urtasi",
+        "subtitle": "Sayohat ma'lumotlari",
+        "description": "Sayohatingiz haqida asosiy ma'lumotlarni kiriting",
+        "where_going": "Qayerga boryapsiz?",
+        "travel_purpose": "Sayohat maqsadi",
+        "start_date": "Boshlash",
+        "end_date": "Tugash",
+        "additional_protection": "Qo'shimcha himoya",
+        "annual_insurance": "Yillik sug'urta",
+        "annual_description": "Butun yil uchun himoya",
+        "covid_protection": "COVID-19 himoyasi",
+        "covid_description": "Koronavirus davolash xarajatlari",
+        "travelers": "Sayohatchilar",
+        "add": "Qo'shish",
+        "traveler": "Sayohatchi",
+        "birth_date": "Tug'ilgan sana",
+        "select_date": "Sanani tanlang",
+        "continue": "Davom etish",
+        "countries_loading": "Mamlakatlar yuklanmoqda...",
+        "select_country": "Mamlakatni tanlang",
+        "select_purpose": "Maqsadni tanlang"
+      },
+    "personal_data": {
+        "title": "Sayohat sug'urtasi",
+        "personal_info": "Shaxsiy ma'lumotlar",
+        "subtitle": "Sug'urtalovchi va sayohatchi ma'lumotlari",
+        "insurer": "Sug'urtalovchi",
+        "traveler": "Sayohatchi",
+        "full_name": "To'liq ism sharif",
+        "pinfl": "PINFL",
+        "passport_series_number": "Passport seriyasi va raqami",
+        "birth_date": "Tugilgan kun sanasi",
+        "phone_number": "Telefon raqami",
+        "foreign_citizen": "Chet el fuqarosi",
+        "continue": "Davom etish",
+        "enter_full_name": "To'liq ism sharifni kiriting",
+        "enter_pinfl": "PINFL ni kiriting",
+        "enter_passport": "Passport ma'lumotlarini kiriting",
+        "select_birth_date": "Tug'ilgan sanasini tanlang",
+        "enter_phone": "Telefon raqamini to'liq kiriting"
+      },
+    "select_insurance": {
+        "title": "Sayohat sug'urtasi",
+        "select_company": "Sug'urta kompaniyasini tanlang",
+        "select_tariff": "Eng mos keluvchi tarifni tanlang",
+        "continue": "Davom etish",
+        "policy_price": "Polis narxi",
+        "sum": "so'm",
+        "selected": "Tanlangan",
+        "select_insurance": "Sug'urtani tanlash",
+        "companies_not_found": "Kompaniyalar topilmadi",
+        "retry": "Qayta urinish",
+        "error_country_not_found": "Ushbu mamlakat uchun tariflar topilmadi. Iltimos, boshqa mamlakatni tanlang.",
+        "error_network": "Internetga ulanmadingiz. Iltimos, internetni tekshiring."
+      },
+    "order_info": {
+      "title": "Buyurtma ma'lumotlari",
+      "travel_insurance": "Sayohat sug'urtasi",
+      "check_all_info": "Barcha ma'lumotlarni tekshiring",
+      "payment": "To'lov",
+      "process_payment": "To'lovni amalga oshirish",
+      "payment_link_not_found": "To'lov havolasi topilmadi",
+      "retry": "Qayta urinish",
+      "error": "Xatolik yuz berdi",
+      "total_amount": "Jami summa",
+      "country": "Mamlakat",
+      "travel_purpose": "Sayohat maqsadi",
+      "insurance_company": "Sug'urta kompaniyasi",
+      "start_date": "Boshlanish sanasi",
+      "end_date": "Tugash sanasi",
+      "phone": "Telefon",
+      "email": "Email",
+      "full_name": "FIO",
+      "passport": "Pasport",
+      "birth_date": "Tug'ilgan sana",
+      "travelers": "Sayohatchilar",
+      "payment_method": "To'lov usuli"
+    }
+  },
+  "splash": {
+    "loading": "Yuklanmoqda...",
+    "video_error": "Video yuklashda xatolik"
   }
 }

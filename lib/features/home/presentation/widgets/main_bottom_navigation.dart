@@ -21,7 +21,10 @@ class MainBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Locale o'zgarishini kuzatish uchun context.locale ni ishlatamiz
+    final locale = context.locale;
     return Container(
+      key: ValueKey('bottom_nav_${locale.toString()}'),
       margin: EdgeInsets.fromLTRB(16.w, 0, 16.w, 18.h),
       padding: EdgeInsets.all(5.w),
       height: 64.h,
@@ -68,16 +71,23 @@ class MainBottomNavigation extends StatelessWidget {
                   ),
                 ),
               ),
-              Row(
-                children: TabItem.values.map((item) {
-                  final isActive = currentTab == item;
-                  return _buildItem(
-                    context,
-                    item: item,
-                    isActive: isActive,
-                    width: isActive ? activeWidth : inactiveWidth,
+              Builder(
+                builder: (context) {
+                  // Locale o'zgarishini kuzatish uchun Builder ishlatamiz
+                  final locale = context.locale;
+                  return Row(
+                    children: TabItem.values.map((item) {
+                      final isActive = currentTab == item;
+                      return _buildItem(
+                        context,
+                        item: item,
+                        isActive: isActive,
+                        width: isActive ? activeWidth : inactiveWidth,
+                        locale: locale,
+                      );
+                    }).toList(),
                   );
-                }).toList(),
+                },
               ),
             ],
           );
@@ -91,6 +101,7 @@ class MainBottomNavigation extends StatelessWidget {
     required TabItem item,
     required bool isActive,
     required double width,
+    required Locale locale,
   }) {
     late final IconData icon;
     late final String label;
@@ -98,19 +109,19 @@ class MainBottomNavigation extends StatelessWidget {
     switch (item) {
       case TabItem.home:
         icon = Icons.home_rounded;
-        label = 'home.home'.tr();
+        label = context.tr('home.home');
         break;
       case TabItem.service:
         icon = Icons.grid_view_rounded;
-        label = 'Xizmatlar';
+        label = context.tr('home.services');
         break;
       case TabItem.favorite:
         icon = Icons.favorite_rounded;
-        label = 'Sevimlilar';
+        label = context.tr('home.favorites');
         break;
       case TabItem.profile:
         icon = Icons.person_rounded;
-        label = 'profile.title'.tr();
+        label = context.tr('profile.title');
         break;
     }
 
@@ -146,6 +157,7 @@ class MainBottomNavigation extends StatelessWidget {
                   child: isActive
                       ? Text(
                           label,
+                          key: ValueKey('${item.name}_${locale.toString()}'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(

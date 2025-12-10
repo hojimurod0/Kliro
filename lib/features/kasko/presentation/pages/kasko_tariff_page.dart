@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/dio/singletons/service_locator.dart';
 import '../../data/datasources/kasko_remote_data_source.dart';
 import '../../data/repositories/kasko_repository_impl.dart';
@@ -246,16 +248,16 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
         final percentString = percentValue % 1 == 0
             ? percentValue.toStringAsFixed(0)
             : percentValue.toStringAsFixed(1);
-        description = '$percentString% qoplash';
+        description = '$percentString${tr('common.percent')} ${tr('insurance.kasko.tariff.coverage')}';
       } else {
-        description = 'Sug\'urta tarifi';
+        description = tr('insurance.kasko.tariff.insurance_tariff');
       }
 
       tariffs.add(
         TariffModel(
           id: rate.id,
-          title: rate.name.isNotEmpty ? rate.name : 'Tarif',
-          duration: '12 oy', // Default duration
+          title: rate.name.isNotEmpty ? rate.name : tr('insurance.kasko.tariff.tariff'),
+          duration: '12 ${tr('common.months')}', // Default duration
           description: description,
           price: formattedPrice,
         ),
@@ -263,7 +265,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
 
       if (_enableDebugLogs) {
         debugPrint(
-          '📋 Tariff: ${rate.name} - ${formattedPrice} so\'m (percent: ${rate.percent})',
+          '📋 Tariff: ${rate.name} - ${formattedPrice} ${tr('common.soum')} (percent: ${rate.percent})',
         );
       }
     }
@@ -358,13 +360,20 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Locale o'zgarishini kuzatish uchun context.locale ni ishlatamiz
+    // Bu locale o'zgarganda widget'ni qayta build qiladi
+    final currentLocale = context.locale;
+    if (_enableDebugLogs) {
+      debugPrint('🌍 Current locale: $currentLocale');
+    }
+    
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final scaffoldBg = isDark
-        ? const Color(0xFF121212)
-        : const Color(0xFFF4F6F8);
-    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : const Color(0xFF111827);
-    final subtitleColor = isDark ? Colors.grey[400]! : const Color(0xFF6B7280);
+        ? AppColors.darkScaffoldBg
+        : AppColors.background;
+    final cardBg = isDark ? AppColors.darkCardBg : AppColors.lightCardBg;
+    final textColor = isDark ? AppColors.darkTextColor : AppColors.lightTextColor;
+    final subtitleColor = isDark ? AppColors.darkSubtitle : AppColors.lightSubtitle;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     // Bloc'ni context'dan olish - har doim modul darajasidagi BLoC ishlatiladi
@@ -477,8 +486,8 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                     debugPrint('⚠️⚠️⚠️ Rates list is EMPTY!');
                   }
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Tariflar topilmadi'),
+                    SnackBar(
+                      content: Text('insurance.kasko.tariff.not_found'.tr()),
                       backgroundColor: Colors.orange,
                     ),
                   );
@@ -515,8 +524,8 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                         );
                       }
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Tariflar konvertatsiya qilinmadi'),
+                        SnackBar(
+                          content: Text('insurance.kasko.tariff.conversion_failed'.tr()),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -613,7 +622,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                             ),
                             SizedBox(height: 24.h),
                             Text(
-                              'Tariflar yuklanmoqda...',
+                              'insurance.kasko.tariff.loading'.tr(),
                               style: TextStyle(
                                 fontSize: 16.sp,
                                 fontWeight: FontWeight.w500,
@@ -622,7 +631,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                             ),
                             SizedBox(height: 8.h),
                             Text(
-                              'Iltimos, kuting',
+                              'insurance.kasko.tariff.please_wait'.tr(),
                               style: TextStyle(
                                 fontSize: 14.sp,
                                 color: subtitleColor,
@@ -677,7 +686,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                   ),
                                 ),
                                 child: Text(
-                                  'Qayta urinib ko\'ring',
+                                  'insurance.kasko.tariff.retry'.tr(),
                                   style: TextStyle(
                                     fontSize: 16.sp,
                                     color: Colors.white,
@@ -723,7 +732,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              "Tariflar",
+                                              'insurance.kasko.tariff.title'.tr(),
                                               style: TextStyle(
                                                 fontSize: 24.sp,
                                                 fontWeight: FontWeight.w800,
@@ -746,7 +755,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                             ),
                                           ),
                                           child: Text(
-                                            "Qadam 2/5",
+                                            'insurance.kasko.tariff.step_indicator'.tr(),
                                             style: TextStyle(
                                               fontSize: 12.sp,
                                               fontWeight: FontWeight.w600,
@@ -758,7 +767,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                     ),
                                     SizedBox(height: 8.h),
                                     Text(
-                                      "O'zingizga mos bo'lgan sug'urta tarifini tanlang",
+                                      'insurance.kasko.tariff.subtitle'.tr(),
                                       style: TextStyle(
                                         fontSize: 14.sp,
                                         color: subtitleColor,
@@ -786,7 +795,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                           ),
                                           SizedBox(height: 24.h),
                                           Text(
-                                            'Tariflar yuklanmoqda...',
+                                            'insurance.kasko.tariff.loading'.tr(),
                                             style: TextStyle(
                                               fontSize: 16.sp,
                                               fontWeight: FontWeight.w500,
@@ -796,7 +805,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                           ),
                                           SizedBox(height: 8.h),
                                           Text(
-                                            'Iltimos, kuting',
+                                            'insurance.kasko.tariff.please_wait'.tr(),
                                             style: TextStyle(
                                               fontSize: 14.sp,
                                               color: subtitleColor,
@@ -827,7 +836,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                           ),
                                           SizedBox(height: 16.h),
                                           Text(
-                                            'Bu kategoriyada tariflar topilmadi',
+                                            'insurance.kasko.tariff.no_tariffs_in_category'.tr(),
                                             style: TextStyle(
                                               fontSize: 16.sp,
                                               color: textColor,
@@ -979,7 +988,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
     String carName = '--';
     String coverage = '--';
     String premium = '--';
-    String period = '1 yil';
+    String period = '1 ${tr('common.year')}';
 
     final currentState = bloc.state;
 
@@ -1027,7 +1036,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Xulosa',
+          'insurance.kasko.tariff.summary'.tr(),
           style: TextStyle(
             fontSize: 18.sp,
             fontWeight: FontWeight.w700,
@@ -1036,7 +1045,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
         ),
         SizedBox(height: 20.h),
         _buildSummaryRow(
-          'Sug\'urta davri',
+          'insurance.kasko.tariff.insurance_period'.tr(),
           period,
           isDark,
           textColor,
@@ -1044,7 +1053,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
         ),
         SizedBox(height: 14.h),
         _buildSummaryRow(
-          'Avtomobil',
+          'insurance.kasko.tariff.vehicle'.tr(),
           carName,
           isDark,
           textColor,
@@ -1052,7 +1061,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
         ),
         SizedBox(height: 14.h),
         _buildSummaryRow(
-          'Qoplash miqdori',
+          'insurance.kasko.tariff.coverage_amount'.tr(),
           coverage,
           isDark,
           textColor,
@@ -1060,7 +1069,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
         ),
         SizedBox(height: 14.h),
         _buildSummaryRow(
-          'To\'lanadigan summa',
+          'insurance.kasko.tariff.amount_to_pay'.tr(),
           premium,
           isDark,
           textColor,
@@ -1073,7 +1082,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
             // TODO: PDF ochish
           },
           child: Text(
-            'Sug\'urta qoidalari',
+            'insurance.kasko.tariff.insurance_rules'.tr(),
             style: TextStyle(
               fontSize: 14.sp,
               color: const Color(0xFF0085FF),
@@ -1137,7 +1146,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
           ),
           Expanded(
             child: Text(
-              "KASKO",
+              'insurance.kasko.title'.tr(),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18.sp,
@@ -1176,8 +1185,8 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                   // Ma'lumotlar to'ldirilganligini tekshirish
                   if (_selectedRateEntity == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Iltimos, tarifni tanlang'),
+                      SnackBar(
+                        content: Text('insurance.kasko.tariff.select_tariff'.tr()),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -1191,8 +1200,8 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                     // Avtomobil tanlanganligini tekshirish
                     if (bloc.selectedCarPositionId == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Iltimos, avtomobilni tanlang'),
+                        SnackBar(
+                          content: Text('insurance.kasko.tariff.select_car'.tr()),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -1202,8 +1211,8 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                     // Yil tanlanganligini tekshirish
                     if (bloc.selectedYear == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Iltimos, yilni tanlang'),
+                        SnackBar(
+                          content: Text('insurance.kasko.tariff.select_year'.tr()),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -1276,7 +1285,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                     debugPrint('❌❌❌ Error getting BLoC: $e');
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Xatolik yuz berdi: $e'),
+                        content: Text('${tr('common.error')}: $e'),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -1294,7 +1303,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
             disabledBackgroundColor: const Color(0xFFE5E7EB),
           ),
           child: Text(
-            "Davom etish",
+            'insurance.kasko.tariff.continue'.tr(),
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
@@ -1388,7 +1397,7 @@ class _TariffCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Davomiyligi:",
+                            'insurance.kasko.tariff.duration'.tr(),
                             style: TextStyle(
                               color: labelBlue,
                               fontSize: 14.sp,
@@ -1413,7 +1422,7 @@ class _TariffCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Qoplash:",
+                            'insurance.kasko.tariff.coverage'.tr(),
                             style: TextStyle(
                               color: labelBlue,
                               fontSize: 14.sp,
@@ -1445,7 +1454,7 @@ class _TariffCard extends StatelessWidget {
 
                 // Price - Pastda katta ko'k rangda
                 Text(
-                  "${data.price} so'm",
+                  "${data.price} ${'insurance.kasko.tariff.som'.tr()}",
                   style: TextStyle(
                     fontSize: 28.sp,
                     fontWeight: FontWeight.w800,

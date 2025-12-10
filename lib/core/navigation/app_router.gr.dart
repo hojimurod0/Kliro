@@ -305,6 +305,12 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const TravelModule(),
       );
     },
+    TravelOrderInformationRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const TravelOrderInformationScreen(),
+      );
+    },
     UserDetailsRoute.name: (routeData) {
       final args = routeData.argsAs<UserDetailsRouteArgs>();
       return AutoRoutePage<dynamic>(
@@ -1128,6 +1134,20 @@ class TravelModuleRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'TravelModuleRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [TravelOrderInformationScreen]
+class TravelOrderInformationRoute extends PageRouteInfo<void> {
+  const TravelOrderInformationRoute({List<PageRouteInfo>? children})
+      : super(
+          TravelOrderInformationRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'TravelOrderInformationRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }

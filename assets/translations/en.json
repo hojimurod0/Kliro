@@ -124,7 +124,28 @@
     "hotels_subtitle": "1000+ hotels",
     "news": "News",
     "view_all": "View all >",
+    "news_items": {
+      "item1": {
+        "title": "Digital payment systems are expanding",
+        "tag": "Finance",
+        "date": "October 25, 2024"
+      },
+      "item2": {
+        "title": "Artificial intelligence in banking services",
+        "tag": "Technology",
+        "date": "October 24, 2024"
+      },
+      "item3": {
+        "title": "New packages introduced in the insurance market",
+        "tag": "Insurance",
+        "date": "October 22, 2024"
+      }
+    },
     "home": "Home",
+    "services": "Services",
+    "favorites": "Favorites",
+    "favorites_empty": "Favorites is empty",
+    "favorites_empty_subtitle": "Add favorite services",
     "banner": {
       "travel": "TRAVEL",
       "title": "Discover the world",
@@ -205,7 +226,9 @@
     "interest_rate_label": "Interest rate",
     "term_label": "Term",
     "min_amount_label": "Min. amount",
-    "default_advantages": "Bank's current deposit offers"
+    "default_advantages": "Bank's current deposit offers",
+    "empty_title": "No deposits found",
+    "empty_subtitle": "Adjust filters or refresh the list."
   },
   "currency": {
     "title": "Currency rates",
@@ -227,7 +250,10 @@
     "best_sell": "Best sell",
     "bank_rates": "Currency rates in banks",
     "best_offer": "Best offer",
-    "som": "som"
+    "som": "som",
+    "per_day": "per day",
+    "bank_name_hamkorbank": "Hamkorbank",
+    "bank_name_universal": "Universal bank"
   },
   "micro_loan": {
     "title": "Micro loan",
@@ -256,9 +282,11 @@
     "asc": "Ascending",
     "desc": "Descending",
     "open_link": "Open link: {0}",
-    "interest_rate_label": "Interest",
+    "interest_rate_label": "Interest rate",
     "amount_label": "Amount",
     "term_label": "Term",
+    "max_amount_label": "Max amount",
+    "default_advantages": "Bank's current microcredit offers",
     "only_online_applications": "Only online applications"
   },
   "about_app": {
@@ -357,7 +385,20 @@
     "sort": "Sort",
     "something_went_wrong": "Something went wrong. Please try again.",
     "error_occurred": "An error occurred: {0}",
-    "error_occurred_simple": "An error occurred"
+    "error_occurred_simple": "An error occurred",
+    "billion": "billion",
+    "million": "million",
+    "thousand": "thousand",
+    "from": "from",
+    "to": "to",
+    "up_to": "up to",
+    "percent": "%",
+    "year": "year",
+    "years": "years",
+    "month": "month",
+    "months": "months",
+    "soum": "soum",
+    "uzs": "UZS"
   },
   "cards": {
     "title": "Cards",
@@ -446,7 +487,17 @@
     "thousand_soum": "thousand soum",
     "soum": "soum",
     "per_month": "/ month",
-    "default_advantages": "Bank's current auto credit offers"
+    "default_advantages": "Bank's current auto credit offers",
+    "filters": "Filters",
+    "interest_rate_label": "Interest rate",
+    "term_label": "Term",
+    "payment_type_label": "Payment type",
+    "rate_option_16_20": "16-20%",
+    "rate_option_21_25": "21-25%",
+    "rate_option_26_plus": "26%+",
+    "term_option_5_years": "5 years",
+    "term_option_7_years": "7 years",
+    "term_option_8_plus_years": "8+ years"
   },
   "transfers": {
     "title": "Transfer apps",
@@ -717,7 +768,7 @@
         "enter_car_number": "Enter vehicle number",
         "enter_vin": "Enter VIN"
       },
-      "personal_data": {
+    "personal_data": {
         "title": "Personal information",
         "subtitle": "Enter your personal information for the insurance policy",
         "passport_series_number": "Passport series and number",
@@ -745,6 +796,15 @@
         "tech_passport": "Technical passport",
         "calculate": "Calculate",
         "match_info": "The information must fully match the information in the technical passport",
+        "personal_data_and_payment": "Personal information and payment method",
+        "full_name_label": "Full name:",
+        "birth_date_label": "Date of birth:",
+        "phone_label": "Phone:",
+        "passport_label": "Passport:",
+        "payment_method_label": "Payment method:",
+        "vehicle_documents": "Vehicle documents",
+        "vehicle_number_label": "Vehicle number:",
+        "vin_tech_passport_label": "VIN / Technical passport:",
         "errors": {
           "fill_all_fields": "Please fill in all fields",
           "invalid_car_number": "Vehicle number is incomplete",
@@ -757,16 +817,211 @@
           "series_3_letters": "Series must be 3 letters",
           "number_7_digits": "Number must be 7 digits"
         }
+      },
+      "tariff": {
+        "title": "Tariffs",
+        "step_indicator": "Step 2/5",
+        "subtitle": "Select the insurance tariff that suits you",
+        "loading": "Loading tariffs...",
+        "please_wait": "Please wait",
+        "retry": "Retry",
+        "not_found": "Tariffs not found",
+        "conversion_failed": "Tariffs could not be converted",
+        "no_tariffs_in_category": "No tariffs found in this category",
+        "continue": "Continue",
+        "select_tariff": "Please select a tariff",
+        "select_car": "Please select a car",
+        "select_year": "Please select a year",
+        "summary": "Summary",
+        "insurance_period": "Insurance period",
+        "vehicle": "Vehicle",
+        "coverage_amount": "Coverage amount",
+        "amount_to_pay": "Amount to pay",
+        "insurance_rules": "Insurance rules",
+        "duration": "Duration:",
+        "coverage": "Coverage:",
+        "som": "som",
+        "coverage_label": "coverage",
+        "insurance_tariff": "Insurance tariff",
+        "tariff": "Tariff"
+      },
+      "order_details": {
+        "title": "Order details",
+        "subtitle": "Check all information and proceed with payment",
+        "insurance_period": "Insurance period",
+        "vehicle": "Vehicle",
+        "coverage_amount": "Coverage amount",
+        "tariff": "Tariff",
+        "duration": "Duration",
+        "coverage": "Coverage",
+        "documents_and_personal": "Documents and personal information",
+        "vehicle_number": "Vehicle number",
+        "vin_tech_passport": "VIN / Technical passport",
+        "full_name": "Full name",
+        "birth_date": "Date of birth",
+        "phone_number": "Phone number",
+        "passport": "Passport",
+        "payment_method": "Payment method",
+        "insurance_coverage": "Insurance coverage",
+        "vehicle_damage": "Vehicle damage",
+        "theft_and_robbery": "Theft and robbery",
+        "natural_disasters": "Natural disasters",
+        "third_party_damage": "Third party damage",
+        "assistance_service": "24/7 assistance service",
+        "amount_to_pay": "Amount to pay",
+        "pay": "Pay",
+        "full_coverage": "Full damage coverage 100%",
+        "franchise": "Franchise"
+      },
+      "payment_type": {
+        "title": "Select payment method",
+        "step_indicator": "Step 5/5",
+        "program": "Program:",
+        "vehicle_number": "Vehicle number:",
+        "tech_passport": "Technical passport:",
+        "passport": "Passport:",
+        "birth_date": "Date of birth:",
+        "phone": "Phone:",
+        "total_amount": "Total amount",
+        "pay": "Pay",
+        "summary": "Summary",
+        "insurance_period": "Insurance period",
+        "vehicle": "Vehicle",
+        "coverage_amount": "Coverage amount",
+        "amount_to_pay": "Amount to pay",
+        "insurance_rules": "Insurance rules",
+        "incomplete_data": "Incomplete data",
+        "save_order_first": "Save order first",
+        "go_back": "Go back",
+        "payment_link_not_found": "Payment link not found. Please try again.",
+        "order_data_not_found": "Order data not found. Please try again.",
+        "failed_to_open_link": "Failed to open payment link. Please open in browser: {url}",
+        "copy": "Copy",
+        "url_copied": "URL copied"
+      },
+      "payment_page": {
+        "title": "KASKO - Payment",
+        "amount": "Payment amount",
+        "go_to_payment": "Go to payment",
+        "link_not_found": "Payment link not found"
+      },
+      "success": {
+        "title": "Success! ✅",
+        "policy_number": "Policy number",
+        "vehicle": "Vehicle",
+        "date": "Date",
+        "amount": "Amount",
+        "download_policy": "Download policy",
+        "share": "Share",
+        "close": "Close"
+      },
+      "cars_list": {
+        "title": "KASKO - Cars",
+        "not_found": "Cars not found",
+        "retry": "Retry",
+        "brand": "Brand",
+        "model": "Model",
+        "year": "Year"
+      },
+      "personal_data_page": {
+        "birth_date_label": "Date of birth",
+        "vehicle_documents": "Vehicle documents",
+        "vehicle_number_label": "Vehicle number:",
+        "vin_tech_passport_label": "VIN / Technical passport:",
+        "incomplete_data_error": "Data is incomplete. Please go back to previous pages."
       }
-    },
-    "travel": {
-      "title": "Travel insurance",
-      "subtitle": "Safe travel",
-      "description": "Medical assistance and protection from other risks while abroad",
-      "feature_1": "Medical assistance",
-      "feature_2": "Baggage loss",
-      "feature_3": "Flight cancellation",
-      "button_text": "Register"
     }
+  },
+  "travel": {
+    "title": "Travel insurance",
+    "subtitle": "Safe travel",
+    "description": "Medical assistance and protection from other risks while abroad",
+    "feature_1": "Medical assistance",
+    "feature_2": "Baggage loss",
+    "feature_3": "Flight cancellation",
+    "button_text": "Register",
+    "persons_screen": {
+        "title": "Travel insurance",
+        "subtitle": "Travel information",
+        "description": "Enter basic information about your trip",
+        "where_going": "Where are you going?",
+        "travel_purpose": "Travel purpose",
+        "start_date": "Start",
+        "end_date": "End",
+        "additional_protection": "Additional protection",
+        "annual_insurance": "Annual insurance",
+        "annual_description": "Protection for the whole year",
+        "covid_protection": "COVID-19 protection",
+        "covid_description": "Coronavirus treatment costs",
+        "travelers": "Travelers",
+        "add": "Add",
+        "traveler": "Traveler",
+        "birth_date": "Date of birth",
+        "select_date": "Select date",
+        "continue": "Continue",
+        "countries_loading": "Loading countries...",
+        "select_country": "Select country",
+        "select_purpose": "Select purpose"
+      },
+    "personal_data": {
+        "title": "Travel insurance",
+        "personal_info": "Personal information",
+        "subtitle": "Insurer and traveler information",
+        "insurer": "Insurer",
+        "traveler": "Traveler",
+        "full_name": "Full name",
+        "pinfl": "PINFL",
+        "passport_series_number": "Passport series and number",
+        "birth_date": "Date of birth",
+        "phone_number": "Phone number",
+        "foreign_citizen": "Foreign citizen",
+        "continue": "Continue",
+        "enter_full_name": "Enter full name",
+        "enter_pinfl": "Enter PINFL",
+        "enter_passport": "Enter passport information",
+        "select_birth_date": "Select date of birth",
+        "enter_phone": "Enter phone number"
+      },
+    "select_insurance": {
+        "title": "Travel insurance",
+        "select_company": "Select insurance company",
+        "select_tariff": "Select the most suitable tariff",
+        "continue": "Continue",
+        "policy_price": "Policy price",
+        "sum": "sum",
+        "selected": "Selected",
+        "select_insurance": "Select insurance",
+        "companies_not_found": "Companies not found",
+        "retry": "Retry",
+        "error_country_not_found": "Tariffs not found for this country. Please select another country.",
+        "error_network": "Not connected to internet. Please check your internet connection."
+      },
+    "order_info": {
+      "title": "Order information",
+      "travel_insurance": "Travel insurance",
+      "check_all_info": "Check all information",
+      "payment": "Payment",
+      "process_payment": "Process payment",
+      "payment_link_not_found": "Payment link not found",
+      "retry": "Retry",
+      "error": "Error occurred",
+      "total_amount": "Total amount",
+      "country": "Country",
+      "travel_purpose": "Travel purpose",
+      "insurance_company": "Insurance company",
+      "start_date": "Start date",
+      "end_date": "End date",
+      "phone": "Phone",
+      "email": "Email",
+      "full_name": "Full name",
+      "passport": "Passport",
+      "birth_date": "Date of birth",
+      "travelers": "Travelers",
+      "payment_method": "Payment method"
+    }
+  },
+  "splash": {
+    "loading": "Loading...",
+    "video_error": "Video loading error"
   }
 }

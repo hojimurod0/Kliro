@@ -10,6 +10,7 @@ import '../../../../data/api/api_client.dart';
 import '../../../../data/services/auto_credit_service.dart';
 import '../../../common/utils/bank_assets.dart';
 import '../../../common/utils/bank_data.dart';
+import '../../../common/utils/text_localizer.dart';
 import '../../data/datasources/auto_credit_local_data_source.dart';
 import '../../data/repositories/auto_credit_repository_impl.dart';
 import '../../domain/entities/auto_credit_filter.dart';
@@ -698,7 +699,7 @@ class _AutoCreditOfferCardState extends State<AutoCreditOfferCard> {
             Expanded(
               child: AutoCreditMetricBox(
                 label: tr('auto_credit.interest'),
-                value: widget.offer.interestRate,
+                value: localizeApiText(widget.offer.interestRate),
                 valueColor: AppColors.accentGreen,
                 icon: Icons.percent,
               ),
@@ -707,7 +708,7 @@ class _AutoCreditOfferCardState extends State<AutoCreditOfferCard> {
             Expanded(
               child: AutoCreditMetricBox(
                 label: tr('auto_credit.term'),
-                value: widget.offer.term,
+                value: localizeApiText(widget.offer.term),
                 icon: Icons.calendar_today_outlined,
               ),
             ),
@@ -719,7 +720,7 @@ class _AutoCreditOfferCardState extends State<AutoCreditOfferCard> {
             Expanded(
               child: AutoCreditMetricBox(
                 label: tr('auto_credit.max_amount'),
-                value: widget.offer.maxSum,
+                value: localizeApiText(widget.offer.maxSum),
                 icon: Icons.credit_card_outlined,
               ),
             ),
@@ -821,7 +822,7 @@ class _AutoCreditOfferCardState extends State<AutoCreditOfferCard> {
       height: 48.h,
       child: ElevatedButton(
         onPressed: () async {
-          final opened = await openBankApplication(widget.offer.bankName);
+          final opened = await openBankWebsite(widget.offer.bankName);
           if (!opened && mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

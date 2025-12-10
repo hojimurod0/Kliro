@@ -222,9 +222,7 @@ class _AppState extends State<App> {
                 animation: ThemeController.instance,
                 builder: (context, _) {
                   return MaterialApp.router(
-                    key: ValueKey(
-                      ThemeController.instance.mode.toString(),
-                    ), // Faqat theme o'zgarganda rebuild qilish uchun (locale o'zgarganda navigatsiya saqlanadi)
+                    // Key olib tashlandi - theme o'zgarganda navigation state saqlanadi
                     title: tr('app_title'),
                     debugShowCheckedModeBanner: false,
                     localizationsDelegates: context.localizationDelegates,

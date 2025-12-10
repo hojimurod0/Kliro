@@ -1,12 +1,17 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../../core/constants/app_colors.dart';
 import '../logic/bloc/travel_bloc.dart';
 import '../logic/bloc/travel_state.dart';
 import '../logic/bloc/travel_event.dart';
+import '../../domain/entities/travel_person.dart';
+import '../../domain/entities/travel_insurance.dart';
 import 'select_insurance_screen.dart';
 
 class TravelPersonsScreen extends StatefulWidget {
@@ -33,18 +38,18 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
   List<Map<String, dynamic>> _purposes = [];
   int? _selectedPurposeId;
   String? _sessionId;
-  
+
   // Даты
   DateTime? _startDate;
   DateTime? _endDate;
-  
+
   // Дополнительные защиты
   bool _isAnnualInsuranceSelected = false;
   bool _isCovidProtectionSelected = false;
-  
+
   // Путешественники
   List<Map<String, dynamic>> _travelers = [
-    {'id': 1, 'birthDate': null}
+    {'id': 1, 'birthDate': null},
   ];
 
   @override
@@ -66,11 +71,13 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final scaffoldBg = isDark ? const Color(0xFF121212) : Colors.white;
-    final textColor = isDark ? Colors.white : kTextBlack;
-    final textGreyColor = isDark ? Colors.grey[400]! : kTextGrey;
-    final borderColor = isDark ? Colors.grey[700]! : kBorderGrey;
-    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final scaffoldBg = AppColors.getScaffoldBg(isDark);
+    final textColor = isDark ? AppColors.getTextColor(isDark) : kTextBlack;
+    final textGreyColor = isDark
+        ? AppColors.getSubtitleColor(isDark)
+        : kTextGrey;
+    final borderColor = isDark ? AppColors.getBorderColor(isDark) : kBorderGrey;
+    final cardBg = AppColors.getCardBg(isDark);
     final lightBlueBg = isDark ? const Color(0xFF1E3A5C) : kLightBlueBg;
 
     return BlocListener<TravelBloc, TravelState>(
@@ -112,8 +119,8 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
             ),
           );
           // Переходим на следующую страницу после создания сессии
-          final firstCountry = _selectedCountries.isNotEmpty 
-              ? _selectedCountries.first 
+          final firstCountry = _selectedCountries.isNotEmpty
+              ? _selectedCountries.first
               : '';
           final travelBloc = context.read<TravelBloc>();
           Navigator.of(context).push(
@@ -122,6 +129,8 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                 value: travelBloc,
                 child: SelectInsuranceScreen(
                   countryCode: firstCountry,
+                  annualPolicy: _isAnnualInsuranceSelected,
+                  covidProtection: _isCovidProtectionSelected,
                 ),
               ),
             ),
@@ -162,7 +171,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                 splashRadius: 24,
               ),
               title: Text(
-                "Sayohat sug'urtasi",
+                "travel.persons_screen.title".tr(),
                 style: TextStyle(
                   color: isDark ? Colors.white : Colors.black,
                   fontSize: 17,
@@ -183,7 +192,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                 children: [
                   // Katta Sarlavha - веб-стиль, адаптированный для мобильного
                   Text(
-                    "Sayohat ma'lumotlari",
+                    "travel.persons_screen.subtitle".tr(),
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
@@ -194,7 +203,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "Sayohatingiz haqida asosiy ma'lumotlarni kiriting",
+                    "travel.persons_screen.description".tr(),
                     style: TextStyle(
                       fontSize: 14,
                       color: textGreyColor,
@@ -205,7 +214,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                   const SizedBox(height: 24),
                   // 1. Qayerga boryapsiz? - веб-стиль
                   _buildSectionLabel(
-                    "Qayerga boryapsiz?",
+                    "travel.persons_screen.where_going".tr(),
                     Icons.location_on_outlined,
                   ),
                   const SizedBox(height: 12),
@@ -239,7 +248,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                   ],
                   const SizedBox(height: 16),
                   // 2. Sayohat maqsadi
-                  _buildLabel("Sayohat maqsadi"),
+                  _buildLabel("travel.persons_screen.travel_purpose".tr()),
                   _buildPurposeDropdown(),
                   const SizedBox(height: 16),
                   // 3. Sanalar (Boshlash va Tugash)
@@ -249,7 +258,9 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildLabel("Boshlash"),
+                            _buildLabel(
+                              "travel.persons_screen.start_date".tr(),
+                            ),
                             _buildDateInputBox("dd/mm/yyyy", isStart: true),
                           ],
                         ),
@@ -259,7 +270,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildLabel("Tugash"),
+                            _buildLabel("travel.persons_screen.end_date".tr()),
                             _buildDateInputBox("dd/mm/yyyy", isStart: false),
                           ],
                         ),
@@ -276,12 +287,14 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                         color: textGreyColor,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        "Qo'shimcha himoya",
-                        style: TextStyle(
-                          color: textGreyColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: Text(
+                          "travel.persons_screen.additional_protection".tr(),
+                          style: TextStyle(
+                            color: textGreyColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
@@ -292,7 +305,8 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                   GestureDetector(
                     onTap: () {
                       setState(() {
-                        _isAnnualInsuranceSelected = !_isAnnualInsuranceSelected;
+                        _isAnnualInsuranceSelected =
+                            !_isAnnualInsuranceSelected;
                       });
                     },
                     child: Container(
@@ -302,15 +316,15 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                         color: _isAnnualInsuranceSelected
                             ? lightBlueBg
                             : (isDark
-                                ? const Color(0xFF1E1E1E)
-                                : const Color(0xFFFAFAFA)),
+                                  ? const Color(0xFF1E1E1E)
+                                  : const Color(0xFFFAFAFA)),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: _isAnnualInsuranceSelected
                               ? kPrimaryBlue
                               : (isDark
-                                  ? Colors.grey[700]!
-                                  : Colors.grey.shade200),
+                                    ? Colors.grey[700]!
+                                    : Colors.grey.shade200),
                           width: _isAnnualInsuranceSelected ? 1.5 : 1,
                         ),
                       ),
@@ -321,7 +335,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Yillik sug'urta",
+                                  "travel.persons_screen.annual_insurance".tr(),
                                   style: TextStyle(
                                     color: _isAnnualInsuranceSelected
                                         ? kPrimaryBlue
@@ -332,7 +346,8 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  "Butun yil uchun himoya",
+                                  "travel.persons_screen.annual_description"
+                                      .tr(),
                                   style: TextStyle(
                                     color: textGreyColor,
                                     fontSize: 13,
@@ -342,8 +357,11 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                             ),
                           ),
                           if (_isAnnualInsuranceSelected)
-                            Icon(Icons.check_circle,
-                                color: kPrimaryBlue, size: 26),
+                            Icon(
+                              Icons.check_circle,
+                              color: kPrimaryBlue,
+                              size: 26,
+                            ),
                         ],
                       ),
                     ),
@@ -353,7 +371,8 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                   GestureDetector(
                     onTap: () {
                       setState(() {
-                        _isCovidProtectionSelected = !_isCovidProtectionSelected;
+                        _isCovidProtectionSelected =
+                            !_isCovidProtectionSelected;
                       });
                     },
                     child: Container(
@@ -363,15 +382,15 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                         color: _isCovidProtectionSelected
                             ? lightBlueBg
                             : (isDark
-                                ? const Color(0xFF1E1E1E)
-                                : const Color(0xFFFAFAFA)),
+                                  ? const Color(0xFF1E1E1E)
+                                  : const Color(0xFFFAFAFA)),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: _isCovidProtectionSelected
                               ? kPrimaryBlue
                               : (isDark
-                                  ? Colors.grey[700]!
-                                  : Colors.grey.shade200),
+                                    ? Colors.grey[700]!
+                                    : Colors.grey.shade200),
                           width: _isCovidProtectionSelected ? 1.5 : 1,
                         ),
                       ),
@@ -382,7 +401,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "COVID-19 himoyasi",
+                                  "travel.persons_screen.covid_protection".tr(),
                                   style: TextStyle(
                                     color: _isCovidProtectionSelected
                                         ? kPrimaryBlue
@@ -393,16 +412,22 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  "Koronavirus davolash xarajatlari",
+                                  "travel.persons_screen.covid_description"
+                                      .tr(),
                                   style: TextStyle(
-                                      color: textGreyColor, fontSize: 13),
+                                    color: textGreyColor,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                           if (_isCovidProtectionSelected)
-                            Icon(Icons.check_circle,
-                                color: kPrimaryBlue, size: 26),
+                            Icon(
+                              Icons.check_circle,
+                              color: kPrimaryBlue,
+                              size: 26,
+                            ),
                         ],
                       ),
                     ),
@@ -412,23 +437,27 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.people_outline_rounded,
-                            size: 24,
-                            color: textColor,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            "Sayohatchilar",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.people_outline_rounded,
+                              size: 24,
                               color: textColor,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "travel.persons_screen.travelers".tr(),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: textColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       // Qo'shish tugmasi
                       InkWell(
@@ -436,7 +465,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                           setState(() {
                             _travelers.add({
                               'id': _travelers.length + 1,
-                              'birthDate': null
+                              'birthDate': null,
                             });
                           });
                         },
@@ -455,7 +484,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                               Icon(Icons.add, size: 18, color: kPrimaryBlue),
                               const SizedBox(width: 4),
                               Text(
-                                "Qo'shish",
+                                "travel.persons_screen.add".tr(),
                                 style: TextStyle(
                                   color: kPrimaryBlue,
                                   fontWeight: FontWeight.w700,
@@ -475,7 +504,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                     final traveler = entry.value;
                     final travelerId = traveler['id'] as int;
                     final birthDate = traveler['birthDate'] as DateTime?;
-                    
+
                     return Padding(
                       padding: EdgeInsets.only(
                         bottom: index < _travelers.length - 1 ? 16 : 0,
@@ -489,7 +518,9 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(isDark ? 0.3 : 0.02),
+                              color: Colors.black.withOpacity(
+                                isDark ? 0.3 : 0.02,
+                              ),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -503,7 +534,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  "Sayohatchi $travelerId",
+                                  "${"travel.persons_screen.traveler".tr()} $travelerId",
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
@@ -517,7 +548,11 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                                       setState(() {
                                         _travelers.removeAt(index);
                                         // Перенумеровываем ID
-                                        for (int i = 0; i < _travelers.length; i++) {
+                                        for (
+                                          int i = 0;
+                                          i < _travelers.length;
+                                          i++
+                                        ) {
                                           _travelers[i]['id'] = i + 1;
                                         }
                                       });
@@ -550,7 +585,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  "Tug'ilgan sana",
+                                  "travel.persons_screen.birth_date".tr(),
                                   style: TextStyle(
                                     color: textGreyColor,
                                     fontSize: 13,
@@ -566,7 +601,9 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                               borderRadius: BorderRadius.circular(50),
                               child: Container(
                                 height: 52,
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
                                 decoration: BoxDecoration(
                                   color: isDark
                                       ? Colors.grey[900]
@@ -575,24 +612,32 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                                   borderRadius: BorderRadius.circular(50),
                                 ),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      birthDate != null
-                                          ? DateFormat('dd/MM/yyyy').format(birthDate)
-                                          : "Sanani tanlang",
-                                      style: TextStyle(
-                                        color: birthDate != null
-                                            ? textColor
-                                            : (isDark
-                                                ? Colors.grey[500]
-                                                : Colors.grey.shade400),
-                                        fontSize: 15,
-                                        fontWeight: birthDate != null
-                                            ? FontWeight.w500
-                                            : FontWeight.w400,
+                                    Expanded(
+                                      child: Text(
+                                        birthDate != null
+                                            ? DateFormat(
+                                                'dd/MM/yyyy',
+                                              ).format(birthDate)
+                                            : "travel.persons_screen.select_date"
+                                                  .tr(),
+                                        style: TextStyle(
+                                          color: birthDate != null
+                                              ? textColor
+                                              : (isDark
+                                                    ? Colors.grey[500]
+                                                    : Colors.grey.shade400),
+                                          fontSize: 15,
+                                          fontWeight: birthDate != null
+                                              ? FontWeight.w500
+                                              : FontWeight.w400,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
+                                    const SizedBox(width: 8),
                                     Icon(
                                       Icons.calendar_month_outlined,
                                       color: textGreyColor,
@@ -675,13 +720,80 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                     if (_travelers[i]['birthDate'] == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Sayohatchi ${i + 1} uchun tug\'ilgan sanani tanlang'),
+                          content: Text(
+                            'Sayohatchi ${i + 1} uchun tug\'ilgan sanani tanlang',
+                          ),
                           backgroundColor: Colors.red,
                         ),
                       );
                       return;
                     }
                   }
+
+                  // TravelPerson list yaratish
+                  final persons = _travelers.map((traveler) {
+                    final birthDate = traveler['birthDate'] as DateTime;
+                    return TravelPerson(
+                      firstName: '', // PersonalDataScreen da to'ldiriladi
+                      lastName: '', // PersonalDataScreen da to'ldiriladi
+                      passportSeria: '', // PersonalDataScreen da to'ldiriladi
+                      passportNumber: '', // PersonalDataScreen da to'ldiriladi
+                      birthDate: birthDate,
+                    );
+                  }).toList();
+
+                  // Mamlakat nomini olish
+                  String? countryName;
+                  if (_selectedCountries.isNotEmpty && _countries.isNotEmpty) {
+                    final firstCountryCode = _selectedCountries.first;
+                    final country = _countries.firstWhere(
+                      (c) => (c['code'] as String?) == firstCountryCode,
+                      orElse: () => {},
+                    );
+                    if (country.isNotEmpty) {
+                      countryName = _getCountryName(country);
+                    }
+                  }
+
+                  // Maqsad nomini olish
+                  String? purposeName;
+                  if (_selectedPurposeId != null && _purposes.isNotEmpty) {
+                    final purpose = _purposes.firstWhere(
+                      (p) => (p['id'] as int?) == _selectedPurposeId,
+                      orElse: () => {},
+                    );
+                    if (purpose.isNotEmpty) {
+                      purposeName = _getPurposeName(purpose);
+                    }
+                  }
+
+                  // TravelInsurance yaratish (vaqtinchalik, keyin to'ldiriladi)
+                  final insurance = TravelInsurance(
+                    provider: '', // SelectInsuranceScreen da to'ldiriladi
+                    companyName: '', // SelectInsuranceScreen da to'ldiriladi
+                    startDate: _startDate!,
+                    endDate: _endDate!,
+                    phoneNumber: '', // PersonalDataScreen da to'ldiriladi
+                    countryName: countryName,
+                    purposeName: purposeName,
+                  );
+
+                  // Ma'lumotlarni state ga saqlash
+                  log(
+                    '[TRAVEL_PERSONS] ✅ Ma\'lumotlar saqlandi:\n'
+                    '  - Mamlakat: ${countryName ?? "yo'q"}\n'
+                    '  - Maqsad: ${purposeName ?? "yo'q"}\n'
+                    '  - Boshlanish: ${DateFormat('dd.MM.yyyy').format(_startDate!)}\n'
+                    '  - Tugash: ${DateFormat('dd.MM.yyyy').format(_endDate!)}\n'
+                    '  - Sayohatchilar: ${persons.length}\n'
+                    '  - Yillik sug\'urta: ${_isAnnualInsuranceSelected}\n'
+                    '  - COVID himoyasi: ${_isCovidProtectionSelected}',
+                    name: 'TRAVEL',
+                  );
+
+                  context.read<TravelBloc>().add(
+                    LoadPersonsData(persons: persons, insurance: insurance),
+                  );
 
                   // Создаем цель путешествия
                   if (_sessionId == null) {
@@ -695,8 +807,8 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                     // Переход будет в BlocListener при PurposeCreated
                   } else {
                     // Если сессия уже создана, переходим дальше
-                    final firstCountry = _selectedCountries.isNotEmpty 
-                        ? _selectedCountries.first 
+                    final firstCountry = _selectedCountries.isNotEmpty
+                        ? _selectedCountries.first
                         : '';
                     final travelBloc = context.read<TravelBloc>();
                     Navigator.of(context).push(
@@ -705,6 +817,8 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                           value: travelBloc,
                           child: SelectInsuranceScreen(
                             countryCode: firstCountry,
+                            annualPolicy: _isAnnualInsuranceSelected,
+                            covidProtection: _isCovidProtectionSelected,
                           ),
                         ),
                       ),
@@ -720,9 +834,12 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text(
-                  "Davom etish",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                child: Text(
+                  "travel.persons_screen.continue".tr(),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
@@ -773,7 +890,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
         ),
         child: Center(
           child: Text(
-            "Mamlakatlar yuklanmoqda...",
+            "travel.persons_screen.countries_loading".tr(),
             style: TextStyle(color: textGreyColor, fontSize: 14),
           ),
         ),
@@ -797,7 +914,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
         isExpanded: true,
         decoration: InputDecoration(
           hintText: _selectedCountries.isEmpty
-              ? "Mamlakatni tanlang"
+              ? "travel.persons_screen.select_country".tr()
               : "${_selectedCountries.length} ta tanlangan",
           hintStyle: TextStyle(
             color: isDark ? Colors.grey[500] : Colors.grey.shade400,
@@ -921,7 +1038,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
         value: _selectedPurposeId,
         isExpanded: true,
         decoration: InputDecoration(
-          hintText: "Maqsadni tanlang",
+          hintText: "travel.persons_screen.select_purpose".tr(),
           hintStyle: TextStyle(
             color: isDark ? Colors.grey[500] : Colors.grey.shade600,
             fontWeight: FontWeight.w400,
@@ -1137,7 +1254,9 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
               surface: isDark ? const Color(0xFF1E1E1E) : Colors.white,
               onSurface: isDark ? Colors.white : kTextBlack,
             ),
-            dialogBackgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            dialogBackgroundColor: isDark
+                ? const Color(0xFF1E1E1E)
+                : Colors.white,
           ),
           child: child!,
         );
@@ -1153,12 +1272,16 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
             _endDate = null;
           }
         } else {
-          if (_startDate == null || picked.isAfter(_startDate!) || picked.isAtSameMomentAs(_startDate!)) {
+          if (_startDate == null ||
+              picked.isAfter(_startDate!) ||
+              picked.isAtSameMomentAs(_startDate!)) {
             _endDate = picked;
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Tugash sanasi boshlanish sanasidan keyin bo\'lishi kerak'),
+                content: Text(
+                  'Tugash sanasi boshlanish sanasidan keyin bo\'lishi kerak',
+                ),
                 backgroundColor: Colors.red,
               ),
             );
@@ -1175,7 +1298,8 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: _travelers[index]['birthDate'] as DateTime? ?? 
+      initialDate:
+          _travelers[index]['birthDate'] as DateTime? ??
           DateTime(now.year - 30, 1, 1),
       firstDate: firstDate,
       lastDate: lastDate,
@@ -1190,7 +1314,9 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
               surface: isDark ? const Color(0xFF1E1E1E) : Colors.white,
               onSurface: isDark ? Colors.white : kTextBlack,
             ),
-            dialogBackgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            dialogBackgroundColor: isDark
+                ? const Color(0xFF1E1E1E)
+                : Colors.white,
           ),
           child: child!,
         );

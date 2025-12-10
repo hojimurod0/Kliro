@@ -15,6 +15,7 @@ abstract class TravelState extends Equatable {
     this.checkResponse,
     this.paymentMethod,
     this.errorMessage,
+    this.sessionId,
   });
 
   final List<TravelPerson> persons;
@@ -24,6 +25,7 @@ abstract class TravelState extends Equatable {
   final TravelCheckResult? checkResponse;
   final String? paymentMethod;
   final String? errorMessage;
+  final String? sessionId;
 
   @override
   List<Object?> get props => [
@@ -34,6 +36,7 @@ abstract class TravelState extends Equatable {
         checkResponse,
         paymentMethod,
         errorMessage,
+        sessionId,
       ];
 }
 
@@ -49,6 +52,7 @@ class TravelLoading extends TravelState {
     super.createResponse,
     super.checkResponse,
     super.paymentMethod,
+    super.sessionId,
   });
 }
 
@@ -56,6 +60,7 @@ class TravelPersonsFilled extends TravelState {
   const TravelPersonsFilled({
     required super.persons,
     super.insurance,
+    super.sessionId,
   });
 }
 
@@ -63,6 +68,7 @@ class TravelInsuranceFilled extends TravelState {
   const TravelInsuranceFilled({
     required super.persons,
     required super.insurance,
+    super.sessionId,
   });
 }
 
@@ -72,6 +78,7 @@ class TravelCalcSuccess extends TravelState {
     required super.insurance,
     required super.calcResponse,
     super.paymentMethod,
+    super.sessionId,
   });
 }
 
@@ -82,6 +89,7 @@ class TravelCreateSuccess extends TravelState {
     required super.calcResponse,
     required super.createResponse,
     super.paymentMethod,
+    super.sessionId,
   });
 }
 
@@ -93,6 +101,7 @@ class TravelCheckSuccess extends TravelState {
     required super.createResponse,
     required super.checkResponse,
     super.paymentMethod,
+    super.sessionId,
   });
 }
 
@@ -105,26 +114,23 @@ class TravelFailure extends TravelState {
     super.createResponse,
     super.checkResponse,
     super.paymentMethod,
+    super.sessionId,
   }) : super(errorMessage: message);
 }
 
 class PurposeCreated extends TravelState {
   const PurposeCreated({
-    required this.sessionId,
+    required String sessionId,
     super.persons,
     super.insurance,
-  });
-
-  final String sessionId;
-
-  @override
-  List<Object?> get props => [sessionId, ...super.props];
+  }) : super(sessionId: sessionId);
 }
 
 class DetailsSaved extends TravelState {
   const DetailsSaved({
     super.persons,
     super.insurance,
+    super.sessionId,
   });
 }
 
@@ -133,6 +139,7 @@ class CountriesLoaded extends TravelState {
     required this.countries,
     super.persons,
     super.insurance,
+    super.sessionId,
   });
 
   final List<dynamic> countries;
@@ -146,12 +153,16 @@ class TarifsLoaded extends TravelState {
     required this.tarifs,
     super.persons,
     super.insurance,
+    super.sessionId,
   });
 
   final Map<String, dynamic> tarifs;
 
   @override
-  List<Object?> get props => [tarifs, ...super.props];
+  List<Object?> get props => [
+        tarifs,
+        ...super.props,
+      ];
 }
 
 class PurposesLoaded extends TravelState {
@@ -159,6 +170,7 @@ class PurposesLoaded extends TravelState {
     required this.purposes,
     super.persons,
     super.insurance,
+    super.sessionId,
   });
 
   final List<dynamic> purposes;

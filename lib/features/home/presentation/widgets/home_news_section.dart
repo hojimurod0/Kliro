@@ -13,26 +13,27 @@ class HomeNewsSection extends StatefulWidget {
 }
 
 class _HomeNewsSectionState extends State<HomeNewsSection> {
-  late final PageController _controller;
+  late PageController _controller;
   double _page = 0;
+  Locale? _currentLocale;
 
-  static const List<HomeNewsItem> _newsItems = [
+  List<HomeNewsItem> _newsItems(BuildContext context) => [
     HomeNewsItem(
-      title: "Yangi raqamli to'lov tizimlari kengaymoqda",
-      tag: 'Moliya',
-      date: '25 Oktabr, 2024',
+      titleKey: 'home.news_items.item1.title',
+      tagKey: 'home.news_items.item1.tag',
+      dateKey: 'home.news_items.item1.date',
       imagePath: 'assets/images/gazetaa.png',
     ),
     HomeNewsItem(
-      title: "Bank xizmatlarida sun'iy intellekt",
-      tag: 'Texnologiya',
-      date: '24 Oktabr, 2024',
+      titleKey: 'home.news_items.item2.title',
+      tagKey: 'home.news_items.item2.tag',
+      dateKey: 'home.news_items.item2.date',
       imagePath: 'assets/images/gazetaa.png',
     ),
     HomeNewsItem(
-      title: "Sug'urta bozorida yangi paketlar",
-      tag: "Sug'urta",
-      date: '22 Oktabr, 2024',
+      titleKey: 'home.news_items.item3.title',
+      tagKey: 'home.news_items.item3.tag',
+      dateKey: 'home.news_items.item3.date',
       imagePath: 'assets/images/gazetaa.png',
     ),
   ];
@@ -40,7 +41,23 @@ class _HomeNewsSectionState extends State<HomeNewsSection> {
   @override
   void initState() {
     super.initState();
-    _controller = PageController(viewportFraction: 0.85)..addListener(_onScroll);
+    _controller = PageController(viewportFraction: 0.85)
+      ..addListener(_onScroll);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Locale o'zgarganda rebuild qilish
+    final newLocale = context.locale;
+    if (_currentLocale == null ||
+        _currentLocale!.languageCode != newLocale.languageCode ||
+        _currentLocale!.countryCode != newLocale.countryCode) {
+      _currentLocale = newLocale;
+      if (mounted) {
+        setState(() {}); // Locale o'zgarganda rebuild qilish
+      }
+    }
   }
 
   void _onScroll() {
@@ -98,18 +115,23 @@ class _HomeNewsSectionState extends State<HomeNewsSection> {
         SizedBox(
           height: 280.h,
           child: PageView.builder(
+            key: ValueKey(context.locale.toString()),
             controller: _controller,
-            itemCount: _newsItems.length,
+            itemCount: _newsItems(context).length,
             padEnds: false,
             itemBuilder: (context, index) {
-              final item = _newsItems[index];
-              final scale =
-                  (1 - ((_page - index).abs() * 0.08)).clamp(0.92, 1.0).toDouble();
+              final item = _newsItems(context)[index];
+              final scale = (1 - ((_page - index).abs() * 0.08))
+                  .clamp(0.92, 1.0)
+                  .toDouble();
 
               return Transform.scale(
                 scale: scale,
                 alignment: Alignment.topCenter,
-                child: _NewsCard(item: item),
+                child: _NewsCard(
+                  key: ValueKey('${item.titleKey}_${context.locale}'),
+                  item: item,
+                ),
               );
             },
           ),
@@ -121,7 +143,7 @@ class _HomeNewsSectionState extends State<HomeNewsSection> {
 
 class _NewsCard extends StatelessWidget {
   final HomeNewsItem item;
-  const _NewsCard({required this.item});
+  const _NewsCard({super.key, required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -138,15 +160,14 @@ class _NewsCard extends StatelessWidget {
               height: 160.h,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  Container(
-                    height: 160.h,
-                    color: Theme.of(context).cardColor,
-                    child: Icon(
-                      Icons.image_not_supported,
-                      color: Theme.of(context).textTheme.bodySmall?.color,
-                    ),
-                  ),
+              errorBuilder: (context, error, stackTrace) => Container(
+                height: 160.h,
+                color: Theme.of(context).cardColor,
+                child: Icon(
+                  Icons.image_not_supported,
+                  color: Theme.of(context).textTheme.bodySmall?.color,
+                ),
+              ),
             ),
           ),
           Padding(
@@ -157,14 +178,16 @@ class _NewsCard extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 4.h,
+                      ),
                       decoration: BoxDecoration(
                         color: Theme.of(context).scaffoldBackgroundColor,
                         borderRadius: BorderRadius.circular(8.r),
                       ),
                       child: Text(
-                        item.tag,
+                        item.getTag(context),
                         style: AppTypography.labelSmall.copyWith(
                           color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.bold,
@@ -176,12 +199,13 @@ class _NewsCard extends StatelessWidget {
                     Icon(
                       Icons.calendar_today,
                       size: 12.sp,
-                      color: Theme.of(context).textTheme.bodySmall?.color ??
+                      color:
+                          Theme.of(context).textTheme.bodySmall?.color ??
                           AppColors.grayText,
                     ),
                     SizedBox(width: 4.w),
                     Text(
-                      item.date,
+                      item.getDate(context),
                       style: AppTypography.caption.copyWith(
                         color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
@@ -190,7 +214,7 @@ class _NewsCard extends StatelessWidget {
                 ),
                 SizedBox(height: 8.h),
                 Text(
-                  item.title,
+                  item.getTitle(context),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: AppTypography.headingL.copyWith(
@@ -208,17 +232,21 @@ class _NewsCard extends StatelessWidget {
 }
 
 class HomeNewsItem {
-  final String title;
-  final String tag;
-  final String date;
+  final String titleKey;
+  final String tagKey;
+  final String dateKey;
   final String imagePath;
 
   const HomeNewsItem({
-    required this.title,
-    required this.tag,
-    required this.date,
+    required this.titleKey,
+    required this.tagKey,
+    required this.dateKey,
     required this.imagePath,
   });
+
+  String getTitle(BuildContext context) => context.tr(titleKey);
+  String getTag(BuildContext context) => context.tr(tagKey);
+  String getDate(BuildContext context) => context.tr(dateKey);
 }
 
 BoxDecoration _cardDecoration(BuildContext context) {
@@ -234,4 +262,3 @@ BoxDecoration _cardDecoration(BuildContext context) {
     ],
   );
 }
-

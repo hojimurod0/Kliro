@@ -1,3 +1,5 @@
+import 'package:easy_localization/easy_localization.dart';
+
 String formatCompactAmount(String raw) {
   final match = RegExp(r'[0-9][0-9\s.,]*').firstMatch(raw);
   if (match == null) return raw;
@@ -16,13 +18,13 @@ String formatCompactAmount(String raw) {
 
 String _formatNumberWithUnit(double amount) {
   if (amount >= 1000000000) {
-    return '${_trimTrailingZeros(amount / 1000000000)} mlrd';
+    return '${_trimTrailingZeros(amount / 1000000000)} ${tr('common.billion')}';
   }
   if (amount >= 1000000) {
-    return '${_trimTrailingZeros(amount / 1000000)} mln';
+    return '${_trimTrailingZeros(amount / 1000000)} ${tr('common.million')}';
   }
   if (amount >= 1000) {
-    return '${_trimTrailingZeros(amount / 1000)} ming';
+    return '${_trimTrailingZeros(amount / 1000)} ${tr('common.thousand')}';
   }
   return _trimTrailingZeros(amount);
 }
