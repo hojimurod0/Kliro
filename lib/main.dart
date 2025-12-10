@@ -41,6 +41,7 @@ Future<void> main() async {
       saveLocale: true,
       startLocale: const Locale('en'),
       // useOnlyLangCode: false - locale'ni to'liq ko'rsatish uchun (uz_CYR uchun uz-CYR.json ishlatiladi)
+      // EasyLocalization автоматически конвертирует Locale('uz', 'CYR') в файл 'uz-CYR.json'
       useOnlyLangCode: false,
       // Fallback translation'larni yuklash - agar tarjima topilmasa, fallback locale'dan foydalanadi
       useFallbackTranslations: true,

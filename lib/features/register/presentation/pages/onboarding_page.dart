@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 // Router va boshqa fayllar importi (o'zingnikiga moslab olasan)
 import '../../../../core/navigation/app_router.dart';
+import '../../../../core/services/locale/locale_prefs.dart';
 import 'onboarding_language_page.dart';
 
 // ---------------- MODEL ----------------
@@ -69,7 +70,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
         _currentLocale!.countryCode != newLocale.countryCode) {
       _currentLocale = newLocale;
       if (mounted) {
-        setState(() {}); // Locale o'zgarganda rebuild qilish
+        setState(() {
+          // Locale o'zgarganda rebuild qilish
+          _currentLocale = newLocale;
+        });
+        debugPrint('Onboarding: Locale changed in didChangeDependencies: ${newLocale.languageCode}_${newLocale.countryCode ?? 'null'}');
       }
     }
   }
@@ -81,11 +86,30 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   // Til tanlanganda
-  void _onLanguageSelected() {
+  void _onLanguageSelected() async {
     if (mounted) {
-      setState(() {
-        _isLanguageSelected = true;
-      });
+      // Locale o'zgarganda yangilash
+      // Kichik kechikish - locale to'liq yuklanishini kutish uchun
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      if (mounted) {
+        final newLocale = context.locale;
+        final savedLocale = await LocalePrefs.load();
+        
+        debugPrint('Onboarding: Language selected');
+        debugPrint('Onboarding: Current context locale: ${newLocale.languageCode}_${newLocale.countryCode ?? 'null'}');
+        debugPrint('Onboarding: Saved locale from prefs: ${savedLocale?.languageCode ?? 'null'}_${savedLocale?.countryCode ?? 'null'}');
+        
+        // Агар сақланган локал мавжуд бўлса, уни ишлатиш
+        final localeToUse = savedLocale ?? newLocale;
+        
+        setState(() {
+          _isLanguageSelected = true;
+          _currentLocale = localeToUse; // Locale'ni yangilash
+        });
+        
+        debugPrint('Onboarding: Language selected, using locale: ${localeToUse.languageCode}_${localeToUse.countryCode ?? 'null'}');
+      }
     }
   }
 
@@ -119,10 +143,21 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Widget build(BuildContext context) {
     // Locale o'zgarishini kuzatish uchun context.locale ni ishlatamiz
     final currentLocale = context.locale;
+    
+    // Locale o'zgarganda yangilash
+    if (_currentLocale == null ||
+        _currentLocale!.languageCode != currentLocale.languageCode ||
+        _currentLocale!.countryCode != currentLocale.countryCode) {
+      _currentLocale = currentLocale;
+      debugPrint('Onboarding: Locale changed in build: ${currentLocale.languageCode}_${currentLocale.countryCode ?? 'null'}');
+    }
 
     // 1. Agar til tanlanmagan bo'lsa -> Language Page
     if (!_isLanguageSelected) {
-      return OnboardingLanguagePage(onSelected: _onLanguageSelected);
+      return OnboardingLanguagePage(
+        key: ValueKey('language_page_${currentLocale.toString()}'),
+        onSelected: _onLanguageSelected,
+      );
     }
 
     // 2. Asosiy Onboarding
@@ -142,6 +177,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 bottomRight: Radius.circular(36.r),
               ),
               child: PageView.builder(
+                key: ValueKey('pageview_${currentLocale.toString()}'), // Locale o'zgarganda rebuild qilish
                 controller: _pageController,
                 itemCount: _data.length,
                 onPageChanged: (index) {

@@ -20,6 +20,7 @@ class App extends StatefulWidget {
 class _AppState extends State<App> {
   static final AppRouter _appRouter = AppRouter();
   bool _isServiceLocatorReady = false;
+  Locale? _currentLocale;
 
   @override
   void initState() {
@@ -53,7 +54,77 @@ class _AppState extends State<App> {
     try {
       final locale = await LocalePrefs.load();
       if (locale != null && mounted) {
-        await context.setLocale(locale);
+        try {
+          // Локални текшириш - агар кирилл локали бўлса, тўғри форматда бўлишини текшириш
+          final localeToSet = locale;
+          debugPrint('Loading locale: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}');
+          
+          // EasyLocalization файлни юклаш учун локални тўғри форматда бериш керак
+          // useOnlyLangCode: false бўлганда, Locale('uz', 'CYR') учун 'uz-CYR.json' файлини ишлатади
+          
+          // Кирилл локали учун қўшимча вақт бериш
+          if (localeToSet.languageCode == 'uz' && localeToSet.countryCode == 'CYR') {
+            await Future.delayed(const Duration(milliseconds: 100));
+          }
+          
+          await context.setLocale(localeToSet);
+          
+          // Локалнинг тўғри ўрнатилганини текшириш
+          final currentLocale = context.locale;
+          debugPrint('Locale set successfully: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}');
+          debugPrint('Current locale after set: ${currentLocale.languageCode}_${currentLocale.countryCode ?? 'null'}');
+          
+          // Таржима файлини текшириш
+          try {
+            final testTranslation = tr('app_title');
+            debugPrint('Translation test: app_title = $testTranslation');
+          } catch (e) {
+            debugPrint('Translation error: $e');
+            // Таржима хатоси бўлса ҳам, локал ўрнатилди
+          }
+          
+          // Locale o'zgarishini kuzatish uchun state ni yangilash
+          // Bu MaterialApp.router'ni qayta build qilish uchun zarur
+          if (mounted) {
+            setState(() {
+              _currentLocale = currentLocale;
+            });
+            debugPrint('App: State updated with locale: ${currentLocale.languageCode}_${currentLocale.countryCode ?? 'null'}');
+            
+            // Кирилл локали учун қўшимча қайта билдириш
+            if (currentLocale.languageCode == 'uz' && currentLocale.countryCode == 'CYR') {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    // Кирилл локали учун қўшимча қайта билдириш
+                    _currentLocale = context.locale;
+                  });
+                  debugPrint('App: Cyrillic locale forced rebuild: ${_currentLocale?.languageCode}_${_currentLocale?.countryCode ?? 'null'}');
+                }
+              });
+            }
+          }
+        } catch (e) {
+          // Agar locale o'rnatishda xatolik bo'lsa, fallback locale'ni ishlatamiz
+          debugPrint('Error setting locale: $e');
+          if (mounted) {
+            try {
+              // Кирилл локали учун қайта уриниш
+              if (locale.languageCode == 'uz' && locale.countryCode == 'CYR') {
+                await Future.delayed(const Duration(milliseconds: 200));
+                await context.setLocale(locale);
+                debugPrint('Cyrillic locale set after retry');
+              } else {
+                // Бошқа локаллар учун fallback
+                await context.setLocale(const Locale('en'));
+                debugPrint('Fallback to English locale');
+              }
+            } catch (fallbackError) {
+              debugPrint('Fallback locale error: $fallbackError');
+              // Agar fallback ham ishlamasa, e'tiborsiz qoldiramiz
+            }
+          }
+        }
       }
     } catch (e) {
       debugPrint('Error loading locale: $e');
@@ -82,6 +153,7 @@ class _AppState extends State<App> {
       foregroundColor: AppColors.black,
       elevation: 0,
       centerTitle: true,
+      surfaceTintColor: Colors.transparent,
     ),
     cardTheme: CardThemeData(
       color: AppColors.white,
@@ -147,6 +219,7 @@ class _AppState extends State<App> {
       foregroundColor: AppColors.white,
       elevation: 0,
       centerTitle: true,
+      surfaceTintColor: Colors.transparent,
     ),
     cardTheme: CardThemeData(
       color: const Color(0xFF1E1E1E),
@@ -217,17 +290,33 @@ class _AppState extends State<App> {
             builder: (context) {
               // Locale o'zgarishini kuzatish uchun context.locale ni ishlatamiz
               // EasyLocalization o'z-o'zidan rebuild bo'ladi, shuning uchun context.locale o'zgarganda bu builder ham rebuild bo'ladi
-              final currentLocale = context.locale;
+              final contextLocale = context.locale;
+              
+              // _currentLocale ни контекст локали билан синхронизация қилиш
+              // Bu orqali MaterialApp har doim to'g'ri locale'ni ishlatadi
+              if (_currentLocale == null ||
+                  _currentLocale!.languageCode != contextLocale.languageCode ||
+                  _currentLocale!.countryCode != contextLocale.countryCode) {
+                _currentLocale = contextLocale;
+                debugPrint('App: Locale synced from context: ${contextLocale.languageCode}_${contextLocale.countryCode ?? 'null'}');
+              }
+              
+              // Кирилл локали учун қўшимча текшириш
+              final localeToUse = _currentLocale ?? contextLocale;
+              debugPrint('Current locale in MaterialApp: ${localeToUse.languageCode}_${localeToUse.countryCode ?? 'null'}');
+              
               return AnimatedBuilder(
                 animation: ThemeController.instance,
                 builder: (context, _) {
                   return MaterialApp.router(
-                    // Key olib tashlandi - theme o'zgarganda navigation state saqlanadi
+                    // Locale o'zgarganda MaterialApp qayta build bo'lishi uchun key qo'shamiz
+                    // Кирилл локали учун қўшимча идентификатор
+                    key: ValueKey('material_app_${localeToUse.toString()}'),
                     title: tr('app_title'),
                     debugShowCheckedModeBanner: false,
                     localizationsDelegates: context.localizationDelegates,
                     supportedLocales: context.supportedLocales,
-                    locale: currentLocale,
+                    locale: localeToUse,
                     theme: _lightTheme,
                     darkTheme: _darkTheme,
                     themeMode: ThemeController.instance.mode,

@@ -179,13 +179,15 @@ class InsuranceCard extends StatelessWidget {
             height: 48.h,
             child: ElevatedButton(
               onPressed: () {
-                // OSAGO, KASKO va Travel uchun navigatsiya
+                // OSAGO, KASKO, Travel va Accident uchun navigatsiya
                 if (service.id == 'osago') {
                   context.router.push(const OsagoModuleRoute());
                 } else if (service.id == 'kasko') {
                   context.router.push(const KaskoModuleRoute());
                 } else if (service.id == 'travel') {
                   context.router.push(const TravelModuleRoute());
+                } else if (service.id == 'accident') {
+                  context.router.push(const AccidentModuleRoute());
                 }
               },
               style: ElevatedButton.styleFrom(

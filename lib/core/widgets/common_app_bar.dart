@@ -35,6 +35,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: true,
+      surfaceTintColor: Colors.transparent,
       leading: leading ??
           (showBackButton
               ? IconButton(
@@ -59,6 +60,14 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       actions: actions,
+      bottom: PreferredSize(
+        preferredSize: Size.fromHeight(1.h),
+        child: Divider(
+          height: 1,
+          thickness: 1,
+          color: isDark ? AppColors.gray500 : AppColors.divider,
+        ),
+      ),
     );
   }
 
