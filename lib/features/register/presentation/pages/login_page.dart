@@ -46,6 +46,8 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _phoneOrEmailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  String? _lastContactForOtp;
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +58,22 @@ class _LoginPageState extends State<LoginPage> {
     _phoneOrEmailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  String _formatContact(String contact) {
+    // Agar telefon rejimi bo'lsa, +998 allaqachon bor
+    String contactToFormat = contact;
+    if (_isPhoneMode && !contact.contains('@')) {
+      // Agar +998 bilan boshlanmasa, qo'shamiz
+      if (!contact.startsWith('+998')) {
+        if (contact.startsWith('998')) {
+          contactToFormat = '+$contact';
+        } else {
+          contactToFormat = '+998$contact';
+        }
+      }
+    }
+    return AuthService.normalizeContact(contactToFormat);
   }
 
   void _handleLogin() {
@@ -72,25 +90,12 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    // Agar telefon rejimi bo'lsa, +998 allaqachon bor
-    String contactToFormat = phoneOrEmail;
-    if (_isPhoneMode && !phoneOrEmail.contains('@')) {
-      // Agar +998 bilan boshlanmasa, qo'shamiz
-      if (!phoneOrEmail.startsWith('+998')) {
-        if (phoneOrEmail.startsWith('998')) {
-          contactToFormat = '+$phoneOrEmail';
-        } else {
-          contactToFormat = '+998$phoneOrEmail';
-        }
-      }
-    }
-
-    final formattedContact = AuthService.normalizeContact(contactToFormat);
+    final formattedContact = _formatContact(phoneOrEmail);
 
     if (formattedContact.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Kontakt ma'lumotini to'g'ri kiriting."),
+        SnackBar(
+          content: Text('auth.login.snack_contact_invalid'.tr()),
           backgroundColor: Colors.red,
         ),
       );
@@ -104,6 +109,47 @@ class _LoginPageState extends State<LoginPage> {
           email: isEmail ? formattedContact : null,
           phone: isEmail ? null : formattedContact,
           password: password,
+        ),
+      ),
+    );
+  }
+
+  void _handleLoginOtp() {
+    final phoneOrEmail = _phoneOrEmailController.text.trim();
+
+    if (phoneOrEmail.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('auth.login.snack_contact_required'.tr()),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final formattedContact = _formatContact(phoneOrEmail);
+
+    if (formattedContact.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('auth.login.snack_contact_invalid'.tr()),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    _lastContactForOtp = formattedContact;
+    final isEmail = formattedContact.contains('@');
+
+    // MOCK: Hozircha login OTP backendda yo'q, shuning uchun Register OTP ishlatyapmiz
+    // Yoki shunchaki Verification pagega o'tkazamiz (u yerda resend qiladi)
+    // Lekin user tajribasi uchun, avval yuborib keyin o'tgan yaxshi.
+    context.read<RegisterBloc>().add(
+      SendRegisterOtpRequested(
+        SendOtpParams(
+          email: isEmail ? formattedContact : null,
+          phone: isEmail ? null : formattedContact,
         ),
       ),
     );
@@ -128,6 +174,7 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       final redirectUrl = 'https://kliro.uz/auth/google/callback';
+      if (!mounted) return;
       context.read<RegisterBloc>().add(GoogleRedirectRequested(redirectUrl));
     } catch (e) {
       if (mounted) {
@@ -202,32 +249,22 @@ class _LoginPageState extends State<LoginPage> {
       listener: (context, state) {
         if (state.flow == RegisterFlow.login) {
           if (state.status == RegisterStatus.failure) {
-            // Xatolik xabari
-            String errorMessage = state.error ?? "Login yoki parol noto'g'ri.";
-
-            // Agar xatolik "Пароль неверный" yoki shunga o'xshash bo'lsa,
-            // yoki telefon raqami yoki parol noto'g'ri bo'lishi mumkin
+            String errorMessage = state.error ?? "auth.login.error_credentials".tr();
             if (errorMessage.toLowerCase().contains('пароль') ||
                 errorMessage.toLowerCase().contains('password') ||
                 errorMessage.toLowerCase().contains('неверный') ||
                 errorMessage.toLowerCase().contains('incorrect') ||
                 errorMessage.toLowerCase().contains('invalid') ||
                 errorMessage.toLowerCase().contains('noto\'g\'ri')) {
-              errorMessage =
-                  "Telefon raqami yoki parol noto'g'ri.\n\n"
-                  "Tekshiring:\n"
-                  "• Telefon raqamini to'g'ri kiritganingizni\n"
-                  "• Parolni to'g'ri kiritganingizni (katta/kichik harflar)\n"
-                  "• Agar parolni unutgan bo'lsangiz, 'Parolni unutdingizmi?' tugmasidan foydalaning";
+              errorMessage = "auth.login.error_credentials_detail".tr();
             }
-
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(errorMessage),
                 backgroundColor: Colors.red,
                 duration: const Duration(seconds: 5),
                 action: SnackBarAction(
-                  label: 'Parolni tiklash',
+                  label: 'auth.login.forgot'.tr(),
                   textColor: Colors.white,
                   onPressed: () {
                     context.router.push(const LoginForgotPasswordRoute());
@@ -237,6 +274,34 @@ class _LoginPageState extends State<LoginPage> {
             );
           } else if (state.status == RegisterStatus.success) {
             context.router.replace(HomeRoute());
+          }
+        } else if (state.flow == RegisterFlow.registerSendOtp) {
+          // OTP yuborilganda tekshiruvga o'tish (Login with OTP)
+          if (state.status == RegisterStatus.success) {
+            final contact = _lastContactForOtp;
+            if (contact != null) {
+              context.read<RegisterBloc>().add(const RegisterMessageCleared());
+              context.router.push(LoginVerificationRoute(phoneNumber: contact));
+            }
+          } else if (state.status == RegisterStatus.failure) {
+             // Agar ro'yxatdan o'tgan bo'lsa (User exist), demak OTP yuborilmadi (RegisterSendOtp API xususiyati).
+             // Lekin biz Login qilmoqchimiz.
+             // Bunday holda, baribir Verification pagega o'tkazib, u yerda resend qilamiz
+             // yoki "User already exists" xatosi bo'lsa, davom ettiramiz.
+             final error = state.error ?? '';
+             // "user already exists" yoki shunga o'xshash xatolar
+             // Agar backendda "Send Register OTP" mavjud userga fail bersa:
+             // Biz "Forgot Password" orqali yuborishimiz mumkin emas (chunki u parolni o'zgartirishni talab qiladi)
+             // Hozircha xatoni chiqarib, sahifaga o'tkazib yuboramiz (Mock flow)
+             if (error.isNotEmpty) {
+               // Xatoni chiqaramiz
+               ScaffoldMessenger.of(context).showSnackBar(
+                 SnackBar(content: Text(error), backgroundColor: Colors.red),
+               );
+               
+               // Agar xato bo'lsa ham, verificationga o'tamiz (balki user kodni biladi? Yo'q, kod bormaydi).
+               // Bu yerda backend cheklovini aylanib o'tolmaymiz.
+             }
           }
         } else if (state.flow == RegisterFlow.googleRedirect) {
           if (state.status == RegisterStatus.success &&
@@ -264,7 +329,7 @@ class _LoginPageState extends State<LoginPage> {
         }
       },
       builder: (context, state) {
-        final isLoading = state.isLoading && state.flow == RegisterFlow.login;
+        final isLoading = state.isLoading && (state.flow == RegisterFlow.login || state.flow == RegisterFlow.registerSendOtp);
         return Scaffold(
           backgroundColor: AppColors.white,
           body: SafeArea(
@@ -298,7 +363,7 @@ class _LoginPageState extends State<LoginPage> {
                                 color: AppColors.black.withOpacity(0.05),
                                 spreadRadius: 1.r,
                                 blurRadius: 5.r,
-                              ),
+                                ),
                             ],
                           ),
                           child: Icon(
@@ -448,21 +513,41 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   Align(
                     alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {
-                        context.router.push(const LoginForgotPasswordRoute());
-                      },
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        'auth.login.forgot'.tr(),
-                        style: AppTypography.buttonLink.copyWith(
-                          decoration: TextDecoration.none,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: _handleLoginOtp,
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            "auth.login.login_with_otp".tr(),
+                            style: AppTypography.buttonLink.copyWith(
+                              decoration: TextDecoration.none,
+                              color: AppColors.primaryBlue,
+                            ),
+                          ),
                         ),
-                      ),
+                        TextButton(
+                          onPressed: () {
+                            context.router.push(const LoginForgotPasswordRoute());
+                          },
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            'auth.login.forgot'.tr(),
+                            style: AppTypography.buttonLink.copyWith(
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   SizedBox(height: AppSpacing.md),

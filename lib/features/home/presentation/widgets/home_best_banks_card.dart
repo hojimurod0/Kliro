@@ -22,8 +22,8 @@ class HomeBestBanksCard extends StatelessWidget {
             c.buyRate > 0)
         .toList();
     if (usdCurrencies.isEmpty) return null;
-    // Eng past buyRate - eng yaxshi narx
-    usdCurrencies.sort((a, b) => a.buyRate.compareTo(b.buyRate));
+    // Eng baland buyRate - eng yaxshi narx
+    usdCurrencies.sort((a, b) => b.buyRate.compareTo(a.buyRate));
     return usdCurrencies.first;
   }
 
@@ -34,8 +34,8 @@ class HomeBestBanksCard extends StatelessWidget {
             c.sellRate > 0)
         .toList();
     if (usdCurrencies.isEmpty) return null;
-    // Eng baland sellRate - eng yaxshi narx
-    usdCurrencies.sort((a, b) => b.sellRate.compareTo(a.sellRate));
+    // Eng arzon sellRate - eng yaxshi narx
+    usdCurrencies.sort((a, b) => a.sellRate.compareTo(b.sellRate));
     return usdCurrencies.first;
   }
 

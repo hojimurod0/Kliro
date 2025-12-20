@@ -33,6 +33,52 @@ class KaskoCarsLoaded extends KaskoState {
   List<Object?> get props => [cars];
 }
 
+class KaskoCarsPageLoaded extends KaskoState {
+  final List<CarEntity> cars;
+  final int pageNumber;
+  final int totalPages;
+  final int totalElements;
+  final bool hasMore;
+  final bool isPaginating;
+
+  const KaskoCarsPageLoaded({
+    required this.cars,
+    required this.pageNumber,
+    required this.totalPages,
+    required this.totalElements,
+    required this.hasMore,
+    this.isPaginating = false,
+  });
+
+  @override
+  List<Object?> get props => [
+        cars,
+        pageNumber,
+        totalPages,
+        totalElements,
+        hasMore,
+        isPaginating,
+      ];
+
+  KaskoCarsPageLoaded copyWith({
+    List<CarEntity>? cars,
+    int? pageNumber,
+    int? totalPages,
+    int? totalElements,
+    bool? hasMore,
+    bool? isPaginating,
+  }) {
+    return KaskoCarsPageLoaded(
+      cars: cars ?? this.cars,
+      pageNumber: pageNumber ?? this.pageNumber,
+      totalPages: totalPages ?? this.totalPages,
+      totalElements: totalElements ?? this.totalElements,
+      hasMore: hasMore ?? this.hasMore,
+      isPaginating: isPaginating ?? this.isPaginating,
+    );
+  }
+}
+
 class KaskoRatesLoaded extends KaskoState {
   final List<RateEntity> rates;
   final RateEntity? selectedRate;

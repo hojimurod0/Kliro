@@ -15,10 +15,12 @@ import '../../../common/utils/bank_assets.dart';
 class HomeServicesGrid extends StatelessWidget {
   final VoidCallback onBankTap;
   final VoidCallback? onInsuranceTap;
+  final VoidCallback? onFlightsTap;
   const HomeServicesGrid({
     super.key,
     required this.onBankTap,
     this.onInsuranceTap,
+    this.onFlightsTap,
   });
 
   @override
@@ -59,6 +61,7 @@ class HomeServicesGrid extends StatelessWidget {
                   icon: Icons.flight_rounded,
                   iconColor: AppColors.skyAccent,
                   iconBgColor: AppColors.skySurface,
+                  onTap: onFlightsTap,
                 ),
               ],
             ),
@@ -180,14 +183,14 @@ class _BankCardWithCurrency extends StatelessWidget {
               .where((currency) => currency.currencyCode.toUpperCase() == 'USD')
               .toList();
 
-          // Eng arzon sotib olish kursi va eng baland sotish kursi
+          // Eng baland sotib olish kursi va eng past sotish kursi
           // (valyuta sahifasidagi kabi reduce metodi)
           if (filteredCurrencies.isNotEmpty) {
             bestBuyBank = filteredCurrencies.reduce(
-              (a, b) => a.buyRate < b.buyRate ? a : b,
+              (a, b) => a.buyRate > b.buyRate ? a : b,
             );
             bestSellBank = filteredCurrencies.reduce(
-              (a, b) => a.sellRate > b.sellRate ? a : b,
+              (a, b) => a.sellRate < b.sellRate ? a : b,
             );
           }
         }
@@ -557,46 +560,52 @@ BoxDecoration _cardDecoration(BuildContext context) {
 }
 
 class HomeWideServiceCard extends StatelessWidget {
-  const HomeWideServiceCard({super.key});
+  final VoidCallback? onTap;
+
+  const HomeWideServiceCard({super.key, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(20.w),
-      decoration: _cardDecoration(context),
-      child: Row(
-        children: [
-          _ServiceIcon(
-            icon: Icons.apartment,
-            iconColor: AppColors.greenIcon,
-            bgColor: AppColors.greenBg,
-            size: 48,
-            radius: 16,
-          ),
-          SizedBox(width: 16.w),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'home.hotels'.tr(),
-                style: AppTypography.headingL.copyWith(
-                  color: Theme.of(context).textTheme.titleLarge?.color,
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: EdgeInsets.all(20.w),
+        decoration: _cardDecoration(context),
+        child: Row(
+          children: [
+            _ServiceIcon(
+              icon: Icons.apartment,
+              iconColor: AppColors.greenIcon,
+              bgColor: AppColors.greenBg,
+              size: 48,
+              radius: 16,
+            ),
+            SizedBox(width: 16.w),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'home.hotels'.tr(),
+                  style: AppTypography.headingL.copyWith(
+                    color: Theme.of(context).textTheme.titleLarge?.color,
+                  ),
                 ),
-              ),
-              Text(
-                'home.hotels_subtitle'.tr(),
-                style: AppTypography.bodyPrimary.copyWith(
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                Text(
+                  'home.hotels_subtitle'.tr(),
+                  style: AppTypography.bodyPrimary.copyWith(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Icon(
-            Icons.chevron_right,
-            color: Theme.of(context).iconTheme.color ?? AppColors.grayText,
-          ),
-        ],
+              ],
+            ),
+            const Spacer(),
+            Icon(
+              Icons.chevron_right,
+              color: Theme.of(context).iconTheme.color ?? AppColors.grayText,
+            ),
+          ],
+        ),
       ),
     );
   }

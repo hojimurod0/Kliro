@@ -4,16 +4,55 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
 import 'core/dio/singletons/service_locator.dart';
+import 'core/dio/singletons/service_locator_state.dart';
 import 'core/services/auth/auth_service.dart';
 import 'core/services/config/api_config_service.dart';
 import 'core/services/locale/root_service.dart';
 import 'core/services/theme/theme_controller.dart';
+import 'core/utils/logger.dart';
+import 'core/utils/global_error_handler.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
+
+import 'core/utils/sentry_stub.dart'
+    if (dart.library.io) 'package:sentry_flutter/sentry_flutter.dart' as sentry;
 
 Future<void> main() async {
+  if (kReleaseMode) {
+    try {
+      await sentry.SentryFlutter.init(
+        (options) {
+          options.tracesSampleRate = 0.2;
+          options.environment = kReleaseMode ? 'production' : 'development';
+          options.beforeSend = (event, hint) {
+            if (event.request?.data != null) {
+              final data =
+                  Map<String, dynamic>.from(event.request!.data as Map);
+              data.removeWhere((key, value) =>
+                  key.toLowerCase().contains('password') ||
+                  key.toLowerCase().contains('token') ||
+                  key.toLowerCase().contains('pin'));
+              event.request = event.request!.copyWith(data: data);
+            }
+            return event;
+          };
+        },
+        appRunner: () => _runApp(),
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️ Sentry initialization failed: $e');
+      }
+      await _runApp();
+    }
+  } else {
+    await _runApp();
+  }
+}
+
+Future<void> _runApp() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Настройка системного UI
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -22,12 +61,10 @@ Future<void> main() async {
     ),
   );
 
-  // КРИТИЧНО: EasyLocalization должен быть инициализирован ДО runApp
-  // Optimizatsiya: useOnlyLangCode: true - faqat til kodini ishlatish (kamroq fayl yuklaydi)
-  // Bu main thread'ni kamroq bloklaydi va ANR muammosini kamaytiradi
+  GlobalErrorHandler.initialize();
+
   await EasyLocalization.ensureInitialized();
 
-  // Показываем UI сразу, инициализация в фоне
   runApp(
     EasyLocalization(
       supportedLocales: const [
@@ -40,64 +77,59 @@ Future<void> main() async {
       fallbackLocale: const Locale('en'),
       saveLocale: true,
       startLocale: const Locale('en'),
-      // useOnlyLangCode: false - locale'ni to'liq ko'rsatish uchun (uz_CYR uchun uz-CYR.json ishlatiladi)
-      // EasyLocalization автоматически конвертирует Locale('uz', 'CYR') в файл 'uz-CYR.json'
       useOnlyLangCode: false,
-      // Fallback translation'larni yuklash - agar tarjima topilmasa, fallback locale'dan foydalanadi
       useFallbackTranslations: true,
       child: const App(),
     ),
   );
 
-  // Инициализация в фоне после показа UI
-  // Используем unawaited, чтобы не блокировать main thread
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    // Запускаем в отдельном микротаске для неблокирующего выполнения
     Future.microtask(() => _initializeInBackground());
   });
 }
 
-// Оптимизированная инициализация всех сервисов в фоне
-// Используем isolate для тяжелых операций, чтобы не блокировать main thread
 Future<void> _initializeInBackground() async {
   try {
-    // 1. Сначала настраиваем base URL для API (критично!) - синхронная операция
+    AppLogger.info('Background initialization started');
+
     ApiConfigService.configureBaseUrl();
+    AppLogger.debug('API base URL configured');
 
-    // 2. EasyLocalization уже инициализирован в runApp, не нужно повторно инициализировать
-    // await EasyLocalization.ensureInitialized(); // УДАЛЕНО - дублирование
-
-    // 3. Параллельная инициализация некритичных сервисов
-    // Они не зависят друг от друга, поэтому можем запустить параллельно
     final nonCriticalFutures = _initializeNonCriticalServices();
 
-    // 4. Инициализируем AuthService (нужен для DioClient)
+    AppLogger.debug('Initializing AuthService...');
     await AuthService.instance.init();
+    AppLogger.success('AuthService initialized');
 
-    // 5. Только после настройки base URL и AuthService создаем ServiceLocator с API клиентами
+    AppLogger.debug('Initializing ServiceLocator...');
     await ServiceLocator.init();
+    AppLogger.success('ServiceLocator initialized');
 
-    // 6. Ждем завершения некритичных сервисов (не блокируем main thread)
     await nonCriticalFutures;
-  } catch (e) {
-    debugPrint('Initialization error: $e');
+    AppLogger.success('Background initialization completed');
+  } catch (e, stackTrace) {
+    AppLogger.error(
+      'Background initialization failed',
+      e,
+      stackTrace,
+    );
+    ServiceLocatorStateController.instance.setError(e);
   }
 }
 
-// Некритичные сервисы инициализируются параллельно
-// Возвращаем Future, чтобы можно было await в основном потоке
 Future<void> _initializeNonCriticalServices() async {
   await Future.wait([
     RootService().init().catchError((e) {
-      debugPrint('RootService init error: $e');
+      AppLogger.warning('RootService init error', e);
     }),
     ThemeController.instance.init().catchError((e) {
-      debugPrint('ThemeController init error: $e');
+      AppLogger.warning('ThemeController init error', e);
     }),
-    // initializeDateFormatting() может быть тяжелой операцией
-    // Запускаем асинхронно, чтобы не блокировать main thread
     initializeDateFormatting().catchError((e) {
-      debugPrint('Date formatting init error: $e');
+      AppLogger.warning('Date formatting init error', e);
     }),
   ]);
+  AppLogger.debug('Non-critical services initialized');
 }
+
+

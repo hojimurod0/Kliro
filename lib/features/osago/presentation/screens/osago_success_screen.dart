@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../logic/bloc/osago_bloc.dart';
 import '../../logic/bloc/osago_state.dart';
 
@@ -120,23 +121,26 @@ class OsagoSuccessScreen extends StatelessWidget {
     final success = await launchUrlString(url);
     if (!context.mounted) return;
     if (!success) {
-      ScaffoldMessenger.of(
+      SnackbarHelper.showError(
         context,
-      ).showSnackBar(SnackBar(content: Text('insurance.osago.success.url_error'.tr())));
+        'insurance.osago.success.url_error'.tr(),
+      );
     }
   }
 
   Future<void> _share(BuildContext context, String? url) async {
     if (url == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('insurance.osago.success.no_url'.tr())),
+      SnackbarHelper.showError(
+        context,
+        'insurance.osago.success.no_url'.tr(),
       );
       return;
     }
     await Clipboard.setData(ClipboardData(text: url));
     if (!context.mounted) return;
-    ScaffoldMessenger.of(
+    SnackbarHelper.showSuccess(
       context,
-    ).showSnackBar(SnackBar(content: Text('insurance.osago.success.url_copied'.tr())));
+      'insurance.osago.success.url_copied'.tr(),
+    );
   }
 }

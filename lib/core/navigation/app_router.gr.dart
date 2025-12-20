@@ -39,6 +39,18 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const AutoCreditPage(),
       );
     },
+    AviaMyOrdersRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const AviaMyOrdersPage(),
+      );
+    },
+    AvichiptalarModuleRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const AvichiptalarModule(),
+      );
+    },
     BankServicesRoute.name: (routeData) {
       final args = routeData.argsAs<BankServicesRouteArgs>(
           orElse: () => const BankServicesRouteArgs());
@@ -51,6 +63,29 @@ abstract class _$AppRouter extends RootStackRouter {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: const BookingDetailsPage(),
+      );
+    },
+    AviaBookingRoute.name: (routeData) {
+      final args = routeData.argsAs<AviaBookingRouteArgs>();
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: BookingPage(
+          key: args.key,
+          offerId: args.offerId,
+        ),
+      );
+    },
+    BookingSuccessRoute.name: (routeData) {
+      final args = routeData.argsAs<BookingSuccessRouteArgs>();
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: WrappedRoute(
+            child: BookingSuccessPage(
+          key: args.key,
+          outboundOffer: args.outboundOffer,
+          returnOffer: args.returnOffer,
+          bookingId: args.bookingId,
+        )),
       );
     },
     CardsRoute.name: (routeData) {
@@ -85,6 +120,63 @@ abstract class _$AppRouter extends RootStackRouter {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: const DepositPage(),
+      );
+    },
+    FlightConfirmationRoute.name: (routeData) {
+      final args = routeData.argsAs<FlightConfirmationRouteArgs>();
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: FlightConfirmationPage(
+          key: args.key,
+          outboundOffer: args.outboundOffer,
+          returnOffer: args.returnOffer,
+          totalPrice: args.totalPrice,
+          currency: args.currency,
+          adults: args.adults,
+          childrenCount: args.childrenCount,
+          babies: args.babies,
+        ),
+      );
+    },
+    FlightDetailsRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const FlightDetailsScreen(),
+      );
+    },
+    FlightFormalizationRoute.name: (routeData) {
+      final args = routeData.argsAs<FlightFormalizationRouteArgs>();
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: WrappedRoute(
+            child: FlightFormalizationPage(
+          key: args.key,
+          outboundOffer: args.outboundOffer,
+          returnOffer: args.returnOffer,
+          totalPrice: args.totalPrice,
+          currency: args.currency,
+          adults: args.adults,
+          childrenCount: args.childrenCount,
+          babies: args.babies,
+        )),
+      );
+    },
+    FlightResultsRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const FlightResultsScreen(),
+      );
+    },
+    FlightSearchRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const FlightSearchScreen(),
+      );
+    },
+    HotelModuleRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const HotelModule(),
       );
     },
     InsuranceServicesRoute.name: (routeData) {
@@ -241,6 +333,16 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const MyOrdersPage(),
       );
     },
+    OfferDetailRoute.name: (routeData) {
+      final args = routeData.argsAs<OfferDetailRouteArgs>();
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: OfferDetailPage(
+          key: args.key,
+          offerId: args.offerId,
+        ),
+      );
+    },
     OnboardingRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -251,6 +353,28 @@ abstract class _$AppRouter extends RootStackRouter {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: const OsagoModule(),
+      );
+    },
+    PaymentRoute.name: (routeData) {
+      final args = routeData.argsAs<PaymentRouteArgs>();
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: PaymentPage(
+          key: args.key,
+          bookingId: args.bookingId,
+        ),
+      );
+    },
+    PaymentProcessingRoute.name: (routeData) {
+      final args = routeData.argsAs<PaymentProcessingRouteArgs>();
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: PaymentProcessingPage(
+          key: args.key,
+          uuid: args.uuid,
+          checkoutUrl: args.checkoutUrl,
+          returnUrl: args.returnUrl,
+        ),
       );
     },
     ProfileEditRoute.name: (routeData) {
@@ -275,6 +399,12 @@ abstract class _$AppRouter extends RootStackRouter {
         ),
       );
     },
+    AviaSearchRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const SearchPage(),
+      );
+    },
     SecurityRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -285,6 +415,17 @@ abstract class _$AppRouter extends RootStackRouter {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: const SplashPage(),
+      );
+    },
+    StatusRoute.name: (routeData) {
+      final args = routeData.argsAs<StatusRouteArgs>();
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: StatusPage(
+          key: args.key,
+          bookingId: args.bookingId,
+          status: args.status,
+        ),
       );
     },
     SupportChatRoute.name: (routeData) {
@@ -388,6 +529,34 @@ class AutoCreditRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [AviaMyOrdersPage]
+class AviaMyOrdersRoute extends PageRouteInfo<void> {
+  const AviaMyOrdersRoute({List<PageRouteInfo>? children})
+      : super(
+          AviaMyOrdersRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'AviaMyOrdersRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [AvichiptalarModule]
+class AvichiptalarModuleRoute extends PageRouteInfo<void> {
+  const AvichiptalarModuleRoute({List<PageRouteInfo>? children})
+      : super(
+          AvichiptalarModuleRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'AvichiptalarModuleRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
 /// [BankServicesPage]
 class BankServicesRoute extends PageRouteInfo<BankServicesRouteArgs> {
   BankServicesRoute({
@@ -428,6 +597,92 @@ class BookingDetailsRoute extends PageRouteInfo<void> {
   static const String name = 'BookingDetailsRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [BookingPage]
+class AviaBookingRoute extends PageRouteInfo<AviaBookingRouteArgs> {
+  AviaBookingRoute({
+    Key? key,
+    required String offerId,
+    List<PageRouteInfo>? children,
+  }) : super(
+          AviaBookingRoute.name,
+          args: AviaBookingRouteArgs(
+            key: key,
+            offerId: offerId,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'AviaBookingRoute';
+
+  static const PageInfo<AviaBookingRouteArgs> page =
+      PageInfo<AviaBookingRouteArgs>(name);
+}
+
+class AviaBookingRouteArgs {
+  const AviaBookingRouteArgs({
+    this.key,
+    required this.offerId,
+  });
+
+  final Key? key;
+
+  final String offerId;
+
+  @override
+  String toString() {
+    return 'AviaBookingRouteArgs{key: $key, offerId: $offerId}';
+  }
+}
+
+/// generated route for
+/// [BookingSuccessPage]
+class BookingSuccessRoute extends PageRouteInfo<BookingSuccessRouteArgs> {
+  BookingSuccessRoute({
+    Key? key,
+    required OfferModel outboundOffer,
+    OfferModel? returnOffer,
+    required String bookingId,
+    List<PageRouteInfo>? children,
+  }) : super(
+          BookingSuccessRoute.name,
+          args: BookingSuccessRouteArgs(
+            key: key,
+            outboundOffer: outboundOffer,
+            returnOffer: returnOffer,
+            bookingId: bookingId,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'BookingSuccessRoute';
+
+  static const PageInfo<BookingSuccessRouteArgs> page =
+      PageInfo<BookingSuccessRouteArgs>(name);
+}
+
+class BookingSuccessRouteArgs {
+  const BookingSuccessRouteArgs({
+    this.key,
+    required this.outboundOffer,
+    this.returnOffer,
+    required this.bookingId,
+  });
+
+  final Key? key;
+
+  final OfferModel outboundOffer;
+
+  final OfferModel? returnOffer;
+
+  final String bookingId;
+
+  @override
+  String toString() {
+    return 'BookingSuccessRouteArgs{key: $key, outboundOffer: $outboundOffer, returnOffer: $returnOffer, bookingId: $bookingId}';
+  }
 }
 
 /// generated route for
@@ -536,6 +791,200 @@ class DepositRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'DepositRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [FlightConfirmationPage]
+class FlightConfirmationRoute
+    extends PageRouteInfo<FlightConfirmationRouteArgs> {
+  FlightConfirmationRoute({
+    Key? key,
+    required OfferModel outboundOffer,
+    OfferModel? returnOffer,
+    required String totalPrice,
+    required String currency,
+    int adults = 1,
+    int childrenCount = 0,
+    int babies = 0,
+    List<PageRouteInfo>? children,
+  }) : super(
+          FlightConfirmationRoute.name,
+          args: FlightConfirmationRouteArgs(
+            key: key,
+            outboundOffer: outboundOffer,
+            returnOffer: returnOffer,
+            totalPrice: totalPrice,
+            currency: currency,
+            adults: adults,
+            childrenCount: childrenCount,
+            babies: babies,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'FlightConfirmationRoute';
+
+  static const PageInfo<FlightConfirmationRouteArgs> page =
+      PageInfo<FlightConfirmationRouteArgs>(name);
+}
+
+class FlightConfirmationRouteArgs {
+  const FlightConfirmationRouteArgs({
+    this.key,
+    required this.outboundOffer,
+    this.returnOffer,
+    required this.totalPrice,
+    required this.currency,
+    this.adults = 1,
+    this.childrenCount = 0,
+    this.babies = 0,
+  });
+
+  final Key? key;
+
+  final OfferModel outboundOffer;
+
+  final OfferModel? returnOffer;
+
+  final String totalPrice;
+
+  final String currency;
+
+  final int adults;
+
+  final int childrenCount;
+
+  final int babies;
+
+  @override
+  String toString() {
+    return 'FlightConfirmationRouteArgs{key: $key, outboundOffer: $outboundOffer, returnOffer: $returnOffer, totalPrice: $totalPrice, currency: $currency, adults: $adults, childrenCount: $childrenCount, babies: $babies}';
+  }
+}
+
+/// generated route for
+/// [FlightDetailsScreen]
+class FlightDetailsRoute extends PageRouteInfo<void> {
+  const FlightDetailsRoute({List<PageRouteInfo>? children})
+      : super(
+          FlightDetailsRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'FlightDetailsRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [FlightFormalizationPage]
+class FlightFormalizationRoute
+    extends PageRouteInfo<FlightFormalizationRouteArgs> {
+  FlightFormalizationRoute({
+    Key? key,
+    required OfferModel outboundOffer,
+    OfferModel? returnOffer,
+    required String totalPrice,
+    required String currency,
+    int adults = 1,
+    int childrenCount = 0,
+    int babies = 0,
+    List<PageRouteInfo>? children,
+  }) : super(
+          FlightFormalizationRoute.name,
+          args: FlightFormalizationRouteArgs(
+            key: key,
+            outboundOffer: outboundOffer,
+            returnOffer: returnOffer,
+            totalPrice: totalPrice,
+            currency: currency,
+            adults: adults,
+            childrenCount: childrenCount,
+            babies: babies,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'FlightFormalizationRoute';
+
+  static const PageInfo<FlightFormalizationRouteArgs> page =
+      PageInfo<FlightFormalizationRouteArgs>(name);
+}
+
+class FlightFormalizationRouteArgs {
+  const FlightFormalizationRouteArgs({
+    this.key,
+    required this.outboundOffer,
+    this.returnOffer,
+    required this.totalPrice,
+    required this.currency,
+    this.adults = 1,
+    this.childrenCount = 0,
+    this.babies = 0,
+  });
+
+  final Key? key;
+
+  final OfferModel outboundOffer;
+
+  final OfferModel? returnOffer;
+
+  final String totalPrice;
+
+  final String currency;
+
+  final int adults;
+
+  final int childrenCount;
+
+  final int babies;
+
+  @override
+  String toString() {
+    return 'FlightFormalizationRouteArgs{key: $key, outboundOffer: $outboundOffer, returnOffer: $returnOffer, totalPrice: $totalPrice, currency: $currency, adults: $adults, childrenCount: $childrenCount, babies: $babies}';
+  }
+}
+
+/// generated route for
+/// [FlightResultsScreen]
+class FlightResultsRoute extends PageRouteInfo<void> {
+  const FlightResultsRoute({List<PageRouteInfo>? children})
+      : super(
+          FlightResultsRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'FlightResultsRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [FlightSearchScreen]
+class FlightSearchRoute extends PageRouteInfo<void> {
+  const FlightSearchRoute({List<PageRouteInfo>? children})
+      : super(
+          FlightSearchRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'FlightSearchRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [HotelModule]
+class HotelModuleRoute extends PageRouteInfo<void> {
+  const HotelModuleRoute({List<PageRouteInfo>? children})
+      : super(
+          HotelModuleRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'HotelModuleRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }
@@ -980,6 +1429,44 @@ class MyOrdersRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [OfferDetailPage]
+class OfferDetailRoute extends PageRouteInfo<OfferDetailRouteArgs> {
+  OfferDetailRoute({
+    Key? key,
+    required String offerId,
+    List<PageRouteInfo>? children,
+  }) : super(
+          OfferDetailRoute.name,
+          args: OfferDetailRouteArgs(
+            key: key,
+            offerId: offerId,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'OfferDetailRoute';
+
+  static const PageInfo<OfferDetailRouteArgs> page =
+      PageInfo<OfferDetailRouteArgs>(name);
+}
+
+class OfferDetailRouteArgs {
+  const OfferDetailRouteArgs({
+    this.key,
+    required this.offerId,
+  });
+
+  final Key? key;
+
+  final String offerId;
+
+  @override
+  String toString() {
+    return 'OfferDetailRouteArgs{key: $key, offerId: $offerId}';
+  }
+}
+
+/// generated route for
 /// [OnboardingPage]
 class OnboardingRoute extends PageRouteInfo<void> {
   const OnboardingRoute({List<PageRouteInfo>? children})
@@ -1005,6 +1492,92 @@ class OsagoModuleRoute extends PageRouteInfo<void> {
   static const String name = 'OsagoModuleRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [PaymentPage]
+class PaymentRoute extends PageRouteInfo<PaymentRouteArgs> {
+  PaymentRoute({
+    Key? key,
+    required String bookingId,
+    List<PageRouteInfo>? children,
+  }) : super(
+          PaymentRoute.name,
+          args: PaymentRouteArgs(
+            key: key,
+            bookingId: bookingId,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'PaymentRoute';
+
+  static const PageInfo<PaymentRouteArgs> page =
+      PageInfo<PaymentRouteArgs>(name);
+}
+
+class PaymentRouteArgs {
+  const PaymentRouteArgs({
+    this.key,
+    required this.bookingId,
+  });
+
+  final Key? key;
+
+  final String bookingId;
+
+  @override
+  String toString() {
+    return 'PaymentRouteArgs{key: $key, bookingId: $bookingId}';
+  }
+}
+
+/// generated route for
+/// [PaymentProcessingPage]
+class PaymentProcessingRoute extends PageRouteInfo<PaymentProcessingRouteArgs> {
+  PaymentProcessingRoute({
+    Key? key,
+    required String uuid,
+    required String checkoutUrl,
+    required String returnUrl,
+    List<PageRouteInfo>? children,
+  }) : super(
+          PaymentProcessingRoute.name,
+          args: PaymentProcessingRouteArgs(
+            key: key,
+            uuid: uuid,
+            checkoutUrl: checkoutUrl,
+            returnUrl: returnUrl,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'PaymentProcessingRoute';
+
+  static const PageInfo<PaymentProcessingRouteArgs> page =
+      PageInfo<PaymentProcessingRouteArgs>(name);
+}
+
+class PaymentProcessingRouteArgs {
+  const PaymentProcessingRouteArgs({
+    this.key,
+    required this.uuid,
+    required this.checkoutUrl,
+    required this.returnUrl,
+  });
+
+  final Key? key;
+
+  final String uuid;
+
+  final String checkoutUrl;
+
+  final String returnUrl;
+
+  @override
+  String toString() {
+    return 'PaymentProcessingRouteArgs{key: $key, uuid: $uuid, checkoutUrl: $checkoutUrl, returnUrl: $returnUrl}';
+  }
 }
 
 /// generated route for
@@ -1075,6 +1648,20 @@ class RegisterVerificationRouteArgs {
 }
 
 /// generated route for
+/// [SearchPage]
+class AviaSearchRoute extends PageRouteInfo<void> {
+  const AviaSearchRoute({List<PageRouteInfo>? children})
+      : super(
+          AviaSearchRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'AviaSearchRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
 /// [SecurityPage]
 class SecurityRoute extends PageRouteInfo<void> {
   const SecurityRoute({List<PageRouteInfo>? children})
@@ -1100,6 +1687,48 @@ class SplashRoute extends PageRouteInfo<void> {
   static const String name = 'SplashRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [StatusPage]
+class StatusRoute extends PageRouteInfo<StatusRouteArgs> {
+  StatusRoute({
+    Key? key,
+    required String bookingId,
+    required String status,
+    List<PageRouteInfo>? children,
+  }) : super(
+          StatusRoute.name,
+          args: StatusRouteArgs(
+            key: key,
+            bookingId: bookingId,
+            status: status,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'StatusRoute';
+
+  static const PageInfo<StatusRouteArgs> page = PageInfo<StatusRouteArgs>(name);
+}
+
+class StatusRouteArgs {
+  const StatusRouteArgs({
+    this.key,
+    required this.bookingId,
+    required this.status,
+  });
+
+  final Key? key;
+
+  final String bookingId;
+
+  final String status;
+
+  @override
+  String toString() {
+    return 'StatusRouteArgs{key: $key, bookingId: $bookingId, status: $status}';
+  }
 }
 
 /// generated route for

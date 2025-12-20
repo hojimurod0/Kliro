@@ -116,6 +116,8 @@ class _DepositPageState extends State<DepositPage> {
         body: Column(
           children: [
             BlocBuilder<DepositBloc, DepositState>(
+              buildWhen: (previous, current) =>
+                  previous.filter != current.filter,
               builder: (context, state) {
                 return PrimarySearchFilterBar(
                   controller: _searchController,
@@ -140,22 +142,21 @@ class _DepositPageState extends State<DepositPage> {
                   }
                 },
                 child: BlocBuilder<DepositBloc, DepositState>(
+                  buildWhen: (previous, current) {
+                    // Faqat muhim o'zgarishlarda rebuild
+                    return previous.status != current.status ||
+                        previous.items.length != current.items.length ||
+                        previous.isInitialLoading != current.isInitialLoading ||
+                        previous.isPaginating != current.isPaginating ||
+                        previous.errorMessage != current.errorMessage;
+                  },
                   builder: (context, state) {
-                    debugPrint(
-                      '[DepositPage] BlocBuilder: Building UI - status: ${state.status}, '
-                      'items: ${state.items.length}, isInitialLoading: ${state.isInitialLoading}',
-                    );
-
                     if (state.isInitialLoading) {
-                      debugPrint('[DepositPage] Showing initial loader');
                       return const _CenteredLoader();
                     }
 
                     if (state.status == DepositViewStatus.failure &&
                         state.items.isEmpty) {
-                      debugPrint(
-                        '[DepositPage] Showing error state: ${state.errorMessage}',
-                      );
                       return _StateMessage(
                         icon: Icons.error_outline,
                         title: tr('common.error'),
@@ -250,6 +251,7 @@ class _DepositList extends StatelessWidget {
     final itemCount = state.items.length + extraSlots;
 
     return ListView.separated(
+      cacheExtent: 500, // Cache optimization for better scroll performance
       padding: EdgeInsets.all(20.w),
       itemCount: itemCount,
       separatorBuilder: (_, __) => SizedBox(height: 16.h),

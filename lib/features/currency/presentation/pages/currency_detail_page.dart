@@ -160,10 +160,10 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
 
               // Находим лучшие банки для покупки и продажи
               final bestBuyBank = filteredCurrencies.isNotEmpty
-                  ? filteredCurrencies.reduce((a, b) => a.buyRate < b.buyRate ? a : b)
+                  ? filteredCurrencies.reduce((a, b) => a.buyRate > b.buyRate ? a : b)
                   : null;
               final bestSellBank = filteredCurrencies.isNotEmpty
-                  ? filteredCurrencies.reduce((a, b) => a.sellRate > b.sellRate ? a : b)
+                  ? filteredCurrencies.reduce((a, b) => a.sellRate < b.sellRate ? a : b)
                   : null;
 
               return ValueListenableBuilder<CurrencyEntity?>(
@@ -797,11 +797,11 @@ class BankListView extends StatelessWidget {
     // Сортируем банки
     filteredBanks.sort((a, b) {
       if (isSelling) {
-        // Sell uchun eng balandlari tepada (tushib borish tartibida)
-        return b.sellRate.compareTo(a.sellRate);
+        // Sell uchun eng arzonlari tepada (oshib borish tartibida)
+        return a.sellRate.compareTo(b.sellRate);
       } else {
-        // Buy uchun eng arzonlari tepada (oshib borish tartibida)
-        return a.buyRate.compareTo(b.buyRate);
+        // Buy uchun eng balandlari tepada (tushib borish tartibida)
+        return b.buyRate.compareTo(a.buyRate);
       }
     });
 
@@ -815,7 +815,7 @@ class BankListView extends StatelessWidget {
       ),
       child: ListView.separated(
         shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
+        physics: const BouncingScrollPhysics(),
         itemCount: filteredBanks.length,
         separatorBuilder: (c, i) => Divider(
           height: 1,

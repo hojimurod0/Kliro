@@ -229,18 +229,48 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                           (c) => c['code'] == code,
                           orElse: () => {'name': code},
                         );
-                        return Chip(
-                          label: Text(_getCountryName(country)),
-                          onDeleted: () {
-                            setState(() {
-                              _selectedCountries.remove(code);
-                            });
-                          },
-                          deleteIcon: const Icon(Icons.close, size: 18),
-                          backgroundColor: lightBlueBg,
-                          labelStyle: TextStyle(
-                            color: kPrimaryBlue,
-                            fontWeight: FontWeight.w600,
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: lightBlueBg,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: kPrimaryBlue.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _getCountryName(country),
+                                style: TextStyle(
+                                  color: kPrimaryBlue,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedCountries.remove(code);
+                                  });
+                                },
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  child: Icon(
+                                    Icons.close,
+                                    size: 16,
+                                    color: kPrimaryBlue,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       }).toList(),
@@ -1189,10 +1219,10 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
       onTap: () => _selectDate(isStart),
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           color: cardBg,
-          border: Border.all(color: borderColor, width: 1.5),
+          border: Border.all(color: borderColor, width: 1),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -1204,8 +1234,8 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
         ),
         child: Row(
           children: [
-            Icon(Icons.calendar_month_outlined, size: 22, color: kPrimaryBlue),
-            const SizedBox(width: 12),
+            Icon(Icons.calendar_month_outlined, size: 18, color: kPrimaryBlue),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
                 dateText,
@@ -1213,16 +1243,18 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                   color: selectedDate != null
                       ? textColor
                       : (isDark ? Colors.grey[400] : Colors.grey.shade600),
-                  fontSize: 15,
+                  fontSize: 13,
                   fontWeight: selectedDate != null
                       ? FontWeight.w500
                       : FontWeight.w400,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             Icon(
               Icons.arrow_forward_ios,
-              size: 16,
+              size: 12,
               color: isDark ? Colors.grey[600] : Colors.grey.shade400,
             ),
           ],
@@ -1243,7 +1275,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
           : (_endDate ?? _startDate ?? now.add(const Duration(days: 1))),
       firstDate: firstDate,
       lastDate: lastDate,
-      locale: const Locale('uz', 'UZ'),
+      locale: context.locale,
       builder: (context, child) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(
@@ -1303,7 +1335,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
           DateTime(now.year - 30, 1, 1),
       firstDate: firstDate,
       lastDate: lastDate,
-      locale: const Locale('uz', 'UZ'),
+      locale: context.locale,
       builder: (context, child) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(

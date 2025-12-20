@@ -129,6 +129,7 @@ class ApiPaths {
   static const String getMortgages = '/bank/mortgages/new';
   static const String getCards = '/bank/cards/new';
   static const String getCreditCards = '/bank/credit-cards/new';
+  static const String getAutoCredits = '/bank/auto-credits/new';
   static const String getTransferApps = '/bank/transfers/new';
   static const String osagoCalc = '/osago/calc';
   static const String osagoCreate = '/osago/create';
@@ -155,4 +156,9 @@ class ApiPaths {
   static const String travelCountry = '/travel/country';
   static const String travelPurposes = '/travel/purposes';
   static const String travelTarifs = '/travel/tarifs';
+
+  // Avichiptalar (Airline Tickets)
+  static const String avichiptalarSearch = '/avichiptalar/search';
+  static const String avichiptalarDetails = '/avichiptalar/details';
+  static const String avichiptalarCities = '/avichiptalar/cities';
 }

@@ -266,7 +266,7 @@ class _KaskoFormSelectionPageState extends State<KaskoFormSelectionPage> {
                       SizedBox(height: 24.h),
                       ElevatedButton(
                         onPressed: () {
-                          context.read<KaskoBloc>().add(const FetchCars());
+                          context.read<KaskoBloc>().add(const FetchCarsMinimal());
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0085FF),
@@ -549,7 +549,7 @@ class _KaskoFormSelectionPageState extends State<KaskoFormSelectionPage> {
                       SizedBox(height: 24.h),
                       ElevatedButton(
                         onPressed: () {
-                          context.read<KaskoBloc>().add(const FetchCars());
+                          context.read<KaskoBloc>().add(const FetchCarsMinimal());
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0085FF),

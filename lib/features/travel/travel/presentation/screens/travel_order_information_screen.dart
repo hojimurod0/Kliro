@@ -365,42 +365,43 @@ class _TravelOrderInformationScreenState
     final cardBg = isDark ? const Color(0xFF1E3A5C) : const Color(0xFFE3F2FD);
 
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(
+          color: isDark ? Colors.grey[700]! : Colors.grey.shade200,
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Sug\'urta ma\'lumotlari',
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
+          Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                color: const Color(0xFF42A5F5),
+                size: 24.sp,
+              ),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: Text(
+                  "travel.order_info.insurance_info".tr(),
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 20.h),
           if (state.insurance != null) ...[
-            if (state.insurance!.countryName != null &&
-                state.insurance!.countryName!.isNotEmpty)
-              _buildInfoRow(
-                icon: Icons.location_on_outlined,
-                label: "travel.order_info.country".tr(),
-                value: state.insurance!.countryName!,
-                textColor: textColor,
-                subtitleColor: subtitleColor,
-              ),
-            if (state.insurance!.purposeName != null &&
-                state.insurance!.purposeName!.isNotEmpty)
-              _buildInfoRow(
-                icon: Icons.flag_outlined,
-                label: "travel.order_info.travel_purpose".tr(),
-                value: state.insurance!.purposeName!,
-                textColor: textColor,
-                subtitleColor: subtitleColor,
-              ),
+            // Sug'urta kompaniyasi - birinchi
             _buildInfoRow(
               icon: Icons.business_outlined,
               label: "travel.order_info.insurance_company".tr(),
@@ -412,22 +413,64 @@ class _TravelOrderInformationScreenState
               textColor: textColor,
               subtitleColor: subtitleColor,
             ),
+            SizedBox(height: 12.h),
+            // Mamlakat
+            if (state.insurance!.countryName != null &&
+                state.insurance!.countryName!.isNotEmpty) ...[
+              _buildInfoRow(
+                icon: Icons.location_on_outlined,
+                label: "travel.order_info.country".tr(),
+                value: state.insurance!.countryName!,
+                textColor: textColor,
+                subtitleColor: subtitleColor,
+              ),
+              SizedBox(height: 12.h),
+            ],
+            // Sayohat maqsadi
+            if (state.insurance!.purposeName != null &&
+                state.insurance!.purposeName!.isNotEmpty) ...[
+              _buildInfoRow(
+                icon: Icons.flag_outlined,
+                label: "travel.order_info.travel_purpose".tr(),
+                value: state.insurance!.purposeName!,
+                textColor: textColor,
+                subtitleColor: subtitleColor,
+              ),
+              SizedBox(height: 12.h),
+            ],
+            // Sanalar
             _buildInfoRow(
               icon: Icons.calendar_today_outlined,
               label: "travel.order_info.start_date".tr(),
-              value: DateFormat(
-                'dd.MM.yyyy',
-              ).format(state.insurance!.startDate),
+              value: DateFormat('dd.MM.yyyy')
+                  .format(state.insurance!.startDate),
               textColor: textColor,
               subtitleColor: subtitleColor,
             ),
+            SizedBox(height: 12.h),
             _buildInfoRow(
               icon: Icons.event_outlined,
               label: "travel.order_info.end_date".tr(),
-              value: DateFormat('dd.MM.yyyy').format(state.insurance!.endDate),
+              value: DateFormat('dd.MM.yyyy')
+                  .format(state.insurance!.endDate),
               textColor: textColor,
               subtitleColor: subtitleColor,
             ),
+            SizedBox(height: 12.h),
+            // Aloqa ma'lumotlari
+            Divider(
+              color: subtitleColor.withOpacity(0.2),
+              height: 24.h,
+            ),
+            Text(
+              "travel.order_info.contact_info".tr(),
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+                color: subtitleColor,
+              ),
+            ),
+            SizedBox(height: 12.h),
             _buildInfoRow(
               icon: Icons.phone_outlined,
               label: "travel.order_info.phone".tr(),
@@ -435,7 +478,8 @@ class _TravelOrderInformationScreenState
               textColor: textColor,
               subtitleColor: subtitleColor,
             ),
-            if ((state.insurance!.email ?? '').isNotEmpty)
+            if ((state.insurance!.email ?? '').isNotEmpty) ...[
+              SizedBox(height: 8.h),
               _buildInfoRow(
                 icon: Icons.email_outlined,
                 label: "travel.order_info.email".tr(),
@@ -443,6 +487,7 @@ class _TravelOrderInformationScreenState
                 textColor: textColor,
                 subtitleColor: subtitleColor,
               ),
+            ],
           ],
         ],
       ),
@@ -458,54 +503,98 @@ class _TravelOrderInformationScreenState
     final cardBg = isDark ? const Color(0xFF1E3A5C) : const Color(0xFFE3F2FD);
 
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(
+          color: isDark ? Colors.grey[700]! : Colors.grey.shade200,
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "travel.order_info.travelers".tr(),
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
+          Row(
+            children: [
+              Icon(
+                Icons.people_outline,
+                color: const Color(0xFF42A5F5),
+                size: 24.sp,
+              ),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: Text(
+                  "travel.order_info.travelers".tr(),
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 20.h),
           ...state.persons.asMap().entries.map((entry) {
             final index = entry.key;
             final person = entry.value;
             return Padding(
               padding: EdgeInsets.only(
-                bottom: index < state.persons.length - 1 ? 16.h : 0,
+                bottom: index < state.persons.length - 1 ? 20.h : 0,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (index > 0) ...[
-                    Divider(color: subtitleColor.withOpacity(0.3)),
-                    SizedBox(height: 16.h),
+                    Divider(
+                      color: subtitleColor.withOpacity(0.2),
+                      height: 24.h,
+                    ),
                   ],
-                  Text(
-                    'Sayohatchi ${index + 1}',
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
+                  Container(
+                    padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 12.w),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.grey[800]!.withOpacity(0.3)
+                          : Colors.white.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.person,
+                          size: 18.sp,
+                          color: const Color(0xFF42A5F5),
+                        ),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Text(
+                            "${"travel.order_info.traveler".tr()} ${index + 1}",
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 8.h),
+                  SizedBox(height: 12.h),
                   _buildInfoRow(
                     icon: Icons.person_outline,
                     label: "travel.order_info.full_name".tr(),
                     value:
-                        '${person.lastName} ${person.firstName} ${person.middleName ?? ''}',
+                        '${person.lastName} ${person.firstName} ${person.middleName ?? ''}'.trim(),
                     textColor: textColor,
                     subtitleColor: subtitleColor,
                   ),
+                  SizedBox(height: 8.h),
                   _buildInfoRow(
                     icon: Icons.badge_outlined,
                     label: "travel.order_info.passport".tr(),
@@ -513,6 +602,7 @@ class _TravelOrderInformationScreenState
                     textColor: textColor,
                     subtitleColor: subtitleColor,
                   ),
+                  SizedBox(height: 8.h),
                   _buildInfoRow(
                     icon: Icons.cake_outlined,
                     label: "travel.order_info.birth_date".tr(),
@@ -629,35 +719,45 @@ class _TravelOrderInformationScreenState
     required Color textColor,
     required Color subtitleColor,
   }) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 12.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: const Color(0xFF42A5F5), size: 22.sp),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(fontSize: 14.sp, color: subtitleColor),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.normal,
-                    color: textColor,
-                  ),
-                ),
-              ],
-            ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: EdgeInsets.all(8.w),
+          decoration: BoxDecoration(
+            color: const Color(0xFF42A5F5).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8.r),
           ),
-        ],
-      ),
+          child: Icon(icon, color: const Color(0xFF42A5F5), size: 20.sp),
+        ),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: subtitleColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

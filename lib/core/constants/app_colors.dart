@@ -11,6 +11,7 @@ class AppColors {
   static const Color white = Color(0xFFFFFFFF); // Oq
   static const Color black = Color(0xFF000000); // Qora
   static const Color dangerRed = Color(0xFFE53935);
+  static const Color orangeWarning = Color(0xFFFF9800); // Warning orange
 
   // Qo'shimcha ranglar
   static const Color grayText = Color(0xFF9CA3AF);

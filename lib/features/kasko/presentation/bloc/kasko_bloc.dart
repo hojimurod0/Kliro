@@ -11,6 +11,7 @@ import '../../domain/usecases/calculate_policy.dart' as usecases;
 import '../../domain/usecases/check_payment_status.dart';
 import '../../domain/usecases/get_cars.dart';
 import '../../domain/usecases/get_cars_minimal.dart';
+import '../../domain/usecases/get_cars_paginated.dart';
 import '../../domain/usecases/get_payment_link.dart';
 import '../../domain/usecases/get_rates.dart';
 import '../../domain/usecases/save_order.dart' as usecases;
@@ -22,6 +23,7 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
   KaskoBloc({
     required GetCars getCars,
     required GetCarsMinimal getCarsMinimal,
+    required GetCarsPaginated getCarsPaginated,
     required GetRates getRates,
     required usecases.CalculateCarPrice calculateCarPrice,
     required usecases.CalculatePolicy calculatePolicy,
@@ -31,6 +33,7 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
     required usecases.UploadImage uploadImage,
   }) : _getCars = getCars,
        _getCarsMinimal = getCarsMinimal,
+       _getCarsPaginated = getCarsPaginated,
        _getRates = getRates,
        _calculateCarPrice = calculateCarPrice,
        _calculatePolicy = calculatePolicy,
@@ -42,6 +45,8 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
     // Регистрация обработчиков событий
     on<FetchCars>(_onFetchCars);
     on<FetchCarsMinimal>(_onFetchCarsMinimal);
+    on<FetchCarsPaginated>(_onFetchCarsPaginated);
+    on<RefreshCarsPaginated>(_onRefreshCarsPaginated);
     on<FetchRates>(_onFetchRates);
 
     // Обработчики для сохранения выбора пользователя
@@ -66,6 +71,7 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
 
   final GetCars _getCars;
   final GetCarsMinimal _getCarsMinimal;
+  final GetCarsPaginated _getCarsPaginated;
   final GetRates _getRates;
   final usecases.CalculateCarPrice _calculateCarPrice;
   final usecases.CalculatePolicy _calculatePolicy;
@@ -163,6 +169,142 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
       _cachedCars = cars; // Cache'ga saqlash
       emit(KaskoCarsLoaded(cars));
     } catch (e) {
+      emit(KaskoError(_mapError(e)));
+    }
+  }
+
+  Future<void> _onFetchCarsPaginated(
+    FetchCarsPaginated event,
+    Emitter<KaskoState> emit,
+  ) async {
+    if (_enableDebugLogs) {
+      debugPrint(
+        '🔄🔄🔄 _onFetchCarsPaginated called, page: ${event.page}, size: ${event.size}, append: ${event.append}',
+      );
+    }
+
+    // Agar append true bo'lsa va allaqachon pagination jarayoni ketyotgan bo'lsa, qayta chaqirmaymiz
+    if (event.append && state is KaskoCarsPageLoaded && (state as KaskoCarsPageLoaded).isPaginating) {
+      if (_enableDebugLogs) {
+        debugPrint('⚠️ Skipping pagination: already paginating');
+      }
+      return;
+    }
+
+    // Agar append true bo'lsa va hasMore false bo'lsa, qayta chaqirmaymiz
+    if (event.append && state is KaskoCarsPageLoaded && !(state as KaskoCarsPageLoaded).hasMore) {
+      if (_enableDebugLogs) {
+        debugPrint('⚠️ Skipping pagination: no more data');
+      }
+      return;
+    }
+
+    // Loading state'ni emit qilishdan oldin currentCars ni olish
+    // (chunki emit qilingandan keyin state o'zgarishi mumkin)
+    List<CarEntity> currentCars = [];
+    if (event.append && state is KaskoCarsPageLoaded) {
+      currentCars = (state as KaskoCarsPageLoaded).cars;
+    }
+
+    // Loading state'ni emit qilish
+    if (event.append) {
+      // Agar append bo'lsa, faqat isPaginating ni true qilamiz
+      if (state is KaskoCarsPageLoaded) {
+        emit((state as KaskoCarsPageLoaded).copyWith(isPaginating: true));
+      } else {
+        emit(const KaskoLoading()); // Agar birinchi yuklanish bo'lsa
+      }
+    } else {
+      emit(const KaskoLoading());
+    }
+
+    try {
+      if (_enableDebugLogs) {
+        debugPrint('🌐🌐🌐 Calling _getCarsPaginated() usecase...');
+      }
+      final carPage = await _getCarsPaginated(page: event.page, size: event.size);
+      if (_enableDebugLogs) {
+        debugPrint(
+          '✅✅✅ Got ${carPage.items.length} cars from API for page ${carPage.pageNumber}',
+        );
+      }
+
+      final updatedCars = [...currentCars, ...carPage.items];
+
+      if (_enableDebugLogs) {
+        debugPrint(
+          '📤📤📤 Emitting KaskoCarsPageLoaded state with ${updatedCars.length} cars...',
+        );
+      }
+      emit(
+        KaskoCarsPageLoaded(
+          cars: updatedCars,
+          pageNumber: carPage.pageNumber,
+          totalPages: carPage.totalPages,
+          totalElements: carPage.totalElements,
+          hasMore: !carPage.isLast,
+          isPaginating: false,
+        ),
+      );
+      if (_enableDebugLogs) {
+        debugPrint('✅✅✅ KaskoCarsPageLoaded state emitted successfully');
+      }
+    } catch (e, stackTrace) {
+      if (_enableDebugLogs) {
+        debugPrint('❌❌❌ Error in _onFetchCarsPaginated: $e');
+        debugPrint('❌ Stack trace: $stackTrace');
+      }
+      // Xatolik yuz berganda, pagination holatini to'g'rilash
+      if (event.append && state is KaskoCarsPageLoaded) {
+        // Append bo'lsa, faqat pagination holatini to'g'rilash
+        // Foydalanuvchi allaqachon mavjud ma'lumotlarni ko'rayapti,
+        // pagination to'xtaydi, lekin xatolik ko'rsatilmaydi
+        emit((state as KaskoCarsPageLoaded).copyWith(isPaginating: false));
+      } else {
+        // Birinchi yuklanish yoki append bo'lmagan holatda xatolikni ko'rsatish
+        emit(KaskoError(_mapError(e)));
+      }
+    }
+  }
+
+  Future<void> _onRefreshCarsPaginated(
+    RefreshCarsPaginated event,
+    Emitter<KaskoState> emit,
+  ) async {
+    if (_enableDebugLogs) {
+      debugPrint('🔄🔄🔄 _onRefreshCarsPaginated called');
+    }
+
+    try {
+      // Birinchi sahifani yangilash (append: false)
+      final carPage = await _getCarsPaginated(page: 0, size: 20);
+      
+      if (_enableDebugLogs) {
+        debugPrint(
+          '✅✅✅ Got ${carPage.items.length} cars from API for page 0',
+        );
+      }
+
+      emit(
+        KaskoCarsPageLoaded(
+          cars: carPage.items,
+          pageNumber: carPage.pageNumber,
+          totalPages: carPage.totalPages,
+          totalElements: carPage.totalElements,
+          hasMore: !carPage.isLast,
+          isPaginating: false,
+        ),
+      );
+      
+      // Completer'ni to'ldirish
+      event.completer?.complete();
+    } catch (e, stackTrace) {
+      if (_enableDebugLogs) {
+        debugPrint('❌❌❌ Error in _onRefreshCarsPaginated: $e');
+        debugPrint('❌ Stack trace: $stackTrace');
+      }
+      // Completer'ni xatolik bilan to'ldirish
+      event.completer?.completeError(e);
       emit(KaskoError(_mapError(e)));
     }
   }

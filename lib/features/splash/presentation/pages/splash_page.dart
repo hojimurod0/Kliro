@@ -34,7 +34,7 @@ class _SplashPageState extends State<SplashPage> {
 
   Future<void> _loadVideo() async {
     try {
-      _controller = VideoPlayerController.asset('assets/videos/kliro_introo.mp4')
+      _controller = VideoPlayerController.asset('assets/videos/kliro_intro.mp4')
         ..setLooping(false)
         ..addListener(_handleTick);
 

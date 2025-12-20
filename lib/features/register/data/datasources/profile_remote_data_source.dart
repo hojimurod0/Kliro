@@ -110,9 +110,8 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       final apiResponse = ApiResponse.fromJson(data, parser);
       if (!apiResponse.success) {
         throw ValidationException(
-          message: apiResponse.message ?? 'Request failed',
+          apiResponse.message ?? 'Request failed',
           statusCode: response.statusCode,
-          details: data,
         );
       }
       if (!expectResult) {

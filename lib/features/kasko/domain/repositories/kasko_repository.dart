@@ -1,4 +1,5 @@
 import '../entities/car_entity.dart';
+import '../entities/car_page.dart';
 import '../entities/calculate_entity.dart';
 import '../entities/car_price_entity.dart';
 import '../entities/check_payment_entity.dart';
@@ -9,8 +10,11 @@ import '../entities/save_order_entity.dart';
 
 abstract class KaskoRepository {
   Future<List<CarEntity>> getCars();
-  Future<List<CarEntity>>
-  getCarsMinimal(); // Faqat brand, model, position uchun
+  Future<CarPage> getCarsPaginated({
+    required int page,
+    required int size,
+  });
+  Future<List<CarEntity>> getCarsMinimal(); // Faqat brand, model, position uchun
   Future<List<RateEntity>> getRates();
   Future<CarPriceEntity> calculateCarPrice({
     required int carId, // Bu aslida car_position_id

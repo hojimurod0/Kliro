@@ -5,9 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../../core/dio/singletons/service_locator.dart';
 import '../../../../../core/navigation/app_router.dart';
+import '../../../kasko/data/datasources/kasko_local_data_source.dart';
 import '../../../kasko/data/datasources/kasko_remote_data_source.dart';
 import '../../../kasko/data/repositories/kasko_repository_impl.dart';
 import '../../../kasko/domain/repositories/kasko_repository.dart';
@@ -16,6 +18,7 @@ import '../../../kasko/domain/usecases/calculate_policy.dart' as usecases;
 import '../../../kasko/domain/usecases/check_payment_status.dart';
 import '../../../kasko/domain/usecases/get_cars.dart';
 import '../../../kasko/domain/usecases/get_cars_minimal.dart';
+import '../../../kasko/domain/usecases/get_cars_paginated.dart';
 import '../../../kasko/domain/usecases/get_payment_link.dart';
 import '../../../kasko/domain/usecases/get_rates.dart';
 import '../../../kasko/domain/usecases/save_order.dart' as usecases;
@@ -48,14 +51,17 @@ class KaskoTariffPage extends StatelessWidget {
   Widget build(BuildContext context) {
     // DI: Dio -> RemoteDataSource -> Repository -> UseCase'lar -> Bloc
     final dio = ServiceLocator.resolve<Dio>();
+    final prefs = ServiceLocator.resolve<SharedPreferences>();
     final KaskoRepository repository = KaskoRepositoryImpl(
-      KaskoRemoteDataSourceImpl(dio),
+      remoteDataSource: KaskoRemoteDataSourceImpl(dio),
+      localDataSource: KaskoLocalDataSource(prefs),
     );
 
     return BlocProvider<KaskoBloc>(
       create: (_) => KaskoBloc(
         getCars: GetCars(repository),
         getCarsMinimal: GetCarsMinimal(repository),
+        getCarsPaginated: GetCarsPaginated(repository),
         getRates: GetRates(repository),
         calculateCarPrice: usecases.CalculateCarPrice(repository),
         calculatePolicy: usecases.CalculatePolicy(repository),
@@ -87,9 +93,8 @@ class _KaskoTariffContentState extends State<_KaskoTariffContent> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final scaffoldBg = isDark
-        ? const Color(0xFF121212)
-        : const Color(0xFFF4F6F8);
+    final scaffoldBg =
+        isDark ? const Color(0xFF121212) : const Color(0xFFF4F6F8);
     final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF111827);
     final subtitleColor = isDark ? Colors.grey[400]! : const Color(0xFF6B7280);
@@ -149,8 +154,8 @@ class _KaskoTariffContentState extends State<_KaskoTariffContent> {
                             ElevatedButton(
                               onPressed: () {
                                 context.read<KaskoBloc>().add(
-                                  const FetchRates(forceRefresh: true),
-                                );
+                                      const FetchRates(forceRefresh: true),
+                                    );
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF0085FF),

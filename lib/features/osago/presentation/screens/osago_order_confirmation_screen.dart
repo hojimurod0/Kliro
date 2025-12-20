@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../logic/bloc/osago_bloc.dart';
 import '../../logic/bloc/osago_event.dart';
 import '../../logic/bloc/osago_state.dart';
@@ -46,8 +47,9 @@ class _OsagoOrderConfirmationScreenState
           );
         }
 
-        // Jami summa
-        final totalPrice = calc.amount.toInt();
+        // Jami summa - create response dan kelgan amount ni ustunlik bilan ishlatamiz
+        final createResponse = state.createResponse;
+        final totalPrice = (createResponse?.amount ?? calc.amount).toInt();
 
         // Используем сохраненный метод оплаты из state или выбранный локально
         final currentPaymentMethod =
@@ -172,17 +174,17 @@ class _OsagoOrderConfirmationScreenState
     final paymentMethod = state.paymentMethod ?? _selectedPaymentMethod;
 
     if (createResponse == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('insurance.osago.payment.no_data'.tr())),
+      SnackbarHelper.showError(
+        context,
+        'insurance.osago.payment.no_data'.tr(),
       );
       return;
     }
 
     if (paymentMethod == null || paymentMethod.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('insurance.osago.payment.select_payment_method'.tr()),
-        ),
+      SnackbarHelper.showError(
+        context,
+        'insurance.osago.payment.select_payment_method'.tr(),
       );
       return;
     }
@@ -190,8 +192,9 @@ class _OsagoOrderConfirmationScreenState
     // Avval payment URL ni olamiz (bu asosiy)
     final paymentUrl = createResponse.getPaymentUrl(paymentMethod);
     if (paymentUrl == null || paymentUrl.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('insurance.osago.order.no_payment_url'.tr())),
+      SnackbarHelper.showError(
+        context,
+        'insurance.osago.order.no_payment_url'.tr(),
       );
       return;
     }
@@ -242,28 +245,25 @@ class _OsagoOrderConfirmationScreenState
             if (!context.mounted) return;
 
             if (!success) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('insurance.osago.order.payment_url_error'.tr()),
-                ),
+              SnackbarHelper.showError(
+                context,
+                'insurance.osago.order.payment_url_error'.tr(),
               );
               return;
             }
           } catch (e) {
             if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('insurance.osago.order.payment_url_error'.tr()),
-              ),
+            SnackbarHelper.showError(
+              context,
+              'insurance.osago.order.payment_url_error'.tr(),
             );
             return;
           }
         } else {
           if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('insurance.osago.order.payment_url_error'.tr()),
-            ),
+          SnackbarHelper.showError(
+            context,
+            'insurance.osago.order.payment_url_error'.tr(),
           );
           return;
         }

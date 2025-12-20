@@ -116,6 +116,8 @@ class _MortgagePageState extends State<MortgagePage> {
         body: Column(
           children: [
             BlocBuilder<MortgageBloc, MortgageState>(
+              buildWhen: (previous, current) =>
+                  previous.filter != current.filter,
               builder: (context, state) {
                 return PrimarySearchFilterBar(
                   controller: _searchController,
@@ -142,22 +144,21 @@ class _MortgagePageState extends State<MortgagePage> {
                   }
                 },
                 child: BlocBuilder<MortgageBloc, MortgageState>(
+                  buildWhen: (previous, current) {
+                    // Faqat muhim o'zgarishlarda rebuild
+                    return previous.status != current.status ||
+                        previous.items.length != current.items.length ||
+                        previous.isInitialLoading != current.isInitialLoading ||
+                        previous.isPaginating != current.isPaginating ||
+                        previous.errorMessage != current.errorMessage;
+                  },
                   builder: (context, state) {
-                    debugPrint(
-                      '[MortgagePage] BlocBuilder: Building UI - status: ${state.status}, '
-                      'items: ${state.items.length}, isInitialLoading: ${state.isInitialLoading}',
-                    );
-
                     if (state.isInitialLoading) {
-                      debugPrint('[MortgagePage] Showing initial loader');
                       return const _CenteredLoader();
                     }
 
                     if (state.status == MortgageViewStatus.failure &&
                         state.items.isEmpty) {
-                      debugPrint(
-                        '[MortgagePage] Showing error state: ${state.errorMessage}',
-                      );
                       return _StateMessage(
                         icon: Icons.error_outline,
                         title: tr('common.error'),
@@ -269,6 +270,7 @@ class _MortgageList extends StatelessWidget {
 
     return ListView.separated(
       padding: EdgeInsets.all(20.w),
+      cacheExtent: 500, // Cache optimization for better scroll performance
       itemCount: itemCount,
       separatorBuilder: (_, __) => SizedBox(height: 16.h),
       itemBuilder: (context, index) {

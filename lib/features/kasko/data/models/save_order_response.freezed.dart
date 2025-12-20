@@ -14,10 +14,6 @@ T _$identity<T>(T value) => value;
 final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
-SaveOrderResponse _$SaveOrderResponseFromJson(Map<String, dynamic> json) {
-  return _SaveOrderResponse.fromJson(json);
-}
-
 /// @nodoc
 mixin _$SaveOrderResponse {
   @JsonKey(name: 'order_id')
@@ -39,7 +35,6 @@ mixin _$SaveOrderResponse {
   @JsonKey(name: 'contract_id')
   String? get contractId => throw _privateConstructorUsedError;
 
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
   $SaveOrderResponseCopyWith<SaveOrderResponse> get copyWith =>
       throw _privateConstructorUsedError;
@@ -234,7 +229,7 @@ class __$$SaveOrderResponseImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
 class _$SaveOrderResponseImpl implements _SaveOrderResponse {
   const _$SaveOrderResponseImpl(
       {@JsonKey(name: 'order_id') this.orderId,
@@ -248,9 +243,6 @@ class _$SaveOrderResponseImpl implements _SaveOrderResponse {
       @JsonKey(name: 'url_shartnoma') this.urlShartnoma,
       @JsonKey(name: 'payme_url') this.paymeUrl,
       @JsonKey(name: 'contract_id') this.contractId});
-
-  factory _$SaveOrderResponseImpl.fromJson(Map<String, dynamic> json) =>
-      _$$SaveOrderResponseImplFromJson(json);
 
   @override
   @JsonKey(name: 'order_id')
@@ -310,7 +302,6 @@ class _$SaveOrderResponseImpl implements _SaveOrderResponse {
                 other.contractId == contractId));
   }
 
-  @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
       runtimeType,
@@ -332,13 +323,6 @@ class _$SaveOrderResponseImpl implements _SaveOrderResponse {
   _$$SaveOrderResponseImplCopyWith<_$SaveOrderResponseImpl> get copyWith =>
       __$$SaveOrderResponseImplCopyWithImpl<_$SaveOrderResponseImpl>(
           this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$SaveOrderResponseImplToJson(
-      this,
-    );
-  }
 }
 
 abstract class _SaveOrderResponse implements SaveOrderResponse {
@@ -355,9 +339,6 @@ abstract class _SaveOrderResponse implements SaveOrderResponse {
           @JsonKey(name: 'payme_url') final String? paymeUrl,
           @JsonKey(name: 'contract_id') final String? contractId}) =
       _$SaveOrderResponseImpl;
-
-  factory _SaveOrderResponse.fromJson(Map<String, dynamic> json) =
-      _$SaveOrderResponseImpl.fromJson;
 
   @override
   @JsonKey(name: 'order_id')

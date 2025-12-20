@@ -6,7 +6,10 @@ import 'package:flutter/foundation.dart';
 
 import '../../../../core/constants/constants.dart';
 import '../../../../core/errors/app_exception.dart';
+import '../../../../core/utils/logger.dart';
+import '../../../../core/utils/retry_helper.dart';
 import '../models/car_model.dart';
+import '../models/car_page_model.dart';
 import '../models/calculate_request.dart';
 import '../models/calculate_response.dart';
 import '../models/car_price_request.dart';
@@ -22,6 +25,10 @@ import '../models/save_order_response.dart';
 
 abstract class KaskoRemoteDataSource {
   Future<List<CarModel>> getCars();
+  Future<CarPageModel> getCarsPaginated({
+    required int page,
+    required int size,
+  });
   Future<List<CarModel>> getCarsMinimal(); // Faqat brand, model, position uchun
   Future<List<RateModel>> getRates();
   Future<CarPriceResponse> calculateCarPrice(CarPriceRequest request);
@@ -47,11 +54,15 @@ class KaskoRemoteDataSourceImpl implements KaskoRemoteDataSource {
     try {
       // MUHIM: Raw JSON string olish uchun ResponseType.plain ishlatamiz
       // Bu Dio'ning avtomatik JSON parsing'ini o'chirib qo'yadi
-      final response = await _dio.get(
-        ApiPaths.kaskoCars,
-        options: Options(
-          responseType: ResponseType.plain, // Raw string olish
+      final response = await RetryHelper.retry(
+        operation: () => _dio.get(
+          ApiPaths.kaskoCars,
+          options: Options(
+            responseType: ResponseType.plain, // Raw string olish
+          ),
         ),
+        maxRetries: 3,
+        delay: const Duration(seconds: 1),
       );
 
       final responseString = response.data as String?;
@@ -85,13 +96,92 @@ class KaskoRemoteDataSourceImpl implements KaskoRemoteDataSource {
   }
 
   @override
+  Future<CarPageModel> getCarsPaginated({
+    required int page,
+    required int size,
+  }) async {
+    try {
+      // Pagination parametrlarini query'ga qo'shish
+      final queryParameters = <String, dynamic>{
+        'page': page,
+        'size': size,
+      };
+
+      final response = await RetryHelper.retry(
+        operation: () => _dio.get(
+          ApiPaths.kaskoCars,
+          queryParameters: queryParameters,
+          options: Options(
+            responseType: ResponseType.json, // Pagination uchun JSON response
+          ),
+        ),
+        maxRetries: 3,
+        delay: const Duration(seconds: 1),
+      );
+
+      final responseData = response.data;
+
+      // Response tekshiruvi
+      if (responseData == null) {
+        throw const ApiException(message: 'Server response is null or empty');
+      }
+
+      // Agar API pagination qo'llab-quvvatlasa, CarPageModel qaytaramiz
+      if (responseData is Map<String, dynamic>) {
+        // API pagination formatini tekshirish
+        if (responseData.containsKey('content') ||
+            responseData.containsKey('total_pages') ||
+            responseData.containsKey('total_elements')) {
+          // Server-side pagination
+          return CarPageModel.fromJson(responseData);
+        }
+      }
+
+      // Agar API pagination qo'llab-quvvatlamasa, client-side pagination
+      // Barcha ma'lumotlarni olamiz va client-side pagination qilamiz
+      final allCars = await getCars();
+      final totalElements = allCars.length;
+      final totalPages = (totalElements / size).ceil();
+      final startIndex = page * size;
+      final endIndex = (startIndex + size).clamp(0, totalElements);
+      final paginatedCars = allCars.sublist(
+        startIndex.clamp(0, totalElements),
+        endIndex,
+      );
+
+      return CarPageModel(
+        content: paginatedCars,
+        totalPages: totalPages,
+        totalElements: totalElements,
+        number: page,
+        size: size,
+        first: page == 0,
+        last: page >= totalPages - 1,
+        numberOfElements: paginatedCars.length,
+      );
+    } on DioException catch (error) {
+      _handleDioError(error);
+    } on AppException {
+      rethrow;
+    } catch (e) {
+      throw AppException(
+        message: 'Failed to fetch cars data with pagination: ${e.toString()}',
+      );
+    }
+  }
+
+  @override
   Future<List<CarModel>> getCarsMinimal() async {
     // Minimal endpoint - faqat brand, model, position uchun
     // Agar backend qo'llab-quvvatlamasa, hozirgi API'dan kelgan ma'lumotlardan faqat kerakli qismlarni olamiz
     try {
-      final response = await _dio.get(
-        ApiPaths.kaskoCarsMinimal,
-        options: Options(responseType: ResponseType.plain),
+      final response = await RetryHelper.retry(
+        operation: () => _dio.get(
+          ApiPaths.kaskoCarsMinimal,
+          options: Options(responseType: ResponseType.plain),
+        ),
+        maxRetries: 3,
+        delay: const Duration(seconds: 1),
       );
 
       final responseString = response.data as String?;
@@ -143,11 +233,16 @@ class KaskoRemoteDataSourceImpl implements KaskoRemoteDataSource {
       }
 
       // MUHIM: Raw JSON string olish uchun ResponseType.plain ishlatamiz
-      final response = await _dio.get(
-        ApiPaths.kaskoRates,
-        options: Options(
-          responseType: ResponseType.plain, // Raw string olish
+      // RetryHelper qo'shildi - network xatoliklarda avtomatik qayta urinish
+      final response = await RetryHelper.retry(
+        operation: () => _dio.get(
+          ApiPaths.kaskoRates,
+          options: Options(
+            responseType: ResponseType.plain, // Raw string olish
+          ),
         ),
+        maxRetries: 3,
+        delay: const Duration(seconds: 1),
       );
 
       if (_enableRatesDebugLogs) {
@@ -196,19 +291,19 @@ class KaskoRemoteDataSourceImpl implements KaskoRemoteDataSource {
       }
     } on DioException catch (error) {
       if (_enableRatesDebugLogs) {
-        print('❌ DioException: ${error.message}');
-        print('❌ DioException type: ${error.type}');
-        print('❌ DioException response: ${error.response?.data}');
+        AppLogger.debug('DioException: ${error.message}');
+        AppLogger.debug('DioException type: ${error.type}');
+        AppLogger.debug('DioException response: ${error.response?.data}');
       }
       _handleDioError(error);
     } on ApiException catch (e) {
       if (_enableRatesDebugLogs) {
-        print('❌ ApiException: ${e.message}');
+        AppLogger.debug('ApiException: ${e.message}');
       }
       rethrow;
     } catch (e) {
       if (_enableRatesDebugLogs) {
-        print('❌ Unknown error: $e');
+        AppLogger.debug('Unknown error: $e');
       }
       throw ApiException(
         message: 'Failed to fetch rates data: ${e.toString()}',
@@ -221,12 +316,16 @@ class KaskoRemoteDataSourceImpl implements KaskoRemoteDataSource {
     try {
       // MUHIM: Raw JSON string olish uchun ResponseType.plain ishlatamiz
       // Bu Dio'ning avtomatik JSON parsing'ini o'chirib qo'yadi
-      final response = await _dio.post(
-        ApiPaths.kaskoCarPrice,
-        data: request.toJson(),
-        options: Options(
-          responseType: ResponseType.plain, // Raw string olish
+      final response = await RetryHelper.retry(
+        operation: () => _dio.post(
+          ApiPaths.kaskoCarPrice,
+          data: request.toJson(),
+          options: Options(
+            responseType: ResponseType.plain, // Raw string olish
+          ),
         ),
+        maxRetries: 3,
+        delay: const Duration(seconds: 1),
       );
 
       final responseString = response.data as String?;
@@ -263,9 +362,13 @@ class KaskoRemoteDataSourceImpl implements KaskoRemoteDataSource {
   @override
   Future<CalculateResponse> calculatePolicy(CalculateRequest request) async {
     try {
-      final response = await _dio.post(
-        ApiPaths.kaskoCalculate,
-        data: request.toJson(),
+      final response = await RetryHelper.retry(
+        operation: () => _dio.post(
+          ApiPaths.kaskoCalculate,
+          data: request.toJson(),
+        ),
+        maxRetries: 3,
+        delay: const Duration(seconds: 1),
       );
       final responseData = _ensureMap(response.data);
 
@@ -294,58 +397,50 @@ class KaskoRemoteDataSourceImpl implements KaskoRemoteDataSource {
   Future<SaveOrderResponse> saveOrder(SaveOrderRequest request) async {
     try {
       // Debug: Request ma'lumotlarini ko'rsatish
-      debugPrint('📤 SaveOrder Request: ${request.toJson()}');
-      
-      final response = await _dio.post(
-        ApiPaths.kaskoSave,
-        data: request.toJson(),
+      AppLogger.debug(
+          'SaveOrder Request: ${AppLogger.sanitize(request.toJson().toString())}');
+
+      final response = await RetryHelper.retry(
+        operation: () => _dio.post(
+          ApiPaths.kaskoSave,
+          data: request.toJson(),
+        ),
+        maxRetries: 3,
+        delay: const Duration(seconds: 1),
       );
       final responseData = _ensureMap(response.data);
-      
+
       // Debug: Response ma'lumotlarini ko'rsatish
-      debugPrint('📥 SaveOrder Response: $responseData');
+      AppLogger.debug(
+          'SaveOrder Response: ${AppLogger.sanitize(responseData.toString())}');
 
       // Nested struktura tekshiruvi - сначала проверяем 'response', потом 'data'
       Map<String, dynamic>? dataToParse;
-      
+
       if (responseData.containsKey('response')) {
         final responseObj = responseData['response'];
         if (responseObj is Map<String, dynamic>) {
           dataToParse = responseObj;
-          debugPrint('✅ SaveOrder response found in "response" field');
-          debugPrint('📦 Response object: $dataToParse');
-          // URL'larni tekshirish
-          debugPrint('  🔵 url (click): ${dataToParse['url']}');
-          debugPrint('  🟢 payme_url: ${dataToParse['payme_url']}');
-          debugPrint('  📄 url_shartnoma: ${dataToParse['url_shartnoma']}');
-          debugPrint('  📦 order_id: ${dataToParse['order_id']}');
-          debugPrint('  📄 contract_id: ${dataToParse['contract_id']}');
+          AppLogger.debug('SaveOrder response found in "response" field');
         }
       } else if (responseData.containsKey('data')) {
         final data = responseData['data'];
         if (data is Map<String, dynamic>) {
           dataToParse = data;
-          debugPrint('✅ SaveOrder response found in "data" field');
+          AppLogger.debug('SaveOrder response found in "data" field');
         }
       }
-      
+
       if (dataToParse != null) {
-        debugPrint('📦 Parsing SaveOrderResponse from: $dataToParse');
         final result = SaveOrderResponse.fromJson(dataToParse);
-        debugPrint('✅ Parsed SaveOrderResponse:');
-        debugPrint('  📦 orderId: ${result.orderId}');
-        debugPrint('  📄 contractId: ${result.contractId}');
-        debugPrint('  🔵 clickUrl (url): ${result.url}');
-        debugPrint('  🟢 paymeUrl: ${result.paymeUrl}');
-        debugPrint('  📄 urlShartnoma: ${result.urlShartnoma}');
-        debugPrint('  💰 premium: ${result.premium}');
+        AppLogger.debug('Parsed SaveOrderResponse: orderId=${result.orderId}');
         return result;
       }
 
       // Fallback - пытаемся парсить сам responseData
-      debugPrint('⚠️ Using fallback parsing from responseData');
+      AppLogger.debug('Using fallback parsing from responseData');
       final fallbackResult = SaveOrderResponse.fromJson(responseData);
-      debugPrint('✅ Fallback parsed: orderId=${fallbackResult.orderId}, url=${fallbackResult.url}, paymeUrl=${fallbackResult.paymeUrl}');
+      AppLogger.debug('Fallback parsed: orderId=${fallbackResult.orderId}');
       return fallbackResult;
     } on DioException catch (error) {
       _handleDioError(error);
@@ -359,15 +454,19 @@ class KaskoRemoteDataSourceImpl implements KaskoRemoteDataSource {
   @override
   Future<PaymentLinkResponse> getPaymentLink(PaymentLinkRequest request) async {
     try {
-      final response = await _dio.post(
-        ApiPaths.kaskoPaymentLink,
-        data: request.toJson(),
+      final response = await RetryHelper.retry(
+        operation: () => _dio.post(
+          ApiPaths.kaskoPaymentLink,
+          data: request.toJson(),
+        ),
+        maxRetries: 3,
+        delay: const Duration(seconds: 1),
       );
       final responseData = _ensureMap(response.data);
 
       // Nested struktura tekshiruvi - сначала проверяем 'response', потом 'data'
       Map<String, dynamic>? dataToParse;
-      
+
       if (responseData.containsKey('response')) {
         final responseObj = responseData['response'];
         if (responseObj is Map<String, dynamic>) {
@@ -379,31 +478,27 @@ class KaskoRemoteDataSourceImpl implements KaskoRemoteDataSource {
           dataToParse = data;
         }
       }
-      
+
       if (dataToParse != null) {
-        debugPrint('✅ PaymentLink response found in nested structure');
-        debugPrint('📦 Parsing PaymentLinkResponse from: $dataToParse');
+        AppLogger.debug('PaymentLink response found in nested structure');
         try {
           final result = PaymentLinkResponse.fromJson(dataToParse);
-          debugPrint('✅ Parsed clickUrl: ${result.clickUrl}');
-          debugPrint('✅ Parsed paymeUrl: ${result.paymeUrl}');
-          debugPrint('✅ Parsed contractId: ${result.contractId}');
-          debugPrint('✅ Parsed amountUzs: ${result.amountUzs}');
+          AppLogger.debug(
+              'Parsed PaymentLinkResponse: contractId=${result.contractId}');
           return result;
         } catch (e, stackTrace) {
-          debugPrint('❌ PaymentLinkResponse parsing error: $e');
-          debugPrint('❌ Stack trace: $stackTrace');
+          AppLogger.error('PaymentLinkResponse parsing error', e, stackTrace);
           rethrow;
         }
       }
 
       // Fallback - пытаемся парсить сам responseData
-      debugPrint('⚠️ Using fallback parsing from responseData');
+      AppLogger.debug('Using fallback parsing from responseData');
       try {
         return PaymentLinkResponse.fromJson(responseData);
       } catch (e, stackTrace) {
-        debugPrint('❌ PaymentLinkResponse fallback parsing error: $e');
-        debugPrint('❌ Stack trace: $stackTrace');
+        AppLogger.error(
+            'PaymentLinkResponse fallback parsing error', e, stackTrace);
         rethrow;
       }
     } on DioException catch (error) {
@@ -422,9 +517,13 @@ class KaskoRemoteDataSourceImpl implements KaskoRemoteDataSource {
     CheckPaymentRequest request,
   ) async {
     try {
-      final response = await _dio.post(
-        ApiPaths.kaskoCheckPayment,
-        data: request.toJson(),
+      final response = await RetryHelper.retry(
+        operation: () => _dio.post(
+          ApiPaths.kaskoCheckPayment,
+          data: request.toJson(),
+        ),
+        maxRetries: 3,
+        delay: const Duration(seconds: 1),
       );
       final responseData = _ensureMap(response.data);
 
@@ -877,9 +976,8 @@ CarPriceResponse _parseCarPriceResponseFromJson(String jsonString) {
     }
 
     // Price ni double ga o'girish
-    final priceValue = (price is num)
-        ? price.toDouble()
-        : double.tryParse(price.toString());
+    final priceValue =
+        (price is num) ? price.toDouble() : double.tryParse(price.toString());
     if (priceValue == null) {
       throw Exception('Invalid price format in response: $price');
     }

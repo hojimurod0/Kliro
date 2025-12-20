@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../domain/entities/osago_driver.dart';
 import '../../domain/entities/osago_insurance.dart';
 import '../../logic/bloc/osago_bloc.dart';
@@ -37,7 +38,6 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
   DateTime? _startDate;
   bool _navigated = false;
   bool _showDrivers = false;
-  bool _isCheklanganType = false;
   final List<Map<String, dynamic>> _drivers = [];
 
   @override
@@ -77,7 +77,6 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
         final unlimitedText = 'insurance.osago.vehicle.type_unlimited'.tr();
 
         if (osagoType == limitedText) {
-          _isCheklanganType = true;
           _selectedProvider = 'neo';
           _companyController.text = _providers[_selectedProvider]!;
           _showDrivers = true;
@@ -90,7 +89,6 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
             ),
           });
         } else if (osagoType == unlimitedText) {
-          _isCheklanganType = false;
           _selectedProvider = 'neo';
           _companyController.text = _providers[_selectedProvider]!;
           _showDrivers = false;
@@ -119,8 +117,9 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
 
   void _addDriver() {
     if (_drivers.length >= 5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('insurance.osago.check.limited_drivers'.tr())),
+      SnackbarHelper.showWarning(
+        context,
+        'insurance.osago.check.limited_drivers'.tr(),
       );
       return;
     }
@@ -412,22 +411,18 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
       if (_startDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'insurance.osago.company.errors.select_start_date'.tr(),
-            ),
-          ),
+        SnackbarHelper.showError(
+          context,
+          'insurance.osago.company.errors.select_start_date'.tr(),
         );
         return;
       }
 
       final periodId = OsagoUtils.mapPeriodToId(_periodController.text);
       if (periodId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('insurance.osago.company.errors.select_period'.tr()),
-          ),
+        SnackbarHelper.showError(
+          context,
+          'insurance.osago.company.errors.select_period'.tr(),
         );
         return;
       }
@@ -436,10 +431,9 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
       final normalizedPhone = OsagoUtils.normalizePhoneNumber(phoneText);
 
       if (!OsagoUtils.isValidPhoneNumber(normalizedPhone)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('insurance.osago.company.errors.invalid_phone'.tr()),
-          ),
+        SnackbarHelper.showError(
+          context,
+          'insurance.osago.company.errors.invalid_phone'.tr(),
         );
         return;
       }
@@ -493,34 +487,25 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
               .toUpperCase();
 
           if (passportText.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  '${'insurance.osago.check.drivers'.tr()} ${i + 1}: ${'insurance.osago.vehicle.errors.enter_passport'.tr()}',
-                ),
-              ),
+            SnackbarHelper.showError(
+              context,
+              '${'insurance.osago.check.drivers'.tr()} ${i + 1}: ${'insurance.osago.vehicle.errors.enter_passport'.tr()}',
             );
             return;
           }
 
           if (passportText.length != 9) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  '${'insurance.osago.check.drivers'.tr()} ${i + 1}: ${'insurance.osago.vehicle.errors.passport_format'.tr()}',
-                ),
-              ),
+            SnackbarHelper.showError(
+              context,
+              '${'insurance.osago.check.drivers'.tr()} ${i + 1}: ${'insurance.osago.vehicle.errors.passport_format'.tr()}',
             );
             return;
           }
 
           if (!RegExp(r'^[A-Z]{2}\d{7}$').hasMatch(passportText)) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  '${'insurance.osago.check.drivers'.tr()} ${i + 1}: ${'insurance.osago.vehicle.errors.passport_format'.tr()}',
-                ),
-              ),
+            SnackbarHelper.showError(
+              context,
+              '${'insurance.osago.check.drivers'.tr()} ${i + 1}: ${'insurance.osago.vehicle.errors.passport_format'.tr()}',
             );
             return;
           }
@@ -571,7 +556,10 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
         }
       }
 
-      _navigated = false;
+      // Сброс флага навигации перед отправкой формы
+      setState(() {
+        _navigated = false;
+      });
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           context.read<OsagoBloc>().add(LoadInsuranceCompany(insurance));
@@ -613,7 +601,9 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
               color: Theme.of(context).textTheme.titleLarge?.color,
             ),
             onPressed: () {
-              _navigated = false;
+              setState(() {
+                _navigated = false;
+              });
               Navigator.of(context).pop();
             },
           ),
@@ -626,7 +616,8 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
           ),
           systemOverlayStyle: SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
-            statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark
+            statusBarIconBrightness:
+                Theme.of(context).brightness == Brightness.dark
                 ? Brightness.light
                 : Brightness.dark,
           ),
@@ -724,7 +715,7 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
                                       ),
                                       value: 'gross',
                                       groupValue: _selectedProvider,
-                                      onChanged: _isCheklanganType
+                                      onChanged: _showDrivers
                                           ? null
                                           : (value) {
                                               setState(() {
@@ -780,73 +771,6 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
                                         .tr();
                                   }
                                   return null;
-                                },
-                              ),
-                              SizedBox(height: 20.h),
-                              BlocBuilder<OsagoBloc, OsagoState>(
-                                buildWhen: (previous, current) =>
-                                    previous.calcResponse !=
-                                    current.calcResponse,
-                                builder: (context, state) {
-                                  final calcResponse = state.calcResponse;
-                                  if (calcResponse == null) {
-                                    return const SizedBox.shrink();
-                                  }
-
-                                  final amount = calcResponse.amount.toInt();
-                                  final osagoTypeText =
-                                      state.osagoType ??
-                                      (_selectedProvider == 'neo'
-                                          ? 'Cheklanmagan'
-                                          : 'Cheklangan');
-
-                                  final formattedAmount = amount
-                                      .toString()
-                                      .replaceAllMapped(
-                                        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                                        (Match m) => '${m[1]},',
-                                      );
-
-                                  return RepaintBoundary(
-                                    child: Container(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 16.w,
-                                        vertical: 12.h,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(
-                                          context,
-                                        ).scaffoldBackgroundColor,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            '${'insurance.osago.company.calculation'.tr()} $osagoTypeText',
-                                            style: TextStyle(
-                                              fontSize: 14.sp,
-                                              fontWeight: FontWeight.w500,
-                                              color: Theme.of(
-                                                context,
-                                              ).textTheme.bodyMedium?.color,
-                                            ),
-                                          ),
-                                          Text(
-                                            '$formattedAmount so\'m',
-                                            style: TextStyle(
-                                              fontSize: 16.sp,
-                                              fontWeight: FontWeight.bold,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
                                 },
                               ),
                               SizedBox(height: 20.h),
@@ -933,10 +857,14 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
                         ),
                         child: isLoading
                             ? Shimmer.fromColors(
-                                baseColor: Theme.of(context).brightness == Brightness.dark
+                                baseColor:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
                                     ? Colors.grey[700]!
                                     : Colors.white70,
-                                highlightColor: Theme.of(context).brightness == Brightness.dark
+                                highlightColor:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
                                     ? Colors.grey[600]!
                                     : Colors.white,
                                 child: Text(
@@ -944,7 +872,9 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
                                   style: TextStyle(
                                     fontSize: 16.sp,
                                     fontWeight: FontWeight.w600,
-                                    color: Theme.of(context).colorScheme.onPrimary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary,
                                   ),
                                 ),
                               )

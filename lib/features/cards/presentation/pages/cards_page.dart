@@ -335,11 +335,17 @@ class _CardsList extends StatelessWidget {
         !state.isInitialLoading &&
         state.visibleItems.isEmpty;
 
-    return ListView(
+    return ListView.builder(
       padding: const EdgeInsets.all(16),
-      children: [
-        if (state.paginationErrorMessage != null)
-          Padding(
+      cacheExtent: 500, // Cache optimization
+      itemCount: state.visibleItems.length + 
+          (state.paginationErrorMessage != null ? 1 : 0) + 
+          (state.hasMore ? 1 : 0) +
+          (isLoading ? 0 : 0),
+      itemBuilder: (context, index) {
+        // Pagination error banner
+        if (state.paginationErrorMessage != null && index == 0) {
+          return Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: _PaginationErrorBanner(
               message: state.paginationErrorMessage ?? '',
@@ -347,20 +353,31 @@ class _CardsList extends StatelessWidget {
                 const CardEvent.loadMoreRequested(),
               ),
             ),
-          ),
-        if (isLoading)
-          // Loading holatida ham eski kartalarni ko'rsatamiz
-          const SizedBox.shrink()
-        else
-          ...state.visibleItems.map(
-            (offer) => Padding(
-              padding: const EdgeInsets.only(bottom: 20),
-              child: _BankCardCard(offer: offer),
-            ),
-          ),
-        if (state.hasMore) const _BottomLoader(),
-        const SizedBox(height: 20),
-      ],
+          );
+        }
+        
+        final adjustedIndex = state.paginationErrorMessage != null ? index - 1 : index;
+        
+        // Loading indicator
+        if (isLoading && adjustedIndex >= state.visibleItems.length) {
+          return const SizedBox.shrink();
+        }
+        
+        // Bottom loader
+        if (state.hasMore && adjustedIndex >= state.visibleItems.length) {
+          return const _BottomLoader();
+        }
+        
+        // Card item
+        if (adjustedIndex < state.visibleItems.length) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: _BankCardCard(offer: state.visibleItems[adjustedIndex]),
+          );
+        }
+        
+        return const SizedBox.shrink();
+      },
     );
   }
 }

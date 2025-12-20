@@ -1,7 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
 import '../constants/config.dart';
-import '../constants/api_paths.dart';
 import '../errors/exceptions.dart';
 import 'dio_logging_interceptor.dart';
 
@@ -37,7 +35,7 @@ class DioClient {
             return handler.reject(
               DioException(
                 requestOptions: error.requestOptions,
-                error: NetworkException('Таймаут подключения'),
+                error: const NetworkException(message: 'Таймаут подключения'),
               ),
             );
           }
@@ -46,7 +44,7 @@ class DioClient {
             return handler.reject(
               DioException(
                 requestOptions: error.requestOptions,
-                error: NetworkException('Нет подключения к интернету'),
+                error: const NetworkException(message: 'Нет подключения к интернету'),
               ),
             );
           }
@@ -59,7 +57,7 @@ class DioClient {
             return handler.reject(
               DioException(
                 requestOptions: error.requestOptions,
-                error: ServerException(message, statusCode: statusCode),
+                error: ServerException(message: message, statusCode: statusCode),
                 response: error.response,
               ),
             );
@@ -153,11 +151,11 @@ class DioClient {
     if (error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.receiveTimeout ||
         error.type == DioExceptionType.sendTimeout) {
-      return const NetworkException('Таймаут подключения');
+      return const NetworkException(message: 'Таймаут подключения');
     }
 
     if (error.type == DioExceptionType.connectionError) {
-      return const NetworkException('Нет подключения к интернету');
+      return const NetworkException(message: 'Нет подключения к интернету');
     }
 
     if (error.response != null) {
@@ -165,10 +163,10 @@ class DioClient {
       final message = error.response!.data?['message'] ?? 
                      error.response!.data?['error'] ?? 
                      'Ошибка сервера';
-      return ServerException(message, statusCode: statusCode);
+      return ServerException(message: message, statusCode: statusCode);
     }
 
-    return NetworkException(error.message ?? 'Неизвестная ошибка сети');
+    return NetworkException(message: error.message ?? 'Неизвестная ошибка сети');
   }
 }
 

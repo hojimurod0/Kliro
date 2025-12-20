@@ -32,12 +32,12 @@ class _SettingsPageState extends State<SettingsPage> {
     super.didChangeDependencies();
     final currentLocale = context.locale;
     
-    // Эски uz_UZ локалини uz_CYR локалига ўзгартириш
+    // If we ever get uz_UZ from platform, treat it as Uzbek (Latin).
     Locale localeToSet;
     if (currentLocale.languageCode == 'uz' && 
         currentLocale.countryCode != null && 
         currentLocale.countryCode!.toUpperCase() == 'UZ') {
-      localeToSet = const Locale('uz', 'CYR');
+      localeToSet = const Locale('uz');
     } else {
       localeToSet = currentLocale;
     }
@@ -90,70 +90,31 @@ class _SettingsPageState extends State<SettingsPage> {
                   .toList(),
               onChanged: (newLocale) async {
                 if (newLocale == null) return;
-                debugPrint('Changing locale to: ${newLocale.languageCode}_${newLocale.countryCode ?? 'null'}');
-                
+                debugPrint(
+                  'Changing locale to: ${newLocale.languageCode}_${newLocale.countryCode ?? 'null'}',
+                );
+
                 try {
-                  // Avval locale'ni saqlaymiz
-                await LocalePrefs.save(newLocale);
-                  debugPrint('Locale saved: ${newLocale.languageCode}_${newLocale.countryCode ?? 'null'}');
-                  
-                  // Keyin locale'ni o'zgartiramiz
-                  try {
-                    // Кирилл локали учун қўшимча вақт бериш
-                    if (newLocale.languageCode == 'uz' && newLocale.countryCode == 'CYR') {
-                      await Future.delayed(const Duration(milliseconds: 100));
-                    }
-                    await context.setLocale(newLocale);
-                    
-                    // Локалнинг тўғри ўрнатилганини текшириш
-                    final actualLocale = context.locale;
-                    debugPrint('Locale set successfully: ${newLocale.languageCode}_${newLocale.countryCode ?? 'null'}');
-                    debugPrint('Actual locale after set: ${actualLocale.languageCode}_${actualLocale.countryCode ?? 'null'}');
-                    
-                    // Локалнинг мос келишини текшириш
-                    if (actualLocale.languageCode != newLocale.languageCode ||
-                        actualLocale.countryCode != newLocale.countryCode) {
-                      debugPrint('WARNING: Locale mismatch! Expected: ${newLocale.languageCode}_${newLocale.countryCode ?? 'null'}, Got: ${actualLocale.languageCode}_${actualLocale.countryCode ?? 'null'}');
-                    }
-                    
-                    // Таржима файлини текшириш
-                    try {
-                      final testTranslation = tr('app_title');
-                      debugPrint('Translation test: app_title = $testTranslation');
-                    } catch (e) {
-                      debugPrint('Translation error: $e');
-                      // Таржима хатоси бўлса ҳам, локал ўрнатилди
-                    }
-                  } catch (setLocaleError) {
-                    debugPrint('Error setting locale: $setLocaleError');
-                    // Агар локални ўрнатишда хато бўлса, fallback локални ишлатиш
-                    try {
-                      if (newLocale.languageCode == 'uz' && newLocale.countryCode == 'CYR') {
-                        // Кирилл локали учун қайта уриниш
-                        await Future.delayed(const Duration(milliseconds: 200));
-                await context.setLocale(newLocale);
-                        debugPrint('Cyrillic locale set after retry');
-                      } else {
-                        // Бошқа локаллар учун fallback
-                        await context.setLocale(const Locale('en'));
-                        debugPrint('Fallback to English locale');
-                      }
-                    } catch (fallbackError) {
-                      debugPrint('Fallback locale error: $fallbackError');
-                      // Хатолик бўлса ҳам, локал сақланди
-                    }
+                  // Save first
+                  await LocalePrefs.save(newLocale);
+
+                  // Then apply
+                  if (newLocale.languageCode == 'uz' &&
+                      newLocale.countryCode == 'CYR') {
+                    await Future.delayed(const Duration(milliseconds: 100));
                   }
-                  
-                  // UI ни янгилаш
-                  if (mounted) {
-                    setState(() => _locale = newLocale);
-                  }
-                debugPrint('Locale changed successfully: ${newLocale.languageCode}_${newLocale.countryCode ?? 'null'}');
+                  if (!context.mounted) return;
+
+                  await context.setLocale(newLocale);
+                  if (!context.mounted) return;
+
+                  // Update UI
+                  setState(() => _locale = context.locale);
                 } catch (e, stackTrace) {
-                  debugPrint('Error in locale change: $e');
+                  debugPrint('Error changing locale: $e');
                   debugPrint('Stack trace: $stackTrace');
-                  
-                  // Хатолик бўлса ҳам, локал сақланди ва UI ни янгилаш
+
+                  // Even on error, keep dropdown value in sync
                   if (mounted) {
                     setState(() => _locale = newLocale);
                   }

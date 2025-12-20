@@ -20,11 +20,14 @@ class LocalePrefs {
 
   static Future<Locale?> load() async {
     final prefs = await SharedPreferences.getInstance();
-    final code = prefs.getString(_key);
+    var code = prefs.getString(_key);
     if (code == null || code.isEmpty) {
       debugPrint('LocalePrefs.load: No saved locale found');
       return null;
     }
+
+    // Normalize possible formats: "uz-UZ" -> "uz_UZ"
+    code = code.replaceAll('-', '_');
     debugPrint('LocalePrefs.load: Loading locale from preferences: $code');
     
     if (code.contains('_')) {
@@ -34,12 +37,12 @@ class LocalePrefs {
         return null;
       }
       
-      // Эски uz_UZ локалини uz_CYR локалига ўзгартириш
+      // If an old Uzbek locale was saved as uz_UZ, treat it as Uzbek (Latin).
+      // (We do NOT force Cyrillic; Cyrillic is explicitly uz_CYR in this app.)
       if (parts[0].toLowerCase() == 'uz' && parts[1].toUpperCase() == 'UZ') {
-        // uz_UZ локалини uz_CYR локалига ўзгартириш ва сақлаш
-        final correctedLocale = Locale(parts[0], 'CYR');
+        final correctedLocale = const Locale('uz');
         await save(correctedLocale);
-        debugPrint('LocalePrefs.load: Corrected uz_UZ to uz_CYR');
+        debugPrint('LocalePrefs.load: Corrected uz_UZ to uz');
         return correctedLocale;
       }
       

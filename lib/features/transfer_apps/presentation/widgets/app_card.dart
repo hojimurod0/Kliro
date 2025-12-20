@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../common/utils/bank_assets.dart';
 import '../../../common/utils/bank_data.dart';
@@ -351,10 +352,23 @@ class _LogoBox extends StatelessWidget {
           }
 
           if (resolvedLogo != null && isNetworkLogo) {
-            final image = Image.network(
-              resolvedLogo,
+            final image = CachedNetworkImage(
+              imageUrl: resolvedLogo,
               fit: shouldContain ? BoxFit.contain : BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
+              placeholder: (context, url) => Container(
+                color: bgColor,
+                child: Center(
+                  child: SizedBox(
+                    width: 16.sp,
+                    height: 16.sp,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: iconColor,
+                    ),
+                  ),
+                ),
+              ),
+              errorWidget: (_, __, ___) =>
                   Icon(Icons.apps, color: iconColor, size: 24.sp),
             );
             return wrapIfNeeded(image);

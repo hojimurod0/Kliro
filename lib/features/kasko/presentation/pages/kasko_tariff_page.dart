@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/dio/singletons/service_locator.dart';
@@ -1077,9 +1078,34 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
         ),
         SizedBox(height: 20.h),
         InkWell(
-          onTap: () {
+          onTap: () async {
             // Sug'urta qoidalarini ochish
-            // TODO: PDF ochish
+            try {
+              // PDF URL ni API dan olish kerak, hozircha mock URL
+              const pdfUrl = 'https://example.com/kasko-rules.pdf';
+              final uri = Uri.parse(pdfUrl);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              } else {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('insurance.kasko.tariff.pdf_open_error'.tr()),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('insurance.kasko.tariff.pdf_open_error'.tr()),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
           },
           child: Text(
             'insurance.kasko.tariff.insurance_rules'.tr(),

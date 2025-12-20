@@ -85,7 +85,9 @@ class _OsagoCheckInformationScreenState
           final term =
               OsagoUtils.mapIdToPeriod(insurance.periodId) ??
               '${insurance.periodId} ${'insurance.osago.preview.months'.tr()}';
-          final totalPrice = calc.amount.toInt();
+          // Jami summa - create response dan kelgan amount ni ustunlik bilan ishlatamiz
+          final createResponse = state.createResponse;
+          final totalPrice = (createResponse?.amount ?? calc.amount).toInt();
 
           // Debug: API dan kelgan ma'lumotlarni tekshirish
           log(
@@ -242,8 +244,34 @@ class _OsagoCheckInformationScreenState
                         InfoRow(
                           label: 'insurance.osago.check.session_id'.tr(),
                           value: sessionId,
-                          isLast: true,
                         ),
+                        const SizedBox(height: 8),
+                        Divider(color: Theme.of(context).dividerColor),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'insurance.osago.check.total_amount'.tr(),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.titleLarge?.color,
+                              ),
+                            ),
+                            Text(
+                              _formatCurrency(totalPrice),
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
                       ],
                     ),
                   ),
@@ -357,6 +385,36 @@ class _OsagoCheckInformationScreenState
 
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
+  }
+
+  String _formatCurrency(int amount) {
+    // Formatlash: "39200 sum" yoki "392 000 sum" yoki "1 200 000 sum"
+    // 5 xonali raqamlar uchun probel qo'shilmaydi (masalan: 39200)
+    // 6 va undan ko'p xonali raqamlar uchun har 3 ta raqamdan keyin probel qo'shiladi
+    final amountStr = amount.toString();
+    if (amountStr.length <= 3) {
+      return "$amountStr sum";
+    }
+
+    // Agar 5 xonali bo'lsa (masalan: 39200), probel qo'shilmaydi
+    if (amountStr.length == 5) {
+      return "$amountStr sum";
+    }
+
+    // 6 va undan ko'p xonali raqamlar uchun har 3 ta raqamdan keyin probel qo'shamiz
+    final result = StringBuffer();
+    final chars = amountStr.split('').reversed.toList();
+
+    for (int i = 0; i < chars.length; i++) {
+      if (i > 0 && i % 3 == 0) {
+        result.write(' ');
+      }
+      result.write(chars[i]);
+    }
+
+    // Teskari qilib, to'g'ri tartibda qaytaramiz
+    final formatted = result.toString().split('').reversed.join('');
+    return "$formatted sum";
   }
 
   void _showPaymentMethodDialog(BuildContext context, OsagoState state) {
@@ -586,45 +644,52 @@ class BottomPriceBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'insurance.osago.check.total_amount'.tr(),
-                style: TextStyle(
-                  color:
-                      theme.textTheme.bodySmall?.color ??
-                      theme.textTheme.labelLarge?.color,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'insurance.osago.check.total_amount'.tr(),
+                  style: TextStyle(
+                    color:
+                        theme.textTheme.bodySmall?.color ??
+                        theme.textTheme.labelLarge?.color,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _formatCurrency(totalPrice),
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 4),
+                Text(
+                  _formatCurrency(totalPrice),
+                  style: TextStyle(
+                    color: theme.colorScheme.primary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          ElevatedButton(
-            onPressed: onConfirm,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: theme.colorScheme.onPrimary,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
+              ],
             ),
-            child: Text(
-              'insurance.osago.check.confirm'.tr(),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: ElevatedButton(
+              onPressed: onConfirm,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: Text(
+                'insurance.osago.check.confirm'.tr(),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
             ),
           ),
         ],

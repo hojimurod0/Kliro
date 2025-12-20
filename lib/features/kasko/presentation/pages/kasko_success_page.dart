@@ -5,10 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../core/constants/app_colors.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 import '../bloc/kasko_bloc.dart';
 import '../bloc/kasko_state.dart';
+import '../../../../core/constants/app_colors.dart';
 
 // Asosiy ranglar
 const Color _successGreen = Color(0xFF0EC785);
@@ -75,6 +76,7 @@ class KaskoSuccessPage extends StatelessWidget {
 
   // Yordamchi widget: Cheti chizilgan tugma
   Widget _buildOutlineButton(
+    BuildContext context,
     IconData icon,
     String text,
     bool isDark,
@@ -86,9 +88,58 @@ class KaskoSuccessPage extends StatelessWidget {
       width: double.infinity,
       height: 54.h,
       child: OutlinedButton(
-        onPressed: () {
-          // TODO: Polisni yuklab olish yoki ulashish logikasi
-          print('$text bosildi');
+        onPressed: () async {
+          // Polisni yuklab olish yoki ulashish logikasi
+          try {
+            final bloc = context.read<KaskoBloc>();
+            String? pdfUrl;
+
+            // State'dan polis URL'ini olish
+            if (bloc.state is KaskoOrderSaved) {
+              final order = (bloc.state as KaskoOrderSaved).order;
+              pdfUrl = order.urlShartnoma;
+            }
+
+            if (pdfUrl == null || pdfUrl.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('insurance.kasko.success.no_policy_url'.tr()),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+              return;
+            }
+
+            // Agar "Yuklab olish" bo'lsa, PDF ni ochish
+            if (text.contains('Yuklab olish') || text.contains('Download')) {
+              final uri = Uri.parse(pdfUrl);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content:
+                        Text('insurance.kasko.success.pdf_open_error'.tr()),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+            // Agar "Ulashish" bo'lsa, PDF ni ulashish
+            else if (text.contains('Ulashish') || text.contains('Share')) {
+              await Share.share(
+                pdfUrl,
+                subject: 'insurance.kasko.success.policy_share_subject'.tr(),
+              );
+            }
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('insurance.kasko.success.error'.tr()),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         },
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: borderColor, width: 1.5),
@@ -126,19 +177,19 @@ class KaskoSuccessPage extends StatelessWidget {
         String carName = 'N/A';
         String date = _formatDate(DateTime.now());
         String amount = '0 so\'m';
-        
+
         // SaveOrder'dan ma'lumotlar
         if (state is KaskoOrderSaved) {
           orderId = state.order.orderId;
           amount = _formatAmount(state.order.premium);
         }
-        
+
         // CalculatePolicy'dan ma'lumotlar
         if (state is KaskoPolicyCalculated) {
           amount = _formatAmount(state.calculateResult.premium);
           date = _formatDate(state.calculateResult.beginDate);
         }
-        
+
         // Car ma'lumotlarini olish
         if (state is KaskoCarsLoaded) {
           // Birinchi mashinani olish (yoki tanlangan mashinani)
@@ -156,229 +207,237 @@ class KaskoSuccessPage extends StatelessWidget {
             ? AppColors.darkScaffoldBg.withOpacity(0.95)
             : AppColors.lightScaffoldBg.withOpacity(0.95);
         final cardBg = isDark ? AppColors.darkCardBg : AppColors.lightCardBg;
-        final textColor = isDark ? AppColors.darkTextColor : AppColors.lightTextColor;
-        final subtitleColor = isDark ? AppColors.darkSubtitle : AppColors.lightSubtitle;
-        final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+        final textColor =
+            isDark ? AppColors.darkTextColor : AppColors.lightTextColor;
+        final subtitleColor =
+            isDark ? AppColors.darkSubtitle : AppColors.lightSubtitle;
+        final borderColor =
+            isDark ? AppColors.darkBorder : AppColors.lightBorder;
         final detailCardBg = isDark ? const Color(0xFF1E3A5C) : _cardLightBlue;
-        final iconContainerBg = isDark ? const Color(0xFF1E3A5C) : _iconLightBlue;
-        final dividerColor = isDark ? AppColors.darkBorder : const Color(0xFFE1EBF2);
+        final iconContainerBg =
+            isDark ? const Color(0xFF1E3A5C) : _iconLightBlue;
+        final dividerColor =
+            isDark ? AppColors.darkBorder : const Color(0xFFE1EBF2);
 
         return Scaffold(
-      backgroundColor: scaffoldBg,
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.w),
-          child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: cardBg,
-              borderRadius: BorderRadius.circular(28.r),
-            ),
-            padding: EdgeInsets.fromLTRB(20.w, 32.h, 20.w, 24.h),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 1. ICON QISMI
-                Container(
-                  width: 84.w,
-                  height: 84.w,
-                  decoration: const BoxDecoration(
-                    color: _successGreen,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Container(
-                      width: 40.w,
-                      height: 40.w,
-                      decoration: BoxDecoration(
+          backgroundColor: scaffoldBg,
+          body: Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(28.r),
+                ),
+                padding: EdgeInsets.fromLTRB(20.w, 32.h, 20.w, 24.h),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 1. ICON QISMI
+                    Container(
+                      width: 84.w,
+                      height: 84.w,
+                      decoration: const BoxDecoration(
+                        color: _successGreen,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
                       ),
                       child: Center(
-                        child: Icon(
-                          Icons.check,
-                          color: Colors.white,
-                          size: 24.sp,
-                          weight: 50,
+                        child: Container(
+                          width: 40.w,
+                          height: 40.w,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 3),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 24.sp,
+                              weight: 50,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-                SizedBox(height: 20.h),
+                    SizedBox(height: 20.h),
 
-                // 2. SARLAVHA
-                Text(
-                  'insurance.kasko.success.title'.tr(),
-                  style: TextStyle(
-                    fontSize: 22.sp,
-                    fontWeight: FontWeight.w800,
-                    color: textColor,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                SizedBox(height: 24.h),
+                    // 2. SARLAVHA
+                    Text(
+                      'insurance.kasko.success.title'.tr(),
+                      style: TextStyle(
+                        fontSize: 22.sp,
+                        fontWeight: FontWeight.w800,
+                        color: textColor,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    SizedBox(height: 24.h),
 
-                // 3. MA'LUMOTLAR KARTASI
-                Container(
-                  padding: EdgeInsets.all(20.w),
-                  decoration: BoxDecoration(
-                    color: detailCardBg,
-                    borderRadius: BorderRadius.circular(20.r),
-                  ),
-                  child: Column(
-                    children: [
-                      // Header: Polis raqami
-                      Row(
+                    // 3. MA'LUMOTLAR KARTASI
+                    Container(
+                      padding: EdgeInsets.all(20.w),
+                      decoration: BoxDecoration(
+                        color: detailCardBg,
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: Column(
                         children: [
-                          // Hujjat iconi
-                          Container(
-                            width: 44.w,
-                            height: 44.w,
-                            decoration: BoxDecoration(
-                              color: iconContainerBg,
-                              borderRadius: BorderRadius.circular(14.r),
-                            ),
-                            child: Icon(
-                              Icons.description_outlined,
-                              color: _iconBlue,
-                              size: 24.sp,
-                            ),
-                          ),
-                          SizedBox(width: 14.w),
-                          // Matnlar
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          // Header: Polis raqami
+                          Row(
                             children: [
-                              Text(
-                                'insurance.kasko.success.policy_number'.tr(),
-                                style: TextStyle(
-                                  color: subtitleColor,
-                                  fontSize: 13.sp,
-                                  fontWeight: FontWeight.w500,
+                              // Hujjat iconi
+                              Container(
+                                width: 44.w,
+                                height: 44.w,
+                                decoration: BoxDecoration(
+                                  color: iconContainerBg,
+                                  borderRadius: BorderRadius.circular(14.r),
                                 ),
-                              ),
-                              SizedBox(height: 4.h),
-                              Text(
-                                "#$orderId",
-                                style: TextStyle(
+                                child: Icon(
+                                  Icons.description_outlined,
                                   color: _iconBlue,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 17.sp,
+                                  size: 24.sp,
                                 ),
                               ),
+                              SizedBox(width: 14.w),
+                              // Matnlar
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'insurance.kasko.success.policy_number'
+                                        .tr(),
+                                    style: TextStyle(
+                                      color: subtitleColor,
+                                      fontSize: 13.sp,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4.h),
+                                  Text(
+                                    "#$orderId",
+                                    style: TextStyle(
+                                      color: _iconBlue,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 17.sp,
+                                    ),
+                                  ),
+                                ],
+                              )
                             ],
-                          )
+                          ),
+                          SizedBox(height: 18.h),
+                          // Chiziq
+                          Divider(
+                            color: dividerColor,
+                            thickness: 1.2,
+                            height: 1,
+                          ),
+                          SizedBox(height: 18.h),
+
+                          // Tafsilotlar qatorlari
+                          _buildDetailRow(
+                            Icons.directions_car_outlined,
+                            'insurance.kasko.success.vehicle'.tr(),
+                            carName,
+                            isDark: isDark,
+                            textColor: textColor,
+                            subtitleColor: subtitleColor,
+                          ),
+                          SizedBox(height: 14.h),
+                          _buildDetailRow(
+                            Icons.calendar_today_outlined,
+                            'insurance.kasko.success.date'.tr(),
+                            date,
+                            isDark: isDark,
+                            textColor: textColor,
+                            subtitleColor: subtitleColor,
+                          ),
+                          SizedBox(height: 14.h),
+                          _buildDetailRow(
+                            Icons.attach_money_rounded,
+                            'insurance.kasko.success.amount'.tr(),
+                            amount,
+                            isBlueValue: true,
+                            isDark: isDark,
+                            textColor: textColor,
+                            subtitleColor: subtitleColor,
+                          ),
                         ],
                       ),
-                      SizedBox(height: 18.h),
-                      // Chiziq
-                      Divider(
-                        color: dividerColor,
-                        thickness: 1.2,
-                        height: 1,
-                      ),
-                      SizedBox(height: 18.h),
+                    ),
+                    SizedBox(height: 24.h),
 
-                      // Tafsilotlar qatorlari
-                      _buildDetailRow(
-                        Icons.directions_car_outlined,
-                        'insurance.kasko.success.vehicle'.tr(),
-                        carName,
-                        isDark: isDark,
-                        textColor: textColor,
-                        subtitleColor: subtitleColor,
-                      ),
-                      SizedBox(height: 14.h),
-                      _buildDetailRow(
-                        Icons.calendar_today_outlined,
-                        'insurance.kasko.success.date'.tr(),
-                        date,
-                        isDark: isDark,
-                        textColor: textColor,
-                        subtitleColor: subtitleColor,
-                      ),
-                      SizedBox(height: 14.h),
-                      _buildDetailRow(
-                        Icons.attach_money_rounded,
-                        'insurance.kasko.success.amount'.tr(),
-                        amount,
-                        isBlueValue: true,
-                        isDark: isDark,
-                        textColor: textColor,
-                        subtitleColor: subtitleColor,
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 24.h),
+                    // 4. TUGMALAR
+                    // Polisni yuklab olish
+                    _buildOutlineButton(
+                      context,
+                      Icons.download_rounded,
+                      'insurance.kasko.success.download_policy'.tr(),
+                      isDark,
+                      cardBg,
+                      textColor,
+                      borderColor,
+                    ),
+                    SizedBox(height: 12.h),
 
-                // 4. TUGMALAR
-                // Polisni yuklab olish
-                _buildOutlineButton(
-                  Icons.download_rounded,
-                  'insurance.kasko.success.download_policy'.tr(),
-                  isDark,
-                  cardBg,
-                  textColor,
-                  borderColor,
-                ),
-                SizedBox(height: 12.h),
+                    // Ulashish
+                    _buildOutlineButton(
+                      context,
+                      Icons.share_outlined,
+                      'insurance.kasko.success.share'.tr(),
+                      isDark,
+                      cardBg,
+                      textColor,
+                      borderColor,
+                    ),
+                    SizedBox(height: 12.h),
 
-                // Ulashish
-                _buildOutlineButton(
-                  Icons.share_outlined,
-                  'insurance.kasko.success.share'.tr(),
-                  isDark,
-                  cardBg,
-                  textColor,
-                  borderColor,
-                ),
-                SizedBox(height: 12.h),
-
-                // Yopish (Katta ko'k tugma)
-                SizedBox(
-                  width: double.infinity,
-                  height: 54.h,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Barcha KASKO sahifalarini tozalash va asosiy sahifaga qaytish
-                      // Orqaga qaytish - barcha KASKO sahifalarini yopish
-                      Navigator.of(context).popUntil((route) {
-                        return route.isFirst ||
-                            route.settings.name == '/insurance-services' ||
-                            route.settings.name == '/home';
-                      });
-                      // Agar hali ham KASKO sahifalarida bo'lsa, to'g'ridan-to'g'ri HomeRoute ga o'tish
-                      if (Navigator.of(context).canPop()) {
-                        Navigator.of(context).popUntil((route) => route.isFirst);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _iconBlue,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14.r),
+                    // Yopish (Katta ko'k tugma)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 54.h,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // Barcha KASKO sahifalarini tozalash va asosiy sahifaga qaytish
+                          // Orqaga qaytish - barcha KASKO sahifalarini yopish
+                          Navigator.of(context).popUntil((route) {
+                            return route.isFirst ||
+                                route.settings.name == '/insurance-services' ||
+                                route.settings.name == '/home';
+                          });
+                          // Agar hali ham KASKO sahifalarida bo'lsa, to'g'ridan-to'g'ri HomeRoute ga o'tish
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context)
+                                .popUntil((route) => route.isFirst);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _iconBlue,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14.r),
+                          ),
+                        ),
+                        child: Text(
+                          'insurance.kasko.success.close'.tr(),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16.sp,
+                          ),
+                        ),
                       ),
                     ),
-                    child: Text(
-                      'insurance.kasko.success.close'.tr(),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16.sp,
-                      ),
-                    ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
-    );
+        );
       },
     );
   }
 }
-

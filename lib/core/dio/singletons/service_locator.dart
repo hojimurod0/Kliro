@@ -1,7 +1,8 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'service_locator_state.dart';
+import '../../utils/logger.dart';
 
 import '../../../features/bank/data/datasources/bank_local_data_source.dart';
 import '../../../features/bank/data/datasources/bank_remote_data_source.dart';
@@ -48,6 +49,7 @@ import '../../../features/transfer_apps/data/repositories/transfer_app_repositor
 import '../../../features/transfer_apps/domain/repositories/transfer_app_repository.dart';
 import '../../../features/transfer_apps/domain/usecases/get_transfer_apps.dart';
 import '../../../features/transfer_apps/presentation/bloc/transfer_apps_bloc.dart';
+import '../../../features/kasko/data/datasources/kasko_local_data_source.dart';
 import '../../../features/kasko/data/datasources/kasko_remote_data_source.dart';
 import '../../../features/kasko/data/repositories/kasko_repository_impl.dart';
 import '../../../features/kasko/domain/repositories/kasko_repository.dart';
@@ -56,6 +58,7 @@ import '../../../features/kasko/domain/usecases/calculate_policy.dart';
 import '../../../features/kasko/domain/usecases/check_payment_status.dart';
 import '../../../features/kasko/domain/usecases/get_cars.dart';
 import '../../../features/kasko/domain/usecases/get_cars_minimal.dart';
+import '../../../features/kasko/domain/usecases/get_cars_paginated.dart';
 import '../../../features/kasko/domain/usecases/get_payment_link.dart';
 import '../../../features/kasko/domain/usecases/get_rates.dart';
 import '../../../features/kasko/domain/usecases/save_order.dart';
@@ -65,14 +68,22 @@ import '../../../features/accident/data/datasources/trust_insurance_remote_data_
 import '../../../features/accident/data/datasources/trust_insurance_dio_client.dart';
 import '../../../features/accident/data/repositories/accident_repository_impl.dart';
 import '../../../features/accident/domain/repositories/accident_repository.dart';
+import '../../../features/avichiptalar/data/datasources/payment_remote_data_source.dart';
+import '../../../features/avichiptalar/data/repositories/payment_repository_impl.dart';
+import '../../../features/avichiptalar/domain/repositories/payment_repository.dart';
+import '../../../features/avichiptalar/presentation/bloc/payment_bloc.dart';
 import '../../../features/accident/domain/usecases/get_tariffs.dart';
 import '../../../features/accident/domain/usecases/get_regions.dart';
 import '../../../features/accident/domain/usecases/create_insurance.dart';
 import '../../../features/accident/domain/usecases/check_payment.dart';
 import '../../../features/accident/presentation/bloc/accident_bloc.dart';
+import '../../../features/avichiptalar/data/repositories/avichiptalar_repository_impl.dart';
+import '../../../features/avichiptalar/domain/repositories/avichiptalar_repository.dart';
+import '../../../features/avichiptalar/presentation/bloc/avia_bloc.dart';
 import '../../services/auth/auth_service.dart';
 import '../../constants/constants.dart';
 import '../client/dio_client.dart';
+import '../../network/avia/avia_dio_client.dart';
 
 class ServiceLocator {
   ServiceLocator._();
@@ -80,30 +91,46 @@ class ServiceLocator {
   static final GetIt _getIt = GetIt.instance;
 
   static Future<void> init() async {
-    final authService = AuthService.instance;
-    final sharedPreferences = await SharedPreferences.getInstance();
+    try {
+      ServiceLocatorStateController.instance.setInitializing();
+      AppLogger.info('ServiceLocator initialization started');
 
-    if (!_getIt.isRegistered<AuthService>()) {
-      _getIt.registerSingleton<AuthService>(authService);
-    }
+      final authService = AuthService.instance;
+      final sharedPreferences = await SharedPreferences.getInstance();
 
-    if (!_getIt.isRegistered<DioClient>()) {
-      _getIt.registerLazySingleton<DioClient>(
-        () => DioClient(authService: authService),
+      if (!_getIt.isRegistered<AuthService>()) {
+        _getIt.registerSingleton<AuthService>(authService);
+      }
+
+      if (!_getIt.isRegistered<DioClient>()) {
+        _getIt.registerLazySingleton<DioClient>(
+          () => DioClient(authService: authService),
+        );
+      }
+
+      if (!_getIt.isRegistered<Dio>()) {
+        _getIt.registerLazySingleton<Dio>(() => _getIt<DioClient>().client);
+      }
+      if (!_getIt.isRegistered<SharedPreferences>()) {
+        _getIt.registerSingleton<SharedPreferences>(sharedPreferences);
+      }
+
+      _registerDataSources();
+      _registerRepositories();
+      _registerUseCases();
+      _registerBlocs(authService);
+
+      ServiceLocatorStateController.instance.setReady();
+      AppLogger.success('ServiceLocator initialized successfully');
+    } catch (e, stackTrace) {
+      ServiceLocatorStateController.instance.setError(e);
+      AppLogger.error(
+        'ServiceLocator initialization failed',
+        e,
+        stackTrace,
       );
+      rethrow;
     }
-
-    if (!_getIt.isRegistered<Dio>()) {
-      _getIt.registerLazySingleton<Dio>(() => _getIt<DioClient>().client);
-    }
-    if (!_getIt.isRegistered<SharedPreferences>()) {
-      _getIt.registerSingleton<SharedPreferences>(sharedPreferences);
-    }
-
-    _registerDataSources();
-    _registerRepositories();
-    _registerUseCases();
-    _registerBlocs(authService);
   }
 
   static T resolve<T extends Object>() => _getIt<T>();
@@ -184,15 +211,32 @@ class ServiceLocator {
         () => KaskoRemoteDataSourceImpl(_getIt<Dio>()),
       );
     }
+    if (!_getIt.isRegistered<KaskoLocalDataSource>()) {
+      _getIt.registerLazySingleton<KaskoLocalDataSource>(
+        () => KaskoLocalDataSource(_getIt<SharedPreferences>()),
+      );
+    }
+    if (!_getIt.isRegistered<PaymentRemoteDataSource>()) {
+      _getIt.registerLazySingleton<PaymentRemoteDataSource>(
+        () => PaymentRemoteDataSourceImpl(_getIt<Dio>()),
+      );
+    }
+    // Avia Data Sources
+    if (!_getIt.isRegistered<AviaDioClient>()) {
+      _getIt.registerLazySingleton<AviaDioClient>(
+        () => AviaDioClient(authService: _getIt<AuthService>()),
+      );
+    }
     // Trust Insurance Data Sources
     if (!_getIt.isRegistered<TrustInsuranceDioClient>()) {
       // Config tekshiruvi
       if (!TrustInsuranceConfig.isConfigured) {
-        debugPrint('⚠️ WARNING: Trust Insurance config not fully configured!');
-        debugPrint(TrustInsuranceConfig.configInfo);
-        debugPrint('Please configure credentials before using Trust Insurance API');
+        AppLogger.warning('Trust Insurance config not fully configured!');
+        AppLogger.warning(TrustInsuranceConfig.configInfo);
+        AppLogger.warning(
+            'Please configure credentials before using Trust Insurance API');
       }
-      
+
       _getIt.registerLazySingleton<TrustInsuranceDioClient>(
         () => TrustInsuranceDioClient(
           baseUrl: TrustInsuranceConfig.baseUrl,
@@ -271,7 +315,15 @@ class ServiceLocator {
     }
     if (!_getIt.isRegistered<KaskoRepository>()) {
       _getIt.registerLazySingleton<KaskoRepository>(
-        () => KaskoRepositoryImpl(_getIt<KaskoRemoteDataSource>()),
+        () => KaskoRepositoryImpl(
+          remoteDataSource: _getIt<KaskoRemoteDataSource>(),
+          localDataSource: _getIt<KaskoLocalDataSource>(),
+        ),
+      );
+    }
+    if (!_getIt.isRegistered<PaymentRepository>()) {
+      _getIt.registerLazySingleton<PaymentRepository>(
+        () => PaymentRepositoryImpl(_getIt<PaymentRemoteDataSource>()),
       );
     }
     // Accident Repository
@@ -279,6 +331,14 @@ class ServiceLocator {
       _getIt.registerLazySingleton<AccidentRepository>(
         () => AccidentRepositoryImpl(
           remoteDataSource: _getIt<TrustInsuranceRemoteDataSource>(),
+        ),
+      );
+    }
+    // Avia Repository
+    if (!_getIt.isRegistered<AvichiptalarRepository>()) {
+      _getIt.registerLazySingleton<AvichiptalarRepository>(
+        () => AvichiptalarRepositoryImpl(
+          dioClient: _getIt<AviaDioClient>(),
         ),
       );
     }
@@ -340,6 +400,9 @@ class ServiceLocator {
     _registerLazy<GetCars>(() => GetCars(_getIt<KaskoRepository>()));
     _registerLazy<GetCarsMinimal>(
       () => GetCarsMinimal(_getIt<KaskoRepository>()),
+    );
+    _registerLazy<GetCarsPaginated>(
+      () => GetCarsPaginated(_getIt<KaskoRepository>()),
     );
     _registerLazy<GetRates>(() => GetRates(_getIt<KaskoRepository>()));
     _registerLazy<CalculateCarPrice>(
@@ -417,6 +480,7 @@ class ServiceLocator {
       () => KaskoBloc(
         getCars: _getIt(),
         getCarsMinimal: _getIt(),
+        getCarsPaginated: _getIt(),
         getRates: _getIt(),
         calculateCarPrice: _getIt(),
         calculatePolicy: _getIt(),
@@ -433,6 +497,16 @@ class ServiceLocator {
         getRegions: _getIt(),
         createInsurance: _getIt(),
         checkPayment: _getIt(),
+      ),
+    );
+    _getIt.registerFactory<PaymentBloc>(
+      () => PaymentBloc(repository: _getIt<PaymentRepository>()),
+    );
+    // Avia BLoC
+    _getIt.registerFactory<AviaBloc>(
+      () => AviaBloc(
+        repository: _getIt<AvichiptalarRepository>(),
+        dioClient: _getIt<AviaDioClient>(),
       ),
     );
   }

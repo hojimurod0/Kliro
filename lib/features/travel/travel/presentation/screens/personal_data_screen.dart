@@ -1272,7 +1272,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
           : (_travelerBirthDate ?? DateTime(now.year - 30, 1, 1)),
       firstDate: firstDate,
       lastDate: lastDate,
-      locale: const Locale('uz', 'UZ'),
+      locale: context.locale,
       builder: (context, child) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(

@@ -2,8 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import 'dart:developer' as developer;
+
 import '../../../../core/errors/app_exception.dart';
 import '../../domain/entities/car_entity.dart';
+import '../../domain/entities/car_page.dart';
 import '../../domain/entities/calculate_entity.dart';
 import '../../domain/entities/car_price_entity.dart';
 import '../../domain/entities/check_payment_entity.dart';
@@ -12,8 +15,10 @@ import '../../domain/entities/payment_link_entity.dart';
 import '../../domain/entities/rate_entity.dart';
 import '../../domain/entities/save_order_entity.dart';
 import '../../domain/repositories/kasko_repository.dart';
+import '../datasources/kasko_local_data_source.dart';
 import '../datasources/kasko_remote_data_source.dart';
 import '../models/car_model.dart';
+import '../models/car_page_model.dart';
 import '../models/car_price_request.dart';
 import '../models/car_price_response.dart';
 import '../models/calculate_request.dart';
@@ -28,17 +33,77 @@ import '../models/save_order_request.dart';
 import '../models/save_order_response.dart';
 
 class KaskoRepositoryImpl implements KaskoRepository {
-  KaskoRepositoryImpl(this._remoteDataSource);
+  KaskoRepositoryImpl({
+    required KaskoRemoteDataSource remoteDataSource,
+    required KaskoLocalDataSource localDataSource,
+  })  : _remoteDataSource = remoteDataSource,
+        _localDataSource = localDataSource;
 
   final KaskoRemoteDataSource _remoteDataSource;
+  final KaskoLocalDataSource _localDataSource;
 
   @override
   Future<List<CarEntity>> getCars() async {
     try {
       final models = await _remoteDataSource.getCars();
-      return models.map(_mapCarModelToEntity).toList();
+      // Optimizatsiya: List.generate() .map().toList() dan tezroq
+      // growable: false - fixed size, tezroq ishlaydi
+      return List<CarEntity>.generate(
+        models.length,
+        (index) => _mapCarModelToEntity(models[index]),
+        growable: false,
+      );
     } catch (e) {
       throw AppException(message: 'Failed to get cars: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<CarPage> getCarsPaginated({
+    required int page,
+    required int size,
+  }) async {
+    developer.log(
+      'Repository fetching cars page=$page size=$size',
+      name: 'KaskoRepository',
+    );
+    try {
+      final model = await _remoteDataSource.getCarsPaginated(
+        page: page,
+        size: size,
+      );
+      
+      // Cache'ga saqlash (faqat birinchi sahifa yoki muvaffaqiyatli yuklangan sahifalar)
+      if (page == 0 || model.content.isNotEmpty) {
+        developer.log(
+          'Repository received ${model.content.length} cars, caching...',
+          name: 'KaskoRepository',
+        );
+        await _localDataSource.cacheCarsPage(model);
+      }
+      
+      developer.log('Repository returning fresh data', name: 'KaskoRepository');
+      return model.toEntity();
+    } on AppException catch (error) {
+      developer.log(
+        'Repository caught AppException, trying cache -> ${error.message}',
+        name: 'KaskoRepository',
+        error: error,
+      );
+      // Offline rejimda cache'dan o'qish
+      if (page == 0) {
+        final cached = _localDataSource.getLastCachedCarsPage();
+        if (cached != null) {
+          developer.log('Repository returning cached data', name: 'KaskoRepository');
+          return cached.toEntity();
+        }
+      }
+      developer.log('No cache available, rethrowing', name: 'KaskoRepository', error: error);
+      rethrow;
+    } catch (e) {
+      throw AppException(
+        message: 'Failed to get cars paginated: ${e.toString()}',
+      );
     }
   }
 
@@ -46,7 +111,12 @@ class KaskoRepositoryImpl implements KaskoRepository {
   Future<List<CarEntity>> getCarsMinimal() async {
     try {
       final models = await _remoteDataSource.getCarsMinimal();
-      return models.map(_mapCarModelToEntity).toList();
+      // Optimizatsiya: List.generate() .map().toList() dan tezroq
+      return List<CarEntity>.generate(
+        models.length,
+        (index) => _mapCarModelToEntity(models[index]),
+        growable: false,
+      );
     } catch (e) {
       throw AppException(
         message: 'Failed to get cars minimal: ${e.toString()}',
@@ -56,9 +126,44 @@ class KaskoRepositoryImpl implements KaskoRepository {
 
   @override
   Future<List<RateEntity>> getRates() async {
+    developer.log('Repository fetching rates', name: 'KaskoRepository');
     try {
       final models = await _remoteDataSource.getRates();
-      return models.map(_mapRateModelToEntity).toList();
+      
+      // Cache'ga saqlash
+      if (models.isNotEmpty) {
+        developer.log(
+          'Repository received ${models.length} rates, caching...',
+          name: 'KaskoRepository',
+        );
+        await _localDataSource.cacheRates(models);
+      }
+      
+      developer.log('Repository returning fresh data', name: 'KaskoRepository');
+      // Optimizatsiya: List.generate() .map().toList() dan tezroq
+      return List<RateEntity>.generate(
+        models.length,
+        (index) => _mapRateModelToEntity(models[index]),
+        growable: false,
+      );
+    } on AppException catch (error) {
+      developer.log(
+        'Repository caught AppException, trying cache -> ${error.message}',
+        name: 'KaskoRepository',
+        error: error,
+      );
+      // Offline rejimda cache'dan o'qish
+      final cached = _localDataSource.getLastCachedRates();
+      if (cached != null) {
+        developer.log('Repository returning cached data', name: 'KaskoRepository');
+        return List<RateEntity>.generate(
+          cached.length,
+          (index) => _mapRateModelToEntity(cached[index]),
+          growable: false,
+        );
+      }
+      developer.log('No cache available, rethrowing', name: 'KaskoRepository', error: error);
+      rethrow;
     } catch (e) {
       throw AppException(message: 'Failed to get rates: ${e.toString()}');
     }
@@ -338,8 +443,14 @@ class KaskoRepositoryImpl implements KaskoRepository {
       driverCount: response.driverCount ?? 0,
       franchise: response.franchise ?? 0.0,
       currency: response.currency,
-      // Tariflarni map qilish
-      rates: (response.rates ?? []).map(_mapRateModelToEntity).toList(),
+      // Tariflarni map qilish - optimizatsiya: List.generate() ishlatish
+      rates: response.rates != null && response.rates!.isNotEmpty
+          ? List<RateEntity>.generate(
+              response.rates!.length,
+              (index) => _mapRateModelToEntity(response.rates![index]),
+              growable: false,
+            )
+          : [],
     );
   }
 

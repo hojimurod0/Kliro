@@ -12,10 +12,7 @@ import '../widgets/main_bottom_navigation.dart';
 class HomePage extends StatelessWidget {
   final ValueChanged<TabItem>? onTabChange;
 
-  const HomePage({
-    super.key,
-    this.onTabChange,
-  });
+  const HomePage({super.key, this.onTabChange});
 
   @override
   Widget build(BuildContext context) {
@@ -36,20 +33,20 @@ class HomePage extends StatelessWidget {
               SizedBox(height: 20.h),
               HomeBanner(),
               Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 20.w,
-                  vertical: 24.h,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
                 child: Column(
                   children: [
                     HomeServicesGrid(
-                      onBankTap: () =>
-                          context.router.push(BankServicesRoute()),
+                      onBankTap: () => context.router.push(BankServicesRoute()),
                       onInsuranceTap: () =>
                           context.router.push(InsuranceServicesRoute()),
+                      onFlightsTap: () =>
+                          context.router.push(AvichiptalarModuleRoute()),
                     ),
                     SizedBox(height: 16.h),
-                    const HomeWideServiceCard(),
+                    HomeWideServiceCard(
+                      onTap: () => context.router.push(HotelModuleRoute()),
+                    ),
                     SizedBox(height: 30.h),
                     const HomeNewsSection(),
                   ],

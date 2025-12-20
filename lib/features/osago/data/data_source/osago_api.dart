@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/constants/constants.dart';
 import '../../../../core/errors/app_exception.dart';
+import '../../../../core/utils/logger.dart';
 import '../../utils/osago_utils.dart';
 import '../models/calc_request.dart';
 import '../models/calc_response.dart';
@@ -24,8 +25,7 @@ class OsagoApi {
       final success = responseData['success'] == true;
       if (!success) {
         throw ValidationException(
-          message: responseData['message'] as String? ?? 'Request failed',
-          details: responseData,
+          responseData['message'] as String? ?? 'Request failed',
           statusCode: response.statusCode,
         );
       }
@@ -44,10 +44,10 @@ class OsagoApi {
       }
 
       // Debug: API dan kelgan amount ni log qilish
-      print(
-        '[OSAGO_API] amount_uzs from API: $amountUzs (type: ${amountUzs.runtimeType})',
+      AppLogger.debug(
+        'OSAGO_API: amount_uzs from API: $amountUzs (type: ${amountUzs.runtimeType})',
       );
-      print('[OSAGO_API] Full calcData: $calcData');
+      AppLogger.debug('OSAGO_API: Full calcData: $calcData');
 
       // Извлекаем имя владельца из calc response
       String? ownerName;
@@ -171,19 +171,19 @@ class OsagoApi {
       final jsonData = data.toJson();
       
       // Debug: number_drivers_id va provider ni log qilish
-      print('[OSAGO_API] Create Request: provider=${jsonData['provider']}, number_drivers_id=${jsonData['number_drivers_id']}');
+      AppLogger.debug('OSAGO_API: Create Request: provider=${jsonData['provider']}, number_drivers_id=${jsonData['number_drivers_id']}');
       
       // Debug: Sanani tekshirish
       if (jsonData['drivers'] != null && (jsonData['drivers'] as List).isNotEmpty) {
         final firstDriver = (jsonData['drivers'] as List).first;
         if (firstDriver is Map) {
-          print('[OSAGO_API] Driver birthday format: ${firstDriver['driver_birthday']}');
-          print('[OSAGO_API] Driver license: seria=${firstDriver['license__seria']}, number=${firstDriver['license__number']}');
+          AppLogger.debug('OSAGO_API: Driver birthday format: ${firstDriver['driver_birthday']}');
+          AppLogger.debug('OSAGO_API: Driver license: seria=${firstDriver['license__seria']}, number=${firstDriver['license__number']}');
         }
       }
       
       // To'liq JSON ni log qilish (debug uchun)
-      print('[OSAGO_API] Create Request JSON (before sending): $jsonData');
+      AppLogger.debug('OSAGO_API: Create Request JSON (before sending): $jsonData');
       
       final response = await _dio.post(
         ApiPaths.osagoCreate,
@@ -192,13 +192,26 @@ class OsagoApi {
       final responseData = _ensureMap(response.data);
       // Backenddan kelgan javobni to'liq log qilish
       // (xususan, drivers va requestsData ni ko'rish uchun)
-      // Eslatma: bu faqat debug uchun, productionda o'chirish mumkin
-      // ignore: avoid_print
-      print('[OSAGO_API] Create raw response: $responseData');
+      AppLogger.debug('OSAGO_API: Create raw response: $responseData');
       final success = responseData['success'] == true;
       if (!success) {
-        // Agar success=false bo'lsa, haydovchi ma'lumotlari va requestsData ni alohida log qilamiz
+        // Ichki response dan error_message ni olish
+        String? errorMessage = responseData['message'] as String?;
+        final responseObj = responseData['response'] as Map<String, dynamic>?;
+        if (responseObj != null && responseObj['error_message'] != null) {
+          errorMessage = responseObj['error_message'] as String?;
+        }
+        
+        // data.response.error_message ni ham tekshiramiz
         final dataMap = responseData['data'] as Map<String, dynamic>?;
+        if (dataMap != null) {
+          final nestedResponse = dataMap['response'] as Map<String, dynamic>?;
+          if (nestedResponse != null && nestedResponse['error_message'] != null) {
+            errorMessage = nestedResponse['error_message'] as String?;
+          }
+        }
+        
+        // Agar success=false bo'lsa, haydovchi ma'lumotlari va requestsData ni alohida log qilamiz
         Map<String, dynamic>? requestsData;
         List<dynamic>? drivers;
         if (dataMap != null) {
@@ -211,14 +224,12 @@ class OsagoApi {
             }
           }
         }
-        // ignore: avoid_print
-        print(
-          '[OSAGO_API] Create error: message=${responseData['message']}, '
+        AppLogger.debug(
+          'OSAGO_API: Create error: message=$errorMessage, '
           'requestsData=$requestsData, drivers=$drivers',
         );
         throw ValidationException(
-          message: responseData['message'] as String? ?? 'Request failed',
-          details: responseData,
+          errorMessage ?? 'Request failed',
           statusCode: response.statusCode,
         );
       }
@@ -280,8 +291,7 @@ class OsagoApi {
       final success = responseData['success'] == true;
       if (!success) {
         throw ValidationException(
-          message: responseData['message'] as String? ?? 'Request failed',
-          details: responseData,
+          responseData['message'] as String? ?? 'Request failed',
           statusCode: response.statusCode,
         );
       }
@@ -307,7 +317,23 @@ class OsagoApi {
     final responseData = error.response?.data;
     String? serverMessage;
     if (responseData is Map<String, dynamic>) {
+      // Avval asosiy message ni tekshiramiz
       serverMessage = responseData['message'] as String?;
+      
+      // Agar ichki response obyekti bo'lsa va error_message bo'lsa, uni ishlatamiz
+      final responseObj = responseData['response'] as Map<String, dynamic>?;
+      if (responseObj != null && responseObj['error_message'] != null) {
+        serverMessage = responseObj['error_message'] as String?;
+      }
+      
+      // Agar data.response.error_message bo'lsa, uni ham tekshiramiz
+      final dataMap = responseData['data'] as Map<String, dynamic>?;
+      if (dataMap != null) {
+        final nestedResponse = dataMap['response'] as Map<String, dynamic>?;
+        if (nestedResponse != null && nestedResponse['error_message'] != null) {
+          serverMessage = nestedResponse['error_message'] as String?;
+        }
+      }
     } else if (responseData is String) {
       serverMessage = responseData;
     }

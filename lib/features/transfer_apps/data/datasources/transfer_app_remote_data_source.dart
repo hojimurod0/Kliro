@@ -49,8 +49,7 @@ class TransferAppRemoteDataSourceImpl implements TransferAppRemoteDataSource {
 
       if (!apiResponse.success) {
         throw ValidationException(
-          message: apiResponse.message ?? 'So‘rov bajarilmadi',
-          details: apiResponse.result,
+          apiResponse.message ?? 'So\'rov bajarilmadi',
           statusCode: response.statusCode,
         );
       }

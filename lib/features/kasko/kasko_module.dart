@@ -3,7 +3,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../core/dio/singletons/service_locator.dart';
+import 'data/datasources/kasko_local_data_source.dart';
 import 'data/datasources/kasko_remote_data_source.dart';
 import 'data/repositories/kasko_repository_impl.dart';
 import 'domain/repositories/kasko_repository.dart';
@@ -12,6 +15,7 @@ import 'domain/usecases/calculate_policy.dart';
 import 'domain/usecases/check_payment_status.dart';
 import 'domain/usecases/get_cars.dart';
 import 'domain/usecases/get_cars_minimal.dart';
+import 'domain/usecases/get_cars_paginated.dart';
 import 'domain/usecases/get_payment_link.dart';
 import 'domain/usecases/get_rates.dart';
 import 'domain/usecases/save_order.dart';
@@ -26,16 +30,23 @@ class KaskoModule extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dio = ServiceLocator.resolve<Dio>();
+    final prefs = ServiceLocator.resolve<SharedPreferences>();
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<KaskoRepository>(
-          create: (_) => KaskoRepositoryImpl(KaskoRemoteDataSourceImpl(dio)),
+          create: (_) => KaskoRepositoryImpl(
+            remoteDataSource: KaskoRemoteDataSourceImpl(dio),
+            localDataSource: KaskoLocalDataSource(prefs),
+          ),
         ),
         RepositoryProvider<GetCars>(
           create: (context) => GetCars(context.read<KaskoRepository>()),
         ),
         RepositoryProvider<GetCarsMinimal>(
           create: (context) => GetCarsMinimal(context.read<KaskoRepository>()),
+        ),
+        RepositoryProvider<GetCarsPaginated>(
+          create: (context) => GetCarsPaginated(context.read<KaskoRepository>()),
         ),
         RepositoryProvider<GetRates>(
           create: (context) => GetRates(context.read<KaskoRepository>()),
@@ -65,6 +76,7 @@ class KaskoModule extends StatelessWidget {
         create: (context) => KaskoBloc(
           getCars: context.read<GetCars>(),
           getCarsMinimal: context.read<GetCarsMinimal>(),
+          getCarsPaginated: context.read<GetCarsPaginated>(),
           getRates: context.read<GetRates>(),
           calculateCarPrice: context.read<CalculateCarPrice>(),
           calculatePolicy: context.read<CalculatePolicy>(),

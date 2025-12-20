@@ -86,12 +86,24 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme(
+              brightness: isDark ? Brightness.dark : Brightness.light,
               primary: AppColors.kaskoPrimaryBlue,
               onPrimary: AppColors.white,
-              onSurface: AppColors.black,
+              surface: isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
+              onSurface:
+                  isDark ? AppColors.darkTextColor : AppColors.lightTextColor,
+              secondary: AppColors.kaskoPrimaryBlue,
+              onSecondary: AppColors.white,
+              error: AppColors.dangerRed,
+              onError: AppColors.white,
+            ),
+            dialogTheme: DialogThemeData(
+              backgroundColor:
+                  isDark ? AppColors.darkCardBg : AppColors.lightCardBg,
             ),
           ),
           child: child!,
@@ -407,9 +419,8 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
     Color subtitleColor,
     Color cardBg,
   ) {
-    final documentCardBg = isDark
-        ? const Color(0xFF1E3A5C)
-        : const Color(0xFFE3F2FD);
+    final documentCardBg =
+        isDark ? const Color(0xFF1E3A5C) : const Color(0xFFE3F2FD);
 
     // Получаем данные документа из BLoC
     final carNumber = bloc.documentCarNumber ?? '--';
@@ -503,17 +514,15 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
 
     // Tug'ilgan sana - faqat to'g'ri formatda bo'lsa saqlash
     final birthDateInput = _birthDateController.text.trim();
-    final birthDate =
-        (birthDateInput.isNotEmpty &&
+    final birthDate = (birthDateInput.isNotEmpty &&
             RegExp(r'^\d{2}/\d{2}/\d{4}$').hasMatch(birthDateInput))
         ? birthDateInput
         : currentBirthDate;
 
     // Ism familiya - ixtiyoriy, bo'sh bo'lishi mumkin
     final ownerNameInput = _ownerNameController.text.trim();
-    final ownerName = ownerNameInput.isNotEmpty
-        ? ownerNameInput
-        : currentOwnerName;
+    final ownerName =
+        ownerNameInput.isNotEmpty ? ownerNameInput : currentOwnerName;
 
     // Telefon - faqat to'g'ri formatda bo'lsa saqlash (9 yoki 33 bilan boshlanishi kerak)
     final phoneNumberInput = _phoneNumberController.text.trim();
@@ -521,7 +530,8 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
     if (phoneNumberInput.isNotEmpty &&
         phoneNumberInput.length == 9 &&
         RegExp(r'^[0-9]{9}$').hasMatch(phoneNumberInput) &&
-        (phoneNumberInput.startsWith('9') || phoneNumberInput.startsWith('33'))) {
+        (phoneNumberInput.startsWith('9') ||
+            phoneNumberInput.startsWith('33'))) {
       ownerPhone = '+998$phoneNumberInput';
     }
 
@@ -727,9 +737,8 @@ class _KaskoPersonalDataPageState extends State<KaskoPersonalDataPage> {
             centerTitle: true,
             systemOverlayStyle: SystemUiOverlayStyle(
               statusBarColor: Colors.transparent,
-              statusBarIconBrightness: isDark
-                  ? Brightness.light
-                  : Brightness.dark,
+              statusBarIconBrightness:
+                  isDark ? Brightness.light : Brightness.dark,
             ),
           ),
           body: BlocConsumer<KaskoBloc, KaskoState>(

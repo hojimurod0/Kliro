@@ -77,9 +77,8 @@ class MortgageRemoteDataSourceImpl implements MortgageRemoteDataSource {
           '[MortgageRemoteDataSource] API returned error: ${apiResponse.message}',
         );
         throw ValidationException(
-          message: apiResponse.message ?? 'Sorov bajarilmadi',
+          apiResponse.message ?? 'Sorov bajarilmadi',
           statusCode: response.statusCode,
-          details: data,
         );
       }
 

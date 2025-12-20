@@ -36,11 +36,11 @@ class UnauthorizedException extends AppException {
 }
 
 class ValidationException extends AppException {
-  const ValidationException({
-    required super.message,
-    super.statusCode,
-    super.details,
-  });
+  const ValidationException(
+    String message, {
+    int? statusCode,
+    Object? details,
+  }) : super(message: message, statusCode: statusCode, details: details);
 }
 
 class ServerException extends AppException {
@@ -57,5 +57,13 @@ class ApiException extends AppException {
     super.statusCode,
     super.details,
   });
+}
+
+class ParsingException extends AppException {
+  const ParsingException(
+    String message, {
+    int? statusCode,
+    Object? details,
+  }) : super(message: message, statusCode: statusCode, details: details);
 }
 

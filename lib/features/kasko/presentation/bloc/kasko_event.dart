@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 
 import '../../domain/entities/car_entity.dart';
@@ -26,6 +28,30 @@ class FetchCarsMinimal extends KaskoEvent {
 
   @override
   List<Object?> get props => [forceRefresh];
+}
+
+class FetchCarsPaginated extends KaskoEvent {
+  final int page;
+  final int size;
+  final bool append; // true bo'lsa, mavjud ro'yxatga qo'shadi
+
+  const FetchCarsPaginated({
+    required this.page,
+    this.size = 20,
+    this.append = false,
+  });
+
+  @override
+  List<Object?> get props => [page, size, append];
+}
+
+class RefreshCarsPaginated extends KaskoEvent {
+  final Completer<void>? completer;
+
+  const RefreshCarsPaginated({this.completer});
+
+  @override
+  List<Object?> get props => [completer];
 }
 
 class FetchRates extends KaskoEvent {

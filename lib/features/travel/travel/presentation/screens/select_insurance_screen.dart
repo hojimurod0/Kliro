@@ -210,9 +210,10 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
                       final evakuatsiya =
                           tarifData['evakuatsiya'] as String? ?? '0,00 EUR';
 
-                      // Формируем описание с названием программы
-                      final description =
-                          '$programName - Asosiy summa: $mainSum, Tibbiy xizmatlar: $medUslugi';
+                      // Формируем описание с названием программы - tushunarli format
+                      final description = programName.isNotEmpty && programName != 'Standard'
+                          ? programName
+                          : 'Sug\'urta polisi';
 
                       // Формируем теги из доступных услуг
                       final tags = <String>[];
@@ -341,8 +342,6 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
                                 'Noma\'lum kompaniya',
                             company['program_name'] as String?,
                           ),
-                          rating:
-                              (company['rating'] as num?)?.toDouble() ?? 4.5,
                           description:
                               company['description'] as String? ??
                               'Sug\'urta xizmati',
@@ -673,8 +672,10 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
             final evakuatsiya =
                 tarifData['evakuatsiya'] as String? ?? '0,00 EUR';
 
-            final description =
-                '$programName - Asosiy summa: $mainSum, Tibbiy xizmatlar: $medUslugi';
+            // Формируем описание с названием программы - tushunarli format
+            final description = programName.isNotEmpty && programName != 'Standard'
+                ? programName
+                : 'Sug\'urta polisi';
 
             final tags = <String>[];
             if (tarifData['covid'] != null &&
@@ -730,7 +731,6 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
 // --- MUKAMMAL SUG'URTA KARTASI ---
 class InsuranceCard extends StatelessWidget {
   final String companyName;
-  final double rating;
   final String description;
   final String price;
   final List<String> tags;
@@ -744,7 +744,6 @@ class InsuranceCard extends StatelessWidget {
   const InsuranceCard({
     super.key,
     required this.companyName,
-    required this.rating,
     required this.description,
     required this.price,
     required this.tags,
@@ -833,64 +832,31 @@ class InsuranceCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            companyName,
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              color: textColor,
-                              letterSpacing: -0.3,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        // Reyting
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.star_rounded,
-                                size: 16,
-                                color: Color(0xFFF59E0B),
-                              ), // Amber 500
-                              const SizedBox(width: 4),
-                              Text(
-                                rating.toString(),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: textColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
                     Text(
-                      description,
+                      companyName,
                       style: TextStyle(
-                        fontSize: 13,
-                        color: textGreyColor,
-                        height: 1.4,
-                        fontWeight: FontWeight.w400,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: textColor,
+                        letterSpacing: -0.3,
                       ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
                     ),
+                    if (description.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        description,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: textGreyColor,
+                          height: 1.4,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ],
                 ),
               ),

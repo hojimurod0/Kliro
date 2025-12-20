@@ -19,6 +19,16 @@ class SaveOrderResponse with _$SaveOrderResponse {
     @JsonKey(name: 'contract_id') String? contractId,
   }) = _SaveOrderResponse;
 
-  factory SaveOrderResponse.fromJson(Map<String, dynamic> json) =>
-      _$SaveOrderResponseFromJson(json);
+  factory SaveOrderResponse.fromJson(Map<String, dynamic> json) {
+    // Handle int to String conversion for order_id and contract_id
+    final processedJson = Map<String, dynamic>.from(json);
+    if (processedJson['order_id'] != null && processedJson['order_id'] is int) {
+      processedJson['order_id'] = processedJson['order_id'].toString();
+    }
+    if (processedJson['contract_id'] != null &&
+        processedJson['contract_id'] is int) {
+      processedJson['contract_id'] = processedJson['contract_id'].toString();
+    }
+    return _$$SaveOrderResponseImplFromJson(processedJson);
+  }
 }

@@ -6,18 +6,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../data/api/api_client.dart';
-import '../../../../data/services/auto_credit_service.dart';
+import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../common/utils/bank_assets.dart';
 import '../../../common/utils/bank_data.dart';
 import '../../../common/utils/text_localizer.dart';
 import '../../data/datasources/auto_credit_local_data_source.dart';
+import '../../data/datasources/auto_credit_remote_data_source.dart';
 import '../../data/repositories/auto_credit_repository_impl.dart';
 import '../../domain/entities/auto_credit_filter.dart';
 import '../../domain/entities/auto_credit_offer.dart';
 import '../../domain/usecases/get_auto_credit_offers.dart';
 import '../../../../core/widgets/primary_back_button.dart';
 import '../../../../core/widgets/primary_search_filter_bar.dart';
+import 'package:dio/dio.dart';
 
 @RoutePage()
 class AutoCreditPage extends StatefulWidget {
@@ -46,11 +47,11 @@ class _AutoCreditPageState extends State<AutoCreditPage> {
   @override
   void initState() {
     super.initState();
-    final apiClient = ApiClient();
+    final dio = ServiceLocator.resolve<Dio>();
     _getAutoCreditOffers = GetAutoCreditOffers(
       AutoCreditRepositoryImpl(
         localDataSource: const AutoCreditLocalDataSource(),
-        remoteService: AutoCreditService(apiClient),
+        remoteDataSource: AutoCreditRemoteDataSourceImpl(dio),
       ),
     );
     _loadOffers();
@@ -299,7 +300,10 @@ class _AutoCreditFilterSheetState extends State<_AutoCreditFilterSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionHeader(Icons.percent_rounded, tr('auto_credit.interest_rate_label')),
+                    _buildSectionHeader(
+                      Icons.percent_rounded,
+                      tr('auto_credit.interest_rate_label'),
+                    ),
                     SizedBox(height: 12.h),
                     _buildChipRow(
                       options: _getRateOptions().map((e) => e.label).toList(),
@@ -326,7 +330,9 @@ class _AutoCreditFilterSheetState extends State<_AutoCreditFilterSheet> {
                     ),
                     SizedBox(height: 12.h),
                     _buildChipRow(
-                      options: _getPaymentOptions().map((e) => e.label).toList(),
+                      options: _getPaymentOptions()
+                          .map((e) => e.label)
+                          .toList(),
                       selected: _selectedPaymentLabel,
                       onSelected: (value) =>
                           setState(() => _selectedPaymentLabel = value),
@@ -679,7 +685,10 @@ class _AutoCreditOfferCardState extends State<AutoCreditOfferCard> {
             ],
           ),
           Text(
-            widget.offer.monthlyPayment.replaceAll(' ${tr('auto_credit.per_month')}', ''),
+            widget.offer.monthlyPayment.replaceAll(
+              ' ${tr('auto_credit.per_month')}',
+              '',
+            ),
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.w700,
@@ -764,7 +773,10 @@ class _AutoCreditOfferCardState extends State<AutoCreditOfferCard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  tr('auto_credit.advantages_count', namedArgs: {'count': advantages.length.toString()}),
+                  tr(
+                    'auto_credit.advantages_count',
+                    namedArgs: {'count': advantages.length.toString()},
+                  ),
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 14.sp,
@@ -826,9 +838,7 @@ class _AutoCreditOfferCardState extends State<AutoCreditOfferCard> {
           if (!opened && mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                  tr('common.error'),
-                ),
+                content: Text(tr('common.error')),
                 duration: const Duration(seconds: 2),
               ),
             );

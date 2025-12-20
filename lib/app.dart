@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -7,6 +8,9 @@ import 'core/navigation/app_router.dart';
 import 'core/services/locale/locale_prefs.dart';
 import 'core/services/theme/theme_controller.dart';
 import 'core/dio/singletons/service_locator.dart';
+import 'core/dio/singletons/service_locator_state.dart';
+import 'core/utils/logger.dart';
+import 'core/widgets/top_snackbar_messenger.dart';
 import 'features/kasko/presentation/providers/kasko_provider.dart';
 import 'features/kasko/domain/repositories/kasko_repository.dart';
 
@@ -21,32 +25,73 @@ class _AppState extends State<App> {
   static final AppRouter _appRouter = AppRouter();
   bool _isServiceLocatorReady = false;
   Locale? _currentLocale;
+  StreamSubscription<ServiceLocatorState>? _stateSubscription;
 
   @override
   void initState() {
     super.initState();
-    // ServiceLocator init qilinishini kutish
-    _waitForServiceLocator();
+    // ServiceLocator state ni kuzatish
+    _listenToServiceLocatorState();
     // Загружаем и применяем сохраненную локаль после первого кадра
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadAndApplyLocale();
     });
   }
 
-  Future<void> _waitForServiceLocator() async {
-    // ServiceLocator init qilinmaguncha kutish
-    while (!_isServiceLocatorReady) {
-      try {
-        // KaskoRepository mavjudligini tekshirish
-        ServiceLocator.resolve<KaskoRepository>();
-        _isServiceLocatorReady = true;
-        if (mounted) {
-          setState(() {});
+  @override
+  void dispose() {
+    _stateSubscription?.cancel();
+    super.dispose();
+  }
+
+  /// ServiceLocator state ni kuzatish - polling o'rniga Stream ishlatish
+  void _listenToServiceLocatorState() {
+    _stateSubscription = ServiceLocatorStateController.instance.stateStream.listen(
+      (state) {
+        if (state == ServiceLocatorState.ready && !_isServiceLocatorReady) {
+          _isServiceLocatorReady = true;
+          if (mounted) {
+            setState(() {});
+          }
+          AppLogger.success('ServiceLocator ready, app can proceed');
+        } else if (state == ServiceLocatorState.error) {
+          AppLogger.error('ServiceLocator initialization error');
+          // Xatolikni ko'rsatish yoki fallback qilish
         }
-      } catch (e) {
-        // Hali init qilinmagan, kichik kechikish bilan qayta urinish
-        await Future.delayed(const Duration(milliseconds: 100));
+      },
+      onError: (error) {
+        AppLogger.error('ServiceLocator state stream error', error);
+      },
+    );
+
+    // Agar allaqachon ready bo'lsa
+    if (ServiceLocatorStateController.instance.currentState ==
+        ServiceLocatorState.ready) {
+      _isServiceLocatorReady = true;
+      if (mounted) {
+        setState(() {});
       }
+    } else {
+      // Timeout - agar 10 soniyadan keyin ready bo'lmasa, xatolik ko'rsatish
+      ServiceLocatorStateController.instance.initializationComplete
+          .timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          AppLogger.warning('ServiceLocator initialization timeout');
+          if (mounted) {
+            setState(() {
+              _isServiceLocatorReady = true; // Fallback - app ishlashini davom ettirish
+            });
+          }
+        },
+      ).catchError((error) {
+        AppLogger.error('ServiceLocator initialization error', error);
+        if (mounted) {
+          setState(() {
+            _isServiceLocatorReady = true; // Fallback
+          });
+        }
+      });
     }
   }
 
@@ -57,7 +102,7 @@ class _AppState extends State<App> {
         try {
           // Локални текшириш - агар кирилл локали бўлса, тўғри форматда бўлишини текшириш
           final localeToSet = locale;
-          debugPrint('Loading locale: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}');
+          AppLogger.debug('Loading locale: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}');
           
           // EasyLocalization файлни юклаш учун локални тўғри форматда бериш керак
           // useOnlyLangCode: false бўлганда, Locale('uz', 'CYR') учун 'uz-CYR.json' файлини ишлатади
@@ -71,15 +116,15 @@ class _AppState extends State<App> {
           
           // Локалнинг тўғри ўрнатилганини текшириш
           final currentLocale = context.locale;
-          debugPrint('Locale set successfully: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}');
-          debugPrint('Current locale after set: ${currentLocale.languageCode}_${currentLocale.countryCode ?? 'null'}');
+          AppLogger.success('Locale set successfully: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}');
+          AppLogger.debug('Current locale after set: ${currentLocale.languageCode}_${currentLocale.countryCode ?? 'null'}');
           
           // Таржима файлини текшириш
           try {
             final testTranslation = tr('app_title');
-            debugPrint('Translation test: app_title = $testTranslation');
+            AppLogger.debug('Translation test: app_title = $testTranslation');
           } catch (e) {
-            debugPrint('Translation error: $e');
+            AppLogger.warning('Translation error', e);
             // Таржима хатоси бўлса ҳам, локал ўрнатилди
           }
           
@@ -89,7 +134,7 @@ class _AppState extends State<App> {
             setState(() {
               _currentLocale = currentLocale;
             });
-            debugPrint('App: State updated with locale: ${currentLocale.languageCode}_${currentLocale.countryCode ?? 'null'}');
+            AppLogger.debug('App: State updated with locale: ${currentLocale.languageCode}_${currentLocale.countryCode ?? 'null'}');
             
             // Кирилл локали учун қўшимча қайта билдириш
             if (currentLocale.languageCode == 'uz' && currentLocale.countryCode == 'CYR') {
@@ -99,35 +144,35 @@ class _AppState extends State<App> {
                     // Кирилл локали учун қўшимча қайта билдириш
                     _currentLocale = context.locale;
                   });
-                  debugPrint('App: Cyrillic locale forced rebuild: ${_currentLocale?.languageCode}_${_currentLocale?.countryCode ?? 'null'}');
+                  AppLogger.debug('App: Cyrillic locale forced rebuild: ${_currentLocale?.languageCode}_${_currentLocale?.countryCode ?? 'null'}');
                 }
               });
             }
           }
         } catch (e) {
           // Agar locale o'rnatishda xatolik bo'lsa, fallback locale'ni ishlatamiz
-          debugPrint('Error setting locale: $e');
+          AppLogger.error('Error setting locale', e);
           if (mounted) {
             try {
               // Кирилл локали учун қайта уриниш
               if (locale.languageCode == 'uz' && locale.countryCode == 'CYR') {
                 await Future.delayed(const Duration(milliseconds: 200));
                 await context.setLocale(locale);
-                debugPrint('Cyrillic locale set after retry');
+                AppLogger.success('Cyrillic locale set after retry');
               } else {
                 // Бошқа локаллар учун fallback
                 await context.setLocale(const Locale('en'));
-                debugPrint('Fallback to English locale');
+                AppLogger.info('Fallback to English locale');
               }
             } catch (fallbackError) {
-              debugPrint('Fallback locale error: $fallbackError');
+              AppLogger.error('Fallback locale error', fallbackError);
               // Agar fallback ham ishlamasa, e'tiborsiz qoldiramiz
             }
           }
         }
       }
     } catch (e) {
-      debugPrint('Error loading locale: $e');
+      AppLogger.error('Error loading locale', e);
     }
   }
 
@@ -272,8 +317,15 @@ class _AppState extends State<App> {
       builder: (context, child) {
         // ServiceLocator init qilinmaguncha loading ko'rsatish
         if (!_isServiceLocatorReady) {
-          return const MaterialApp(
-            home: Scaffold(body: Center(child: CircularProgressIndicator())),
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+            ),
           );
         }
 
@@ -298,37 +350,39 @@ class _AppState extends State<App> {
                   _currentLocale!.languageCode != contextLocale.languageCode ||
                   _currentLocale!.countryCode != contextLocale.countryCode) {
                 _currentLocale = contextLocale;
-                debugPrint('App: Locale synced from context: ${contextLocale.languageCode}_${contextLocale.countryCode ?? 'null'}');
+                AppLogger.debug('App: Locale synced from context: ${contextLocale.languageCode}_${contextLocale.countryCode ?? 'null'}');
               }
               
               // Кирилл локали учун қўшимча текшириш
               final localeToUse = _currentLocale ?? contextLocale;
-              debugPrint('Current locale in MaterialApp: ${localeToUse.languageCode}_${localeToUse.countryCode ?? 'null'}');
+              AppLogger.debug('Current locale in MaterialApp: ${localeToUse.languageCode}_${localeToUse.countryCode ?? 'null'}');
               
               return AnimatedBuilder(
                 animation: ThemeController.instance,
                 builder: (context, _) {
-                  return MaterialApp.router(
-                    // Locale o'zgarganda MaterialApp qayta build bo'lishi uchun key qo'shamiz
-                    // Кирилл локали учун қўшимча идентификатор
-                    key: ValueKey('material_app_${localeToUse.toString()}'),
-                    title: tr('app_title'),
-                    debugShowCheckedModeBanner: false,
-                    localizationsDelegates: context.localizationDelegates,
-                    supportedLocales: context.supportedLocales,
-                    locale: localeToUse,
-                    theme: _lightTheme,
-                    darkTheme: _darkTheme,
-                    themeMode: ThemeController.instance.mode,
-                    routerConfig: _appRouter.config(),
-                    builder: (context, child) {
-                      return MediaQuery(
-                        data: MediaQuery.of(
-                          context,
-                        ).copyWith(textScaleFactor: 1.0),
-                        child: child ?? const SizedBox(),
-                      );
-                    },
+                  return TopSnackbarMessenger(
+                    child: MaterialApp.router(
+                      // Locale o'zgarganda MaterialApp qayta build bo'lishi uchun key qo'shamiz
+                      // Кирилл локали учун қўшимча идентификатор
+                      key: ValueKey('material_app_${localeToUse.toString()}'),
+                      title: tr('app_title'),
+                      debugShowCheckedModeBanner: false,
+                      localizationsDelegates: context.localizationDelegates,
+                      supportedLocales: context.supportedLocales,
+                      locale: localeToUse,
+                      theme: _lightTheme,
+                      darkTheme: _darkTheme,
+                      themeMode: ThemeController.instance.mode,
+                      routerConfig: _appRouter.config(),
+                      builder: (context, child) {
+                        return MediaQuery(
+                          data: MediaQuery.of(
+                            context,
+                          ).copyWith(textScaleFactor: 1.0),
+                          child: child ?? const SizedBox(),
+                        );
+                      },
+                    ),
                   );
                 },
               );

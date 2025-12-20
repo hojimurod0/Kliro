@@ -31,8 +31,7 @@ class TravelApi {
       final success = responseData['success'] == true;
       if (!success) {
         throw ValidationException(
-          message: responseData['message'] as String? ?? 'Request failed',
-          details: responseData,
+          responseData['message'] as String? ?? 'Request failed',
           statusCode: response.statusCode,
         );
       }
@@ -73,8 +72,7 @@ class TravelApi {
       final success = responseData['success'] == true;
       if (!success) {
         throw ValidationException(
-          message: responseData['message'] as String? ?? 'Request failed',
-          details: responseData,
+          responseData['message'] as String? ?? 'Request failed',
           statusCode: response.statusCode,
         );
       }
@@ -107,8 +105,7 @@ class TravelApi {
       final success = responseData['success'] == true;
       if (!success) {
         throw ValidationException(
-          message: responseData['message'] as String? ?? 'Request failed',
-          details: responseData,
+          responseData['message'] as String? ?? 'Request failed',
           statusCode: response.statusCode,
         );
       }
@@ -145,8 +142,7 @@ class TravelApi {
       final success = responseData['success'] == true;
       if (!success) {
         throw ValidationException(
-          message: responseData['message'] as String? ?? 'Request failed',
-          details: responseData,
+          responseData['message'] as String? ?? 'Request failed',
           statusCode: response.statusCode,
         );
       }
@@ -291,8 +287,7 @@ class TravelApi {
                            responseData['message'] as String? ?? 
                            'Tariflar topilmadi';
         throw ValidationException(
-          message: errorMessage,
-          details: responseData,
+          errorMessage,
           statusCode: response.statusCode,
         );
       }
@@ -307,8 +302,7 @@ class TravelApi {
                              responseData['message'] as String? ?? 
                              'Tariflar topilmadi';
           throw ValidationException(
-            message: errorMessage,
-            details: responseData,
+            errorMessage,
             statusCode: 400,
           );
         }
@@ -343,9 +337,8 @@ class TravelApi {
     }
     if (statusCode == 400) {
       throw ValidationException(
-        message: message,
+        message,
         statusCode: statusCode,
-        details: responseData,
       );
     }
     if (error.type == DioExceptionType.connectionTimeout ||

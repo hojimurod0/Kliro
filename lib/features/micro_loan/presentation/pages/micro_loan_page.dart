@@ -116,6 +116,8 @@ class _MicroLoanPageState extends State<MicroLoanPage> {
         body: Column(
           children: [
             BlocBuilder<MicrocreditBloc, MicrocreditState>(
+              buildWhen: (previous, current) =>
+                  previous.filter != current.filter,
               builder: (context, state) {
                 return PrimarySearchFilterBar(
                   controller: _searchController,
@@ -142,17 +144,15 @@ class _MicroLoanPageState extends State<MicroLoanPage> {
                   }
                 },
                 child: BlocBuilder<MicrocreditBloc, MicrocreditState>(
+                  buildWhen: (previous, current) {
+                    // Faqat muhim o'zgarishlarda rebuild
+                    return previous.status != current.status ||
+                        previous.items.length != current.items.length ||
+                        previous.isInitialLoading != current.isInitialLoading ||
+                        previous.isPaginating != current.isPaginating ||
+                        previous.errorMessage != current.errorMessage;
+                  },
                   builder: (context, state) {
-                    debugPrint(
-                      '[MicroLoanPage] BlocBuilder: Building UI - status: ${state.status}, '
-                      'items: ${state.items.length}, isInitialLoading: ${state.isInitialLoading}',
-                    );
-
-                    debugPrint(
-                      '[MicroLoanPage] State check: status=${state.status}, '
-                      'items=${state.items.length}, error=${state.errorMessage}',
-                    );
-
                     if (state.isInitialLoading) {
                       debugPrint('[MicroLoanPage] Showing initial loader');
                       return const _CenteredLoader();
@@ -279,6 +279,7 @@ class _MicrocreditList extends StatelessWidget {
 
     return ListView.separated(
       padding: EdgeInsets.all(20.w),
+      cacheExtent: 500, // Cache optimization for better scroll performance
       itemCount: itemCount,
       separatorBuilder: (_, __) => SizedBox(height: 16.h),
       itemBuilder: (context, index) {

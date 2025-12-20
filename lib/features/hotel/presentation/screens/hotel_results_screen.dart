@@ -1,0 +1,68 @@
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/hotel_bloc.dart';
+import '../../domain/entities/hotel_filter.dart';
+import '../pages/hotel_results_page.dart';
+
+class HotelResultsScreen extends StatelessWidget {
+  const HotelResultsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<HotelBloc, HotelState>(
+      builder: (context, state) {
+        if (state is HotelSearchLoading) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (state is HotelSearchFailure) {
+          return Scaffold(
+            appBar: AppBar(title: Text('hotel.common.error'.tr())),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    state.message,
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      context.read<HotelBloc>().add(const HotelStateReset());
+                    },
+                    child: Text('hotel.common.retry'.tr()),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        if (state is HotelSearchSuccess) {
+          final filter = state.filter ?? HotelFilter.empty;
+          return HotelResultsPage(
+            result: state.result,
+            city: filter.city,
+            checkInDate: filter.checkInDate,
+            checkOutDate: filter.checkOutDate,
+            guests: filter.guests,
+          );
+        }
+
+        return Scaffold(
+          body: Center(
+            child: Text('hotel.common.data_not_found'.tr()),
+          ),
+        );
+      },
+    );
+  }
+}
+

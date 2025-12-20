@@ -51,6 +51,9 @@ class SeriesNumberWidget extends StatelessWidget {
                 ),
                 decoration: InputDecoration(
                   hintText: seriesHint,
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).hintColor,
+                  ),
                   counterText: "",
                 ),
                 validator: (v) {
@@ -101,6 +104,9 @@ class SeriesNumberWidget extends StatelessWidget {
                 ),
                 decoration: InputDecoration(
                   hintText: numberHint,
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).hintColor,
+                  ),
                   counterText: "",
                 ),
                 validator: (v) {

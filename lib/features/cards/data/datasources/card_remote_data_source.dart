@@ -61,9 +61,8 @@ class CardRemoteDataSourceImpl implements CardRemoteDataSource {
 
       if (!apiResponse.success || apiResponse.result == null) {
         throw ValidationException(
-          message: apiResponse.message ?? 'So\'rov bajarilmadi',
+          apiResponse.message ?? 'So\'rov bajarilmadi',
           statusCode: response.statusCode,
-          details: response.data,
         );
       }
 
@@ -111,9 +110,8 @@ class CardRemoteDataSourceImpl implements CardRemoteDataSource {
 
       if (!apiResponse.success || apiResponse.result == null) {
         throw ValidationException(
-          message: apiResponse.message ?? 'So\'rov bajarilmadi',
+          apiResponse.message ?? 'So\'rov bajarilmadi',
           statusCode: response.statusCode,
-          details: response.data,
         );
       }
 

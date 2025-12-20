@@ -3,30 +3,30 @@ import 'dart:developer' as developer;
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../data/models/auto_credit.dart';
-import '../../../../data/models/pagination_filter.dart';
-import '../../../../data/services/auto_credit_service.dart';
 import '../../domain/entities/auto_credit_filter.dart';
 import '../../domain/entities/auto_credit_offer.dart';
 import '../../domain/repositories/auto_credit_repository.dart';
 import '../datasources/auto_credit_local_data_source.dart';
+import '../datasources/auto_credit_remote_data_source.dart';
+import '../models/auto_credit_model.dart';
+import '../models/pagination_filter.dart';
 
 class AutoCreditRepositoryImpl implements AutoCreditRepository {
   AutoCreditRepositoryImpl({
     required AutoCreditLocalDataSource localDataSource,
-    required AutoCreditService remoteService,
+    required AutoCreditRemoteDataSource remoteDataSource,
   })  : _localDataSource = localDataSource,
-        _remoteService = remoteService;
+        _remoteDataSource = remoteDataSource;
 
   final AutoCreditLocalDataSource _localDataSource;
-  final AutoCreditService _remoteService;
+  final AutoCreditRemoteDataSource _remoteDataSource;
 
   @override
   Future<List<AutoCreditOffer>> getAutoCreditOffers({
     AutoCreditFilter filter = AutoCreditFilter.empty,
   }) async {
     try {
-      final remote = await _remoteService.fetchAutoCredits(
+      final remote = await _remoteDataSource.fetchAutoCredits(
         pagination: const PaginationFilter(page: 0, size: 20),
         bank: filter.bank,
         rateFrom: filter.rateFrom,

@@ -304,59 +304,91 @@ class _InsuranceFormPageState extends State<InsuranceFormPage> {
       ),
       body: BlocConsumer<AccidentBloc, AccidentState>(
         listenWhen: (previous, current) {
-          // Faqat AccidentCreatingInsurance dan AccidentInsuranceCreated ga o'tganda listener ishga tushsin
-          // Bu orqaga qaytganida listener qayta ishga tushmasligini ta'minlaydi
-          return (previous is AccidentCreatingInsurance &&
-                  current is AccidentInsuranceCreated) ||
+          // AccidentInsuranceCreated state ni kuzatish
+          final shouldListen = current is AccidentInsuranceCreated ||
               (current is AccidentError &&
                   previous is AccidentCreatingInsurance);
+          if (kDebugMode) {
+            debugPrint('🔍 listenWhen called: previous=${previous.runtimeType}, current=${current.runtimeType}, shouldListen=$shouldListen');
+            if (current is AccidentInsuranceCreated) {
+              debugPrint('🔍 AccidentInsuranceCreated detected in listenWhen!');
+            }
+          }
+          return shouldListen;
         },
         listener: (context, state) {
+          if (kDebugMode) {
+            debugPrint('👂 Listener called with state: ${state.runtimeType}');
+            debugPrint('👂 Listener context mounted: ${context.mounted}');
+          }
           if (state is AccidentInsuranceCreated) {
+            if (kDebugMode) {
+              debugPrint('📋 AccidentInsuranceCreated state received');
+              debugPrint('   _navigated: $_navigated');
+              debugPrint('   mounted: $mounted');
+            }
             if (!_navigated && mounted) {
               _navigated = true;
 
               // Listener contextidan AccidentBloc va Navigator ni xavfsiz olamiz
               final insuranceData = state.insurance;
-              late final AccidentBloc accidentBloc;
-              late final NavigatorState navigator;
-
-              try {
-                accidentBloc = context.read<AccidentBloc>();
-                navigator = Navigator.of(context);
-              } catch (e) {
-                if (mounted) {
-                  setState(() {
-                    _navigated = false;
-                  });
-                }
-                return;
+              
+              if (kDebugMode) {
+                debugPrint('✅ Navigation starting to PaymentScreen');
+                debugPrint('   Anketa ID: ${insuranceData.anketaId}');
+                debugPrint('   Premium: ${insuranceData.insurancePremium}');
+                debugPrint('   Payment URLs: ${insuranceData.paymentUrls}');
               }
 
               // To'lov sahifasiga o'tish
-              Future.microtask(() async {
-                if (!mounted || !_navigated) return;
-
-                // Form ma'lumotlarini yig'ish
-                final formData = {
-                  'lastName': _lastNameController.text,
-                  'firstName': _firstNameController.text,
-                  'patronymName': _patronymNameController.text,
-                  'pinfl': _pinflController.text,
-                  'passSery': _passSeryController.text,
-                  'passNum': _passNumController.text,
-                  'dateBirth': _dateBirthController.text,
-                  'phone': _phoneController.text,
-                  'address': _addressController.text,
-                  'startDate': _startDateController.text,
-                  'tariffName': _selectedTariff != null
-                      ? '${_selectedTariff!.insurancePremium.toStringAsFixed(0)} UZS'
-                      : null,
-                  'regionName': _selectedRegion?.name,
-                };
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                if (kDebugMode) {
+                  debugPrint('⏰ PostFrameCallback called');
+                  debugPrint('   mounted: $mounted');
+                  debugPrint('   _navigated: $_navigated');
+                }
+                if (!mounted || !_navigated) {
+                  if (kDebugMode) {
+                    debugPrint('⚠️ Navigation cancelled: mounted=$mounted, _navigated=$_navigated');
+                  }
+                  return;
+                }
 
                 try {
-                  await navigator.push(
+                  if (kDebugMode) {
+                    debugPrint('🚀 Starting navigation to PaymentScreen...');
+                  }
+                  final accidentBloc = context.read<AccidentBloc>();
+                  
+                  // Form ma'lumotlarini yig'ish
+                  final formData = {
+                    'lastName': _lastNameController.text,
+                    'firstName': _firstNameController.text,
+                    'patronymName': _patronymNameController.text,
+                    'pinfl': _pinflController.text,
+                    'passSery': _passSeryController.text,
+                    'passNum': _passNumController.text,
+                    'dateBirth': _dateBirthController.text,
+                    'phone': _phoneController.text,
+                    'address': _addressController.text,
+                    'startDate': _startDateController.text,
+                    'tariffName': _selectedTariff != null
+                        ? '${_selectedTariff!.insurancePremium.toStringAsFixed(0)} UZS'
+                        : null,
+                    'regionName': _selectedRegion?.name,
+                  };
+
+                  if (!mounted) {
+                    if (kDebugMode) {
+                      debugPrint('⚠️ Widget not mounted, cancelling navigation');
+                    }
+                    return;
+                  }
+
+                  if (kDebugMode) {
+                    debugPrint('📱 Pushing PaymentScreen to Navigator...');
+                  }
+                  await Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (newContext) => BlocProvider.value(
                         value: accidentBloc,
@@ -369,6 +401,14 @@ class _InsuranceFormPageState extends State<InsuranceFormPage> {
                       ),
                     ),
                   );
+                  if (kDebugMode) {
+                    debugPrint('✅ Navigation completed successfully');
+                  }
+                } catch (e, stackTrace) {
+                  if (kDebugMode) {
+                    debugPrint('❌ Navigation error: $e');
+                    debugPrint('❌ Stack trace: $stackTrace');
+                  }
                 } finally {
                   // Qaytganida yoki xatolik bo'lsa ham flag ni reset qilamiz
                   if (mounted) {

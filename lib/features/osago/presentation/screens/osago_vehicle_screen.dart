@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shimmer/shimmer.dart';
 
 // Import your actual paths
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../domain/entities/osago_vehicle.dart';
 import '../../logic/bloc/osago_bloc.dart';
 import '../../logic/bloc/osago_event.dart';
@@ -28,8 +29,15 @@ class UzbekPlateNumberFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    String text = newValue.text.toUpperCase().replaceAll(' ', '');
-    if (text.isEmpty) return newValue;
+    // Faqat harf va raqamlarni qoldiramiz, bo'sh joylarni olib tashlaymiz
+    String text = newValue.text.toUpperCase().replaceAll(' ', '').replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    
+    if (text.isEmpty) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
 
     final buffer = StringBuffer();
 
@@ -49,15 +57,55 @@ class UzbekPlateNumberFormatter extends TextInputFormatter {
       // JISMONIY: A 123 AA
       for (int i = 0; i < text.length; i++) {
         if (i == 1) buffer.write(' '); // 1-harfdan keyin probel
-        if (i == 4) buffer.write(' '); // 3-raqamdan keyin (4-indeksda) probel
+        if (i == 4) buffer.write(' '); // 4-raqamdan keyin probel
         buffer.write(text[i]);
       }
     }
 
     final formatted = buffer.toString();
+
+    // Kursor pozitsiyasini to'g'ri sozlash
+    // Eski va yangi matnlarni solishtirish
+    String oldTextWithoutSpaces = oldValue.text.replaceAll(' ', '');
+    int oldTextLength = oldTextWithoutSpaces.length;
+    int newTextLength = text.length;
+    
+    // Kursor qaysi pozitsiyada edi (bo'sh joylarsiz)
+    int cursorInOldText = 0;
+    for (int i = 0; i < newValue.selection.baseOffset && i < newValue.text.length; i++) {
+      if (newValue.text[i] != ' ') {
+        cursorInOldText++;
+      }
+    }
+    
+    // Agar belgi qo'shilgan bo'lsa, kursor pozitsiyasini oxiriga qo'yamiz
+    if (newTextLength > oldTextLength) {
+      cursorInOldText = newTextLength;
+    }
+    // Agar belgi o'chirilgan bo'lsa, kursor pozitsiyasini saqlaymiz
+    else {
+      cursorInOldText = cursorInOldText.clamp(0, newTextLength);
+    }
+    
+    // Yangi matndagi kursor pozitsiyasini hisoblash (bo'sh joylar bilan)
+    int newCursorPos = cursorInOldText;
+    
+    // Bo'sh joylarni qo'shish
+    if (isDigitStart) {
+      // YURIDIK: 123 ABC -> probel 3-raqamdan keyin
+      if (newCursorPos > 3) newCursorPos += 1;
+    } else {
+      // JISMONIY: A 123 AA -> probellar 1-harfdan keyin va 4-raqamdan keyin
+      if (newCursorPos > 1) newCursorPos += 1;
+      if (newCursorPos > 5) newCursorPos += 1;
+    }
+    
+    // Kursor pozitsiyasini cheklash
+    newCursorPos = newCursorPos.clamp(0, formatted.length);
+    
     return TextEditingValue(
       text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
+      selection: TextSelection.collapsed(offset: newCursorPos),
     );
   }
 }
@@ -142,29 +190,38 @@ class _UzbekLicensePlateInputState extends State<UzbekLicensePlateInput> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                TextField(
-                  controller: widget.regionController,
-                  focusNode: _regionFocus,
-                  textAlign: TextAlign.center,
-                  style: plateTextStyle,
-                  maxLength: 2,
-                  keyboardType: TextInputType.number,
-                  // Input ichidagi chiziqlarni yo'qotish
-                  decoration: const InputDecoration(
-                    counterText: "",
-                    border: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    errorBorder: InputBorder.none,
-                    disabledBorder: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                    isDense: true,
-                  ),
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  onChanged: (value) {
-                    if (value.length == 2) {
-                      _numberFocus.requestFocus();
-                    }
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: widget.regionController,
+                  builder: (context, value, child) {
+                    return TextField(
+                      controller: widget.regionController,
+                      focusNode: _regionFocus,
+                      textAlign: TextAlign.center,
+                      style: plateTextStyle.copyWith(
+                        color: value.text.isEmpty ? hintColor : textColor,
+                      ),
+                      maxLength: 2,
+                      keyboardType: TextInputType.number,
+                      // Input ichidagi chiziqlarni yo'qotish
+                      decoration: InputDecoration(
+                        hintText: "01",
+                        hintStyle: plateTextStyle.copyWith(color: hintColor),
+                        counterText: "",
+                        border: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                        isDense: true,
+                      ),
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onChanged: (value) {
+                        if (value.length == 2) {
+                          _numberFocus.requestFocus();
+                        }
+                      },
+                    );
                   },
                 ),
                 // Chap Bolt (Vizual)
@@ -224,10 +281,10 @@ class _UzbekLicensePlateInputState extends State<UzbekLicensePlateInput> {
                       isDense: true,
                     ),
                     inputFormatters: [
-                      // Faqat harf va raqam
+                      // Faqat harf va raqam (bo'sh joylarsiz)
                       FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
                       UpperCaseTextFormatter(),
-                      // Biz yozgan Smart Formatter
+                      // Biz yozgan Smart Formatter (avtomatik formatlash)
                       UzbekPlateNumberFormatter(),
                       LengthLimitingTextInputFormatter(
                         10,
@@ -328,7 +385,7 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
   bool _navigated = false;
   bool _isSubmitting = false;
 
-  final _regionCtrl = TextEditingController(text: "01");
+  final _regionCtrl = TextEditingController();
   final _carNumberCtrl = TextEditingController();
   final _passportCtrl = TextEditingController();
   final _techSeriesCtrl = TextEditingController();
@@ -349,7 +406,9 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
         SystemChrome.setSystemUIOverlayStyle(
           SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
-            statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+            statusBarIconBrightness: isDark
+                ? Brightness.light
+                : Brightness.dark,
           ),
         );
       }
@@ -463,11 +522,9 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('insurance.osago.vehicle.errors.fill_all_fields'.tr()),
-          backgroundColor: Colors.red,
-        ),
+      SnackbarHelper.showError(
+        context,
+        'insurance.osago.vehicle.errors.fill_all_fields'.tr(),
       );
       return;
     }
@@ -479,34 +536,26 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
 
     // Basic length validation (Region 2 + at least 4 chars)
     if (_regionCtrl.text.length != 2 || _carNumberCtrl.text.length < 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'insurance.osago.vehicle.errors.invalid_car_number'.tr(),
-          ),
-          backgroundColor: Colors.red,
-        ),
+      SnackbarHelper.showError(
+        context,
+        'insurance.osago.vehicle.errors.invalid_car_number'.tr(),
       );
       return;
     }
 
     final periodId = OsagoUtils.mapPeriodToId(_periodCtrl.text);
     if (periodId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('insurance.osago.vehicle.errors.select_period'.tr()),
-          backgroundColor: Colors.red,
-        ),
+      SnackbarHelper.showError(
+        context,
+        'insurance.osago.vehicle.errors.select_period'.tr(),
       );
       return;
     }
 
     if (_typeCtrl.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('insurance.osago.vehicle.errors.not_selected'.tr()),
-          backgroundColor: Colors.red,
-        ),
+      SnackbarHelper.showError(
+        context,
+        'insurance.osago.vehicle.errors.not_selected'.tr(),
       );
       return;
     }
@@ -552,9 +601,7 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
           setState(() {
             _isSubmitting = false;
           });
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
+          SnackbarHelper.showError(context, state.errorMessage!);
         }
         if (state is OsagoVehicleFilled &&
             state.vehicle != null &&
@@ -599,7 +646,8 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
           ),
           systemOverlayStyle: SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
-            statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark
+            statusBarIconBrightness:
+                Theme.of(context).brightness == Brightness.dark
                 ? Brightness.light
                 : Brightness.dark,
           ),
@@ -715,7 +763,7 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
                         SeriesNumberWidget(
                           seriesCtrl: _techSeriesCtrl,
                           numberCtrl: _techNumberCtrl,
-                          seriesHint: "AAA",
+                          seriesHint: "AAG",
                           numberHint: "1234567",
                           isTechPassport: true,
                         ),

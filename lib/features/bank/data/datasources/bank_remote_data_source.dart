@@ -40,8 +40,7 @@ class BankRemoteDataSourceImpl implements BankRemoteDataSource {
       
       if (!apiResponse.success) {
         throw ValidationException(
-          message: apiResponse.message ?? 'Request failed',
-          details: data,
+          apiResponse.message ?? 'Request failed',
           statusCode: response.statusCode,
         );
       }
@@ -192,8 +191,7 @@ class BankRemoteDataSourceImpl implements BankRemoteDataSource {
       
       if (!apiResponse.success) {
         throw ValidationException(
-          message: apiResponse.message ?? 'Request failed',
-          details: data,
+          apiResponse.message ?? 'Request failed',
           statusCode: response.statusCode,
         );
       }

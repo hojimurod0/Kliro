@@ -113,12 +113,24 @@ class _TariffCard extends StatelessWidget {
 
   const _TariffCard({required this.tariff, required this.onTap});
 
+  String _formatNumber(double value) {
+    final intValue = value.toInt();
+    return intValue.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]} ',
+    ).trim();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = AppColors.getCardBg(isDark);
     final textColor = AppColors.getTextColor(isDark);
-    final subtitleColor = AppColors.getSubtitleColor(isDark);
+    final primaryBlue = AppColors.primaryBlue;
+
+    final otvFormatted = _formatNumber(tariff.insuranceOtv);
+    final premiumFormatted = _formatNumber(tariff.insurancePremium);
+    final somText = 'insurance.kasko.tariff.som'.tr();
 
     return Card(
       margin: EdgeInsets.only(bottom: 12.h),
@@ -143,48 +155,34 @@ class _TariffCard extends StatelessWidget {
                   color: textColor,
                 ),
               ),
-              SizedBox(height: 8.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'insurance.accident.tariff_selection.insurance_premium'
-                            .tr(),
-                        style: TextStyle(fontSize: 12.sp, color: subtitleColor),
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        '${tariff.insurancePremium.toStringAsFixed(2)} ${'insurance.kasko.tariff.som'.tr()}',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primaryBlue,
-                        ),
-                      ),
-                    ],
+              SizedBox(height: 12.h),
+              // Asosiy narx: OTV (katta summa) va Premium (qavs ichida)
+              RichText(
+                text: TextSpan(
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'insurance.accident.tariff_selection.otv'.tr(),
-                        style: TextStyle(fontSize: 12.sp, color: subtitleColor),
+                  children: [
+                    TextSpan(
+                      text: '$otvFormatted $somText',
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
                       ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        '${tariff.insuranceOtv.toStringAsFixed(2)} ${'insurance.kasko.tariff.som'.tr()}',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                          color: textColor,
-                        ),
+                    ),
+                    TextSpan(
+                      text: ' ($premiumFormatted $somText)',
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w500,
+                        color: primaryBlue,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

@@ -144,8 +144,13 @@ class AccidentBloc extends Bloc<AccidentEvent, AccidentState> {
           debugPrint(
             '✅ Create insurance success: anketaId=${insurance.anketaId}',
           );
+          debugPrint('📤 Emitting AccidentInsuranceCreated state...');
+          debugPrint('   Insurance data: anketaId=${insurance.anketaId}, premium=${insurance.insurancePremium}');
         }
         emit(AccidentInsuranceCreated(insurance));
+        if (kDebugMode) {
+          debugPrint('✅ AccidentInsuranceCreated state emitted');
+        }
       },
     );
   }
