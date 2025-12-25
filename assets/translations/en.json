@@ -51,12 +51,9 @@
       "snack_contact_invalid": "Please enter correct contact information.",
       "snack_contact_required": "Please enter contact information",
       "error_credentials": "Login or password is incorrect",
-      "error_credentials_detail": "Phone number or password is incorrect.\n\nCheck:\n• That you entered the phone number correctly\n• That you entered the password correctly (case sensitive)\n• If you forgot your password, use the 'Forgot password?' button",
-      "login_with_otp": "Login with OTP",
-      "snack_contact_invalid": "Please enter correct contact information.",
-      "snack_contact_required": "Please enter contact information",
-      "error_credentials": "Login or password is incorrect",
-      "error_credentials_detail": "Phone number or password is incorrect.\n\nCheck:\n• That you entered the phone number correctly\n• That you entered the password correctly (case sensitive)\n• If you forgot your password, use the 'Forgot password?' button"
+      "error_credentials_detail": "Invalid credentials",
+      "error_password_incorrect": "Password incorrect",
+      "error_phone_format": "Invalid phone format"
     },
     "register": {
       "title": "Create account",
@@ -287,9 +284,15 @@
     "best_buy": "Best buy",
     "best_sell": "Best sell",
     "bank_rates": "Currency rates in banks",
+    "bank_rates_description": "Compare currency rates in banks and find the best offer",
+    "best_rates": "Best rates",
+    "best": "Best",
     "best_offer": "Best offer",
+    "select_operation": "Select operation",
     "som": "som",
     "per_day": "per day",
+    "per_unit": "per unit",
+    "empty_description": "No data available at the moment",
     "bank_name_hamkorbank": "Hamkorbank",
     "bank_name_universal": "Universal bank"
   },
@@ -1636,12 +1639,23 @@
     },
     "results": {
       "title": "Hotels",
+      "options_available": "options available",
+      "empty_title": "No hotels found",
+      "empty_subtitle": "Try different search parameters",
       "not_found": "No hotels found",
       "select": "Select",
       "person": "guest",
       "people": "guests",
       "night": "night",
-      "nights": "nights"
+      "nights": "nights",
+      "options_available": "options available"
+    },
+    "search": {
+      "select_city": "Please select or enter a city",
+      "select_dates": "Please select check-in and check-out dates",
+      "invalid_dates": "Check-out date must be after check-in date",
+      "city_not_found": "City not found. Please select from the list",
+      "failed": "Search failed"
     },
     "guest_details": {
       "title": "Enter information",
@@ -1677,6 +1691,7 @@
       "price": "Price:",
       "description": "Description",
       "amenities": "Amenities",
+      "photos": "Photos",
       "book": "Book",
       "book_now": "Book Now",
       "rooms": "Select Room",
@@ -1692,7 +1707,15 @@
       "search": "Search",
       "anywhere": "Anywhere?",
       "select": "Select",
-      "close": "Close"
+      "close": "Close",
+      "unknown_error": "Unknown error occurred",
+      "parsing_error": "Error processing data",
+      "network_error": "No internet connection",
+      "server_error": "Server error",
+      "timeout_error": "Request timeout",
+      "invalid_hotel_id": "Invalid hotel ID",
+      "hotel_not_found": "Hotel not found",
+      "invalid_response_format": "Invalid response format from server"
     },
     "booking": {
       "title": "Booking",
@@ -1707,8 +1730,29 @@
       "title": "Booked Successfully",
       "subtitle": "Details have been sent to your email",
       "download": "Download Policy",
-      "share": "Share"
+      "share": "Share",
+      "downloading": "Downloading...",
+      "sharing": "Sharing...",
+      "downloaded": "Successfully downloaded",
+      "download_error": "Error downloading",
+      "share_error": "Error sharing",
+      "voucher_not_available": "Voucher not available",
+      "open": "Open",
+      "booking_id": "Booking ID",
+      "confirmation": "Confirmation Number",
+      "share_title": "Hotel Booking"
     },
-    "from": "from"
+    "from": "from",
+    "filter": {
+      "title": "Filter",
+      "price_range": "Price Range",
+      "stars": "Stars",
+      "cancellation": "Cancellation",
+      "refundable": "Refundable",
+      "non_refundable": "Non-refundable",
+      "all": "All",
+      "reset": "Reset",
+      "apply": "Apply"
+    }
   }
 }

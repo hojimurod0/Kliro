@@ -205,15 +205,11 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
     if (priceString == null || priceString.isEmpty || priceString == '0') {
       if (mounted) {
         final errorMessage = 'avia.payment.price_not_available'.tr();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              errorMessage.contains('avia.payment.price_not_available')
-                  ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
-                  : errorMessage,
-            ),
-            backgroundColor: Colors.red,
-          ),
+        SnackbarHelper.showError(
+          context,
+          errorMessage.contains('avia.payment.price_not_available')
+              ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
+              : errorMessage,
         );
       }
       return;
@@ -236,15 +232,11 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
     if (amount <= 0) {
       if (mounted) {
         final errorMessage = 'avia.payment.price_not_available'.tr();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              errorMessage.contains('avia.payment.price_not_available')
-                  ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
-                  : errorMessage,
-            ),
-            backgroundColor: Colors.red,
-          ),
+        SnackbarHelper.showError(
+          context,
+          errorMessage.contains('avia.payment.price_not_available')
+              ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
+              : errorMessage,
         );
       }
       return;
@@ -345,22 +337,15 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
                   ),
                 );
                 // Show info message
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                        'Bu buyurtma allaqachon mavjud. Mavjud buyurtmaga o\'tildi.'),
-                    backgroundColor: Colors.blue,
-                  ),
+                SnackbarHelper.showInfo(
+                  context,
+                  'Bu buyurtma allaqachon mavjud. Mavjud buyurtmaga o\'tildi.',
                 );
               } else {
                 // Regular error - show error message
-                ScaffoldMessenger.of(
+                SnackbarHelper.showError(
                   context,
-                ).showSnackBar(
-                  SnackBar(
-                    content:
-                        Text('${'avia.common.error'.tr()}: ${state.message}'),
-                  ),
+                  '${'avia.common.error'.tr()}: ${state.message}',
                 );
               }
             } else if (state is AviaPaymentSuccess) {

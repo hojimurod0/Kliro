@@ -166,6 +166,16 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
                 _showRefundConfirmation(context, state.amounts);
               } else if (state is AviaRefundAmountsFailure) {
                 _showError(context, '${'avia.status.error_message'.tr()}: ${state.message}');
+              } else if (state is AviaVoidSuccess) {
+                _showSuccess(context, 'avia.status.voided_message'.tr());
+                _loadBookingInfo();
+              } else if (state is AviaVoidFailure) {
+                _showError(context, state.message);
+              } else if (state is AviaAutoCancelSuccess) {
+                _showSuccess(context, 'avia.status.auto_cancelled_message'.tr());
+                _loadBookingInfo();
+              } else if (state is AviaAutoCancelFailure) {
+                _showError(context, state.message);
               } else if (state is AviaCheckPriceSuccess && _isLoadingPayment) {
                 _priceCheck = state.priceCheck;
                 // Ikkalasi ham kelganda invoice yaratish
@@ -385,6 +395,84 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
                         style: TextStyle(
                           fontSize: 16.sp, 
                           color: theme.textTheme.bodyLarge?.color
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    OutlinedButton(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text('avia.status.void_ticket'.tr()),
+                            content: Text('avia.status.void_confirm'.tr()),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: Text('avia.status.cancel'.tr()),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  context.read<AviaBloc>().add(VoidTicketRequested(widget.bookingId));
+                                },
+                                child: Text(
+                                  'avia.status.confirm'.tr(),
+                                  style: TextStyle(color: theme.colorScheme.error),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        side: BorderSide(color: Colors.orange),
+                      ),
+                      child: Text(
+                        'avia.status.void_ticket'.tr(),
+                        style: TextStyle(
+                          fontSize: 16.sp, 
+                          color: Colors.orange
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    OutlinedButton(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text('avia.status.auto_cancel'.tr()),
+                            content: Text('avia.status.auto_cancel_confirm'.tr()),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: Text('avia.status.cancel'.tr()),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  context.read<AviaBloc>().add(AutoCancelRequested(widget.bookingId));
+                                },
+                                child: Text(
+                                  'avia.status.confirm'.tr(),
+                                  style: TextStyle(color: theme.colorScheme.error),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        side: BorderSide(color: theme.colorScheme.error),
+                      ),
+                      child: Text(
+                        'avia.status.auto_cancel'.tr(),
+                        style: TextStyle(
+                          fontSize: 16.sp, 
+                          color: theme.colorScheme.error
                         ),
                       ),
                     ),
@@ -774,11 +862,9 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
         safeSetState(() {
           _isLoadingPayment = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'),
-            backgroundColor: Colors.red,
-          ),
+        SnackbarHelper.showError(
+          context,
+          'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.',
         );
       }
       return;
@@ -795,15 +881,11 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
           _isLoadingPayment = false;
         });
         final errorMessage = 'avia.payment.price_not_available'.tr();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              errorMessage.contains('avia.payment.price_not_available')
-                  ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
-                  : errorMessage,
-            ),
-            backgroundColor: Colors.red,
-          ),
+        SnackbarHelper.showError(
+          context,
+          errorMessage.contains('avia.payment.price_not_available')
+              ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
+              : errorMessage,
         );
       }
       return;

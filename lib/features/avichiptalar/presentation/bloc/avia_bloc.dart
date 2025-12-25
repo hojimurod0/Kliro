@@ -16,6 +16,11 @@ import '../../data/models/refund_amounts_model.dart';
 import '../../data/models/cancel_response_model.dart';
 import '../../data/models/airport_hint_model.dart';
 import '../../data/models/human_model.dart';
+import '../../data/models/schedule_model.dart';
+import '../../data/models/visa_type_model.dart';
+import '../../data/models/service_class_model.dart';
+import '../../data/models/passenger_type_model.dart';
+import '../../data/models/health_model.dart';
 import '../../domain/repositories/avichiptalar_repository.dart';
 import '../../../../core/utils/error_message_helper.dart';
 import '../../../../core/utils/logger.dart';
@@ -65,6 +70,24 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
 
     // Airport Hints
     on<AirportHintsRequested>(_onAirportHintsRequested);
+    
+    // PDF Receipt
+    on<PdfReceiptRequested>(_onPdfReceiptRequested);
+    
+    // Schedule
+    on<ScheduleRequested>(_onScheduleRequested);
+    
+    // Visa Types
+    on<VisaTypesRequested>(_onVisaTypesRequested);
+    
+    // Service Classes
+    on<ServiceClassesRequested>(_onServiceClassesRequested);
+    
+    // Passenger Types
+    on<PassengerTypesRequested>(_onPassengerTypesRequested);
+    
+    // Health
+    on<HealthRequested>(_onHealthRequested);
     
     // User Humans
     on<CreateHumanRequested>(_onCreateHumanRequested);
@@ -369,6 +392,102 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
         AviaAirportHintsFailure(ErrorMessageHelper.getMessage(failure)),
       ),
       (airports) => emit(AviaAirportHintsSuccess(airports)),
+    );
+  }
+
+  // PDF Receipt
+  Future<void> _onPdfReceiptRequested(
+    PdfReceiptRequested event,
+    Emitter<AviaState> emit,
+  ) async {
+    emit(AviaLoading());
+    final result = await repository.getPdfReceipt(event.bookingId);
+    result.fold(
+      (failure) => emit(
+        AviaPdfReceiptFailure(ErrorMessageHelper.getMessage(failure)),
+      ),
+      (pdfUrl) => emit(AviaPdfReceiptSuccess(pdfUrl)),
+    );
+  }
+
+  // Schedule
+  Future<void> _onScheduleRequested(
+    ScheduleRequested event,
+    Emitter<AviaState> emit,
+  ) async {
+    emit(AviaLoading());
+    final result = await repository.getSchedule(
+      departureFrom: event.departureFrom,
+      departureTo: event.departureTo,
+      airportFrom: event.airportFrom,
+    );
+    result.fold(
+      (failure) => emit(
+        AviaScheduleFailure(ErrorMessageHelper.getMessage(failure)),
+      ),
+      (schedules) => emit(AviaScheduleSuccess(schedules)),
+    );
+  }
+
+  // Visa Types
+  Future<void> _onVisaTypesRequested(
+    VisaTypesRequested event,
+    Emitter<AviaState> emit,
+  ) async {
+    emit(AviaLoading());
+    final result = await repository.getVisaTypes(
+      countries: event.countries,
+    );
+    result.fold(
+      (failure) => emit(
+        AviaVisaTypesFailure(ErrorMessageHelper.getMessage(failure)),
+      ),
+      (visaTypes) => emit(AviaVisaTypesSuccess(visaTypes)),
+    );
+  }
+
+  // Service Classes
+  Future<void> _onServiceClassesRequested(
+    ServiceClassesRequested event,
+    Emitter<AviaState> emit,
+  ) async {
+    emit(AviaLoading());
+    final result = await repository.getServiceClasses();
+    result.fold(
+      (failure) => emit(
+        AviaServiceClassesFailure(ErrorMessageHelper.getMessage(failure)),
+      ),
+      (serviceClasses) => emit(AviaServiceClassesSuccess(serviceClasses)),
+    );
+  }
+
+  // Passenger Types
+  Future<void> _onPassengerTypesRequested(
+    PassengerTypesRequested event,
+    Emitter<AviaState> emit,
+  ) async {
+    emit(AviaLoading());
+    final result = await repository.getPassengerTypes();
+    result.fold(
+      (failure) => emit(
+        AviaPassengerTypesFailure(ErrorMessageHelper.getMessage(failure)),
+      ),
+      (passengerTypes) => emit(AviaPassengerTypesSuccess(passengerTypes)),
+    );
+  }
+
+  // Health
+  Future<void> _onHealthRequested(
+    HealthRequested event,
+    Emitter<AviaState> emit,
+  ) async {
+    emit(AviaLoading());
+    final result = await repository.getHealth();
+    result.fold(
+      (failure) => emit(
+        AviaHealthFailure(ErrorMessageHelper.getMessage(failure)),
+      ),
+      (health) => emit(AviaHealthSuccess(health)),
     );
   }
   // User Humans Handlers

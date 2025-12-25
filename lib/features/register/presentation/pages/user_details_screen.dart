@@ -9,6 +9,7 @@ import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../../../core/services/auth/auth_service.dart';
 import '../../domain/params/auth_params.dart';
 import '../bloc/register_bloc.dart';
@@ -83,70 +84,60 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
     final confirmPassword = _confirmPasswordController.text.trim();
 
     if (firstName.isEmpty || lastName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('auth.user_details.snack_name'.tr()),
-          backgroundColor: Colors.red,
-        ),
+      SnackbarHelper.showError(
+        context,
+        'auth.user_details.snack_name'.tr(),
       );
       return;
     }
 
     if (_selectedRegionId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('auth.user_details.snack_region'.tr()),
-          backgroundColor: Colors.red,
-        ),
+      SnackbarHelper.showError(
+        context,
+        'auth.user_details.snack_region'.tr(),
       );
       return;
     }
 
     if (password.isEmpty || confirmPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('auth.user_details.snack_password'.tr()),
-          backgroundColor: Colors.red,
-        ),
+      SnackbarHelper.showError(
+        context,
+        'auth.user_details.snack_password'.tr(),
       );
       return;
     }
 
     if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('auth.user_details.snack_password_match'.tr()),
-          backgroundColor: Colors.red,
-        ),
+      SnackbarHelper.showError(
+        context,
+        'auth.user_details.snack_password_match'.tr(),
       );
       return;
     }
 
     final normalizedContact = AuthService.normalizeContact(widget.contactInfo);
     if (normalizedContact.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Kontakt ma'lumotida xatolik bor."),
-          backgroundColor: Colors.red,
-        ),
+      SnackbarHelper.showError(
+        context,
+        "Kontakt ma'lumotida xatolik bor.",
       );
       return;
     }
 
     final isEmail = normalizedContact.contains('@');
     context.read<RegisterBloc>().add(
-      CompleteRegistrationRequested(
-        RegistrationFinalizeParams(
-          email: isEmail ? normalizedContact : null,
-          phone: isEmail ? null : normalizedContact,
-          regionId: _selectedRegionId!,
-          password: password,
-          confirmPassword: confirmPassword,
-          firstName: firstName,
-          lastName: lastName,
-        ),
-      ),
-    );
+          CompleteRegistrationRequested(
+            RegistrationFinalizeParams(
+              email: isEmail ? normalizedContact : null,
+              phone: isEmail ? null : normalizedContact,
+              regionId: _selectedRegionId!,
+              password: password,
+              confirmPassword: confirmPassword,
+              firstName: firstName,
+              lastName: lastName,
+            ),
+          ),
+        );
   }
 
   @override
@@ -156,20 +147,14 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
         if (state.flow != RegisterFlow.registrationFinalize) return;
 
         if (state.status == RegisterStatus.failure) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.error ?? tr('common.error_occurred_simple')),
-              backgroundColor: Colors.red,
-            ),
+          SnackbarHelper.showError(
+            context,
+            state.error ?? tr('common.error_occurred_simple'),
           );
         } else if (state.status == RegisterStatus.success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                state.message ?? 'auth.user_details.snack_saved'.tr(),
-              ),
-              backgroundColor: Colors.green,
-            ),
+          SnackbarHelper.showSuccess(
+            context,
+            state.message ?? 'auth.user_details.snack_saved'.tr(),
           );
           context.router.replace(HomeRoute());
         }

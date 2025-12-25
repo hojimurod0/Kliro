@@ -10,6 +10,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../common/utils/bank_assets.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_text_size.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -225,7 +226,7 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
                                               context,
                                             ).textTheme.bodySmall?.color ??
                                             AppColors.grayText,
-                                        fontSize: 13.sp,
+                                        fontSize: AppTextSize.bodySmall,
                                       ),
                                       border: InputBorder.none,
                                       enabledBorder: InputBorder.none,
@@ -282,13 +283,13 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
                                           )
                                         : Text(
                                             currency['flag'] as String,
-                                            style: TextStyle(fontSize: 18.sp),
+                                            style: TextStyle(fontSize: AppTextSize.filterTitle),
                                           ),
                                     SizedBox(width: 8.w),
                                     Text(
                                       currency['code'] as String,
                                       style: TextStyle(
-                                        fontSize: 13.sp,
+                                        fontSize: AppTextSize.bodySmall,
                                         fontWeight: FontWeight.w600,
                                         color: isSelected
                                             ? AppColors.primaryBlue
@@ -304,7 +305,7 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
                                       child: Text(
                                         tr(currency['nameKey'] as String),
                                         style: TextStyle(
-                                          fontSize: 12.sp,
+                                          fontSize: AppTextSize.labelMedium,
                                           color:
                                               Theme.of(
                                                 context,
@@ -355,7 +356,7 @@ class _CurrencyRatesPageState extends State<CurrencyRatesPage> {
                                       )
                                     : Text(
                                         _getCurrencyFlag(_selectedCurrencyCode),
-                                        style: TextStyle(fontSize: 16.sp),
+                                        style: TextStyle(fontSize: AppTextSize.bodyLarge),
                                       ),
                                 SizedBox(width: 4.w),
                                 Text(
@@ -588,7 +589,7 @@ class _BankRateCard extends StatelessWidget {
                       Text(
                         currency.bankName,
                         style: TextStyle(
-                          fontSize: 18.sp,
+                          fontSize: AppTextSize.filterTitle,
                           fontWeight: FontWeight.w700,
                           color: titleColor,
                         ),
@@ -666,7 +667,7 @@ class _BankRateCard extends StatelessWidget {
                                 (Match m) => '${m[1]},',
                               ),
                           style: TextStyle(
-                            fontSize: 18.sp,
+                            fontSize: AppTextSize.filterTitle,
                             fontWeight: FontWeight.w700,
                             color: greenText,
                           ),
@@ -727,7 +728,7 @@ class _BankRateCard extends StatelessWidget {
                                 (Match m) => '${m[1]},',
                               ),
                           style: TextStyle(
-                            fontSize: 18.sp,
+                            fontSize: AppTextSize.filterTitle,
                             fontWeight: FontWeight.w700,
                             color: redText,
                           ),

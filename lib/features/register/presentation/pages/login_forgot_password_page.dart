@@ -10,6 +10,7 @@ import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../../../core/services/auth/auth_service.dart';
 import '../../domain/params/auth_params.dart';
 import '../bloc/register_bloc.dart';
@@ -92,11 +93,9 @@ class _LoginForgotPasswordPageState extends State<LoginForgotPasswordPage> {
         if (state.flow != RegisterFlow.forgotPasswordOtp) return;
 
         if (state.status == RegisterStatus.failure) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.error ?? tr('common.error_occurred_simple')),
-              backgroundColor: Colors.red,
-            ),
+          SnackbarHelper.showError(
+            context,
+            state.error ?? tr('common.error_occurred_simple'),
           );
         } else if (state.status == RegisterStatus.success) {
           // Muvaffaqiyatli bo'lsa keyingi sahifaga o'tish

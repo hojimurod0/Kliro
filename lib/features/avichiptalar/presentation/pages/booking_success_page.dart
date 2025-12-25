@@ -1,9 +1,13 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:dio/dio.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/navigation/app_router.dart';
@@ -14,6 +18,7 @@ import '../../data/models/booking_model.dart';
 import '../../data/models/price_check_model.dart';
 import '../../data/models/payment_permission_model.dart';
 import '../../data/models/invoice_request_model.dart';
+import '../../data/models/fare_rules_model.dart';
 import '../bloc/avia_bloc.dart';
 import '../bloc/payment_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -57,6 +62,8 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
   BookingModel? _booking;
   int?
       _expandedCardIndex; // Track which card is expanded (0: payer, 1: flight, 2: ticket, 3: passenger, 4: booking)
+  FareRulesModel? _bookingRules;
+  bool _isLoadingRules = false;
 
   // Timer for payment countdown
   Timer? _countdownTimer;
@@ -259,15 +266,11 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
           _isLoadingPayment = false;
         });
         final errorMessage = 'avia.payment.price_not_available'.tr();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              errorMessage.contains('avia.payment.price_not_available')
-                  ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
-                  : errorMessage,
-            ),
-            backgroundColor: Colors.red,
-          ),
+        SnackbarHelper.showError(
+          context,
+          errorMessage.contains('avia.payment.price_not_available')
+              ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
+              : errorMessage,
         );
       }
       return;
@@ -290,6 +293,128 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
     );
 
     paymentBloc.add(CreateInvoiceRequested(request));
+  }
+
+  Future<void> _launchPdfUrl(String pdfUrl) async {
+    try {
+      // PDF'ni yuklab olish va saqlash
+      final dio = Dio();
+      final response = await dio.get(
+        pdfUrl,
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      // Fayl nomini yaratish
+      final bookingId = widget.bookingId;
+      final fileName = 'booking_${bookingId}_receipt.pdf';
+      
+      // Downloads papkasini olish
+      Directory? directory;
+      try {
+        if (Platform.isAndroid) {
+          // Android uchun Downloads papkasi
+          directory = Directory('/storage/emulated/0/Download');
+          if (!await directory.exists()) {
+            directory = await getExternalStorageDirectory();
+            if (directory != null) {
+              directory = Directory('${directory.path}/Download');
+              if (!await directory.exists()) {
+                await directory.create(recursive: true);
+              }
+            }
+          }
+        } else if (Platform.isIOS) {
+          // iOS uchun Documents papkasi
+          directory = await getApplicationDocumentsDirectory();
+        } else {
+          directory = await getExternalStorageDirectory();
+        }
+      } catch (e) {
+        // Fallback
+        directory = await getExternalStorageDirectory();
+      }
+
+      if (directory == null) {
+        if (mounted) {
+          SnackbarHelper.showError(context, 'Fayl saqlash papkasi topilmadi');
+        }
+        // Fallback: faqat ochish
+        final uri = Uri.parse(pdfUrl);
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        return;
+      }
+      
+      final filePath = '${directory.path}/$fileName';
+      final file = File(filePath);
+      await file.writeAsBytes(response.data);
+      
+      // Muvaffaqiyatli saqlangan xabar
+      if (mounted) {
+        SnackbarHelper.showSuccess(
+          context,
+          'PDF muvaffaqiyatli saqlandi',
+        );
+        
+        // Ulashish dialog'ini ko'rsatish
+        _showPdfShareDialog(filePath);
+      }
+    } catch (e) {
+      // Xatolik bo'lsa, faqat ochishga harakat qilish
+      try {
+        final uri = Uri.parse(pdfUrl);
+        final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!launched && mounted) {
+          SnackbarHelper.showError(context, 'PDF faylini ochib bo\'lmadi');
+        }
+      } catch (launchError) {
+        if (mounted) {
+          SnackbarHelper.showError(
+            context,
+            'PDF yuklab olishda xatolik: ${e.toString()}',
+          );
+        }
+      }
+    }
+  }
+
+  void _showPdfShareDialog(String filePath) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('PDF saqlandi'),
+        content: Text('PDF fayl muvaffaqiyatli saqlandi. Ulashishni xohlaysizmi?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Yopish'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await Share.shareXFiles([XFile(filePath)]);
+              } catch (e) {
+                if (mounted) {
+                  SnackbarHelper.showError(context, 'Ulashishda xatolik');
+                }
+              }
+            },
+            child: Text('Ulashish'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handlePdfDownload() {
+    if (_isPaid && widget.bookingId.isNotEmpty) {
+      context.read<AviaBloc>().add(PdfReceiptRequested(widget.bookingId));
+    } else {
+      SnackbarHelper.showError(
+        context,
+        'PDF faqat to\'langan bronlar uchun mavjud',
+      );
+    }
   }
 
   Future<void> _launchPaymentUrl(String checkoutUrl) async {
@@ -657,6 +782,26 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
                   _startCountdownTimer();
                 }
               });
+            } else if (state is AviaPdfReceiptSuccess) {
+              // PDF URL olinganda, uni ochish
+              final pdfUrl = state.pdfUrl;
+              if (pdfUrl.isNotEmpty) {
+                _launchPdfUrl(pdfUrl);
+              } else {
+                SnackbarHelper.showError(context, 'PDF topilmadi');
+              }
+            } else if (state is AviaPdfReceiptFailure) {
+              SnackbarHelper.showError(context, state.message);
+            } else if (state is AviaBookingRulesSuccess) {
+              setState(() {
+                _bookingRules = state.rules;
+                _isLoadingRules = false;
+              });
+            } else if (state is AviaBookingRulesFailure) {
+              setState(() {
+                _isLoadingRules = false;
+              });
+              SnackbarHelper.showError(context, state.message);
             } else if (state is AviaCheckPriceSuccess && _isLoadingPayment) {
               _priceCheck = state.priceCheck;
               // Ikkalasi ham kelganda invoice yaratish
@@ -1478,6 +1623,137 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
                                                 .tr(),
                                             value: _routeFromBookingOrOffers(),
                                           ),
+                                          SizedBox(height: 12.h),
+                                          OutlinedButton.icon(
+                                            onPressed: _isLoadingRules
+                                                ? null
+                                                : () {
+                                                    setState(() {
+                                                      _isLoadingRules = true;
+                                                    });
+                                                    context.read<AviaBloc>().add(
+                                                          BookingRulesRequested(
+                                                              widget.bookingId),
+                                                        );
+                                                  },
+                                            icon: _isLoadingRules
+                                                ? SizedBox(
+                                                    width: 16.w,
+                                                    height: 16.h,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                    ),
+                                                  )
+                                                : Icon(
+                                                    Icons.description_outlined,
+                                                    size: 18.sp,
+                                                  ),
+                                            label: Text(
+                                              'avia.booking_details.view_rules'
+                                                  .tr(),
+                                              style: TextStyle(
+                                                fontSize: 14.sp,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            style: OutlinedButton.styleFrom(
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 16.w,
+                                                vertical: 12.h,
+                                              ),
+                                              side: BorderSide(
+                                                color: AppColors.primaryBlue,
+                                              ),
+                                            ),
+                                          ),
+                                          if (_bookingRules != null) ...[
+                                            SizedBox(height: 16.h),
+                                            if (_bookingRules!.title != null &&
+                                                _bookingRules!.title!
+                                                    .trim()
+                                                    .isNotEmpty)
+                                              Text(
+                                                _bookingRules!.title!.trim(),
+                                                style: TextStyle(
+                                                  fontSize: 16.sp,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: AppColors.getTextColor(
+                                                      isDark),
+                                                ),
+                                              ),
+                                            if (_bookingRules!.description !=
+                                                    null &&
+                                                _bookingRules!.description!
+                                                    .trim()
+                                                    .isNotEmpty) ...[
+                                              SizedBox(height: 8.h),
+                                              Text(
+                                                _bookingRules!.description!
+                                                    .trim(),
+                                                style: TextStyle(
+                                                  fontSize: 14.sp,
+                                                  color: AppColors
+                                                      .getSubtitleColor(isDark),
+                                                ),
+                                              ),
+                                            ],
+                                            if (_bookingRules!.rules != null &&
+                                                _bookingRules!.rules!.isNotEmpty) ...[
+                                              SizedBox(height: 16.h),
+                                              ..._bookingRules!.rules!
+                                                  .map((rule) => Padding(
+                                                        padding: EdgeInsets.only(
+                                                            bottom: 12.h),
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            if (rule.type !=
+                                                                    null &&
+                                                                rule.type!
+                                                                    .trim()
+                                                                    .isNotEmpty)
+                                                              Text(
+                                                                rule.type!
+                                                                    .trim(),
+                                                                style: TextStyle(
+                                                                  fontSize:
+                                                                      14.sp,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w700,
+                                                                  color: AppColors
+                                                                      .getTextColor(
+                                                                          isDark),
+                                                                ),
+                                                              ),
+                                                            if (rule.description !=
+                                                                    null &&
+                                                                rule.description!
+                                                                    .trim()
+                                                                    .isNotEmpty) ...[
+                                                              SizedBox(
+                                                                  height: 4.h),
+                                                              Text(
+                                                                rule.description!
+                                                                    .trim(),
+                                                                style: TextStyle(
+                                                                  fontSize:
+                                                                      13.sp,
+                                                                  color: AppColors
+                                                                      .getSubtitleColor(
+                                                                          isDark),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ],
+                                                        ),
+                                                      ))
+                                                  .toList(),
+                                            ],
+                                          ],
                                         ],
                                       ),
                                     ),
@@ -1565,6 +1841,34 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
                             ),
                           ),
                           SizedBox(width: AppSpacing.md),
+                          if (_isPaid) ...[
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _handlePdfDownload,
+                                icon: Icon(
+                                  Icons.picture_as_pdf,
+                                  size: 18.sp,
+                                  color: AppColors.primaryBlue,
+                                ),
+                                label: Text(
+                                  'PDF',
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primaryBlue,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                                  side: BorderSide(color: AppColors.primaryBlue),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.r),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: AppSpacing.md),
+                          ],
                           Expanded(
                             flex: 2,
                             child: ElevatedButton(

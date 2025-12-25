@@ -46,11 +46,12 @@ class HotelSearchScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton(
+                    ElevatedButton.icon(
                       onPressed: () {
                         context.read<HotelBloc>().add(const HotelStateReset());
                       },
-                      child: Text('hotel.common.retry'.tr()),
+                      icon: const Icon(Icons.refresh),
+                      label: Text('hotel.common.retry'.tr()),
                     ),
                   ],
                 ),

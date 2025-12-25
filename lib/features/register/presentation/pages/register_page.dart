@@ -11,6 +11,7 @@ import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/services/auth/auth_service.dart';
 import '../../../../core/services/google/google_sign_in_service.dart';
@@ -58,12 +59,11 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void _showSnackBar(String message, {Color background = Colors.red}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: background,
-      ),
-    );
+    if (background == Colors.green) {
+      SnackbarHelper.showSuccess(context, message);
+    } else {
+      SnackbarHelper.showError(context, message);
+    }
   }
 
   void _submit() {
@@ -106,7 +106,10 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> _handleGoogleSignIn() async {
     try {
       final googleAccount = await GoogleSignInService.instance.signIn();
-      if (googleAccount == null) return;
+      if (googleAccount == null) {
+        _showSnackBar('Google login bekor qilindi yoki sozlama xato');
+        return;
+      }
 
       final email = googleAccount.email;
       if (email.isEmpty) {

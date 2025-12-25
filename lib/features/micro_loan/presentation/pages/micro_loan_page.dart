@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_text_size.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/widgets/primary_back_button.dart';
 import '../../../../core/widgets/primary_search_filter_bar.dart';
@@ -108,7 +109,7 @@ class _MicroLoanPageState extends State<MicroLoanPage> {
             style: TextStyle(
               color:
                   Theme.of(context).textTheme.titleLarge?.color ?? Colors.black,
-              fontSize: 17.sp,
+              fontSize: AppTextSize.appBarTitle,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -415,7 +416,7 @@ class _MicrocreditCardState extends State<_MicrocreditCard> {
                     Text(
                       widget.item.bankName,
                       style: TextStyle(
-                        fontSize: 16.sp,
+                        fontSize: AppTextSize.headingS,
                         fontWeight: FontWeight.w700,
                         color:
                             Theme.of(context).textTheme.titleLarge?.color ??
@@ -425,28 +426,6 @@ class _MicrocreditCardState extends State<_MicrocreditCard> {
                     SizedBox(height: 8.h),
                     Row(
                       children: [
-                        Icon(
-                          Icons.access_time,
-                          size: 14.sp,
-                          color:
-                              Theme.of(context).textTheme.bodySmall?.color ??
-                              const Color(0xFF9CA3AF),
-                        ),
-                        SizedBox(width: 4.w),
-                        Text(
-                          widget.item.createdAt != null
-                              ? DateFormat(
-                                  'dd MMM, HH:mm',
-                                ).format(widget.item.createdAt!.toLocal())
-                              : tr('micro_loan.updated_recently'),
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color:
-                                Theme.of(context).textTheme.bodyMedium?.color ??
-                                AppColors.gray500,
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
                         Container(
                           padding: EdgeInsets.symmetric(
                             horizontal: 10.w,
@@ -459,7 +438,7 @@ class _MicrocreditCardState extends State<_MicrocreditCard> {
                           child: Text(
                             widget.item.channel,
                             style: TextStyle(
-                              fontSize: 11.sp,
+                              fontSize: AppTextSize.caption,
                               fontWeight: FontWeight.w600,
                               color: _channelColor(context),
                             ),
@@ -530,7 +509,7 @@ class _MicrocreditCardState extends State<_MicrocreditCard> {
                           tr('micro_loan.advantages_count', namedArgs: {'count': advantages.length.toString()}),
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
-                            fontSize: 14.sp,
+                            fontSize: AppTextSize.advantagesCount,
                             color:
                                 Theme.of(context).textTheme.titleLarge?.color ??
                                 AppColors.charcoal,
@@ -562,7 +541,7 @@ class _MicrocreditCardState extends State<_MicrocreditCard> {
                               child: Text(
                                 advantage,
                                 style: TextStyle(
-                                  fontSize: 13.sp,
+                                  fontSize: AppTextSize.advantagesItem,
                                   color:
                                       Theme.of(context).textTheme.bodyMedium?.color ??
                                       AppColors.gray500,
@@ -607,7 +586,7 @@ class _MicrocreditCardState extends State<_MicrocreditCard> {
               child: Text(
                 tr('micro_loan.apply'),
                 style: TextStyle(
-                  fontSize: 14.sp,
+                  fontSize: AppTextSize.buttonPrimary,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
@@ -663,7 +642,7 @@ class _InfoBlock extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 11.sp,
+              fontSize: AppTextSize.infoLabel,
               color:
                   Theme.of(context).textTheme.bodyMedium?.color ??
                       AppColors.gray500,
@@ -673,7 +652,7 @@ class _InfoBlock extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontSize: 12.sp,
+              fontSize: AppTextSize.infoValue,
               fontWeight: FontWeight.w700,
               color: isAccent
                   ? accentColor
@@ -721,14 +700,14 @@ class _StateMessage extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: AppTextSize.bodyLarge, fontWeight: FontWeight.w700),
             ),
             SizedBox(height: 8.h),
             Text(
               subtitle,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 13.sp,
+                fontSize: AppTextSize.bodySmall,
                 color:
                     Theme.of(context).textTheme.bodyMedium?.color ??
                     AppColors.grayText,
@@ -800,7 +779,6 @@ class _MicrocreditFilterSheetState extends State<_MicrocreditFilterSheet> {
   late bool _onlyOnline;
 
   final Color _primaryBlue = const Color(0xFF008CF0);
-  final Color _borderColor = const Color(0xFFE0E0E0);
 
   @override
   void initState() {
@@ -843,7 +821,14 @@ class _MicrocreditFilterSheetState extends State<_MicrocreditFilterSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final cardColor = Theme.of(context).cardColor;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = theme.cardColor;
+    final borderColor = theme.dividerColor;
+    final textColor = theme.textTheme.titleLarge?.color ?? 
+        (isDark ? Colors.white : Colors.black87);
+    final handleColor = isDark ? Colors.grey[600] : Colors.grey[300];
+    
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: BoxDecoration(
@@ -862,7 +847,7 @@ class _MicrocreditFilterSheetState extends State<_MicrocreditFilterSheet> {
               width: 40.w,
               height: 4.h,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: handleColor,
                 borderRadius: BorderRadius.circular(2.r),
               ),
             ),
@@ -870,10 +855,9 @@ class _MicrocreditFilterSheetState extends State<_MicrocreditFilterSheet> {
             Text(
               tr('micro_loan.filters'),
               style: TextStyle(
-                fontSize: 18.sp,
+                fontSize: AppTextSize.filterTitle,
                 fontWeight: FontWeight.w600,
-                color: Theme.of(context).textTheme.titleLarge?.color ??
-                    Colors.black87,
+                color: textColor,
               ),
             ),
             SizedBox(height: 24.h),
@@ -901,7 +885,9 @@ class _MicrocreditFilterSheetState extends State<_MicrocreditFilterSheet> {
                 color: cardColor,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: isDark 
+                        ? Colors.black.withOpacity(0.3)
+                        : Colors.grey.withOpacity(0.1),
                     spreadRadius: 1,
                     blurRadius: 10,
                     offset: const Offset(0, -5),
@@ -915,7 +901,7 @@ class _MicrocreditFilterSheetState extends State<_MicrocreditFilterSheet> {
                       onPressed: _reset,
                       style: OutlinedButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: 16.h),
-                        side: BorderSide(color: _borderColor),
+                        side: BorderSide(color: borderColor),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16.r),
                         ),
@@ -923,9 +909,8 @@ class _MicrocreditFilterSheetState extends State<_MicrocreditFilterSheet> {
                       child: Text(
                         tr('common.reset'),
                         style: TextStyle(
-                          color: Theme.of(context).textTheme.titleLarge?.color ??
-                              AppColors.charcoal,
-                          fontSize: 16.sp,
+                          color: textColor,
+                          fontSize: AppTextSize.buttonPrimary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -947,7 +932,7 @@ class _MicrocreditFilterSheetState extends State<_MicrocreditFilterSheet> {
                         tr('common.sort'),
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 16.sp,
+                          fontSize: AppTextSize.buttonPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -966,16 +951,23 @@ class _MicrocreditFilterSheetState extends State<_MicrocreditFilterSheet> {
     required _MicrocreditSortType type,
     required bool isSelected,
   }) {
+    final theme = Theme.of(context);
+    final textColor = isSelected 
+        ? Colors.white 
+        : (theme.textTheme.titleLarge?.color ?? 
+            (theme.brightness == Brightness.dark ? Colors.white : Colors.black87));
+    final borderColor = theme.dividerColor;
+    
     return InkWell(
       onTap: () => setState(() => _selectedSort = type),
       borderRadius: BorderRadius.circular(16.r),
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 16.h),
         decoration: BoxDecoration(
-          color: isSelected ? _primaryBlue : Theme.of(context).cardColor,
+          color: isSelected ? _primaryBlue : theme.cardColor,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
-            color: isSelected ? _primaryBlue : _borderColor,
+            color: isSelected ? _primaryBlue : borderColor,
           ),
         ),
         child: Row(
@@ -984,8 +976,8 @@ class _MicrocreditFilterSheetState extends State<_MicrocreditFilterSheet> {
             Text(
               type.icon,
               style: TextStyle(
-                fontSize: 16.sp,
-                color: isSelected ? Colors.white : Colors.black87,
+                fontSize: AppTextSize.bodyLarge,
+                color: textColor,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -993,8 +985,8 @@ class _MicrocreditFilterSheetState extends State<_MicrocreditFilterSheet> {
             Text(
               type.label,
               style: TextStyle(
-                fontSize: 16.sp,
-                color: isSelected ? Colors.white : Colors.black87,
+                fontSize: AppTextSize.bodyLarge,
+                color: textColor,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1005,15 +997,22 @@ class _MicrocreditFilterSheetState extends State<_MicrocreditFilterSheet> {
   }
 
   Widget _buildToggleOption() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = theme.dividerColor;
+    final textColor = theme.textTheme.titleLarge?.color ?? 
+        (isDark ? Colors.white : Colors.black87);
+    final unselectedBorderColor = isDark ? Colors.grey[600] : Colors.grey[400];
+    
     return InkWell(
       onTap: () => setState(() => _onlyOnline = !_onlyOnline),
       borderRadius: BorderRadius.circular(16.r),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: _borderColor),
+          border: Border.all(color: borderColor),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1021,10 +1020,9 @@ class _MicrocreditFilterSheetState extends State<_MicrocreditFilterSheet> {
             Text(
               tr('micro_loan.only_online_applications'),
               style: TextStyle(
-                fontSize: 16.sp,
+                fontSize: AppTextSize.bodyLarge,
                 fontWeight: FontWeight.w600,
-                color: Theme.of(context).textTheme.titleLarge?.color ??
-                    Colors.black87,
+                color: textColor,
               ),
             ),
             Container(
@@ -1033,7 +1031,7 @@ class _MicrocreditFilterSheetState extends State<_MicrocreditFilterSheet> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: _onlyOnline ? _primaryBlue : Colors.grey[400]!,
+                  color: _onlyOnline ? _primaryBlue : (unselectedBorderColor ?? Colors.grey[400]!),
                   width: 2,
                 ),
                 color: _onlyOnline ? _primaryBlue : Colors.transparent,
@@ -1071,7 +1069,7 @@ class _PaginationErrorBanner extends StatelessWidget {
             child: Text(
               message,
               style: TextStyle(
-                fontSize: 12.sp,
+                fontSize: AppTextSize.labelMedium,
                 color: Theme.of(context).colorScheme.error,
               ),
             ),

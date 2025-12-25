@@ -33,11 +33,19 @@ class HotelResultsScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
+                  ElevatedButton.icon(
                     onPressed: () {
-                      context.read<HotelBloc>().add(const HotelStateReset());
+                      // Retry last search
+                      final bloc = context.read<HotelBloc>();
+                      final lastFilter = state.filter;
+                      if (lastFilter != null) {
+                        bloc.add(SearchHotelsRequested(lastFilter));
+                      } else {
+                        bloc.add(const HotelStateReset());
+                      }
                     },
-                    child: Text('hotel.common.retry'.tr()),
+                    icon: const Icon(Icons.refresh),
+                    label: Text('hotel.common.retry'.tr()),
                   ),
                 ],
               ),
@@ -53,6 +61,7 @@ class HotelResultsScreen extends StatelessWidget {
             checkInDate: filter.checkInDate,
             checkOutDate: filter.checkOutDate,
             guests: filter.guests,
+            filter: filter,
           );
         }
 

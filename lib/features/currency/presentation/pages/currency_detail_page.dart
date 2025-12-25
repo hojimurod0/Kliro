@@ -174,19 +174,32 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
                       child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'currency.bank_rates'.tr(),
-                          style: TextStyle(
-                            color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal,
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        // Sarlavha va tushuntirish
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.currency_exchange_rounded,
+                              color: AppColors.primaryBlue,
+                              size: 24.sp,
+                            ),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: Text(
+                                'currency.bank_rates'.tr(),
+                                style: TextStyle(
+                                  color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal,
+                                  fontSize: 20.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 16.h),
+                        SizedBox(height: 20.h),
                         // Лучшие банки для покупки и продажи (выше переключателя) - Bitta card ichida
                         if (bestBuyBank != null && bestSellBank != null)
                           Padding(
-                            padding: EdgeInsets.only(bottom: 16.h),
+                            padding: EdgeInsets.only(bottom: 20.h),
                             child: Container(
                               padding: EdgeInsets.all(16.w),
                               decoration: BoxDecoration(
@@ -203,22 +216,27 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
                                   ),
                                 ],
                               ),
-                              child: Row(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(
-                                    child: _BestBankCard(
-                                      currency: bestBuyBank,
-                                      isBuy: true,
-                                      onTap: () => _onBankSelected(bestBuyBank),
-                                    ),
-                                  ),
-                                  SizedBox(width: 12.w),
-                                  Expanded(
-                                    child: _BestBankCard(
-                                      currency: bestSellBank,
-                                      isBuy: false,
-                                      onTap: () => _onBankSelected(bestSellBank),
-                                    ),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: _BestBankCard(
+                                          currency: bestBuyBank,
+                                          isBuy: true,
+                                          onTap: () => _onBankSelected(bestBuyBank),
+                                        ),
+                                      ),
+                                      SizedBox(width: 12.w),
+                                      Expanded(
+                                        child: _BestBankCard(
+                                          currency: bestSellBank,
+                                          isBuy: false,
+                                          onTap: () => _onBankSelected(bestSellBank),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -242,7 +260,7 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
                             );
                           },
                         ),
-                        SizedBox(height: 16.h),
+                        SizedBox(height: 20.h),
                         // PageView for smooth slide animation between Buy and Sell
                         SizedBox(
                           height: MediaQuery.of(context).size.height * 0.55,
@@ -677,13 +695,16 @@ class CustomToggleSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Container(
       padding: EdgeInsets.all(4.w),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: theme.scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(14.r),
         border: Border.all(
-          color: Theme.of(context).dividerColor,
+          color: theme.dividerColor,
+          width: 1.5,
         ),
       ),
       child: Row(
@@ -697,38 +718,39 @@ class CustomToggleSwitch extends StatelessWidget {
 
   Widget _buildTab(BuildContext context, String text, int index) {
     final isActive = selectedIndex == index;
+    final theme = Theme.of(context);
+    final activeColor = AppColors.primaryBlue; // Ko'k rang tanlangan tugma uchun
 
     return Expanded(
       child: GestureDetector(
         onTap: () => onChanged(index),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
           padding: EdgeInsets.symmetric(vertical: 12.h),
           decoration: BoxDecoration(
             color: isActive
-                ? Theme.of(context).cardColor
+                ? activeColor.withOpacity(0.1)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(10.r),
-            boxShadow: isActive
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : [],
+            border: Border.all(
+              color: isActive
+                  ? activeColor
+                  : Colors.transparent,
+              width: 2.0,
+            ),
           ),
           child: Center(
-            child: Text(
-              text,
+            child: AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 300),
               style: TextStyle(
-                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                 color: isActive
-                    ? (Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal)
-                    : (Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.gray500),
+                    ? activeColor
+                    : (theme.textTheme.bodyMedium?.color ?? AppColors.gray500),
                 fontSize: 14.sp,
               ),
+              child: Text(text),
             ),
           ),
         ),
@@ -780,15 +802,35 @@ class BankListView extends StatelessWidget {
           ),
         ),
         child: Padding(
-          padding: EdgeInsets.all(32.w),
-          child: Center(
-            child: Text(
-              'currency.empty'.tr(),
-              style: TextStyle(
-                color: Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.gray500,
-                fontSize: 14.sp,
+          padding: EdgeInsets.all(40.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.search_off_rounded,
+                size: 48.sp,
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.3) ?? AppColors.gray500,
               ),
-            ),
+              SizedBox(height: 16.h),
+              Text(
+                'currency.empty'.tr(),
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.gray500,
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                'currency.empty_description'.tr(),
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6) ?? AppColors.gray500,
+                  fontSize: 13.sp,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       );
@@ -840,15 +882,19 @@ class BankListView extends StatelessWidget {
     
     final displayPrice = isSelling ? currency.sellRate : currency.buyRate;
     final priceColor = isSelling ? redText : greenText;
+    final priceIcon = isSelling ? Icons.trending_down_rounded : Icons.trending_up_rounded;
 
-    return Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+    return InkWell(
+      onTap: () => onBankSelected?.call(currency),
+      borderRadius: BorderRadius.circular(12.r),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         child: Row(
           children: [
             // Bank logosi
             Container(
-              width: 40.w,
-              height: 40.w,
+              width: 44.w,
+              height: 44.w,
               decoration: BoxDecoration(
                 color: onlineBadgeBg,
                 borderRadius: BorderRadius.circular(12.r),
@@ -882,30 +928,67 @@ class BankListView extends StatelessWidget {
             ),
             SizedBox(width: 14.w),
             Expanded(
-              child: Text(
-                currency.bankName,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15.sp,
-                  color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    currency.bankName,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15.sp,
+                      color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Row(
+                    children: [
+                      Icon(
+                        priceIcon,
+                        size: 12.sp,
+                        color: priceColor.withOpacity(0.7),
+                      ),
+                      SizedBox(width: 4.w),
+                      Text(
+                        isSelling ? 'currency.sell'.tr() : 'currency.buy'.tr(),
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6) ?? AppColors.gray500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            Text(
-              displayPrice
-                  .toStringAsFixed(0)
-                  .replaceAllMapped(
-                    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                    (Match m) => '${m[1]},',
-                  ) + ' ${'currency.som'.tr()}',
-              style: TextStyle(
-                color: priceColor,
-                fontSize: 16.sp,
-                fontWeight: FontWeight.bold,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  displayPrice
+                      .toStringAsFixed(0)
+                      .replaceAllMapped(
+                        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                        (Match m) => '${m[1]},',
+                      ) + ' ${'currency.som'.tr()}',
+                  style: TextStyle(
+                    color: priceColor,
+                    fontSize: 17.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  'currency.per_unit'.tr(),
+                  style: TextStyle(
+                    fontSize: 10.sp,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5) ?? AppColors.gray500,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
+      ),
     );
   }
 }
@@ -938,50 +1021,30 @@ class _BestBankCard extends StatelessWidget {
     final price = isBuy ? currency.buyRate : currency.sellRate;
     final priceColor = isBuy ? greenText : redText;
     final bgColor = isBuy ? greenBg : redBg;
-    final label = isBuy ? 'currency.buy'.tr() : 'currency.sell'.tr();
-    final icon = isBuy ? Icons.trending_up_rounded : Icons.trending_down_rounded;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(12.w),
+        padding: EdgeInsets.all(14.w),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(
+            color: priceColor.withOpacity(0.3),
+            width: 1.5,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(
-                  icon,
-                  color: priceColor,
-                  size: 16.sp,
-                ),
-                SizedBox(width: 6.w),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      color: Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.midnight,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ),
-              ],
-            ),
             SizedBox(height: 8.h),
             // Bank logo va nomi
             Row(
               children: [
                 Container(
-                  width: 32.w,
-                  height: 32.w,
+                  width: 36.w,
+                  height: 36.w,
                   decoration: BoxDecoration(
                     color: onlineBadgeBg,
                     borderRadius: BorderRadius.circular(10.r),
@@ -1019,7 +1082,7 @@ class _BestBankCard extends StatelessWidget {
                     currency.bankName,
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: 12.sp,
+                      fontSize: 13.sp,
                       color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -1028,7 +1091,7 @@ class _BestBankCard extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(height: 8.h),
+            SizedBox(height: 10.h),
             Text(
               price
                   .toStringAsFixed(0)
@@ -1038,7 +1101,7 @@ class _BestBankCard extends StatelessWidget {
                   ) + ' ${'currency.som'.tr()}',
               style: TextStyle(
                 color: priceColor,
-                fontSize: 16.sp,
+                fontSize: 18.sp,
                 fontWeight: FontWeight.bold,
               ),
             ),

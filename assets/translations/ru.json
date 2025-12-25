@@ -86,7 +86,14 @@
       "forgot": "Забыли пароль?",
       "no_account": "Нет аккаунта? ",
       "register": "Зарегистрироваться",
-      "snack_required": "Пожалуйста, заполните все поля"
+      "snack_required": "Пожалуйста, заполните все поля",
+      "login_with_otp": "Войти с OTP",
+      "snack_contact_invalid": "Пожалуйста, введите правильную контактную информацию.",
+      "snack_contact_required": "Пожалуйста, введите контактную информацию",
+      "error_credentials": "Логин или пароль неверны",
+      "error_credentials_detail": "Неверные данные",
+      "error_password_incorrect": "Пароль неверный",
+      "error_phone_format": "Неверный формат телефона"
     },
     "register": {
       "title": "Создайте аккаунт",
@@ -276,9 +283,15 @@
     "best_buy": "Лучшая покупка",
     "best_sell": "Лучшая продажа",
     "bank_rates": "Курсы валют в банках",
+    "bank_rates_description": "Сравните курсы валют в банках и найдите лучшее предложение",
+    "best_rates": "Лучшие курсы",
+    "best": "Лучший",
     "best_offer": "Лучшее предложение",
+    "select_operation": "Выберите операцию",
     "som": "сум",
     "per_day": "за день",
+    "per_unit": "за единицу",
+    "empty_description": "Данные пока недоступны",
     "bank_name_hamkorbank": "Хамкорбанк",
     "bank_name_universal": "Универсал банк"
   },
@@ -1290,7 +1303,15 @@
       "search": "Поиск",
       "anywhere": "Куда?",
       "select": "Выбрать",
-      "close": "Закрыть"
+      "close": "Закрыть",
+      "unknown_error": "Произошла неизвестная ошибка",
+      "parsing_error": "Ошибка обработки данных",
+      "network_error": "Нет подключения к интернету",
+      "server_error": "Ошибка сервера",
+      "timeout_error": "Время запроса истекло",
+      "invalid_hotel_id": "Неверный ID отеля",
+      "hotel_not_found": "Отель не найден",
+      "invalid_response_format": "Неверный формат ответа сервера"
     },
     "search": {
       "title": "Поиск отелей",
@@ -1306,12 +1327,34 @@
       "recommended": "Рекомендуемое"
     },
     "results": {
-      "title": "Отели"
+      "title": "Отели",
+      "options_available": "вариантов доступно",
+      "empty_title": "Отели не найдены",
+      "empty_subtitle": "Попробуйте другие параметры поиска"
+    },
+    "search": {
+      "select_city": "Выберите или введите город",
+      "select_dates": "Выберите даты заезда и выезда",
+      "invalid_dates": "Дата выезда должна быть после даты заезда",
+      "city_not_found": "Город не найден. Пожалуйста, выберите из списка",
+      "failed": "Поиск не удался"
     },
     "from": "от",
+    "filter": {
+      "title": "Фильтр",
+      "price_range": "Диапазон цен",
+      "stars": "Звезды",
+      "cancellation": "Отмена",
+      "refundable": "Возвратный",
+      "non_refundable": "Невозвратный",
+      "all": "Все",
+      "reset": "Сбросить",
+      "apply": "Применить"
+    },
     "details": {
       "description": "Описание",
       "amenities": "Удобства",
+      "photos": "Фотографии",
       "rooms": "Выбор номера",
       "book_now": "Забронировать"
     },
@@ -1322,13 +1365,27 @@
       "email": "Email",
       "phone": "Телефон",
       "payment_type": "Тип оплаты",
-      "pay": "Оплатить"
+      "pay": "Оплатить",
+      "quote_not_found": "Котировка не найдена",
+      "fill_field": "Заполните поле",
+      "invalid_email": "Неверный формат email",
+      "hotel_data_not_found": "Данные отеля не найдены"
     },
     "success": {
       "title": "Забронировано",
       "subtitle": "Данные отправлены на ваш email",
       "download": "Скачать полис",
-      "share": "Поделиться"
+      "share": "Поделиться",
+      "downloading": "Загрузка...",
+      "sharing": "Отправка...",
+      "downloaded": "Успешно загружено",
+      "download_error": "Ошибка загрузки",
+      "share_error": "Ошибка отправки",
+      "voucher_not_available": "Ваучер недоступен",
+      "open": "Открыть",
+      "booking_id": "ID бронирования",
+      "confirmation": "Номер подтверждения",
+      "share_title": "Бронирование отеля"
     }
   },
   "avia": {

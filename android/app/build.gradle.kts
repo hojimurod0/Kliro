@@ -3,6 +3,7 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -41,4 +42,36 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// Windows'da assets fayllarini nusxalash muammosini hal qilish uchun
+// Build dan oldin flutter_assets papkasini tozalash
+afterEvaluate {
+    tasks.findByName("compileFlutterBuildDebug")?.let { task ->
+        val cleanTask = tasks.register<Delete>("cleanFlutterAssetsDebug") {
+            description = "Clean Flutter debug assets before build to prevent Windows file copy errors"
+            val assetsDir = file("${project.buildDir}/intermediates/flutter/debug/flutter_assets")
+            delete(assetsDir)
+            doFirst {
+                if (assetsDir.exists()) {
+                    println("🧹 Cleaning Flutter debug assets directory: ${assetsDir.absolutePath}")
+                }
+            }
+        }
+        task.dependsOn(cleanTask)
+    }
+    
+    tasks.findByName("compileFlutterBuildRelease")?.let { task ->
+        val cleanTask = tasks.register<Delete>("cleanFlutterAssetsRelease") {
+            description = "Clean Flutter release assets before build to prevent Windows file copy errors"
+            val assetsDir = file("${project.buildDir}/intermediates/flutter/release/flutter_assets")
+            delete(assetsDir)
+            doFirst {
+                if (assetsDir.exists()) {
+                    println("🧹 Cleaning Flutter release assets directory: ${assetsDir.absolutePath}")
+                }
+            }
+        }
+        task.dependsOn(cleanTask)
+    }
 }

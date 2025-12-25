@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/utils/snackbar_helper.dart';
 import '../logic/bloc/travel_bloc.dart';
 import '../logic/bloc/travel_event.dart';
 import '../logic/bloc/travel_state.dart';
@@ -80,32 +81,26 @@ class _TravelOrderInformationScreenState
           if (paymentUrl != null && paymentUrl.isNotEmpty) {
             launchUrlString(paymentUrl, mode: LaunchMode.externalApplication);
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text("travel.order_info.payment_link_not_found".tr()),
-                backgroundColor: Colors.orange,
-              ),
+            SnackbarHelper.showWarning(
+              context,
+              "travel.order_info.payment_link_not_found".tr(),
             );
           }
         } else if (state is TravelFailure) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                state.errorMessage ?? "travel.order_info.error".tr(),
-              ),
-              backgroundColor: Colors.red,
-              action: SnackBarAction(
-                label: "travel.order_info.retry".tr(),
-                textColor: Colors.white,
-                onPressed: () {
-                  // Xatolikdan keyin qayta urinish
-                  if (state.calcResponse == null) {
-                    bloc.add(const CalcRequested());
-                  } else {
-                    bloc.add(const CreatePolicyRequested());
-                  }
-                },
-              ),
+          SnackbarHelper.showError(
+            context,
+            state.errorMessage ?? "travel.order_info.error".tr(),
+            action: SnackBarAction(
+              label: "travel.order_info.retry".tr(),
+              textColor: Colors.white,
+              onPressed: () {
+                // Xatolikdan keyin qayta urinish
+                if (state.calcResponse == null) {
+                  bloc.add(const CalcRequested());
+                } else {
+                  bloc.add(const CreatePolicyRequested());
+                }
+              },
             ),
           );
         }
@@ -277,14 +272,10 @@ class _TravelOrderInformationScreenState
                                       mode: LaunchMode.externalApplication,
                                     );
                                   } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          "travel.order_info.payment_link_not_found"
-                                              .tr(),
-                                        ),
-                                        backgroundColor: Colors.orange,
-                                      ),
+                                    SnackbarHelper.showWarning(
+                                      context,
+                                      "travel.order_info.payment_link_not_found"
+                                          .tr(),
                                     );
                                   }
                                   return;

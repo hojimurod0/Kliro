@@ -1,8 +1,12 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../domain/entities/hotel.dart';
 import '../../domain/entities/hotel_search_result.dart';
+import '../../domain/entities/hotel_filter.dart';
+import '../bloc/hotel_bloc.dart';
+import '../widgets/hotel_filter_dialog.dart';
 import 'hotel_details_page.dart';
 
 class HotelResultsPage extends StatelessWidget {
@@ -11,6 +15,7 @@ class HotelResultsPage extends StatelessWidget {
   final DateTime? checkInDate;
   final DateTime? checkOutDate;
   final int? guests;
+  final HotelFilter? filter;
 
   const HotelResultsPage({
     Key? key,
@@ -19,7 +24,20 @@ class HotelResultsPage extends StatelessWidget {
     this.checkInDate,
     this.checkOutDate,
     this.guests,
+    this.filter,
   }) : super(key: key);
+
+  void _showFilterDialog(BuildContext context) async {
+    final currentFilter = filter ?? HotelFilter.empty;
+    final updatedFilter = await showDialog<HotelFilter>(
+      context: context,
+      builder: (context) => HotelFilterDialog(initialFilter: currentFilter),
+    );
+
+    if (updatedFilter != null && context.mounted) {
+      context.read<HotelBloc>().add(SearchHotelsRequested(updatedFilter));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,27 +73,40 @@ class HotelResultsPage extends StatelessWidget {
                     ],
                   ),
                 ),
-                Container(
-                  padding: EdgeInsets.all(8.w),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8.r),
+                GestureDetector(
+                  onTap: () => _showFilterDialog(context),
+                  child: Container(
+                    padding: EdgeInsets.all(8.w),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Icon(Icons.filter_list, size: 20.sp),
                   ),
-                  child: Icon(Icons.filter_list, size: 20.sp),
                 ),
               ],
             ),
           ),
           Expanded(
-            child: ListView.separated(
-              padding: EdgeInsets.all(16.w),
-              itemCount: result.hotels.length,
-              separatorBuilder: (context, index) => SizedBox(height: 16.h),
-              itemBuilder: (context, index) {
-                final hotel = result.hotels[index];
-                return _buildHotelCard(context, hotel);
-              },
-            ),
+            child: result.hotels.isEmpty
+                ? _buildEmptyState(context)
+                : RefreshIndicator(
+                    onRefresh: () async {
+                      if (filter != null) {
+                        context.read<HotelBloc>().add(SearchHotelsRequested(filter!));
+                      }
+                      await Future.delayed(const Duration(milliseconds: 500));
+                    },
+                    child: ListView.separated(
+                      padding: EdgeInsets.all(16.w),
+                      itemCount: result.hotels.length,
+                      separatorBuilder: (context, index) => SizedBox(height: 16.h),
+                      itemBuilder: (context, index) {
+                        final hotel = result.hotels[index];
+                        return _buildHotelCard(context, hotel);
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
@@ -134,7 +165,7 @@ class HotelResultsPage extends StatelessWidget {
                         Icon(Icons.star, color: Colors.amber, size: 14.sp),
                         SizedBox(width: 4.w),
                         Text(
-                          '${hotel.rating ?? 4.5}',
+                          '${hotel.stars ?? hotel.rating?.toInt() ?? 4}',
                           style: TextStyle(
                               color: Colors.white,
                               fontSize: 12.sp,
@@ -174,15 +205,34 @@ class HotelResultsPage extends StatelessWidget {
                   ),
                   SizedBox(height: 12.h),
                   // Amenities row (icons)
-                  Row(
-                    children: [
-                      _buildAmenityBadge(Icons.wifi, "Wi-Fi"),
-                      SizedBox(width: 8.w),
-                      _buildAmenityBadge(Icons.pool, "Pool"),
-                      SizedBox(width: 8.w),
-                      _buildAmenityBadge(Icons.fitness_center, "Gym"),
-                    ],
-                  ),
+                  if (hotel.amenities != null && hotel.amenities!.isNotEmpty)
+                    Wrap(
+                      spacing: 8.w,
+                      runSpacing: 8.h,
+                      children: hotel.amenities!.take(3).map((amenity) {
+                        IconData icon = Icons.check_circle;
+                        if (amenity.toLowerCase().contains('wifi') ||
+                            amenity.toLowerCase().contains('wi-fi')) {
+                          icon = Icons.wifi;
+                        } else if (amenity.toLowerCase().contains('pool')) {
+                          icon = Icons.pool;
+                        } else if (amenity.toLowerCase().contains('gym') ||
+                            amenity.toLowerCase().contains('fitness')) {
+                          icon = Icons.fitness_center;
+                        }
+                        return _buildAmenityBadge(icon, amenity);
+                      }).toList(),
+                    )
+                  else
+                    Row(
+                      children: [
+                        _buildAmenityBadge(Icons.wifi, "Wi-Fi"),
+                        SizedBox(width: 8.w),
+                        _buildAmenityBadge(Icons.pool, "Pool"),
+                        SizedBox(width: 8.w),
+                        _buildAmenityBadge(Icons.fitness_center, "Gym"),
+                      ],
+                    ),
                   SizedBox(height: 16.h),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -196,12 +246,19 @@ class HotelResultsPage extends StatelessWidget {
                                 color: Colors.grey, fontSize: 12.sp),
                           ),
                           Text(
-                            '${NumberFormat.currency(locale: 'uz_UZ', symbol: 'so\'m').format(hotel.price ?? 0)}',
+                            // Show price from first option or hotel price
+                            '${NumberFormat.currency(locale: 'uz_UZ', symbol: hotel.options?.isNotEmpty == true ? (hotel.options!.first.currency == 'uzs' ? 'so\'m' : hotel.options!.first.currency?.toUpperCase() ?? 'so\'m') : 'so\'m', decimalDigits: 0).format(hotel.options?.isNotEmpty == true ? (hotel.options!.first.price ?? hotel.price ?? 0) : (hotel.price ?? 0))}',
                             style: TextStyle(
                                 color: Colors.blue,
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.bold),
                           ),
+                          if (hotel.options != null && hotel.options!.length > 1)
+                            Text(
+                              '${hotel.options!.length} ${"hotel.results.options_available".tr()}',
+                              style: TextStyle(
+                                  color: Colors.grey, fontSize: 11.sp),
+                            ),
                         ],
                       ),
                       Container(
@@ -224,6 +281,32 @@ class HotelResultsPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.hotel, size: 80.sp, color: Colors.grey[400]),
+          SizedBox(height: 24.h),
+          Text(
+            'hotel.results.empty_title'.tr(),
+            style: TextStyle(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            'hotel.results.empty_subtitle'.tr(),
+            style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

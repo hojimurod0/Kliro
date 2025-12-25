@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:intl/intl.dart';
+import '../../../../../core/utils/snackbar_helper.dart';
 import '../logic/bloc/travel_bloc.dart';
 import '../logic/bloc/travel_state.dart';
 import '../logic/bloc/travel_event.dart';
@@ -79,11 +80,9 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
       listener: (context, state) {
         if (state is TravelCreateSuccess) {
           // To'lov muvaffaqiyatli yaratildi
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Polis muvaffaqiyatli yaratildi!'),
-              backgroundColor: Colors.green,
-            ),
+          SnackbarHelper.showSuccess(
+            context,
+            'Polis muvaffaqiyatli yaratildi!',
           );
           // Keyingi sahifaga o'tish
           Navigator.of(context).pop();
@@ -92,11 +91,9 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
           });
         } else if (state is TravelFailure) {
           // Xatolik yuz berdi
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.errorMessage ?? 'Xatolik yuz berdi'),
-              backgroundColor: Colors.red,
-            ),
+          SnackbarHelper.showError(
+            context,
+            state.errorMessage ?? 'Xatolik yuz berdi',
           );
           setState(() {
             _isLoading = false;
@@ -122,15 +119,12 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final scaffoldBg = isDark ? const Color(0xFF121212) : Colors.white;
         final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-        final textColor = isDark
-            ? Colors.white
-            : _PersonalDataScreenColors.kTextMain;
-        final textSubColor = isDark
-            ? Colors.grey[400]!
-            : _PersonalDataScreenColors.kTextSub;
-        final borderColor = isDark
-            ? Colors.grey[700]!
-            : _PersonalDataScreenColors.kBorderColor;
+        final textColor =
+            isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
+        final textSubColor =
+            isDark ? Colors.grey[400]! : _PersonalDataScreenColors.kTextSub;
+        final borderColor =
+            isDark ? Colors.grey[700]! : _PersonalDataScreenColors.kBorderColor;
         final cardBlueBg = isDark
             ? const Color(0xFF1E3A5C)
             : _PersonalDataScreenColors.kCardBlueBg;
@@ -147,8 +141,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
 
         // Tug'ilgan sanalarni olish (state dan yoki person dan)
         final insurerBirthDate = _insurerBirthDate ?? insurer?.birthDate;
-        final travelerBirthDate =
-            _travelerBirthDate ??
+        final travelerBirthDate = _travelerBirthDate ??
             (persons.length > 1 ? persons[1].birthDate : null);
 
         // Tug'ilgan sanalarni controller ga o'rnatish
@@ -296,7 +289,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                                     color: isDark
                                         ? _PersonalDataScreenColors.kPrimaryBlue
                                         : _PersonalDataScreenColors
-                                              .kPrimaryBlue,
+                                            .kPrimaryBlue,
                                     letterSpacing: -0.3,
                                   ),
                                 ),
@@ -310,7 +303,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                               controller: _fullNameController,
                               initialValue: insurer != null
                                   ? "${insurer.firstName} ${insurer.lastName}"
-                                        .trim()
+                                      .trim()
                                   : null,
                             ),
 
@@ -517,14 +510,13 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                                           _isLoading = true;
                                         });
 
-                                        final travelBloc = context
-                                            .read<TravelBloc>();
+                                        final travelBloc =
+                                            context.read<TravelBloc>();
                                         final currentState = travelBloc.state;
 
                                         // Shaxsiy ma'lumotlarni olish
-                                        final fullName = _fullNameController
-                                            .text
-                                            .trim();
+                                        final fullName =
+                                            _fullNameController.text.trim();
                                         // FIO format: FAMILIYA ISM OTASINING ISMI (masalan: "YUSUPOV AKMAL ABDURASULOVICH")
                                         final nameParts = fullName
                                             .split(' ')
@@ -533,16 +525,15 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
 
                                         // Birinchi so'z = Familiya, Ikkinchi = Ism, Uchinchi = Otasining ismi
                                         final lastName = nameParts.isNotEmpty
-                                            ? nameParts
-                                                  .first // Familiya
+                                            ? nameParts.first // Familiya
                                             : '';
                                         final firstName = nameParts.length > 1
                                             ? nameParts[1] // Ism
                                             : '';
                                         final middleName = nameParts.length > 2
                                             ? nameParts
-                                                  .sublist(2)
-                                                  .join(' ') // Otasining ismi
+                                                .sublist(2)
+                                                .join(' ') // Otasining ismi
                                             : '';
 
                                         final insurerPassportSeries =
@@ -562,8 +553,8 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                                                 .text
                                                 .trim();
                                         // Telefon raqamidan +998 ni olib tashlash
-                                        var phoneNumber = _phoneController.text
-                                            .trim();
+                                        var phoneNumber =
+                                            _phoneController.text.trim();
                                         if (phoneNumber.startsWith('+998')) {
                                           phoneNumber = phoneNumber.substring(
                                             4,
@@ -579,16 +570,10 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                                         // Telefon raqami validatsiyasi
                                         if (phoneNumber.isEmpty ||
                                             phoneNumber.length < 9) {
-                                          ScaffoldMessenger.of(
+                                          SnackbarHelper.showError(
                                             context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                "travel.personal_data.enter_phone"
-                                                    .tr(),
-                                              ),
-                                              backgroundColor: Colors.red,
-                                            ),
+                                            "travel.personal_data.enter_phone"
+                                                .tr(),
                                           );
                                           setState(() => _isLoading = false);
                                           return;
@@ -596,34 +581,22 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
 
                                         // Validatsiya
                                         if (fullName.isEmpty) {
-                                          ScaffoldMessenger.of(
+                                          SnackbarHelper.showError(
                                             context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                "travel.personal_data.enter_full_name"
-                                                    .tr(),
-                                              ),
-                                              backgroundColor: Colors.red,
-                                            ),
+                                            "travel.personal_data.enter_full_name"
+                                                .tr(),
                                           );
                                           setState(() => _isLoading = false);
                                           return;
                                         }
 
-                                        final pinfl = _pinflController.text
-                                            .trim();
+                                        final pinfl =
+                                            _pinflController.text.trim();
                                         if (pinfl.isEmpty) {
-                                          ScaffoldMessenger.of(
+                                          SnackbarHelper.showError(
                                             context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                "travel.personal_data.enter_pinfl"
-                                                    .tr(),
-                                              ),
-                                              backgroundColor: Colors.red,
-                                            ),
+                                            "travel.personal_data.enter_pinfl"
+                                                .tr(),
                                           );
                                           setState(() => _isLoading = false);
                                           return;
@@ -631,32 +604,20 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
 
                                         if (insurerPassportSeries.isEmpty ||
                                             insurerPassportNumber.isEmpty) {
-                                          ScaffoldMessenger.of(
+                                          SnackbarHelper.showError(
                                             context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                "travel.personal_data.enter_passport"
-                                                    .tr(),
-                                              ),
-                                              backgroundColor: Colors.red,
-                                            ),
+                                            "travel.personal_data.enter_passport"
+                                                .tr(),
                                           );
                                           setState(() => _isLoading = false);
                                           return;
                                         }
 
                                         if (_insurerBirthDate == null) {
-                                          ScaffoldMessenger.of(
+                                          SnackbarHelper.showError(
                                             context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                "travel.personal_data.select_birth_date"
-                                                    .tr(),
-                                              ),
-                                              backgroundColor: Colors.red,
-                                            ),
+                                            "travel.personal_data.select_birth_date"
+                                                .tr(),
                                           );
                                           setState(() => _isLoading = false);
                                           return;
@@ -684,18 +645,15 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                                                       .toUpperCase(),
                                               passportNumber:
                                                   insurerPassportNumber,
-                                              birthDate:
-                                                  _insurerBirthDate ??
+                                              birthDate: _insurerBirthDate ??
                                                   firstPerson.birthDate,
                                             ),
                                           );
 
                                           // Qolgan sayohatchilar
-                                          for (
-                                            int i = 1;
-                                            i < currentState.persons.length;
-                                            i++
-                                          ) {
+                                          for (int i = 1;
+                                              i < currentState.persons.length;
+                                              i++) {
                                             final person =
                                                 currentState.persons[i];
                                             updatedPersons.add(
@@ -703,21 +661,18 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                                                 firstName: person.firstName,
                                                 lastName: person.lastName,
                                                 middleName: person.middleName,
-                                                passportSeria:
-                                                    i == 1 &&
+                                                passportSeria: i == 1 &&
                                                         travelerPassportSeries
                                                             .isNotEmpty
                                                     ? travelerPassportSeries
-                                                          .toUpperCase()
+                                                        .toUpperCase()
                                                     : person.passportSeria,
-                                                passportNumber:
-                                                    i == 1 &&
+                                                passportNumber: i == 1 &&
                                                         travelerPassportNumber
                                                             .isNotEmpty
                                                     ? travelerPassportNumber
                                                     : person.passportNumber,
-                                                birthDate:
-                                                    i == 1 &&
+                                                birthDate: i == 1 &&
                                                         _travelerBirthDate !=
                                                             null
                                                     ? _travelerBirthDate!
@@ -735,21 +690,16 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                                             '[PERSONAL_DATA] ❌ Xatolik: Insurance ma\'lumotlari mavjud emas!',
                                             name: 'TRAVEL',
                                           );
-                                          ScaffoldMessenger.of(
+                                          SnackbarHelper.showError(
                                             context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Sug\'urta ma\'lumotlari topilmadi. Iltimos, qayta urinib ko\'ring.',
-                                              ),
-                                              backgroundColor: Colors.red,
-                                            ),
+                                            'Sug\'urta ma\'lumotlari topilmadi. Iltimos, qayta urinib ko\'ring.',
                                           );
                                           setState(() => _isLoading = false);
                                           return;
                                         }
 
-                                        final updatedInsurance = TravelInsurance(
+                                        final updatedInsurance =
+                                            TravelInsurance(
                                           provider: existingInsurance.provider,
                                           companyName:
                                               existingInsurance.companyName,
@@ -815,10 +765,10 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                                             MaterialPageRoute(
                                               builder: (context) =>
                                                   BlocProvider.value(
-                                                    value: travelBloc,
-                                                    child:
-                                                        const TravelOrderInformationScreen(),
-                                                  ),
+                                                value: travelBloc,
+                                                child:
+                                                    const TravelOrderInformationScreen(),
+                                              ),
                                             ),
                                           );
                                         }
@@ -826,7 +776,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: isLoading
                                       ? _PersonalDataScreenColors.kPrimaryBlue
-                                            .withOpacity(0.6)
+                                          .withOpacity(0.6)
                                       : _PersonalDataScreenColors.kPrimaryBlue,
                                   foregroundColor: Colors.white,
                                   elevation: 0,
@@ -842,8 +792,8 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                                           strokeWidth: 2,
                                           valueColor:
                                               AlwaysStoppedAnimation<Color>(
-                                                Colors.white,
-                                              ),
+                                            Colors.white,
+                                          ),
                                         ),
                                       )
                                     : Text(
@@ -873,9 +823,8 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
 
   Widget _buildLabel(String text) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textSubColor = isDark
-        ? Colors.grey[400]!
-        : _PersonalDataScreenColors.kTextSub;
+    final textSubColor =
+        isDark ? Colors.grey[400]! : _PersonalDataScreenColors.kTextSub;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0, left: 4),
@@ -892,9 +841,8 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
 
   Widget _buildTextField({String? initialValue}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark
-        ? Colors.white
-        : _PersonalDataScreenColors.kTextMain;
+    final textColor =
+        isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
 
     return TextFormField(
       initialValue: initialValue,
@@ -918,9 +866,8 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
     List<TextInputFormatter>? inputFormatters,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark
-        ? Colors.white
-        : _PersonalDataScreenColors.kTextMain;
+    final textColor =
+        isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
 
     // Initial value ni controller ga o'rnatish (faqat birinchi marta)
     if (initialValue != null && controller.text.isEmpty) {
@@ -949,9 +896,8 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
 
   Widget _buildPassportRow({required String series, required String number}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark
-        ? Colors.white
-        : _PersonalDataScreenColors.kTextMain;
+    final textColor =
+        isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
 
     return Row(
       children: [
@@ -999,9 +945,8 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
     required String number,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark
-        ? Colors.white
-        : _PersonalDataScreenColors.kTextMain;
+    final textColor =
+        isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
 
     // Initial value larni controller ga o'rnatish (faqat birinchi marta)
     if (series.isNotEmpty && seriesController.text.isEmpty) {
@@ -1074,9 +1019,8 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
     bool isPlaceholder = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark
-        ? Colors.white
-        : _PersonalDataScreenColors.kTextMain;
+    final textColor =
+        isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
 
     return TextFormField(
       initialValue: value,
@@ -1108,9 +1052,8 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
     required VoidCallback onTap,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark
-        ? Colors.white
-        : _PersonalDataScreenColors.kTextMain;
+    final textColor =
+        isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
 
     return GestureDetector(
       onTap: onTap,
@@ -1147,9 +1090,8 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
     required VoidCallback onTap,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark
-        ? Colors.white
-        : _PersonalDataScreenColors.kTextMain;
+    final textColor =
+        isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
     final isPlaceholder = controller.text.isEmpty;
 
     return GestureDetector(
@@ -1190,9 +1132,8 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
     required String hintText,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark
-        ? Colors.white
-        : _PersonalDataScreenColors.kTextMain;
+    final textColor =
+        isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
 
     return TextFormField(
       controller: controller,
@@ -1281,13 +1222,11 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
               primary: _PersonalDataScreenColors.kPrimaryBlue,
               onPrimary: Colors.white,
               surface: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-              onSurface: isDark
-                  ? Colors.white
-                  : _PersonalDataScreenColors.kTextMain,
+              onSurface:
+                  isDark ? Colors.white : _PersonalDataScreenColors.kTextMain,
             ),
-            dialogBackgroundColor: isDark
-                ? const Color(0xFF1E1E1E)
-                : Colors.white,
+            dialogBackgroundColor:
+                isDark ? const Color(0xFF1E1E1E) : Colors.white,
           ),
           child: child!,
         );

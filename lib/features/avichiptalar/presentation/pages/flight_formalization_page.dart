@@ -8,6 +8,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/navigation/app_router.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
+import '../../../../features/register/domain/usecases/get_profile.dart';
+import '../../../../features/register/domain/entities/user_profile.dart';
 import '../../data/models/create_booking_request_model.dart';
 import '../../data/models/offer_model.dart';
 import '../bloc/avia_bloc.dart';
@@ -180,35 +182,49 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
       
       // Faqat mavjud bo'lsa ma'lumotlarni yuklash
       if (user != null && mounted) {
+        // Profile'ni yuklab, email va telefon alohida olish
+        UserProfile? profile;
+        try {
+          final getProfile = ServiceLocator.resolve<GetProfile>();
+          profile = await getProfile();
+        } catch (e) {
+          // Profile yuklanmasa, faqat user.contact ishlatish
+          AppLogger.warning('Failed to load profile, using contact only', e);
+        }
+        
         setState(() {
           // Ismni faqat bo'sh bo'lsa to'ldirish
           if (_customerNameController.text.trim().isEmpty) {
             _customerNameController.text = user.fullName;
           }
           
-          final contact = user.contact.trim();
           final currentEmail = _customerEmailController.text.trim();
           final currentPhone = _customerPhoneController.text.trim();
           
-          if (contact.contains('@')) {
-            // Email bilan kirgan bo'lsa, email maydoniga qo'yish
-            if (currentEmail.isEmpty) {
-              _customerEmailController.text = contact;
+          // Email maydonini to'ldirish (user.email, profile'dan yoki user.contact'dan)
+          if (currentEmail.isEmpty) {
+            if (user.email != null && user.email!.isNotEmpty) {
+              _customerEmailController.text = user.email!;
+            } else if (profile?.email != null && profile!.email!.isNotEmpty) {
+              _customerEmailController.text = profile.email!;
+            } else if (user.contact.contains('@')) {
+              _customerEmailController.text = user.contact;
             }
-            // Telefon maydoni bo'sh yoki faqat +998 bo'lsa, default qoldirish
-            if (currentPhone.isEmpty || currentPhone == '+998') {
-              _customerPhoneController.text = '+998';
-            }
-          } else {
-            // Telefon bilan kirgan bo'lsa, telefon maydoniga qo'yish
-            if (currentPhone.isEmpty || currentPhone == '+998') {
-              // Telefon raqamini to'g'ri formatda qo'yish
-              final normalizedPhone = AuthService.normalizeContact(contact);
+          }
+          
+          // Telefon maydonini to'ldirish (user.phone, profile'dan yoki user.contact'dan)
+          if (currentPhone.isEmpty || currentPhone == '+998') {
+            if (user.phone != null && user.phone!.isNotEmpty) {
+              final normalizedPhone = AuthService.normalizeContact(user.phone!);
               _customerPhoneController.text = normalizedPhone;
-            }
-            // Email maydoni bo'sh bo'lsa, bo'sh qoldirish
-            if (currentEmail.isEmpty) {
-              // Email bo'sh qoldiriladi
+            } else if (profile?.phone != null && profile!.phone!.isNotEmpty) {
+              final normalizedPhone = AuthService.normalizeContact(profile.phone!);
+              _customerPhoneController.text = normalizedPhone;
+            } else if (!user.contact.contains('@')) {
+              final normalizedPhone = AuthService.normalizeContact(user.contact);
+              _customerPhoneController.text = normalizedPhone;
+            } else {
+              _customerPhoneController.text = '+998';
             }
           }
         });
@@ -570,6 +586,9 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
     return BlocConsumer<AviaBloc, AviaState>(
       listener: (context, state) {
         if (state is AviaCreateBookingSuccess) {
+          // Booking muvaffaqiyatli bo'lgandan keyin passenger'larni saqlash
+          _savePassengersToMyList();
+          
           context.router.push(
             BookingSuccessRoute(
               outboundOffer: widget.outboundOffer,
@@ -1788,11 +1807,104 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
       _savePassengerData(index);
     });
     
-    // Ensure keyboard stays closed after filling data
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) {
-        FocusScope.of(context).unfocus();
+      // Ensure keyboard stays closed after filling data
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          FocusScope.of(context).unfocus();
+        }
+      });
+    }
+
+  // Booking muvaffaqiyatli bo'lgandan keyin passenger'larni "My Passengers"ga saqlash
+  void _savePassengersToMyList() {
+    for (int i = 0; i < _passengers.length; i++) {
+      final p = _passengers[i];
+      
+      // Ma'lumotlar to'liqligini tekshirish
+      if ((p.name.trim().isEmpty) || 
+          (p.surname.trim().isEmpty) || 
+          (p.passportSeries.trim().isEmpty)) {
+        continue; // To'liq bo'lmagan ma'lumotlarni o'tkazib yuborish
       }
-    });
+      
+      try {
+        // Tug'ilgan sana formatini tekshirish
+        String birthDate = '';
+        final returnDate = p.returnDate?.trim() ?? '';
+        if (returnDate.isNotEmpty) {
+          try {
+            // DD/MM/YYYY formatini YYYY-MM-DD ga o'zgartirish
+            final parts = returnDate.split('/');
+            if (parts.length == 3) {
+              birthDate = '${parts[2]}-${parts[1]}-${parts[0]}';
+            } else {
+              birthDate = returnDate;
+            }
+          } catch (e) {
+            birthDate = returnDate;
+          }
+        }
+        
+        // Passport muddati formatini tekshirish
+        String passportExpiry = '';
+        final expiryDate = p.passportExpiry?.trim() ?? '';
+        if (expiryDate.isNotEmpty) {
+          try {
+            // DD/MM/YYYY formatini YYYY-MM-DD ga o'zgartirish
+            final parts = expiryDate.split('/');
+            if (parts.length == 3) {
+              passportExpiry = '${parts[2]}-${parts[1]}-${parts[0]}';
+            } else {
+              passportExpiry = expiryDate;
+            }
+          } catch (e) {
+            passportExpiry = expiryDate;
+          }
+        }
+        
+        // Citizenship mapping
+        String mapCitizenship(String? citizenship) {
+          if (citizenship == null || citizenship.isEmpty) return 'UZ';
+          if (citizenship.length == 2) return citizenship.toUpperCase();
+          
+          final citizenshipMap = {
+            'avia.formalization.uzbekistan': 'UZ',
+            'O\'zbekiston': 'UZ',
+            'Uzbekistan': 'UZ',
+            'avia.formalization.russia': 'RU',
+            'Rossiya': 'RU',
+            'Russia': 'RU',
+            'avia.formalization.kazakhstan': 'KZ',
+            'Qozog\'iston': 'KZ',
+            'Kazakhstan': 'KZ',
+            'avia.formalization.kyrgyzstan': 'KG',
+            'Qirg\'iziston': 'KG',
+            'Kyrgyzstan': 'KG',
+          };
+          
+          return citizenshipMap[citizenship] ?? 'UZ';
+        }
+        
+        // HumanModel yaratish
+        final human = HumanModel(
+          firstName: p.name.trim(),
+          lastName: p.surname.trim(),
+          middleName: p.patronymic.trim().isEmpty ? null : p.patronymic.trim(),
+          birthDate: birthDate,
+          gender: p.gender == 'Erkak' ? 'M' : 'F',
+          citizenship: mapCitizenship(p.citizenship),
+          passportNumber: p.passportSeries.replaceAll(' ', ''),
+          passportExpiry: passportExpiry,
+          phone: _normalizePhoneForApi(p.phone),
+        );
+        
+        // API'ga yuborish (background'da, xatolikni ko'rsatmasdan)
+        // Bu asinxron ishlaydi, shuning uchun booking page'ga o'tishni kutmaydi
+        context.read<AviaBloc>().add(CreateHumanRequested(human));
+      } catch (e) {
+        // Xatolik bo'lsa, o'tkazib yuborish (passenger saqlash booking'ni to'xtatmasligi kerak)
+        AppLogger.warning('Passenger saqlashda xatolik: $e');
+      }
+    }
   }
 }

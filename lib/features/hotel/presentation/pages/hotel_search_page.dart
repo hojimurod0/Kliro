@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../domain/entities/hotel_filter.dart';
+import '../../domain/entities/city.dart';
 import '../bloc/hotel_bloc.dart';
+import '../widgets/city_input.dart';
 
 class HotelSearchPage extends StatefulWidget {
   const HotelSearchPage({Key? key}) : super(key: key);
@@ -18,6 +20,17 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
   DateTime? _checkOutDate;
   int _adults = 1;
   int _children = 0;
+  int? _selectedCityId;
+  List<City> _citiesList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // Load cities with IDs on init
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HotelBloc>().add(const GetCitiesWithIdsRequested(countryId: 1));
+    });
+  }
 
   @override
   void dispose() {
@@ -26,10 +39,90 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
   }
 
   void _onSearch() {
+    // Validation
+    if (_selectedCityId == null && _cityController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('hotel.search.select_city'.tr()),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_checkInDate == null || _checkOutDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('hotel.search.select_dates'.tr()),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_checkOutDate!.isBefore(_checkInDate!) || 
+        _checkOutDate!.isAtSameMomentAs(_checkInDate!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('hotel.search.invalid_dates'.tr()),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // City ID ni aniqlash
+    int? cityId = _selectedCityId;
+    
+    // Agar city_id yo'q bo'lsa, city name dan topishga harakat qilamiz
+    if (cityId == null && _cityController.text.trim().isNotEmpty) {
+      final cityName = _cityController.text.trim().toLowerCase();
+      // Cities list'dan qidirish
+      final foundCity = _citiesList.firstWhere(
+        (city) {
+          final cityNameLower = city.name.toLowerCase();
+          final namesLower = city.names?.values.map((v) => v.toLowerCase()).toList() ?? [];
+          return cityNameLower.contains(cityName) || 
+                 cityName.contains(cityNameLower) ||
+                 namesLower.any((n) => n.contains(cityName) || cityName.contains(n));
+        },
+        orElse: () => const City(id: 0, name: ''),
+      );
+      
+      if (foundCity.id != 0) {
+        cityId = foundCity.id;
+      }
+    }
+
+    if (cityId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('hotel.search.city_not_found'.tr()),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    
+    // Occupancies yaratish
+    final occupancies = [
+      Occupancy(
+        adults: _adults,
+        childrenAges: List.generate(_children, (index) => 10), // Default age 10
+      ),
+    ];
+    
     final filter = HotelFilter(
-      city: _cityController.text,
+      cityId: cityId,
       checkInDate: _checkInDate,
       checkOutDate: _checkOutDate,
+      occupancies: occupancies,
+      currency: 'uzs',
+      nationality: 'uz',
+      residence: 'uz',
+      isResident: false,
+      // Legacy support
+      city: _cityController.text,
       guests: _adults + _children,
     );
     context.read<HotelBloc>().add(SearchHotelsRequested(filter));
@@ -202,22 +295,23 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
               ),
               child: Column(
                 children: [
-                  // City Input
-                  _buildInputLabel('hotel.search.city'.tr()),
-                  SizedBox(height: 8.h),
-                  TextField(
+                  // City Input with Autocomplete
+                  CityInput(
+                    label: 'hotel.search.city'.tr(),
+                    hint: 'hotel.search.city_hint'.tr(),
+                    icon: Icons.location_on,
                     controller: _cityController,
-                    decoration: InputDecoration(
-                      hintText: 'hotel.search.city_hint'.tr(),
-                      prefixIcon: const Icon(Icons.search, color: Colors.blue),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Theme.of(context).scaffoldBackgroundColor,
-                      contentPadding: EdgeInsets.symmetric(vertical: 14.h),
-                    ),
+                    countryId: 1, // Uzbekistan
+                    onCitySelected: (city) {
+                      setState(() {
+                        _selectedCityId = city.id != 0 ? city.id : null;
+                      });
+                    },
+                    onClear: () {
+                      setState(() {
+                        _selectedCityId = null;
+                      });
+                    },
                   ),
                   SizedBox(height: 16.h),
 

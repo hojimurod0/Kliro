@@ -354,3 +354,93 @@ class DeleteHumanFailure extends AviaState {
   @override
   List<Object?> get props => [message];
 }
+
+// PDF Receipt States
+class AviaPdfReceiptSuccess extends AviaState {
+  final String pdfUrl;
+  const AviaPdfReceiptSuccess(this.pdfUrl);
+  @override
+  List<Object?> get props => [pdfUrl];
+}
+
+class AviaPdfReceiptFailure extends AviaState {
+  final String message;
+  const AviaPdfReceiptFailure(this.message);
+  @override
+  List<Object?> get props => [message];
+}
+
+// Schedule States
+class AviaScheduleSuccess extends AviaState {
+  final List<ScheduleModel> schedules;
+  const AviaScheduleSuccess(this.schedules);
+  @override
+  List<Object?> get props => [schedules];
+}
+
+class AviaScheduleFailure extends AviaState {
+  final String message;
+  const AviaScheduleFailure(this.message);
+  @override
+  List<Object?> get props => [message];
+}
+
+// Visa Types States
+class AviaVisaTypesSuccess extends AviaState {
+  final List<VisaTypeModel> visaTypes;
+  const AviaVisaTypesSuccess(this.visaTypes);
+  @override
+  List<Object?> get props => [visaTypes];
+}
+
+class AviaVisaTypesFailure extends AviaState {
+  final String message;
+  const AviaVisaTypesFailure(this.message);
+  @override
+  List<Object?> get props => [message];
+}
+
+// Service Classes States
+class AviaServiceClassesSuccess extends AviaState {
+  final List<ServiceClassModel> serviceClasses;
+  const AviaServiceClassesSuccess(this.serviceClasses);
+  @override
+  List<Object?> get props => [serviceClasses];
+}
+
+class AviaServiceClassesFailure extends AviaState {
+  final String message;
+  const AviaServiceClassesFailure(this.message);
+  @override
+  List<Object?> get props => [message];
+}
+
+// Passenger Types States
+class AviaPassengerTypesSuccess extends AviaState {
+  final List<PassengerTypeModel> passengerTypes;
+  const AviaPassengerTypesSuccess(this.passengerTypes);
+  @override
+  List<Object?> get props => [passengerTypes];
+}
+
+class AviaPassengerTypesFailure extends AviaState {
+  final String message;
+  const AviaPassengerTypesFailure(this.message);
+  @override
+  List<Object?> get props => [message];
+}
+
+// Health States
+class AviaHealthSuccess extends AviaState {
+  final HealthModel health;
+  const AviaHealthSuccess(this.health);
+  @override
+  List<Object?> get props => [health];
+}
+
+class AviaHealthFailure extends AviaState {
+  final String message;
+  const AviaHealthFailure(this.message);
+  @override
+  List<Object?> get props => [message];
+}

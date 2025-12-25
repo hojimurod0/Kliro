@@ -11,6 +11,7 @@ import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/services/auth/auth_service.dart';
 import '../../../../core/services/google/google_sign_in_service.dart';
@@ -81,23 +82,18 @@ class _LoginPageState extends State<LoginPage> {
     final password = _passwordController.text.trim();
 
     if (phoneOrEmail.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('auth.login.snack_required'.tr()),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackbarHelper.showError(context, 'auth.login.snack_required'.tr());
       return;
     }
 
     final formattedContact = _formatContact(phoneOrEmail);
 
     if (formattedContact.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('auth.login.snack_contact_invalid'.tr()),
-          backgroundColor: Colors.red,
-        ),
+      SnackbarHelper.showError(
+        context,
+        _isPhoneMode 
+            ? "auth.login.error_phone_format".tr()
+            : 'auth.login.snack_contact_invalid'.tr(),
       );
       return;
     }
@@ -118,23 +114,18 @@ class _LoginPageState extends State<LoginPage> {
     final phoneOrEmail = _phoneOrEmailController.text.trim();
 
     if (phoneOrEmail.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('auth.login.snack_contact_required'.tr()),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackbarHelper.showError(context, 'auth.login.snack_contact_required'.tr());
       return;
     }
 
     final formattedContact = _formatContact(phoneOrEmail);
 
     if (formattedContact.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('auth.login.snack_contact_invalid'.tr()),
-          backgroundColor: Colors.red,
-        ),
+      SnackbarHelper.showError(
+        context,
+        _isPhoneMode 
+            ? "auth.login.error_phone_format".tr()
+            : 'auth.login.snack_contact_invalid'.tr(),
       );
       return;
     }
@@ -158,7 +149,17 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _handleGoogleSignIn() async {
     try {
       final googleAccount = await GoogleSignInService.instance.signIn();
-      if (googleAccount == null) return;
+      if (googleAccount == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Google login bekor qilindi yoki sozlama xato'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
 
       final email = googleAccount.email;
       if (email.isEmpty) {
@@ -249,27 +250,51 @@ class _LoginPageState extends State<LoginPage> {
       listener: (context, state) {
         if (state.flow == RegisterFlow.login) {
           if (state.status == RegisterStatus.failure) {
-            String errorMessage = state.error ?? "auth.login.error_credentials".tr();
-            if (errorMessage.toLowerCase().contains('пароль') ||
-                errorMessage.toLowerCase().contains('password') ||
-                errorMessage.toLowerCase().contains('неверный') ||
-                errorMessage.toLowerCase().contains('incorrect') ||
-                errorMessage.toLowerCase().contains('invalid') ||
-                errorMessage.toLowerCase().contains('noto\'g\'ri')) {
-              errorMessage = "auth.login.error_credentials_detail".tr();
+            final rawError = state.error ?? '';
+            
+            // API'dan kelgan error message'ni parse qilish va tanlangan tilda ko'rsatish
+            String errorMessage;
+            final errorLower = rawError.toLowerCase().trim();
+            
+            // Parol xatosi - API'dan kelgan error'ni detect qilish
+            if (errorLower.contains('пароль') || 
+                errorLower.contains('password') ||
+                errorLower.contains('неверный') ||
+                errorLower.contains('неверен') ||
+                (errorLower.contains('невер') && errorLower.contains('парол')) ||
+                (errorLower.contains('parol') && (errorLower.contains('noto\'g\'ri') || errorLower.contains('xato'))) ||
+                errorLower == 'пароль неверный' ||
+                errorLower == 'password incorrect') {
+              // Tanlangan tilda ko'rsatish
+              errorMessage = 'auth.login.error_password_incorrect'.tr();
+            } 
+            // Telefon formati xatosi
+            else if (errorLower.contains('телефон') || 
+                     errorLower.contains('phone') ||
+                     errorLower.contains('формат') ||
+                     errorLower.contains('format') ||
+                     errorLower.contains('контакт') ||
+                     errorLower.contains('contact') ||
+                     (errorLower.contains('telefon') && (errorLower.contains('formati') || errorLower.contains('noto\'g\'ri')))) {
+              // Tanlangan tilda ko'rsatish
+              errorMessage = 'auth.login.error_phone_format'.tr();
+            } 
+            // Boshqa xatolar
+            else {
+              // Tanlangan tilda ko'rsatish
+              errorMessage = 'auth.login.error_credentials_detail'.tr();
             }
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(errorMessage),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 5),
-                action: SnackBarAction(
-                  label: 'auth.login.forgot'.tr(),
-                  textColor: Colors.white,
-                  onPressed: () {
-                    context.router.push(const LoginForgotPasswordRoute());
-                  },
-                ),
+            
+            SnackbarHelper.showError(
+              context,
+              errorMessage,
+              duration: const Duration(seconds: 3),
+              action: SnackBarAction(
+                label: 'auth.login.forgot'.tr(),
+                textColor: Colors.white,
+                onPressed: () {
+                  context.router.push(const LoginForgotPasswordRoute());
+                },
               ),
             );
           } else if (state.status == RegisterStatus.success) {
@@ -450,11 +475,11 @@ class _LoginPageState extends State<LoginPage> {
                     inputFormatters: _isPhoneMode
                         ? [
                             FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(
-                              9,
-                            ), // Faqat 9 ta raqam
+                            LengthLimitingTextInputFormatter(9), // Faqat 9 ta raqam
                           ]
                         : null,
+                    maxLength: _isPhoneMode ? 9 : null,
+                    buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
                     style: TextStyle(fontSize: 16.sp, color: AppColors.black),
                     decoration: AppInputDecoration.outline(
                       hint: _isPhoneMode
@@ -475,7 +500,7 @@ class _LoginPageState extends State<LoginPage> {
                                   Text(
                                     '+998',
                                     style: TextStyle(
-                                      color: AppColors.grayText,
+                                      color: AppColors.black,
                                       fontSize: 16.sp,
                                       fontWeight: FontWeight.w400,
                                     ),

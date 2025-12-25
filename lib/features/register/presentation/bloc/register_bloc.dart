@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/services/auth/auth_service.dart';
+import '../../../../core/utils/logger.dart';
 import '../../domain/entities/auth_tokens.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/usecases/register_user.dart';
@@ -134,6 +135,10 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
             lastName: event.params.lastName,
             contact: event.params.email ?? event.params.phone ?? '',
             password: event.params.password,
+            email: event.params.email,
+            phone: event.params.phone != null && event.params.phone!.isNotEmpty
+                ? AuthService.normalizeContact(event.params.phone!)
+                : null,
           ),
         );
         emit(
@@ -159,44 +164,80 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
         final tokens = await _loginUser(event.params);
         await _persistTokens(tokens);
         
+        AppLogger.debug('🔐 LOGIN: Tokens received, loading profile...');
+        AppLogger.debug('🔐 LOGIN: Login method - email: ${event.params.email != null ? "YES" : "NO"}, phone: ${event.params.phone != null ? "YES" : "NO"}');
+        
         // Profile'ni yuklab, ma'lumotlarni saqlash
         try {
           final profile = await _getProfile();
+          AppLogger.debug('🔐 LOGIN: Profile loaded from API');
+          AppLogger.debug('🔐 LOGIN: Profile email: ${profile.email ?? "null"}');
+          AppLogger.debug('🔐 LOGIN: Profile phone: ${profile.phone ?? "null"}');
+          AppLogger.debug('🔐 LOGIN: Profile firstName: ${profile.firstName}');
+          AppLogger.debug('🔐 LOGIN: Profile lastName: ${profile.lastName}');
+          
           await _cacheProfile(profile);
           
           // Password'ni saqlash (login qilganda)
           final contact = event.params.email ?? event.params.phone ?? '';
           final cachedUser = await _authService.getStoredUser();
-          await _authService.saveProfile(
-            AuthUser(
-              firstName: profile.firstName,
-              lastName: profile.lastName,
-              contact: profile.email ?? profile.phone ?? contact,
-              password: event.params.password,
-              region: profile.regionName ?? cachedUser?.region,
-            ),
+          
+          final authUser = AuthUser(
+            firstName: profile.firstName,
+            lastName: profile.lastName,
+            contact: profile.email ?? profile.phone ?? contact,
+            password: event.params.password,
+            region: profile.regionName ?? cachedUser?.region,
+            email: profile.email,
+            phone: profile.phone != null && profile.phone!.isNotEmpty
+                ? AuthService.normalizeContact(profile.phone!)
+                : null,
           );
+          
+          AppLogger.debug('🔐 LOGIN: Saving AuthUser to AuthService');
+          AppLogger.debug('🔐 LOGIN: AuthUser.email: ${authUser.email ?? "null"}');
+          AppLogger.debug('🔐 LOGIN: AuthUser.phone: ${authUser.phone ?? "null"}');
+          AppLogger.debug('🔐 LOGIN: AuthUser.contact: ${authUser.contact}');
+          
+          await _authService.saveProfile(authUser);
+          
+          AppLogger.debug('🔐 LOGIN: AuthUser saved successfully');
         } catch (e) {
+          AppLogger.warning('🔐 LOGIN: Failed to load profile from API: $e');
           // Profile yuklanmasa ham, mavjud ma'lumotlarni saqlash
           final contact = event.params.email ?? event.params.phone ?? '';
           final cachedUser = await _authService.getStoredUser();
+          
+          AppLogger.debug('🔐 LOGIN: Fallback - using cached user or contact');
+          AppLogger.debug('🔐 LOGIN: Contact from login: $contact');
+          AppLogger.debug('🔐 LOGIN: CachedUser exists: ${cachedUser != null}');
+          if (cachedUser != null) {
+            AppLogger.debug('🔐 LOGIN: CachedUser.email: ${cachedUser.email ?? "null"}');
+            AppLogger.debug('🔐 LOGIN: CachedUser.phone: ${cachedUser.phone ?? "null"}');
+            AppLogger.debug('🔐 LOGIN: CachedUser.contact: ${cachedUser.contact}');
+          }
           
           // Agar cachedUser mavjud bo'lsa va uning ismi bo'lsa, uni saqlash
           if (cachedUser != null && 
               cachedUser.firstName.isNotEmpty && 
               cachedUser.lastName.isNotEmpty) {
-            await _authService.saveProfile(
-              AuthUser(
-                firstName: cachedUser.firstName,
-                lastName: cachedUser.lastName,
-                contact: contact.isNotEmpty ? contact : cachedUser.contact,
-                password: event.params.password,
-                region: cachedUser.region,
-              ),
+            final authUser = AuthUser(
+              firstName: cachedUser.firstName,
+              lastName: cachedUser.lastName,
+              contact: contact.isNotEmpty ? contact : cachedUser.contact,
+              password: event.params.password,
+              region: cachedUser.region,
+              email: cachedUser.email,
+              phone: cachedUser.phone,
             );
+            AppLogger.debug('🔐 LOGIN: Saving AuthUser from cached user');
+            AppLogger.debug('🔐 LOGIN: AuthUser.email: ${authUser.email ?? "null"}');
+            AppLogger.debug('🔐 LOGIN: AuthUser.phone: ${authUser.phone ?? "null"}');
+            await _authService.saveProfile(authUser);
           } else {
             // Agar ism yo'q bo'lsa, faqat contact va password'ni saqlash
             // Keyinroq profile yuklanganda ism qo'shiladi
+            AppLogger.debug('🔐 LOGIN: Saving minimal AuthUser (contact only)');
             await _authService.saveProfile(
               AuthUser(
                 firstName: '',
@@ -204,23 +245,36 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
                 contact: contact,
                 password: event.params.password,
                 region: cachedUser?.region,
+                email: null,
+                phone: null,
               ),
             );
             
             // Profile'ni keyinroq yuklashga harakat qilish
             try {
+              AppLogger.debug('🔐 LOGIN: Retrying profile load...');
               final profile = await _getProfile();
+              AppLogger.debug('🔐 LOGIN: Profile loaded on retry');
+              AppLogger.debug('🔐 LOGIN: Profile email: ${profile.email ?? "null"}');
+              AppLogger.debug('🔐 LOGIN: Profile phone: ${profile.phone ?? "null"}');
               await _cacheProfile(profile);
-              await _authService.saveProfile(
-                AuthUser(
-                  firstName: profile.firstName,
-                  lastName: profile.lastName,
-                  contact: profile.email ?? profile.phone ?? contact,
-                  password: event.params.password,
-                  region: profile.regionName ?? cachedUser?.region,
-                ),
+              final authUser = AuthUser(
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                contact: profile.email ?? profile.phone ?? contact,
+                password: event.params.password,
+                region: profile.regionName ?? cachedUser?.region,
+                email: profile.email,
+                phone: profile.phone != null && profile.phone!.isNotEmpty
+                    ? AuthService.normalizeContact(profile.phone!)
+                    : null,
               );
+              AppLogger.debug('🔐 LOGIN: Saving AuthUser from retry');
+              AppLogger.debug('🔐 LOGIN: AuthUser.email: ${authUser.email ?? "null"}');
+              AppLogger.debug('🔐 LOGIN: AuthUser.phone: ${authUser.phone ?? "null"}');
+              await _authService.saveProfile(authUser);
             } catch (_) {
+              AppLogger.warning('🔐 LOGIN: Retry also failed, ignoring');
               // Ikkinchi marta ham yuklanmasa, xatolikni e'tiborsiz qoldirish
             }
           }
@@ -279,6 +333,8 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
               contact: contact.isNotEmpty ? contact : cachedUser.contact,
               password: event.params.password,
               region: cachedUser.region,
+              email: cachedUser.email,
+              phone: cachedUser.phone,
             ),
           );
         }
@@ -339,6 +395,10 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
               contact: profile.email ?? profile.phone ?? '',
               password: '', // Google login uchun password bo'lmaydi
               region: profile.regionName,
+              email: profile.email,
+              phone: profile.phone != null && profile.phone!.isNotEmpty
+                  ? AuthService.normalizeContact(profile.phone!)
+                  : null,
             ),
           );
         } catch (e) {
@@ -350,6 +410,8 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
               contact: '',
               password: '', // Google login uchun password bo'lmaydi
               region: null,
+              email: null,
+              phone: null,
             ),
           );
         }
@@ -529,15 +591,23 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
 
   Future<void> _cacheProfile(UserProfile profile) async {
     final cachedUser = await _authService.getStoredUser();
-    await _authService.saveProfile(
-      AuthUser(
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        contact: profile.email ?? profile.phone ?? cachedUser?.contact ?? '',
-        password: cachedUser?.password ?? '',
-        region: profile.regionName ?? cachedUser?.region,
-      ),
+    final authUser = AuthUser(
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      contact: profile.email ?? profile.phone ?? cachedUser?.contact ?? '',
+      password: cachedUser?.password ?? '',
+      region: profile.regionName ?? cachedUser?.region,
+      email: profile.email,
+      phone: profile.phone != null && profile.phone!.isNotEmpty
+          ? AuthService.normalizeContact(profile.phone!)
+          : null,
     );
+    AppLogger.debug('📦 CACHE_PROFILE: Caching profile data');
+    AppLogger.debug('📦 CACHE_PROFILE: Profile.email: ${profile.email ?? "null"}');
+    AppLogger.debug('📦 CACHE_PROFILE: Profile.phone: ${profile.phone ?? "null"}');
+    AppLogger.debug('📦 CACHE_PROFILE: AuthUser.email: ${authUser.email ?? "null"}');
+    AppLogger.debug('📦 CACHE_PROFILE: AuthUser.phone: ${authUser.phone ?? "null"}');
+    await _authService.saveProfile(authUser);
   }
 
   Future<void> _runSafe(

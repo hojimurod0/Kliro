@@ -2,6 +2,12 @@ import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/dio/singletons/service_locator.dart';
+import '../../../../features/register/domain/params/auth_params.dart';
+import '../../../../features/register/presentation/bloc/register_bloc.dart';
+import '../../../../features/register/presentation/bloc/register_event.dart';
+import '../../../../features/register/presentation/bloc/register_state.dart';
 
 // Ranglar va uslublar
 const Color _primaryBlue = Color(0xFF00C6FF); // Ochiqroq moviy
@@ -39,7 +45,33 @@ class _SecurityPageState extends State<SecurityPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BlocProvider(
+      create: (context) => ServiceLocator.resolve<RegisterBloc>(),
+      child: BlocListener<RegisterBloc, RegisterState>(
+        listener: (context, state) {
+          if (state.status == RegisterStatus.success && 
+              state.flow == RegisterFlow.passwordChange) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(tr('security.password_updated')),
+                backgroundColor: Colors.green,
+              ),
+            );
+            // Formani tozalash
+            _currentPasswordController.clear();
+            _newPasswordController.clear();
+            _confirmPasswordController.clear();
+          } else if (state.status == RegisterStatus.failure && 
+                     state.flow == RegisterFlow.passwordChange) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.error ?? tr('security.password_update_failed')),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+        child: Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
@@ -77,6 +109,8 @@ class _SecurityPageState extends State<SecurityPage> {
               _buildSecuritySettingsSection(),
             ],
           ),
+        ),
+      ),
         ),
       ),
     );
@@ -234,39 +268,96 @@ class _SecurityPageState extends State<SecurityPage> {
   }
 
   Widget _buildUpdateButton() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10.r),
-        gradient: const LinearGradient(
-          colors: [_primaryBlue, _secondaryBlue],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-      ),
-      child: ElevatedButton(
-        onPressed: () {
-          // Yangilash logikasi
-          // TODO: Implement password change logic
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(tr('security.password_updated')),
-              backgroundColor: Colors.green,
-            ),
-          );
-        },
-        style: ElevatedButton.styleFrom(
-          foregroundColor: Colors.white,
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          padding: EdgeInsets.symmetric(vertical: 15.h),
-          shape: RoundedRectangleBorder(
+    return BlocBuilder<RegisterBloc, RegisterState>(
+      buildWhen: (previous, current) => 
+          current.flow == RegisterFlow.passwordChange,
+      builder: (context, state) {
+        final isLoading = state.status == RegisterStatus.loading && 
+                         state.flow == RegisterFlow.passwordChange;
+        
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10.r),
+            gradient: const LinearGradient(
+              colors: [_primaryBlue, _secondaryBlue],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
           ),
+          child: ElevatedButton(
+            onPressed: isLoading ? null : _handlePasswordChange,
+            style: ElevatedButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              disabledBackgroundColor: Colors.grey,
+              padding: EdgeInsets.symmetric(vertical: 15.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+            ),
+            child: isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Text(
+                    tr('security.update_password'),
+                    style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                  ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _handlePasswordChange() {
+    final currentPassword = _currentPasswordController.text.trim();
+    final newPassword = _newPasswordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+
+    // Validatsiya
+    if (currentPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(tr('security.current_password_required')),
+          backgroundColor: Colors.red,
         ),
-        child: Text(
-          tr('security.update_password'),
-          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+      );
+      return;
+    }
+
+    if (newPassword.isEmpty || newPassword.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(tr('security.password_min_length')),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (newPassword != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(tr('security.passwords_do_not_match')),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // API'ni chaqirish
+    context.read<RegisterBloc>().add(
+      PasswordChanged(
+        ChangePasswordParams(
+          oldPassword: currentPassword,
+          newPassword: newPassword,
         ),
       ),
     );

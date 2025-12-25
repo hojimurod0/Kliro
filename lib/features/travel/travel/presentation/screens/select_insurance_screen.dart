@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:intl/intl.dart';
+import '../../../../../core/utils/snackbar_helper.dart';
 import 'personal_data_screen.dart';
 import '../logic/bloc/travel_bloc.dart';
 import '../logic/bloc/travel_state.dart';
@@ -53,9 +54,8 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final scaffoldBg = isDark ? const Color(0xFF121212) : Colors.white;
     final textColor = isDark ? Colors.white : SelectInsuranceScreen.kTextBlack;
-    final textGreyColor = isDark
-        ? Colors.grey[400]!
-        : SelectInsuranceScreen.kTextGrey;
+    final textGreyColor =
+        isDark ? Colors.grey[400]! : SelectInsuranceScreen.kTextGrey;
 
     return Scaffold(
       backgroundColor: scaffoldBg,
@@ -108,8 +108,8 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
               if (errorMessage.toLowerCase().contains('country not found') ||
                   errorMessage.toLowerCase().contains('tariflar topilmadi') ||
                   errorMessage.toLowerCase().contains('not found')) {
-                errorMessage = "travel.select_insurance.error_country_not_found"
-                    .tr();
+                errorMessage =
+                    "travel.select_insurance.error_country_not_found".tr();
               } else if (errorMessage.toLowerCase().contains('network') ||
                   errorMessage.toLowerCase().contains('internet')) {
                 errorMessage = "travel.select_insurance.error_network".tr();
@@ -143,8 +143,8 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
                         onPressed: () {
                           if (widget.countryCode.isNotEmpty) {
                             context.read<TravelBloc>().add(
-                              LoadTarifs(widget.countryCode),
-                            );
+                                  LoadTarifs(widget.countryCode),
+                                );
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -211,16 +211,17 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
                           tarifData['evakuatsiya'] as String? ?? '0,00 EUR';
 
                       // Формируем описание с названием программы - tushunarli format
-                      final description = programName.isNotEmpty && programName != 'Standard'
-                          ? programName
-                          : 'Sug\'urta polisi';
+                      final description =
+                          programName.isNotEmpty && programName != 'Standard'
+                              ? programName
+                              : 'Sug\'urta polisi';
 
                       // Формируем теги из доступных услуг
                       final tags = <String>[];
                       if (tarifData['covid'] != null &&
                           tarifData['covid'].toString().contains(
-                            RegExp(r'[1-9]'),
-                          )) {
+                                RegExp(r'[1-9]'),
+                              )) {
                         tags.add('COVID qoplash');
                       }
                       if (evakuatsiya != '0,00 EUR' && evakuatsiya != '0,00') {
@@ -230,16 +231,16 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
                         tags.add('Tibbiy yordam');
                       }
                       if (tarifData['repatriatsiya'] != null) {
-                        final repatriatsiya = tarifData['repatriatsiya']
-                            .toString();
+                        final repatriatsiya =
+                            tarifData['repatriatsiya'].toString();
                         if (repatriatsiya != '0,00 EUR' &&
                             repatriatsiya != '0,00') {
                           tags.add('Repatriatsiya');
                         }
                       }
                       if (tarifData['stomatologiya'] != null) {
-                        final stomatologiya = tarifData['stomatologiya']
-                            .toString();
+                        final stomatologiya =
+                            tarifData['stomatologiya'].toString();
                         if (stomatologiya != '0,00 EUR' &&
                             stomatologiya != '0,00') {
                           tags.add('Stomatologiya');
@@ -342,8 +343,7 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
                                 'Noma\'lum kompaniya',
                             company['program_name'] as String?,
                           ),
-                          description:
-                              company['description'] as String? ??
+                          description: company['description'] as String? ??
                               'Sug\'urta xizmati',
                           price: _formatPrice(
                             company['price'] ?? company['main_sum'] ?? 0,
@@ -360,9 +360,8 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
                           onTap: () {
                             setState(() {
                               // Если уже выбрана, снимаем выбор, иначе выбираем
-                              selectedInsuranceIndex = isSelected
-                                  ? null
-                                  : index;
+                              selectedInsuranceIndex =
+                                  isSelected ? null : index;
                             });
                           },
                         ),
@@ -484,24 +483,16 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
                           // Bu BlocListener da qilinadi
                         } else {
                           // Persons bo'sh bo'lsa, xatolik ko'rsatish
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Sayohatchi ma\'lumotlari topilmadi. Iltimos, qayta urinib ko\'ring.',
-                              ),
-                              backgroundColor: Colors.red,
-                            ),
+                          SnackbarHelper.showError(
+                            context,
+                            'Sayohatchi ma\'lumotlari topilmadi. Iltimos, qayta urinib ko\'ring.',
                           );
                         }
                       } else if (sessionId == null || sessionId.isEmpty) {
                         // SessionId yo'q bo'lsa, xatolik ko'rsatish
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Session ID topilmadi. Iltimos, qayta urinib ko\'ring.',
-                            ),
-                            backgroundColor: Colors.red,
-                          ),
+                        SnackbarHelper.showError(
+                          context,
+                          'Session ID topilmadi. Iltimos, qayta urinib ko\'ring.',
                         );
                       }
                     }
@@ -548,15 +539,12 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
     // Если это строка с форматированием (например, "20 000,00 EUR")
     if (price is String) {
       // Извлекаем только число
-      final cleanPrice = price
-          .replaceAll(RegExp(r'[^\d,.]'), '')
-          .replaceAll(',', '.');
+      final cleanPrice =
+          price.replaceAll(RegExp(r'[^\d,.]'), '').replaceAll(',', '.');
       final numValue = double.tryParse(cleanPrice) ?? 0;
       if (numValue > 0) {
         // Форматируем с пробелами для тысяч
-        final formatted = numValue
-            .toStringAsFixed(0)
-            .replaceAllMapped(
+        final formatted = numValue.toStringAsFixed(0).replaceAllMapped(
               RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
               (Match m) => '${m[1]} ',
             );
@@ -566,13 +554,10 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
     }
 
     // Если это число
-    final numValue = price is num
-        ? price
-        : (double.tryParse(price.toString()) ?? 0);
+    final numValue =
+        price is num ? price : (double.tryParse(price.toString()) ?? 0);
     // Форматируем число с пробелами для тысяч
-    final formatted = numValue
-        .toStringAsFixed(0)
-        .replaceAllMapped(
+    final formatted = numValue.toStringAsFixed(0).replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]} ',
         );
@@ -673,9 +658,10 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
                 tarifData['evakuatsiya'] as String? ?? '0,00 EUR';
 
             // Формируем описание с названием программы - tushunarli format
-            final description = programName.isNotEmpty && programName != 'Standard'
-                ? programName
-                : 'Sug\'urta polisi';
+            final description =
+                programName.isNotEmpty && programName != 'Standard'
+                    ? programName
+                    : 'Sug\'urta polisi';
 
             final tags = <String>[];
             if (tarifData['covid'] != null &&
@@ -759,18 +745,14 @@ class InsuranceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : SelectInsuranceScreen.kTextBlack;
-    final textGreyColor = isDark
-        ? Colors.grey[400]!
-        : SelectInsuranceScreen.kTextGrey;
-    final borderColor = isDark
-        ? Colors.grey[700]!
-        : SelectInsuranceScreen.kBorderColor;
-    final tagBg = isDark
-        ? const Color(0xFF1E3A5C)
-        : SelectInsuranceScreen.kTagBg;
-    final tagTextColor = isDark
-        ? const Color(0xFF60A5FA)
-        : SelectInsuranceScreen.kTagText;
+    final textGreyColor =
+        isDark ? Colors.grey[400]! : SelectInsuranceScreen.kTextGrey;
+    final borderColor =
+        isDark ? Colors.grey[700]! : SelectInsuranceScreen.kBorderColor;
+    final tagBg =
+        isDark ? const Color(0xFF1E3A5C) : SelectInsuranceScreen.kTagBg;
+    final tagTextColor =
+        isDark ? const Color(0xFF60A5FA) : SelectInsuranceScreen.kTagText;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -868,9 +850,8 @@ class InsuranceCard extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: tags
-                .map((tag) => _buildTag(tag, tagBg, tagTextColor))
-                .toList(),
+            children:
+                tags.map((tag) => _buildTag(tag, tagBg, tagTextColor)).toList(),
           ),
 
           const SizedBox(height: 20),
@@ -943,9 +924,8 @@ class InsuranceCard extends StatelessWidget {
                     backgroundColor: isSelected
                         ? SelectInsuranceScreen.kPrimaryBlue
                         : Colors.grey[300],
-                    foregroundColor: isSelected
-                        ? Colors.white
-                        : Colors.grey[600],
+                    foregroundColor:
+                        isSelected ? Colors.white : Colors.grey[600],
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,

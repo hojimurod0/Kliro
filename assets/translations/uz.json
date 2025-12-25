@@ -50,7 +50,9 @@
       "snack_contact_invalid": "Kontakt ma'lumotini to'g'ri kiriting.",
       "snack_contact_required": "Kontaktni kiriting",
       "error_credentials": "Login yoki parol noto'g'ri",
-      "error_credentials_detail": "Telefon raqami yoki parol noto'g'ri.\n\nTekshiring:\n• Telefon raqamini to'g'ri kiritganingizni\n• Parolni to'g'ri kiritganingizni (katta/kichik harflar)\n• Agar parolni unutgan bo'lsangiz, 'Parolni unutdingizmi?' tugmasidan foydalaning"
+      "error_credentials_detail": "Noto'g'ri ma'lumotlar",
+      "error_password_incorrect": "Parol noto'g'ri",
+      "error_phone_format": "Telefon formati noto'g'ri"
     },
     "register": {
       "title": "Akkaunt yaratish",
@@ -281,9 +283,15 @@
     "best_buy": "Eng yaxshi sotib olish",
     "best_sell": "Eng yaxshi sotish",
     "bank_rates": "Banklardagi valyuta kurslari",
+    "bank_rates_description": "Banklardagi valyuta kurslarini solishtiring va eng yaxshi taklifni toping",
+    "best_rates": "Eng yaxshi kurslar",
+    "best": "Eng yaxshi",
     "best_offer": "Eng yaxshi taklif",
+    "select_operation": "Amalni tanlang",
     "som": "so'm",
     "per_day": "bir kunda",
+    "per_unit": "birlik uchun",
+    "empty_description": "Hozircha ma'lumotlar mavjud emas",
     "bank_name_hamkorbank": "Hamkorbank",
     "bank_name_universal": "Universal bank"
   },
@@ -1626,12 +1634,22 @@
     },
     "results": {
       "title": "Mehmonxonalar",
+      "options_available": "variantlar mavjud",
+      "empty_title": "Mehmonxona topilmadi",
+      "empty_subtitle": "Boshqa qidiruv parametrlarini sinab ko'ring",
       "not_found": "Mehmonxona topilmadi",
       "select": "Tanlash",
       "person": "kishi",
       "people": "kishi",
       "night": "Tun",
       "nights": "Tun"
+    },
+    "search": {
+      "select_city": "Shahar tanlang yoki kiriting",
+      "select_dates": "Kirish va chiqish sanalarini tanlang",
+      "invalid_dates": "Chiqish sanasi kirish sanasidan keyin bo'lishi kerak",
+      "city_not_found": "Shahar topilmadi. Iltimos, ro'yxatdan tanlang",
+      "failed": "Qidiruv muvaffaqiyatsiz"
     },
     "guest_details": {
       "title": "Ma'lumotlarni kiritish",
@@ -1663,10 +1681,43 @@
       "confirm_and_pay": "Tasdiqlash va To'lash",
       "booking_success": "Bron qilindi!"
     },
+    "bookings": {
+      "title": "Mening bronlarim",
+      "empty_title": "Hozircha bronlar yo'q",
+      "empty_subtitle": "Siz bron qilgan mehmonxonalar shu yerda ko'rinadi",
+      "booking_id": "Bron ID",
+      "total": "Jami summa",
+      "status": {
+        "confirmed": "Tasdiqlangan",
+        "pending": "Kutilmoqda",
+        "cancelled": "Bekor qilingan"
+      }
+    },
+    "booking_details": {
+      "title": "Bron tafsilotlari",
+      "hotel_info": "Mehmonxona ma'lumotlari",
+      "dates": "Sanalar",
+      "booking_details": "Bron ma'lumotlari",
+      "booking_id": "Bron ID",
+      "confirmation_number": "Tasdiqlash raqami",
+      "hotel_confirmation": "Mehmonxona tasdiqlash raqami",
+      "payment": "To'lov",
+      "total_amount": "Jami summa",
+      "payment_status": "To'lov holati",
+      "checkin_instructions": "Kirish ko'rsatmalari",
+      "download_voucher": "Voucher yuklab olish",
+      "cancel": "Bekor qilish",
+      "cancel_confirm_title": "Bronni bekor qilish",
+      "cancel_confirm_message": "Haqiqatan ham bu bronni bekor qilmoqchimisiz?",
+      "cancelled_success": "Bron muvaffaqiyatli bekor qilindi",
+      "voucher_error": "Voucher yuklab olishda xatolik",
+      "nights": "kecha"
+    },
     "details": {
       "price": "Narx:",
       "description": "Tavsif",
       "amenities": "Qulayliklar",
+      "photos": "Rasmlar",
       "book": "Bron qilish",
       "book_now": "Rasmiylashtirish",
       "rooms": "Xonani tanlang",
@@ -1682,7 +1733,15 @@
       "search": "Qidirish",
       "anywhere": "Qayerga?",
       "select": "Tanlash",
-      "close": "Yopish"
+      "close": "Yopish",
+      "unknown_error": "Noma'lum xatolik yuz berdi",
+      "parsing_error": "Ma'lumotlarni qayta ishlashda xatolik",
+      "network_error": "Internet aloqasi yo'q",
+      "server_error": "Server xatosi",
+      "timeout_error": "So'rov vaqti tugadi",
+      "invalid_hotel_id": "Noto'g'ri hotel ID",
+      "hotel_not_found": "Hotel topilmadi",
+      "invalid_response_format": "Server javobi noto'g'ri formatda"
     },
     "booking": {
       "title": "Rasmiylashtirish",
@@ -1691,14 +1750,39 @@
       "email": "Email",
       "phone": "Telefon",
       "payment_type": "To'lov turi",
-      "pay": "To'lov qilish"
+      "pay": "To'lov qilish",
+      "quote_not_found": "Quote topilmadi",
+      "fill_field": "Maydonni to'ldiring",
+      "invalid_email": "Noto'g'ri email formati",
+      "hotel_data_not_found": "Hotel ma'lumotlari topilmadi"
     },
     "success": {
       "title": "Bron qilindi",
       "subtitle": "Ma'lumotlar emailingizga yuborildi",
       "download": "Polisni yuklab olish",
-      "share": "Ulashish"
+      "share": "Ulashish",
+      "downloading": "Yuklanmoqda...",
+      "sharing": "Ulashilmoqda...",
+      "downloaded": "Muvaffaqiyatli yuklab olindi",
+      "download_error": "Yuklab olishda xatolik yuz berdi",
+      "share_error": "Ulashishda xatolik yuz berdi",
+      "voucher_not_available": "Voucher mavjud emas",
+      "open": "Ochish",
+      "booking_id": "Bron ID",
+      "confirmation": "Tasdiqlash raqami",
+      "share_title": "Mehmonxona broni"
     },
-    "from": "dan"
+    "from": "dan",
+    "filter": {
+      "title": "Filter",
+      "price_range": "Narx oralig'i",
+      "stars": "Yulduzlar",
+      "cancellation": "Bekor qilish",
+      "refundable": "Qaytariladigan",
+      "non_refundable": "Qaytarilmaydigan",
+      "all": "Barchasi",
+      "reset": "Tozalash",
+      "apply": "Qo'llash"
+    }
   }
 }

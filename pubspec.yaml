@@ -58,6 +58,7 @@ dependencies:
   share_plus: ^10.1.2
   sentry_flutter: ^9.9.0
   cached_network_image: ^3.4.1
+  path_provider: ^2.1.1
 
 dev_dependencies:
   flutter_test:
@@ -97,7 +98,6 @@ flutter:
     - assets/images/
     - assets/videos/
     - assets/svgs/
-    - assets/logos/airline_logos/airline_logos/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

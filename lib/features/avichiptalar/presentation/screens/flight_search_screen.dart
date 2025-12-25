@@ -113,17 +113,13 @@ class _FlightSearchScreenState extends State<FlightSearchScreen> {
     final toAirport = _toAirportCode ?? _toCityController.text.trim();
 
     if (fromAirport.isEmpty || toAirport.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('avia.search.fill_fields'.tr())));
+      SnackbarHelper.showError(context, 'avia.search.fill_fields'.tr());
       return;
     }
 
     // Agar aeroportlar bir xil bo'lsa, xatolik ko'rsatish
     if (fromAirport == toAirport) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('avia.search.same_airports'.tr())));
+      SnackbarHelper.showError(context, 'avia.search.same_airports'.tr());
       return;
     }
 

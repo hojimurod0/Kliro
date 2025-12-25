@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/constants/avia_endpoints.dart';
 import '../../../../core/network/avia/avia_dio_client.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../core/utils/retry_helper.dart';
+import '../../../../core/services/auth/auth_service.dart';
 import '../../domain/entities/avichipta.dart';
 import '../../domain/entities/avichipta_filter.dart';
 import '../../domain/entities/avichipta_search_result.dart';
@@ -1024,11 +1026,54 @@ class AvichiptalarRepositoryImpl implements AvichiptalarRepository {
   @override
   Future<Either<AppException, List<HumanModel>>> getHumans() async {
     try {
+      AppLogger.debug('getHumans: Requesting ${AviaEndpoints.userHumans}');
+      
+      // Token'ni tekshirish va log qilish
+      try {
+        final authService = AuthService.instance;
+        final token = await authService.getAccessToken();
+        if (token != null && token.isNotEmpty) {
+          AppLogger.debug('getHumans: Token available: YES (${token.substring(0, 30)}...)');
+          
+          // Token ichidagi user_id'ni decode qilish
+          try {
+            final parts = token.split('.');
+            if (parts.length == 3) {
+              final payload = parts[1];
+              String normalizedPayload = payload;
+              switch (payload.length % 4) {
+                case 1:
+                  normalizedPayload += '===';
+                  break;
+                case 2:
+                  normalizedPayload += '==';
+                  break;
+                case 3:
+                  normalizedPayload += '=';
+                  break;
+              }
+              final decoded = utf8.decode(base64.decode(normalizedPayload));
+              final payloadMap = json.decode(decoded) as Map<String, dynamic>;
+              final userId = payloadMap['user_id'] ?? payloadMap['userId'] ?? payloadMap['sub'];
+              AppLogger.debug('getHumans: Token user_id: $userId');
+              AppLogger.debug('getHumans: Token payload: $payloadMap');
+            }
+          } catch (e) {
+            AppLogger.warning('getHumans: Could not decode token: $e');
+          }
+        } else {
+          AppLogger.warning('getHumans: Token is NULL or EMPTY!');
+        }
+      } catch (e) {
+        AppLogger.warning('getHumans: Could not check token: $e');
+      }
+      
       final response = await _dioClient.get(AviaEndpoints.userHumans);
       final data = response.data;
       
       AppLogger.debug('getHumans API response type: ${data.runtimeType}');
       AppLogger.debug('getHumans API response data: $data');
+      AppLogger.debug('getHumans: Response status code: ${response.statusCode}');
       
       if (data is List) {
         AppLogger.debug('Data is List, length: ${data.length}');

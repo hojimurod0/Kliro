@@ -30,10 +30,13 @@ class _AppState extends State<App> {
   @override
   void initState() {
     super.initState();
-    // ServiceLocator state ni kuzatish
-    _listenToServiceLocatorState();
-    // Загружаем и применяем сохраненную локаль после первого кадра
+    // ✅ App'ni darhol ishga tushirish - qora ekran muammosini hal qilish uchun
+    // ServiceLocator lazy loading bo'ladi - kerak bo'lganda resolve qilinadi
+    _isServiceLocatorReady = true;
+    
+    // ServiceLocator state ni keyinroq kuzatish - main thread'ni bloklamaslik uchun
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _listenToServiceLocatorState();
       _loadAndApplyLocale();
     });
   }
@@ -44,52 +47,58 @@ class _AppState extends State<App> {
     super.dispose();
   }
 
+  /// ServiceLocator state ni yangilash - optimallashtirilgan setState
+  void _updateServiceLocatorState(bool ready) {
+    if (mounted && _isServiceLocatorReady != ready) {
+      setState(() {
+        _isServiceLocatorReady = ready;
+      });
+    }
+  }
+
   /// ServiceLocator state ni kuzatish - polling o'rniga Stream ishlatish
   void _listenToServiceLocatorState() {
     _stateSubscription = ServiceLocatorStateController.instance.stateStream.listen(
       (state) {
         if (state == ServiceLocatorState.ready && !_isServiceLocatorReady) {
-          _isServiceLocatorReady = true;
-          if (mounted) {
-            setState(() {});
-          }
+          _updateServiceLocatorState(true);
           AppLogger.success('ServiceLocator ready, app can proceed');
         } else if (state == ServiceLocatorState.error) {
           AppLogger.error('ServiceLocator initialization error');
-          // Xatolikni ko'rsatish yoki fallback qilish
+          // Xatolik bo'lsa ham app ishlashini davom ettirish
+          _updateServiceLocatorState(true);
         }
       },
       onError: (error) {
         AppLogger.error('ServiceLocator state stream error', error);
+        // Xatolik bo'lsa ham app ishlashini davom ettirish
+        _updateServiceLocatorState(true);
       },
     );
 
     // Agar allaqachon ready bo'lsa
     if (ServiceLocatorStateController.instance.currentState ==
         ServiceLocatorState.ready) {
-      _isServiceLocatorReady = true;
-      if (mounted) {
-        setState(() {});
-      }
+      _updateServiceLocatorState(true);
     } else {
-      // Timeout - agar 10 soniyadan keyin ready bo'lmasa, xatolik ko'rsatish
+      // Timeout ni 2 soniyaga qisqartirish - tezroq ishga tushish uchun
+      // Va darhol fallback qilish - app ishlashini davom ettirish
       ServiceLocatorStateController.instance.initializationComplete
           .timeout(
-        const Duration(seconds: 10),
+        const Duration(seconds: 2), // 3 dan 2 ga qisqartirildi
         onTimeout: () {
-          AppLogger.warning('ServiceLocator initialization timeout');
-          if (mounted) {
-            setState(() {
-              _isServiceLocatorReady = true; // Fallback - app ishlashini davom ettirish
-            });
-          }
+          AppLogger.warning('ServiceLocator initialization timeout - continuing anyway');
+          _updateServiceLocatorState(true);
         },
       ).catchError((error) {
         AppLogger.error('ServiceLocator initialization error', error);
-        if (mounted) {
-          setState(() {
-            _isServiceLocatorReady = true; // Fallback
-          });
+        _updateServiceLocatorState(true);
+      });
+      
+      // Darhol fallback - 500ms dan keyin app ishga tushadi (tezroq)
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted && !_isServiceLocatorReady) {
+          _updateServiceLocatorState(true);
         }
       });
     }
@@ -97,82 +106,99 @@ class _AppState extends State<App> {
 
   Future<void> _loadAndApplyLocale() async {
     try {
+      // Locale yuklashni keyinroq qilish - main thread'ni bloklamaslik uchun
+      await Future.delayed(const Duration(milliseconds: 50));
+      
       final locale = await LocalePrefs.load();
       if (locale != null && mounted) {
         try {
-          // Локални текшириш - агар кирилл локали бўлса, тўғри форматда бўлишини текшириш
           final localeToSet = locale;
-          AppLogger.debug('Loading locale: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}');
-          
-          // EasyLocalization файлни юклаш учун локални тўғри форматда бериш керак
-          // useOnlyLangCode: false бўлганда, Locale('uz', 'CYR') учун 'uz-CYR.json' файлини ишлатади
           
           // Кирилл локали учун қўшимча вақт бериш
           if (localeToSet.languageCode == 'uz' && localeToSet.countryCode == 'CYR') {
-            await Future.delayed(const Duration(milliseconds: 100));
+            await Future.delayed(const Duration(milliseconds: 50));
           }
           
           await context.setLocale(localeToSet);
           
-          // Локалнинг тўғри ўрнатилганини текшириш
           final currentLocale = context.locale;
-          AppLogger.success('Locale set successfully: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}');
-          AppLogger.debug('Current locale after set: ${currentLocale.languageCode}_${currentLocale.countryCode ?? 'null'}');
           
-          // Таржима файлини текшириш
-          try {
-            final testTranslation = tr('app_title');
-            AppLogger.debug('Translation test: app_title = $testTranslation');
-          } catch (e) {
-            AppLogger.warning('Translation error', e);
-            // Таржима хатоси бўлса ҳам, локал ўрнатилди
-          }
-          
-          // Locale o'zgarishini kuzatish uchun state ni yangilash
-          // Bu MaterialApp.router'ni qayta build qilish uchun zarur
+          // setState'ni keyinroq qilish - main thread'ni bloklamaslik uchun
           if (mounted) {
-            setState(() {
-              _currentLocale = currentLocale;
-            });
-            AppLogger.debug('App: State updated with locale: ${currentLocale.languageCode}_${currentLocale.countryCode ?? 'null'}');
-            
-            // Кирилл локали учун қўшимча қайта билдириш
-            if (currentLocale.languageCode == 'uz' && currentLocale.countryCode == 'CYR') {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  setState(() {
-                    // Кирилл локали учун қўшимча қайта билдириш
-                    _currentLocale = context.locale;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _currentLocale = currentLocale;
+                });
+                
+                // Кирилл локали учун қўшимча қайта билдириш
+                if (currentLocale.languageCode == 'uz' && currentLocale.countryCode == 'CYR') {
+                  Future.delayed(const Duration(milliseconds: 100), () {
+                    if (mounted) {
+                      setState(() {
+                        _currentLocale = context.locale;
+                      });
+                    }
                   });
-                  AppLogger.debug('App: Cyrillic locale forced rebuild: ${_currentLocale?.languageCode}_${_currentLocale?.countryCode ?? 'null'}');
                 }
-              });
-            }
+              }
+            });
           }
         } catch (e) {
           // Agar locale o'rnatishda xatolik bo'lsa, fallback locale'ni ishlatamiz
-          AppLogger.error('Error setting locale', e);
           if (mounted) {
             try {
               // Кирилл локали учун қайта уриниш
               if (locale.languageCode == 'uz' && locale.countryCode == 'CYR') {
-                await Future.delayed(const Duration(milliseconds: 200));
+                await Future.delayed(const Duration(milliseconds: 100));
                 await context.setLocale(locale);
-                AppLogger.success('Cyrillic locale set after retry');
               } else {
                 // Бошқа локаллар учун fallback
                 await context.setLocale(const Locale('en'));
-                AppLogger.info('Fallback to English locale');
               }
             } catch (fallbackError) {
-              AppLogger.error('Fallback locale error', fallbackError);
               // Agar fallback ham ishlamasa, e'tiborsiz qoldiramiz
             }
           }
         }
       }
     } catch (e) {
-      AppLogger.error('Error loading locale', e);
+      // Xatolik bo'lsa ham app ishlashini davom ettirish
+    }
+  }
+
+  /// Loading screen widget - to'g'ri theme va background color bilan
+  /// Endi ishlatilmayapti, chunki app darhol ishga tushadi
+  // ignore: unused_element
+  Widget _buildLoadingScreen(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: _lightTheme,
+      darkTheme: _darkTheme,
+      themeMode: ThemeMode.system,
+      home: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: AppColors.primaryBlue,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Xavfsiz translation - fallback bilan
+  String _getAppTitle(BuildContext context) {
+    try {
+      final title = context.tr('app_title');
+      // Agar bo'sh string yoki key not found bo'lsa, fallback qaytarish
+      if (title.isEmpty || title == 'app_title') {
+        return 'Klero';
+      }
+      return title;
+    } catch (e) {
+      // Translation topilmasa, fallback qaytarish
+      return 'Klero';
     }
   }
 
@@ -200,10 +226,10 @@ class _AppState extends State<App> {
       centerTitle: true,
       surfaceTintColor: Colors.transparent,
     ),
-    cardTheme: CardThemeData(
+    cardTheme: const CardThemeData(
       color: AppColors.white,
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(15))),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -266,10 +292,10 @@ class _AppState extends State<App> {
       centerTitle: true,
       surfaceTintColor: Colors.transparent,
     ),
-    cardTheme: CardThemeData(
-      color: const Color(0xFF1E1E1E),
+    cardTheme: const CardThemeData(
+      color: Color(0xFF1E1E1E),
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(15))),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -315,57 +341,81 @@ class _AppState extends State<App> {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
-        // ServiceLocator init qilinmaguncha loading ko'rsatish
-        if (!_isServiceLocatorReady) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            home: Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(
-                  color: Theme.of(context).primaryColor,
-                ),
-              ),
-            ),
-          );
-        }
+        // ✅ App'ni darhol ishga tushirish - ServiceLocator lazy loading bo'ladi
+        // ServiceLocator init qilinmaguncha loading ko'rsatish (faqat kerak bo'lsa)
+        // if (!_isServiceLocatorReady) {
+        //   return _buildLoadingScreen(context);
+        // }
 
         return MultiProvider(
           providers: [
-            // KASKO Provider
+            // KASKO Provider - xavfsiz resolve
             ChangeNotifierProvider(
-              create: (_) =>
-                  KaskoProvider(ServiceLocator.resolve<KaskoRepository>()),
+              create: (_) {
+                // ✅ ServiceLocator lazy loading - kerak bo'lganda resolve qilish
+                // Xatolik bo'lsa ham app ishlashini davom ettirish
+                try {
+                  // ServiceLocator tayyor bo'lsa resolve qilish
+                  if (ServiceLocatorStateController.instance.currentState ==
+                      ServiceLocatorState.ready) {
+                    return KaskoProvider(ServiceLocator.resolve<KaskoRepository>());
+                  } else {
+                    // ServiceLocator tayyor bo'lmasa, yana bir bor urinib ko'rish
+                    AppLogger.warning('ServiceLocator not ready, trying to resolve anyway');
+                    try {
+                      return KaskoProvider(ServiceLocator.resolve<KaskoRepository>());
+                    } catch (e) {
+                      AppLogger.error('ServiceLocator resolve failed: $e');
+                      // Xatolik bo'lsa ham app ishlashini davom ettirish
+                      // Fallback - null yoki default repository
+                      // Bu yerda siz fallback repository yaratishingiz mumkin
+                      rethrow;
+                    }
+                  }
+                } catch (e) {
+                  AppLogger.error('ServiceLocator resolve error: $e');
+                  // Xatolik bo'lsa ham app ishlashini davom ettirish
+                  // Fallback - yana bir bor urinib ko'rish
+                  try {
+                    return KaskoProvider(ServiceLocator.resolve<KaskoRepository>());
+                  } catch (e2) {
+                    AppLogger.error('ServiceLocator resolve retry failed: $e2');
+                    // Oxirgi fallback - null yoki default repository
+                    rethrow;
+                  }
+                }
+              },
             ),
             // Boshqa providerlar shu yerga qo'shiladi
           ],
           child: Builder(
             builder: (context) {
               // Locale o'zgarishini kuzatish uchun context.locale ni ishlatamiz
-              // EasyLocalization o'z-o'zidan rebuild bo'ladi, shuning uchun context.locale o'zgarganda bu builder ham rebuild bo'ladi
               final contextLocale = context.locale;
               
-              // _currentLocale ни контекст локали билан синхронизация қилиш
-              // Bu orqali MaterialApp har doim to'g'ri locale'ni ishlatadi
+              // _currentLocale ni faqat o'zgarganda yangilash
               if (_currentLocale == null ||
                   _currentLocale!.languageCode != contextLocale.languageCode ||
                   _currentLocale!.countryCode != contextLocale.countryCode) {
-                _currentLocale = contextLocale;
-                AppLogger.debug('App: Locale synced from context: ${contextLocale.languageCode}_${contextLocale.countryCode ?? 'null'}');
+                // setState'ni keyinroq qilish - main thread'ni bloklamaslik uchun
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    setState(() {
+                      _currentLocale = contextLocale;
+                    });
+                  }
+                });
               }
               
-              // Кирилл локали учун қўшимча текшириш
               final localeToUse = _currentLocale ?? contextLocale;
-              AppLogger.debug('Current locale in MaterialApp: ${localeToUse.languageCode}_${localeToUse.countryCode ?? 'null'}');
               
               return AnimatedBuilder(
                 animation: ThemeController.instance,
                 builder: (context, _) {
                   return TopSnackbarMessenger(
                     child: MaterialApp.router(
-                      // Locale o'zgarganda MaterialApp qayta build bo'lishi uchun key qo'shamiz
-                      // Кирилл локали учун қўшимча идентификатор
                       key: ValueKey('material_app_${localeToUse.toString()}'),
-                      title: tr('app_title'),
+                      title: _getAppTitle(context),
                       debugShowCheckedModeBanner: false,
                       localizationsDelegates: context.localizationDelegates,
                       supportedLocales: context.supportedLocales,

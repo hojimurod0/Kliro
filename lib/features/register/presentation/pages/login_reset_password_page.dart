@@ -10,6 +10,7 @@ import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../domain/params/auth_params.dart';
 import '../bloc/register_bloc.dart';
 import '../bloc/register_event.dart';
@@ -160,18 +161,14 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
         if (state.flow == RegisterFlow.forgotPasswordOtp) {
           if (state.status == RegisterStatus.success) {
             _startTimer();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message ?? 'auth.verification.snack_resent'.tr()),
-                backgroundColor: Colors.blue,
-              ),
+            SnackbarHelper.showInfo(
+              context,
+              state.message ?? 'auth.verification.snack_resent'.tr(),
             );
           } else if (state.status == RegisterStatus.failure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.error ?? tr('common.error_occurred_simple')),
-                backgroundColor: Colors.red,
-              ),
+            SnackbarHelper.showError(
+              context,
+              state.error ?? tr('common.error_occurred_simple'),
             );
           }
         }

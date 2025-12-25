@@ -384,6 +384,7 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _navigated = false;
   bool _isSubmitting = false;
+  bool _isRestoring = false; // Restore flag
 
   final _regionCtrl = TextEditingController();
   final _carNumberCtrl = TextEditingController();
@@ -411,8 +412,78 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
                 : Brightness.dark,
           ),
         );
+        
+        // State'dan ma'lumotlarni restore qilish (orqaga qaytganda)
+        _restoreStateFromBloc();
       }
     });
+  }
+
+  void _restoreStateFromBloc() {
+    // Restore flag'ni o'rnatish - listener'larni o'chirish uchun
+    _isRestoring = true;
+    
+    try {
+      final currentState = context.read<OsagoBloc>().state;
+      
+      // Vehicle ma'lumotlarini restore qilish
+      if (currentState.vehicle != null) {
+        final vehicle = currentState.vehicle!;
+        final gosNumber = vehicle.gosNumber;
+        
+        // GosNumber ni region va number ga ajratish
+        if (gosNumber.length >= 2) {
+          _regionCtrl.text = gosNumber.substring(0, 2);
+          if (gosNumber.length > 2) {
+            final numberPart = gosNumber.substring(2);
+            // Formatlash: A 123 AA yoki 123 ABC
+            if (numberPart.length > 0) {
+              _carNumberCtrl.text = numberPart;
+            }
+          }
+        }
+        
+        // Passport ma'lumotlarini restore qilish
+        if (vehicle.ownerPassportSeria.isNotEmpty && vehicle.ownerPassportNumber.isNotEmpty) {
+          _passportCtrl.text = '${vehicle.ownerPassportSeria}${vehicle.ownerPassportNumber}';
+        }
+        
+        // Tech passport ma'lumotlarini restore qilish
+        if (vehicle.techSeria.isNotEmpty) {
+          _techSeriesCtrl.text = vehicle.techSeria;
+        }
+        if (vehicle.techNumber.isNotEmpty) {
+          _techNumberCtrl.text = vehicle.techNumber;
+        }
+      }
+      
+      // Period ma'lumotlarini restore qilish
+      if (currentState.periodId != null) {
+        String periodDisplay;
+        if (currentState.periodId == '6') {
+          periodDisplay = 'insurance.osago.vehicle.period_6_months'.tr();
+        } else if (currentState.periodId == '12') {
+          periodDisplay = 'insurance.osago.vehicle.period_12_months'.tr();
+        } else {
+          periodDisplay = OsagoUtils.mapIdToPeriod(currentState.periodId) ?? '';
+        }
+        if (periodDisplay.isNotEmpty) {
+          _periodCtrl.text = periodDisplay;
+        }
+      }
+      
+      // OSAGO type ma'lumotlarini restore qilish
+      if (currentState.osagoType != null && currentState.osagoType!.isNotEmpty) {
+        _typeCtrl.text = currentState.osagoType!;
+      }
+      
+      // Navigation flag'ni reset qilish
+      _navigated = false;
+      _isSubmitting = false;
+    } finally {
+      // Restore tugagach, flag'ni o'chirish
+      _isRestoring = false;
+    }
   }
 
   void _onPassportChanged() {
@@ -424,6 +495,11 @@ class _OsagoVehicleScreenState extends State<OsagoVehicleScreen> {
   }
 
   void _updateVehicleData() {
+    // Restore paytida listener'larni skip qilish
+    if (_isRestoring) {
+      return;
+    }
+    
     final passportText = _passportCtrl.text.replaceAll(' ', '').toUpperCase();
     final passportFilled =
         passportText.length == 9 &&

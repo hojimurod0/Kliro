@@ -1,8 +1,44 @@
 import 'package:equatable/equatable.dart';
 
+/// Hotel option - вариант бронирования
+class HotelOption extends Equatable {
+  const HotelOption({
+    required this.optionRefId,
+    this.roomTypeId,
+    this.ratePlanId,
+    this.price,
+    this.currency,
+    this.priceBreakdown,
+    this.cancellationPolicy,
+    this.includedMealOptions,
+  });
+
+  final String optionRefId;
+  final int? roomTypeId;
+  final int? ratePlanId;
+  final double? price;
+  final String? currency;
+  final Map<String, dynamic>? priceBreakdown;
+  final Map<String, dynamic>? cancellationPolicy;
+  final List<String>? includedMealOptions;
+
+  @override
+  List<Object?> get props => [
+        optionRefId,
+        roomTypeId,
+        ratePlanId,
+        price,
+        currency,
+        priceBreakdown,
+        cancellationPolicy,
+        includedMealOptions,
+      ];
+}
+
 class Hotel extends Equatable {
   const Hotel({
     required this.id,
+    required this.hotelId,
     required this.name,
     required this.city,
     required this.address,
@@ -14,9 +50,16 @@ class Hotel extends Equatable {
     this.imageUrl,
     this.description,
     this.amenities,
+    this.options,
+    this.stars,
   });
 
+  /// String ID (legacy support)
   final String id;
+  
+  /// Integer hotel_id из API
+  final int hotelId;
+  
   final String name;
   final String city;
   final String address;
@@ -28,9 +71,16 @@ class Hotel extends Equatable {
   final String? imageUrl;
   final String? description;
   final List<String>? amenities;
+  
+  /// Варианты бронирования
+  final List<HotelOption>? options;
+  
+  /// Количество звезд
+  final int? stars;
 
   Hotel copyWith({
     String? id,
+    int? hotelId,
     String? name,
     String? city,
     String? address,
@@ -42,9 +92,12 @@ class Hotel extends Equatable {
     String? imageUrl,
     String? description,
     List<String>? amenities,
+    List<HotelOption>? options,
+    int? stars,
   }) {
     return Hotel(
       id: id ?? this.id,
+      hotelId: hotelId ?? this.hotelId,
       name: name ?? this.name,
       city: city ?? this.city,
       address: address ?? this.address,
@@ -56,12 +109,15 @@ class Hotel extends Equatable {
       imageUrl: imageUrl ?? this.imageUrl,
       description: description ?? this.description,
       amenities: amenities ?? this.amenities,
+      options: options ?? this.options,
+      stars: stars ?? this.stars,
     );
   }
 
   @override
   List<Object?> get props => [
         id,
+        hotelId,
         name,
         city,
         address,
@@ -73,6 +129,8 @@ class Hotel extends Equatable {
         imageUrl,
         description,
         amenities,
+        options,
+        stars,
       ];
 }
 

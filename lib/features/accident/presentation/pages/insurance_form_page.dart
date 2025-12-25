@@ -6,6 +6,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import '../bloc/accident_bloc.dart';
 import '../bloc/accident_event.dart';
 import '../bloc/accident_state.dart';
@@ -235,34 +236,25 @@ class _InsuranceFormPageState extends State<InsuranceFormPage> {
     }
 
     if (_selectedTariff == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'insurance.accident.form_page.errors.select_tariff'.tr(),
-          ),
-        ),
+      SnackbarHelper.showError(
+        context,
+        'insurance.accident.form_page.errors.select_tariff'.tr(),
       );
       return;
     }
 
     if (_selectedRegion == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'insurance.accident.form_page.errors.select_region'.tr(),
-          ),
-        ),
+      SnackbarHelper.showError(
+        context,
+        'insurance.accident.form_page.errors.select_region'.tr(),
       );
       return;
     }
 
     if (_selectedStartDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'insurance.accident.form_page.errors.select_start_date'.tr(),
-          ),
-        ),
+      SnackbarHelper.showError(
+        context,
+        'insurance.accident.form_page.errors.select_start_date'.tr(),
       );
       return;
     }
@@ -426,12 +418,10 @@ class _InsuranceFormPageState extends State<InsuranceFormPage> {
                 _navigated = false;
               });
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.red,
-                  duration: const Duration(seconds: 5),
-                ),
+              SnackbarHelper.showError(
+                context,
+                state.message,
+                duration: const Duration(seconds: 5),
               );
             }
           }

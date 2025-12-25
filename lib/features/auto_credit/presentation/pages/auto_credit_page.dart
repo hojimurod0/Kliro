@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_text_size.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../common/utils/bank_assets.dart';
 import '../../../common/utils/bank_data.dart';
@@ -151,7 +152,7 @@ class _AutoCreditPageState extends State<AutoCreditPage> {
             color:
                 Theme.of(context).textTheme.titleLarge?.color ??
                 AppColors.darkTextAutoCredit,
-            fontSize: 18,
+            fontSize: AppTextSize.appBarTitle,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -286,7 +287,7 @@ class _AutoCreditFilterSheetState extends State<_AutoCreditFilterSheet> {
             Text(
               tr('auto_credit.filters'),
               style: TextStyle(
-                fontSize: 18.sp,
+                fontSize: AppTextSize.filterTitle,
                 fontWeight: FontWeight.w700,
                 color:
                     Theme.of(context).textTheme.titleLarge?.color ??
@@ -368,7 +369,7 @@ class _AutoCreditFilterSheetState extends State<_AutoCreditFilterSheet> {
                       child: Text(
                         tr('common.reset'),
                         style: TextStyle(
-                          fontSize: 16.sp,
+                          fontSize: AppTextSize.buttonPrimary,
                           fontWeight: FontWeight.w600,
                           color:
                               Theme.of(context).textTheme.titleLarge?.color ??
@@ -393,7 +394,7 @@ class _AutoCreditFilterSheetState extends State<_AutoCreditFilterSheet> {
                         tr('common.apply'),
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 16.sp,
+                          fontSize: AppTextSize.buttonPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -416,7 +417,7 @@ class _AutoCreditFilterSheetState extends State<_AutoCreditFilterSheet> {
         Text(
           title,
           style: TextStyle(
-            fontSize: 15.sp,
+            fontSize: AppTextSize.sectionHeader,
             fontWeight: FontWeight.w700,
             color:
                 Theme.of(context).textTheme.titleLarge?.color ?? Colors.black87,
@@ -456,7 +457,7 @@ class _AutoCreditFilterSheetState extends State<_AutoCreditFilterSheet> {
               label,
               style: TextStyle(
                 color: const Color(0xFF4B5563),
-                fontSize: 14.sp,
+                fontSize: AppTextSize.chip,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -632,7 +633,7 @@ class _AutoCreditOfferCardState extends State<AutoCreditOfferCard> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 16.sp,
+                  fontSize: AppTextSize.bodyLarge,
                   fontWeight: FontWeight.w600,
                   color:
                       Theme.of(context).textTheme.titleLarge?.color ??
@@ -676,7 +677,7 @@ class _AutoCreditOfferCardState extends State<AutoCreditOfferCard> {
               Text(
                 tr('auto_credit.monthly_payment'),
                 style: TextStyle(
-                  fontSize: 13.sp,
+                  fontSize: AppTextSize.bodySmall,
                   color:
                       Theme.of(context).textTheme.bodyMedium?.color ??
                       AppColors.mutedText,
@@ -690,7 +691,7 @@ class _AutoCreditOfferCardState extends State<AutoCreditOfferCard> {
               '',
             ),
             style: TextStyle(
-              fontSize: 16.sp,
+              fontSize: AppTextSize.bodyLarge,
               fontWeight: FontWeight.w700,
               color: Theme.of(context).colorScheme.primary,
             ),
@@ -779,7 +780,7 @@ class _AutoCreditOfferCardState extends State<AutoCreditOfferCard> {
                   ),
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: 14.sp,
+                    fontSize: AppTextSize.chip,
                     color:
                         Theme.of(context).textTheme.titleLarge?.color ??
                         AppColors.darkTextAutoCredit,
@@ -811,7 +812,7 @@ class _AutoCreditOfferCardState extends State<AutoCreditOfferCard> {
                       child: Text(
                         advantage,
                         style: TextStyle(
-                          fontSize: 13.sp,
+                          fontSize: AppTextSize.bodySmall,
                           color:
                               Theme.of(context).textTheme.bodyMedium?.color ??
                               const Color(0xFF6B7280),
@@ -915,7 +916,7 @@ class AutoCreditMetricBox extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 16.sp,
+                        fontSize: AppTextSize.bodyLarge,
                         fontWeight: FontWeight.w600,
                         color:
                             valueColor ??
@@ -951,7 +952,7 @@ class AutoCreditMetricBox extends StatelessWidget {
                 child: Text(
                   label.startsWith('auto_credit.') ? tr(label) : label,
                   style: TextStyle(
-                    fontSize: 12.sp,
+                    fontSize: AppTextSize.labelMedium,
                     color:
                         Theme.of(context).textTheme.bodySmall?.color ??
                         AppColors.veryMutedText,

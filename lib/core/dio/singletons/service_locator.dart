@@ -90,13 +90,25 @@ class ServiceLocator {
 
   static final GetIt _getIt = GetIt.instance;
 
+  static Future<void> _yieldToUi() async {
+    // Register'lar katta bo'lsa debug'da frame skip bo'lishi mumkin.
+    // Bitta micro-yield UI'ga nafas beradi.
+    await Future<void>.delayed(Duration.zero);
+  }
+
   static Future<void> init() async {
+    final sharedPreferences = await SharedPreferences.getInstance();
+    return initWithPrefs(sharedPreferences);
+  }
+
+  /// SharedPreferences ni tashqaridan olish - performance optimizatsiyasi uchun
+  /// Bu metod SharedPreferences ni bir marta yuklab, ikkala service'ga pass qilish uchun ishlatiladi
+  static Future<void> initWithPrefs(SharedPreferences sharedPreferences) async {
     try {
       ServiceLocatorStateController.instance.setInitializing();
       AppLogger.info('ServiceLocator initialization started');
 
       final authService = AuthService.instance;
-      final sharedPreferences = await SharedPreferences.getInstance();
 
       if (!_getIt.isRegistered<AuthService>()) {
         _getIt.registerSingleton<AuthService>(authService);
@@ -111,13 +123,17 @@ class ServiceLocator {
       if (!_getIt.isRegistered<Dio>()) {
         _getIt.registerLazySingleton<Dio>(() => _getIt<DioClient>().client);
       }
+      
       if (!_getIt.isRegistered<SharedPreferences>()) {
         _getIt.registerSingleton<SharedPreferences>(sharedPreferences);
       }
 
       _registerDataSources();
+      await _yieldToUi();
       _registerRepositories();
+      await _yieldToUi();
       _registerUseCases();
+      await _yieldToUi();
       _registerBlocs(authService);
 
       ServiceLocatorStateController.instance.setReady();

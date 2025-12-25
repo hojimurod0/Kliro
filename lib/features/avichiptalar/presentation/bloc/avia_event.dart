@@ -147,6 +147,51 @@ class AirportHintsRequested extends AviaEvent {
   List<Object?> get props => [phrase, limit];
 }
 
+// PDF Receipt Events
+class PdfReceiptRequested extends AviaEvent {
+  final String bookingId;
+  const PdfReceiptRequested(this.bookingId);
+  @override
+  List<Object?> get props => [bookingId];
+}
+
+// Schedule Events
+class ScheduleRequested extends AviaEvent {
+  final String departureFrom;
+  final String departureTo;
+  final String airportFrom;
+  const ScheduleRequested({
+    required this.departureFrom,
+    required this.departureTo,
+    required this.airportFrom,
+  });
+  @override
+  List<Object?> get props => [departureFrom, departureTo, airportFrom];
+}
+
+// Visa Types Events
+class VisaTypesRequested extends AviaEvent {
+  final List<String> countries;
+  const VisaTypesRequested(this.countries);
+  @override
+  List<Object?> get props => [countries];
+}
+
+// Service Classes Events
+class ServiceClassesRequested extends AviaEvent {
+  const ServiceClassesRequested();
+}
+
+// Passenger Types Events
+class PassengerTypesRequested extends AviaEvent {
+  const PassengerTypesRequested();
+}
+
+// Health Events
+class HealthRequested extends AviaEvent {
+  const HealthRequested();
+}
+
 // User Humans Events
 class CreateHumanRequested extends AviaEvent {
   final HumanModel human;

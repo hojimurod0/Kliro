@@ -9,6 +9,7 @@ import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../../../core/services/auth/auth_service.dart';
 import '../../domain/params/auth_params.dart';
 import '../bloc/register_bloc.dart';
@@ -58,20 +59,11 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
   }
 
   void _showSnack(String message, {Color background = Colors.red}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: background,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    if (background == Colors.green) {
+      SnackbarHelper.showSuccess(context, message);
+    } else {
+      SnackbarHelper.showError(context, message);
+    }
   }
 
   void _submit() {
@@ -110,16 +102,16 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
 
     // So'rov yuborish
     context.read<RegisterBloc>().add(
-      ResetPasswordRequested(
-        ResetPasswordParams(
-          email: isEmail ? normalizedContact : null,
-          phone: isEmail ? null : normalizedContact,
-          otp: widget.otp,
-          password: password,
-          confirmPassword: confirmPassword,
-        ),
-      ),
-    );
+          ResetPasswordRequested(
+            ResetPasswordParams(
+              email: isEmail ? normalizedContact : null,
+              phone: isEmail ? null : normalizedContact,
+              otp: widget.otp,
+              password: password,
+              confirmPassword: confirmPassword,
+            ),
+          ),
+        );
   }
 
   @override

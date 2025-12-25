@@ -448,17 +448,12 @@ class _PaymentPageState extends BaseStatefulWidget<PaymentPage>
                                         final errorMessage =
                                             'avia.payment.price_not_available'
                                                 .tr();
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              errorMessage.contains(
-                                                      'avia.payment.price_not_available')
-                                                  ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
-                                                  : errorMessage,
-                                            ),
-                                            backgroundColor: Colors.red,
-                                          ),
+                                        SnackbarHelper.showError(
+                                          context,
+                                          errorMessage.contains(
+                                                  'avia.payment.price_not_available')
+                                              ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
+                                              : errorMessage,
                                         );
                                       }
                                       return;

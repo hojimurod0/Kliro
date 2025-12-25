@@ -10,6 +10,7 @@ import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../../../core/services/auth/auth_service.dart';
 import '../../domain/params/auth_params.dart';
 import '../bloc/register_bloc.dart';
@@ -158,29 +159,23 @@ class _LoginVerificationPageState extends State<LoginVerificationPage> {
               // Haqiqiy tokenlarni olish uchun Login API ishlatilishi kerak.
               AuthService.instance.markLoggedIn();
               
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('auth.verification.snack_success'.tr()),
-                  backgroundColor: Colors.green,
-                ),
+              SnackbarHelper.showSuccess(
+                context,
+                'auth.verification.snack_success'.tr(),
               );
               
               context.router.replace(HomeRoute());
             } else if (state.flow == RegisterFlow.registerSendOtp) {
               _startTimer();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('auth.verification.snack_resent'.tr()),
-                  backgroundColor: Colors.blue,
-                ),
+              SnackbarHelper.showInfo(
+                context,
+                'auth.verification.snack_resent'.tr(),
               );
             }
           } else if (state.status == RegisterStatus.failure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.error ?? "common.error_occurred_simple".tr()),
-                backgroundColor: Colors.red,
-              ),
+            SnackbarHelper.showError(
+              context,
+              state.error ?? "common.error_occurred_simple".tr(),
             );
           }
         },

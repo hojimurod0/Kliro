@@ -55,31 +55,83 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
         ),
       );
 
-      final currentState = context.read<OsagoBloc>().state;
+      // State'dan ma'lumotlarni restore qilish (orqaga qaytganda)
+      _restoreStateFromBloc();
+    });
+  }
 
-      if (currentState.periodId != null) {
-        String periodDisplay;
-        if (currentState.periodId == '6') {
-          periodDisplay = 'insurance.osago.vehicle.period_6_months'.tr();
-        } else if (currentState.periodId == '12') {
-          periodDisplay = 'insurance.osago.vehicle.period_12_months'.tr();
-        } else {
-          periodDisplay = OsagoUtils.mapIdToPeriod(currentState.periodId) ?? '';
-        }
-        if (periodDisplay.isNotEmpty) {
-          _periodController.text = periodDisplay;
+  void _restoreStateFromBloc() {
+    final currentState = context.read<OsagoBloc>().state;
+
+    // Period ma'lumotlarini restore qilish
+    if (currentState.periodId != null) {
+      String periodDisplay;
+      if (currentState.periodId == '6') {
+        periodDisplay = 'insurance.osago.vehicle.period_6_months'.tr();
+      } else if (currentState.periodId == '12') {
+        periodDisplay = 'insurance.osago.vehicle.period_12_months'.tr();
+      } else {
+        periodDisplay = OsagoUtils.mapIdToPeriod(currentState.periodId) ?? '';
+      }
+      if (periodDisplay.isNotEmpty) {
+        _periodController.text = periodDisplay;
+      }
+    }
+
+    // Insurance ma'lumotlarini restore qilish
+    if (currentState.insurance != null) {
+      final insurance = currentState.insurance!;
+      
+      // Provider va company name
+      if (insurance.provider.isNotEmpty) {
+        _selectedProvider = insurance.provider.toLowerCase();
+        if (_providers.containsKey(_selectedProvider)) {
+          _companyController.text = _providers[_selectedProvider]!;
         }
       }
+      
+      // Start date
+      _startDate = insurance.startDate;
+      _dateController.text = OsagoUtils.formatDateForDisplay(insurance.startDate);
+      
+      // Phone number
+      if (insurance.phoneNumber.isNotEmpty && insurance.phoneNumber != '+998') {
+        // +998 ni olib tashlash
+        final phone = insurance.phoneNumber.replaceAll('+998', '').trim();
+        if (phone.isNotEmpty) {
+          _phoneController.text = phone;
+        }
+      }
+    }
 
-      final osagoType = currentState.osagoType;
-      if (osagoType != null) {
-        final limitedText = 'insurance.osago.vehicle.type_limited'.tr();
-        final unlimitedText = 'insurance.osago.vehicle.type_unlimited'.tr();
+    // OSAGO type va drivers ma'lumotlarini restore qilish
+    final osagoType = currentState.osagoType;
+    if (osagoType != null) {
+      final limitedText = 'insurance.osago.vehicle.type_limited'.tr();
+      final unlimitedText = 'insurance.osago.vehicle.type_unlimited'.tr();
 
-        if (osagoType == limitedText) {
-          _selectedProvider = 'neo';
-          _companyController.text = _providers[_selectedProvider]!;
-          _showDrivers = true;
+      if (osagoType == limitedText) {
+        _selectedProvider = 'neo';
+        _companyController.text = _providers[_selectedProvider]!;
+        _showDrivers = true;
+        
+        // Drivers ma'lumotlarini restore qilish
+        if (currentState.drivers.isNotEmpty) {
+          _drivers.clear();
+          for (final driver in currentState.drivers) {
+            _drivers.add({
+              'passport': TextEditingController(
+                text: '${driver.passportSeria}${driver.passportNumber}',
+              ),
+              'birthDate': driver.driverBirthday,
+              'relative': driver.relative,
+              'relativeController': TextEditingController(
+                text: _getRelationshipText(driver.relative),
+              ),
+            });
+          }
+        } else {
+          // Agar drivers bo'lmasa, default driver qo'shish
           _drivers.add({
             'passport': TextEditingController(),
             'birthDate': DateTime.now(),
@@ -88,17 +140,30 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
               text: 'insurance.osago.company.relationship_owner'.tr(),
             ),
           });
-        } else if (osagoType == unlimitedText) {
-          _selectedProvider = 'neo';
-          _companyController.text = _providers[_selectedProvider]!;
-          _showDrivers = false;
-        } else {
+        }
+      } else if (osagoType == unlimitedText) {
+        _selectedProvider = 'neo';
+        _companyController.text = _providers[_selectedProvider]!;
+        _showDrivers = false;
+        _drivers.clear();
+      } else {
+        if (_companyController.text.isEmpty) {
           _companyController.text = _providers[_selectedProvider]!;
         }
-      } else {
+      }
+    } else {
+      if (_companyController.text.isEmpty) {
         _companyController.text = _providers[_selectedProvider]!;
       }
-    });
+    }
+    
+    // Navigation flag'ni reset qilish
+    _navigated = false;
+  }
+
+  String _getRelationshipText(int relative) {
+    final relationshipOptions = _getRelationshipOptions();
+    return relationshipOptions[relative] ?? relationshipOptions[0]!;
   }
 
   @override
@@ -707,27 +772,27 @@ class _OsagoCompanyScreenState extends State<OsagoCompanyScreen> {
                                       dense: true,
                                     ),
                                   ),
-                                  Expanded(
-                                    child: RadioListTile<String>(
-                                      title: Text(
-                                        'insurance.osago.company.insurance_company_gross'
-                                            .tr(),
+                                  // GROSS faqat "Cheklanmagan" (unlimited) bo'lganda ko'rsatiladi
+                                  if (!_showDrivers)
+                                    Expanded(
+                                      child: RadioListTile<String>(
+                                        title: Text(
+                                          'insurance.osago.company.insurance_company_gross'
+                                              .tr(),
+                                        ),
+                                        value: 'gross',
+                                        groupValue: _selectedProvider,
+                                        onChanged: (value) {
+                                          setState(() {
+                                            _selectedProvider = value!;
+                                            _companyController.text =
+                                                _providers[_selectedProvider]!;
+                                          });
+                                        },
+                                        contentPadding: EdgeInsets.zero,
+                                        dense: true,
                                       ),
-                                      value: 'gross',
-                                      groupValue: _selectedProvider,
-                                      onChanged: _showDrivers
-                                          ? null
-                                          : (value) {
-                                              setState(() {
-                                                _selectedProvider = value!;
-                                                _companyController.text =
-                                                    _providers[_selectedProvider]!;
-                                              });
-                                            },
-                                      contentPadding: EdgeInsets.zero,
-                                      dense: true,
                                     ),
-                                  ),
                                 ],
                               ),
                               SizedBox(height: 16.h),

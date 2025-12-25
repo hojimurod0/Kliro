@@ -964,4 +964,18 @@ class KaskoBloc extends Bloc<KaskoEvent, KaskoState> {
 
   /// Получить кэшированный результат расчета полиса
   CalculateEntity? get cachedCalculateResult => _cachedCalculateResult;
+
+  /// Tarifni to'g'ridan-to'g'ri cache'ga saqlash (navigatsiya paytida ishlatish uchun)
+  /// Bu metod SelectRate event'ini kutmasdan darhol tarifni saqlaydi
+  void setSelectedRateDirectly(RateEntity rate) {
+    if (_enableDebugLogs) {
+      debugPrint(
+        '💾💾💾 setSelectedRateDirectly called: ${rate.name} (id: ${rate.id})',
+      );
+    }
+    _cachedSelectedRate = rate;
+    if (_enableDebugLogs) {
+      debugPrint('✅✅✅ Rate saved directly to cache');
+    }
+  }
 }

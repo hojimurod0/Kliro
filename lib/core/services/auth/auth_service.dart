@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../utils/logger.dart';
 
 class AuthUser {
   const AuthUser({
@@ -7,6 +8,8 @@ class AuthUser {
     required this.contact,
     required this.password,
     this.region,
+    this.email,
+    this.phone,
   });
 
   final String firstName;
@@ -14,6 +17,8 @@ class AuthUser {
   final String contact;
   final String password;
   final String? region;
+  final String? email;
+  final String? phone;
 
   String get fullName => '$firstName $lastName'.trim();
 
@@ -37,6 +42,8 @@ class AuthService {
   static const _keyContact = 'auth_contact';
   static const _keyPassword = 'auth_password';
   static const _keyRegion = 'auth_region';
+  static const _keyEmail = 'auth_email';
+  static const _keyPhone = 'auth_phone';
   static const _keyAccessToken = 'auth_access_token';
   static const _keyRefreshToken = 'auth_refresh_token';
 
@@ -44,6 +51,12 @@ class AuthService {
 
   Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
+  }
+
+  /// SharedPreferences ni tashqaridan olish - performance optimizatsiyasi uchun
+  /// Bu metod SharedPreferences ni bir marta yuklab, ikkala service'ga pass qilish uchun ishlatiladi
+  Future<void> initWithPrefs(SharedPreferences prefs) async {
+    _prefs = prefs;
   }
 
   SharedPreferences get _preferences {
@@ -87,16 +100,42 @@ class AuthService {
   Future<void> saveProfile(AuthUser user) async {
     final prefs = _preferences;
 
+    AppLogger.debug('💾 AUTH_SERVICE: Saving profile to SharedPreferences');
+    AppLogger.debug('💾 AUTH_SERVICE: user.email: ${user.email ?? "null"}');
+    AppLogger.debug('💾 AUTH_SERVICE: user.phone: ${user.phone ?? "null"}');
+    AppLogger.debug('💾 AUTH_SERVICE: user.contact: ${user.contact}');
+    AppLogger.debug('💾 AUTH_SERVICE: user.firstName: ${user.firstName}');
+    AppLogger.debug('💾 AUTH_SERVICE: user.lastName: ${user.lastName}');
+
     await prefs.setString(_keyFirstName, user.firstName);
     await prefs.setString(_keyLastName, user.lastName);
     await prefs.setString(_keyContact, user.contact);
     await prefs.setString(_keyPassword, user.password);
+
+    // Email va telefon alohida saqlash
+    if (user.email != null && user.email!.isNotEmpty) {
+      await prefs.setString(_keyEmail, user.email!);
+      AppLogger.debug('💾 AUTH_SERVICE: Email saved to SharedPreferences: ${user.email}');
+    } else {
+      await prefs.remove(_keyEmail);
+      AppLogger.debug('💾 AUTH_SERVICE: Email removed from SharedPreferences (was null or empty)');
+    }
+    
+    if (user.phone != null && user.phone!.isNotEmpty) {
+      await prefs.setString(_keyPhone, user.phone!);
+      AppLogger.debug('💾 AUTH_SERVICE: Phone saved to SharedPreferences: ${user.phone}');
+    } else {
+      await prefs.remove(_keyPhone);
+      AppLogger.debug('💾 AUTH_SERVICE: Phone removed from SharedPreferences (was null or empty)');
+    }
+    
     if (user.region != null) {
       await prefs.setString(_keyRegion, user.region!);
     } else {
       await prefs.remove(_keyRegion);
     }
     await prefs.setBool(_keyLoggedIn, true);
+    AppLogger.debug('💾 AUTH_SERVICE: Profile saved successfully');
   }
 
   Future<void> saveTokens({
@@ -146,6 +185,8 @@ class AuthService {
     await prefs.remove(_keyContact);
     await prefs.remove(_keyPassword);
     await prefs.remove(_keyRegion);
+    await prefs.remove(_keyEmail);
+    await prefs.remove(_keyPhone);
   }
 
   Future<void> clearSession() => logout();
@@ -153,13 +194,32 @@ class AuthService {
   Future<AuthUser?> fetchActiveUser() async {
     final prefs = _preferences;
     final isLoggedIn = prefs.getBool(_keyLoggedIn) ?? false;
-    if (!isLoggedIn) return null;
-    return _readUserFromPrefs(prefs);
+    if (!isLoggedIn) {
+      AppLogger.debug('👤 AUTH_SERVICE: fetchActiveUser - User not logged in');
+      return null;
+    }
+    final user = _readUserFromPrefs(prefs);
+    AppLogger.debug('👤 AUTH_SERVICE: fetchActiveUser - User loaded');
+    if (user != null) {
+      AppLogger.debug('👤 AUTH_SERVICE: fetchActiveUser - user.email: ${user.email ?? "null"}');
+      AppLogger.debug('👤 AUTH_SERVICE: fetchActiveUser - user.phone: ${user.phone ?? "null"}');
+      AppLogger.debug('👤 AUTH_SERVICE: fetchActiveUser - user.contact: ${user.contact}');
+    }
+    return user;
   }
 
   Future<AuthUser?> getStoredUser() async {
     final prefs = _preferences;
-    return _readUserFromPrefs(prefs);
+    final user = _readUserFromPrefs(prefs);
+    AppLogger.debug('👤 AUTH_SERVICE: getStoredUser - User loaded');
+    if (user != null) {
+      AppLogger.debug('👤 AUTH_SERVICE: getStoredUser - user.email: ${user.email ?? "null"}');
+      AppLogger.debug('👤 AUTH_SERVICE: getStoredUser - user.phone: ${user.phone ?? "null"}');
+      AppLogger.debug('👤 AUTH_SERVICE: getStoredUser - user.contact: ${user.contact}');
+    } else {
+      AppLogger.debug('👤 AUTH_SERVICE: getStoredUser - No user found in SharedPreferences');
+    }
+    return user;
   }
 
   AuthUser? _readUserFromPrefs(SharedPreferences prefs) {
@@ -172,10 +232,18 @@ class AuthService {
         lastName == null ||
         contact == null ||
         password == null) {
+      AppLogger.debug('👤 AUTH_SERVICE: _readUserFromPrefs - Missing required fields');
       return null;
     }
 
     final region = prefs.getString(_keyRegion);
+    final email = prefs.getString(_keyEmail);
+    final phone = prefs.getString(_keyPhone);
+
+    AppLogger.debug('👤 AUTH_SERVICE: _readUserFromPrefs - Reading from SharedPreferences');
+    AppLogger.debug('👤 AUTH_SERVICE: _readUserFromPrefs - email from prefs: ${email ?? "null"}');
+    AppLogger.debug('👤 AUTH_SERVICE: _readUserFromPrefs - phone from prefs: ${phone ?? "null"}');
+    AppLogger.debug('👤 AUTH_SERVICE: _readUserFromPrefs - contact from prefs: $contact');
 
     return AuthUser(
       firstName: firstName,
@@ -183,6 +251,8 @@ class AuthService {
       contact: contact,
       password: password,
       region: region,
+      email: email,
+      phone: phone,
     );
   }
 }
