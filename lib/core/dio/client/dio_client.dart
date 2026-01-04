@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 
 import '../../constants/constants.dart';
-import '../../errors/app_exception.dart';
 import '../../services/auth/auth_service.dart';
 import '../interceptor/language_interceptor.dart';
 import '../interceptor/logging_interceptor.dart';
@@ -30,33 +29,42 @@ class DioClient {
           handler.next(options);
         },
         onError: (error, handler) async {
-          // 401 xatolik - token yangilash yoki logout
+          // 401: Token eskirgan -> avval refresh qilish, keyin retry
           if (error.response?.statusCode == 401) {
-            // Token refresh mexanizmi (agar mavjud bo'lsa)
-            final refreshToken = await _authService.getRefreshToken();
-            if (refreshToken != null && refreshToken.isNotEmpty) {
-              try {
-                // Token yangilash logikasi shu yerda bo'lishi mumkin
-                // Hozircha faqat session ni tozalaymiz
-                await _authService.clearSession();
-              } catch (e) {
-                // Token yangilash muvaffaqiyatsiz bo'lsa, session ni tozalaymiz
-                await _authService.clearSession();
-              }
-            } else {
-              // Refresh token yo'q bo'lsa, session ni tozalaymiz
-              await _authService.clearSession();
+            final requestOptions = error.requestOptions;
+            
+            // Agar bu refresh token yoki login request bo'lsa, loop'ga tushmaslik uchun
+            if (requestOptions.path.contains('/auth/refresh') || 
+                requestOptions.path.contains('/auth/login')) {
+              await _authService.logout();
+              handler.next(error);
+              return;
             }
             
-            handler.next(
-              DioException(
-                requestOptions: error.requestOptions,
-                response: error.response,
-                error: const UnauthorizedException(message: 'Unauthorized'),
-                type: error.type,
-              ),
-            );
-            return;
+            // Token refresh qilish
+            final newToken = await _authService.refreshToken();
+            
+            if (newToken != null && newToken.isNotEmpty) {
+              // Yangi token bilan request'ni qayta yuborish
+              requestOptions.headers['Authorization'] = 'Bearer $newToken';
+              
+              try {
+                // Original request'ni yangi token bilan qayta yuborish
+                final response = await _dio.fetch(requestOptions);
+                handler.resolve(response);
+                return;
+              } catch (e) {
+                // Retry ham muvaffaqiyatsiz bo'lsa, logout
+                await _authService.logout();
+                handler.next(error);
+                return;
+              }
+            } else {
+              // Token refresh muvaffaqiyatsiz -> logout
+              await _authService.logout();
+              handler.next(error);
+              return;
+            }
           }
           handler.next(error);
         },

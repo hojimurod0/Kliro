@@ -35,9 +35,9 @@ class GoogleSignInService {
       String errorMessage = 'Google sign-in failed';
       if (e.code == 'sign_in_failed') {
         if (e.message?.contains('10') == true) {
-          errorMessage = 'Google sign-in sozlamalari xato. '
-              'google-services.json faylini va SHA fingerprint\'larni tekshiring. '
-              'Firebase Console\'dan haqiqiy google-services.json faylini yuklab oling.';
+          errorMessage = 'Google sign-in xatosi (Code 10). '
+              'SHA-1 fingerprint Firebase Consolda yo\'q yoki google-services.json noto\'g\'ri. '
+              'Yechim: android/README_GOOGLE_AUTH.md faylini o\'qing va ko\'rsatmalarni bajaring.';
         } else {
           errorMessage = 'Google sign-in xatolik: ${e.message ?? e.code}';
         }

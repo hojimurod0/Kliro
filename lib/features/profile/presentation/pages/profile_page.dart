@@ -449,12 +449,13 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildLoginButton(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.primaryBlue.withOpacity(0.1) : AppColors.white,
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(
-          color: AppColors.primaryBlue.withOpacity(0.5),
+          color: AppColors.primaryBlue,
           width: 1.5,
         ),
       ),

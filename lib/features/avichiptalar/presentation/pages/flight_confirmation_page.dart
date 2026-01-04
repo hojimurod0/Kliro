@@ -51,25 +51,7 @@ class _FlightConfirmationPageState extends State<FlightConfirmationPage> {
 
   // Calculate total price based on number of passengers
   String _calculateTotalPrice() {
-    try {
-      // Parse base price (price for 1 passenger)
-      final basePriceStr = widget.totalPrice.replaceAll(RegExp(r'[^\d]'), '');
-      final basePrice = double.tryParse(basePriceStr) ?? 0;
-
-      if (basePrice == 0) return widget.totalPrice;
-
-      // Calculate total: adults pay full price, children usually 75%, babies usually 10%
-      final adultsPrice = basePrice * _adults;
-      final childrenPrice = basePrice * 0.75 * _children;
-      final babiesPrice = basePrice * 0.1 * _babies;
-
-      final totalPrice = (adultsPrice + childrenPrice + babiesPrice).toInt();
-
-      // Format price
-      return _formatPrice(totalPrice.toString());
-    } catch (e) {
-      return widget.totalPrice;
-    }
+    return widget.totalPrice;
   }
 
   String _formatPrice(String price) {
@@ -398,60 +380,50 @@ class _FlightConfirmationPageState extends State<FlightConfirmationPage> {
     // Parse dates
     final departureDateTime = _parseDateTime(firstSegment.departureTime);
     final arrivalDateTime = _parseDateTime(lastSegment.arrivalTime);
+    
+    // Calculate total duration
+    final duration = _calculateDuration(departureDateTime, arrivalDateTime);
 
     // Get flight info
     final flightNumber = firstSegment.flightNumber ?? 'N/A';
-    final aircraft = 'Boeing 737-700'; // Default, can be from API
+    final aircraft = firstSegment.aircraft ?? 'Boeing 737'; 
+    final airline = firstSegment.airline ?? 'Uzbekistan Airways'; // Fallback or use data
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Flight info header
-        Text(
-          '${'avia.confirmation.flight'.tr()} $flightNumber | $aircraft | ${'avia.confirmation.economy'.tr()}',
-          style: TextStyle(
-            fontSize: 12.sp,
-            color: AppColors.getSubtitleColor(isDark),
-          ),
-        ),
-        SizedBox(height: AppSpacing.md),
-        // Departure
+        // Header: Airline Icon/Name and Total Duration
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Airline Logo Placeholder (Circle with Airline Code or Icon)
+            Container(
+              width: 32.w,
+              height: 32.w,
+              decoration: BoxDecoration(
+                color: AppColors.primaryBlue.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.airlines_rounded,
+                color: AppColors.primaryBlue,
+                size: 18.sp,
+              ),
+            ),
+            SizedBox(width: 8.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _formatTime(departureDateTime),
+                    airline,
                     style: TextStyle(
-                      fontSize: 24.sp,
+                      fontSize: 14.sp,
                       fontWeight: FontWeight.bold,
                       color: AppColors.getTextColor(isDark),
                     ),
                   ),
-                  SizedBox(height: 4.h),
-                  if (departureDateTime != null)
-                    Text(
-                      _formatDate(departureDateTime),
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: AppColors.getSubtitleColor(isDark),
-                      ),
-                    ),
-                  SizedBox(height: 8.h),
                   Text(
-                    _getCityName(firstSegment.departureAirport ?? ''),
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.getTextColor(isDark),
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    _getAirportName(firstSegment.departureAirport ?? ''),
+                    '${'avia.confirmation.flight'.tr()} $flightNumber • $aircraft',
                     style: TextStyle(
                       fontSize: 12.sp,
                       color: AppColors.getSubtitleColor(isDark),
@@ -460,73 +432,201 @@ class _FlightConfirmationPageState extends State<FlightConfirmationPage> {
                 ],
               ),
             ),
-            Icon(
-              Icons.flight_takeoff_rounded,
-              color: AppColors.primaryBlue,
-              size: 24.sp,
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white10 : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(4.r),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.access_time_rounded,
+                    size: 12.sp,
+                    color: AppColors.getSubtitleColor(isDark),
+                  ),
+                  SizedBox(width: 4.w),
+                  Text(
+                    duration,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.getTextColor(isDark),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
+        
         SizedBox(height: AppSpacing.lg),
-        // Arrival
-        Column(
+
+        // Route Visualizer (Departure -> Visual -> Arrival)
+        Row(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              _formatTime(arrivalDateTime),
-              style: TextStyle(
-                fontSize: 24.sp,
-                fontWeight: FontWeight.bold,
-                color: AppColors.getTextColor(isDark),
+            // Departure
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _formatTime(departureDateTime),
+                    style: TextStyle(
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.getTextColor(isDark),
+                    ),
+                  ),
+                  Text(
+                    _formatDate(departureDateTime),
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: AppColors.getSubtitleColor(isDark),
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    firstSegment.departureAirport ?? 'TAS',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryBlue,
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    firstSegment.departureAirportName ?? _getCityName(firstSegment.departureAirport ?? ''),
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: AppColors.getTextColor(isDark),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: 4.h),
-            if (arrivalDateTime != null)
-              Text(
-                _formatDate(arrivalDateTime),
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: AppColors.getSubtitleColor(isDark),
-                ),
-              ),
-            SizedBox(height: 8.h),
-            Text(
-              _getCityName(lastSegment.arrivalAirport ?? ''),
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: AppColors.getTextColor(isDark),
+
+            // Visual Path
+            Expanded(
+              flex: 1,
+              child: Column(
+                children: [
+                  SizedBox(height: 12.h),
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Divider(
+                        color: AppColors.getBorderColor(isDark),
+                        thickness: 1,
+                      ),
+                      RotatedBox(
+                        quarterTurns: 1,
+                        child: Icon(
+                          Icons.flight,
+                          color: AppColors.primaryBlue,
+                          size: 16.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4.h),
+                  if (segments.length > 1)
+                     Text(
+                      'avia.details.transit_count'.tr(namedArgs: {'count': '${segments.length - 1}'}),
+                      style: TextStyle(
+                        fontSize: 10.sp,
+                        color: AppColors.dangerRed,
+                      ),
+                    )
+                  else
+                     Text(
+                      'avia.filter.direct'.tr(),
+                      style: TextStyle(
+                        fontSize: 10.sp,
+                        color: Colors.green,
+                      ),
+                    ),
+                ],
               ),
             ),
-            SizedBox(height: 4.h),
-            Text(
-              _getAirportName(lastSegment.arrivalAirport ?? ''),
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: AppColors.getSubtitleColor(isDark),
+
+            // Arrival
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _formatTime(arrivalDateTime),
+                    style: TextStyle(
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.getTextColor(isDark),
+                    ),
+                  ),
+                  Text(
+                    _formatDate(arrivalDateTime),
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: AppColors.getSubtitleColor(isDark),
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    lastSegment.arrivalAirport ?? 'DXB',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryBlue,
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    lastSegment.arrivalAirportName ?? _getCityName(lastSegment.arrivalAirport ?? ''),
+                    textAlign: TextAlign.end,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: AppColors.getTextColor(isDark),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
           ],
         ),
-        // Transit info if exists
-        if (segments.length > 1) ...[
-          SizedBox(height: AppSpacing.md),
-          Text(
-            _getTransitInfo(segments, arrivalDateTime),
-            style: TextStyle(
-              fontSize: 12.sp,
-              color: AppColors.getSubtitleColor(isDark),
-            ),
-          ),
-        ],
-        // Return flight departure info
+         
+        // Return flight label if requested
         if (!isOutbound && widget.returnOffer != null) ...[
           SizedBox(height: AppSpacing.md),
-          Text(
-            _getReturnDepartureInfo(widget.returnOffer!),
-            style: TextStyle(
-              fontSize: 12.sp,
-              color: AppColors.getSubtitleColor(isDark),
+          Container(
+            padding: EdgeInsets.all(8.w),
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(color: AppColors.primaryBlue.withOpacity(0.1)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 16.sp, color: AppColors.primaryBlue),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    'avia.booking_details.return_flight'.tr(),
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.primaryBlue,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -537,9 +637,6 @@ class _FlightConfirmationPageState extends State<FlightConfirmationPage> {
   DateTime? _parseDateTime(String? dateTimeStr) {
     if (dateTimeStr == null) return null;
     try {
-      if (dateTimeStr.contains('T')) {
-        return DateTime.parse(dateTimeStr);
-      }
       return DateTime.parse(dateTimeStr);
     } catch (e) {
       return null;
@@ -551,59 +648,31 @@ class _FlightConfirmationPageState extends State<FlightConfirmationPage> {
     return DateFormat('HH:mm').format(dateTime);
   }
 
-  String _formatDate(DateTime dateTime) {
-    final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final months = [
-      'avia.months.english.jan'.tr(),
-      'avia.months.english.feb'.tr(),
-      'avia.months.english.mar'.tr(),
-      'avia.months.english.apr'.tr(),
-      'avia.months.english.may'.tr(),
-      'avia.months.english.jun'.tr(),
-      'avia.months.english.jul'.tr(),
-      'avia.months.english.aug'.tr(),
-      'avia.months.english.sep'.tr(),
-      'avia.months.english.oct'.tr(),
-      'avia.months.english.nov'.tr(),
-      'avia.months.english.dec'.tr(),
-    ];
-    return '${dateTime.day} ${months[dateTime.month - 1]}, ${weekdays[dateTime.weekday - 1]}';
+  String _formatDate(DateTime? dateTime) {
+    if (dateTime == null) return '';
+    // uses the current default locale set by easy_localization
+    return DateFormat('d MMM, EEE').format(dateTime);
+  }
+  
+  String _calculateDuration(DateTime? start, DateTime? end) {
+    if (start == null || end == null) return '--';
+    final diff = end.difference(start);
+    final hours = diff.inHours;
+    final minutes = diff.inMinutes % 60;
+    return '${hours}h ${minutes}m';
   }
 
   String _getCityName(String airportCode) {
-    // Map airport codes to city names
+    // Basic fallback map, ideally this should come from API/Model
     final cityMap = {
       'TAS': 'Tashkent',
       'DXB': 'Dubai',
       'IST': 'Istanbul',
       'MOW': 'Moscow',
+      'JFK': 'New York',
+      'LHR': 'London',
+      'CDG': 'Paris',
     };
     return cityMap[airportCode] ?? airportCode;
-  }
-
-  String _getAirportName(String airportCode) {
-    // Map airport codes to airport names
-    final airportMap = {
-      'TAS': 'Mezhdunarodniy Aeroport Tashkent, TAS',
-      'DXB': 'Dubai, DXB (Terminal 3)',
-      'IST': 'Istanbul Airport, IST',
-      'MOW': 'Moscow Airport, MOW',
-    };
-    return airportMap[airportCode] ?? airportCode;
-  }
-
-  String _getTransitInfo(List<SegmentModel> segments, DateTime? arrivalTime) {
-    if (segments.length <= 1 || arrivalTime == null) return '';
-    // Calculate transit time (simplified)
-    return 'Arrival: ${_formatTime(arrivalTime)}, ${_formatDate(arrivalTime)}. In transit: 4 h (local airport time)';
-  }
-
-  String _getReturnDepartureInfo(OfferModel returnOffer) {
-    final segments = returnOffer.segments ?? [];
-    if (segments.isEmpty) return '';
-    final firstSegment = segments.first;
-    final departureDateTime = _parseDateTime(firstSegment.departureTime);
-    if (departureDateTime == null) return '';
-    return 'Departure: ${_formatTime(departureDateTime)}, ${_formatDate(departureDateTime)}. (local departure airport time)';
   }
 }

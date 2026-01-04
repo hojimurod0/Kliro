@@ -114,8 +114,9 @@ class _FlightFilterSheetState extends State<FlightFilterSheet> {
       final priceStr = offer.price?.replaceAll(RegExp(r'[^\d.]'), '') ?? '';
       final price = double.tryParse(priceStr);
       if (price != null) {
-        if (price < min) min = price;
-        if (price > max) max = price;
+        final commissionPrice = price * 1.1; // Apply 10% commission
+        if (commissionPrice < min) min = commissionPrice;
+        if (commissionPrice > max) max = commissionPrice;
       }
     }
     

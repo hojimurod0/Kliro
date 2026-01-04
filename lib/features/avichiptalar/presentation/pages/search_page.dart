@@ -144,7 +144,16 @@ class _SearchPageState extends State<SearchPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const SizedBox(height: 4),
-                              Text('${'avia.results.price_label'.tr()} ${offer.price ?? 'avia.common.na'.tr()} ${offer.currency ?? ''}'),
+                              Text(() {
+                                if (offer.price == null) {
+                                  return '${'avia.results.price_label'.tr()} ${'avia.common.na'.tr()} ${offer.currency ?? ''}';
+                                }
+                                // Parse price and add 10% commission
+                                final rawPrice = offer.price!.replaceAll(RegExp(r'[^\d.]'), '');
+                                final priceValue = double.tryParse(rawPrice) ?? 0.0;
+                                final priceWithCommission = (priceValue * 1.10).toStringAsFixed(0);
+                                return '${'avia.results.price_label'.tr()} $priceWithCommission ${offer.currency ?? ''}';
+                              }()),
                               if (offer.duration != null)
                                 Text('${'avia.results.duration'.tr()} ${offer.duration}'),
                             ],

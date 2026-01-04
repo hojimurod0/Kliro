@@ -291,8 +291,10 @@ class _HotelFilterDialogState extends State<HotelFilterDialog> {
                               runSpacing: 12.h,
                               children: hotelTypes.map((type) {
                                 final isSelected = _selectedHotelTypes.contains(type.id);
+                                final locale = context.locale.toString();
+                                final displayName = type.getDisplayName(locale);
                                 return FilterChip(
-                                  label: Text(type.name),
+                                  label: Text(displayName),
                                   selected: isSelected,
                                   onSelected: (selected) {
                                     setState(() {
@@ -325,8 +327,10 @@ class _HotelFilterDialogState extends State<HotelFilterDialog> {
                               runSpacing: 12.h,
                               children: facilities.take(10).map((facility) {
                                 final isSelected = _selectedFacilities.contains(facility.id);
+                                final locale = context.locale.toString();
+                                final displayName = facility.getDisplayName(locale);
                                 return FilterChip(
-                                  label: Text(facility.name),
+                                  label: Text(displayName),
                                   selected: isSelected,
                                   onSelected: (selected) {
                                     setState(() {
@@ -359,8 +363,10 @@ class _HotelFilterDialogState extends State<HotelFilterDialog> {
                               runSpacing: 12.h,
                               children: equipment.take(10).map((eq) {
                                 final isSelected = _selectedEquipments.contains(eq.id);
+                                final locale = context.locale.toString();
+                                final displayName = eq.getDisplayName(locale);
                                 return FilterChip(
-                                  label: Text(eq.name),
+                                  label: Text(displayName),
                                   selected: isSelected,
                                   onSelected: (selected) {
                                     setState(() {

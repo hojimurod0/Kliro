@@ -12,20 +12,25 @@ class AppInputDecoration {
     Widget? prefix,
     Widget? suffixIcon,
     EdgeInsetsGeometry? contentPadding,
+    Color? fillColor,
+    Color? borderColor,
+    Color? hintColor,
+    Color? prefixIconColor,
   }) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: AppColors.grayText, fontSize: 13.sp),
-      prefixIcon:
-          prefix ??
+      hintStyle: TextStyle(
+          color: hintColor ?? AppColors.grayText, fontSize: 13.sp),
+      prefixIcon: prefix ??
           (prefixIcon != null
-              ? Icon(prefixIcon, color: AppColors.primaryBlue, size: 20.sp)
+              ? Icon(prefixIcon,
+                  color: prefixIconColor ?? AppColors.primaryBlue, size: 20.sp)
               : null),
       suffixIcon: suffixIcon,
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.r),
         borderSide: BorderSide(
-          color: AppColors.grayBorder.withOpacity(0.8),
+          color: borderColor ?? AppColors.grayBorder.withOpacity(0.8),
           width: 1.w,
         ),
       ),
@@ -34,9 +39,8 @@ class AppInputDecoration {
         borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5.w),
       ),
       filled: true,
-      fillColor: AppColors.white,
-      contentPadding:
-          contentPadding ??
+      fillColor: fillColor ?? AppColors.white,
+      contentPadding: contentPadding ??
           EdgeInsets.symmetric(vertical: 14.h, horizontal: 16.w),
     );
   }

@@ -253,7 +253,17 @@ class FlightDetailsScreen extends StatelessWidget {
                         SizedBox(height: 4.h),
                         Text(
                           offer.price != null
-                              ? '${offer.price!.replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} ${offer.currency ?? 'sum'}'
+                              ? () {
+                                  // Parse price and add 10% commission
+                                  final rawPrice = offer.price!.replaceAll(RegExp(r'[^\d.]'), '');
+                                  final priceValue = double.tryParse(rawPrice) ?? 0.0;
+                                  final priceWithCommission = (priceValue * 1.10).toStringAsFixed(0);
+                                  final formattedPrice = priceWithCommission.replaceAllMapped(
+                                    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                    (Match m) => '${m[1]} ',
+                                  );
+                                  return '$formattedPrice ${offer.currency ?? 'sum'}';
+                                }()
                               : 'avia.common.na'.tr(),
                           style: TextStyle(
                             fontSize: 20.sp,

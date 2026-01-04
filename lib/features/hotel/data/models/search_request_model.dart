@@ -1,7 +1,13 @@
+import 'package:json_annotation/json_annotation.dart';
+
 import '../../domain/entities/hotel_filter.dart';
+import 'occupancy_model.dart';
+
+part 'search_request_model.g.dart';
 
 /// SearchRequestModel для Hotelios API
 /// Формат: {"data": {...}}
+@JsonSerializable()
 class SearchRequestModel {
   const SearchRequestModel({
     this.cityId,
@@ -29,7 +35,7 @@ class SearchRequestModel {
   final List<int>? hotelIds;
   final DateTime? checkInDate;
   final DateTime? checkOutDate;
-  final List<Occupancy>? occupancies;
+  final List<OccupancyModel>? occupancies;
   final String currency;
   final String nationality;
   final String residence;
@@ -45,6 +51,8 @@ class SearchRequestModel {
   final int? minStars;
   final int? maxStars;
 
+  factory SearchRequestModel.fromJson(Map<String, dynamic> json) => _$SearchRequestModelFromJson(json);
+
   factory SearchRequestModel.fromFilter(HotelFilter filter) {
     // Legacy support: agar city string bo'lsa, uni city_id ga o'girish kerak
     // Lekin hozircha city_id ni to'g'ridan-to'g'ri ishlatamiz
@@ -54,11 +62,16 @@ class SearchRequestModel {
     // Bu yerda city name dan city_id ni topish kerak, lekin hozircha null qoldiramiz
     
     // Occupancies ni tayyorlash
-    List<Occupancy>? occupancies = filter.occupancies;
-    if (occupancies == null && filter.guests > 0) {
+    List<OccupancyModel>? occupancies;
+    if (filter.occupancies != null) {
+      occupancies = filter.occupancies!.map((o) => OccupancyModel(
+        adults: o.adults,
+        childrenAges: o.childrenAges,
+      )).toList();
+    } else if (filter.guests > 0) {
       // Legacy support: guests dan occupancies yaratish
       occupancies = [
-        Occupancy(
+        OccupancyModel(
           adults: filter.guests,
           childrenAges: [],
         ),

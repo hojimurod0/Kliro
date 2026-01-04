@@ -8,6 +8,19 @@ class SnackbarHelper {
   SnackbarHelper._();
 
   /// Umumiy helper funksiya - tepadan chiqadigan snackbar
+  static OverlayEntry? _currentEntry;
+  static Timer? _currentTimer;
+
+  static void _closeCurrentSnackbar() {
+    if (_currentEntry?.mounted ?? false) {
+      _currentEntry?.remove();
+    }
+    _currentTimer?.cancel();
+    _currentEntry = null;
+    _currentTimer = null;
+  }
+
+  /// Umumiy helper funksiya - tepadan chiqadigan snackbar
   static void _showTopSnackbar(
     BuildContext context,
     String message, {
@@ -20,6 +33,9 @@ class SnackbarHelper {
     if (!context.mounted) {
       return;
     }
+
+    // Remove existing snackbar if acts
+    _closeCurrentSnackbar();
 
     final mediaQuery = MediaQuery.of(context);
     final safeAreaTop = mediaQuery.padding.top;
@@ -48,13 +64,14 @@ class SnackbarHelper {
             color: Colors.transparent,
             child: TweenAnimationBuilder<double>(
               tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutCubic,
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeOutBack, // Bouncy effect for "falling" feel
               builder: (context, value, child) {
                 return Transform.translate(
-                  offset: Offset(0, -50 * (1 - value)),
+                  // Start from -200 (fully offscreen) -> 0
+                  offset: Offset(0, -200 * (1 - value)),
                   child: Opacity(
-                    opacity: value,
+                    opacity: value.clamp(0.0, 1.0),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -104,9 +121,7 @@ class SnackbarHelper {
                               padding: const EdgeInsets.only(left: 8),
                               child: TextButton(
                                 onPressed: () {
-                                  if (overlayEntry.mounted) {
-                                    overlayEntry.remove();
-                                  }
+                                  _closeCurrentSnackbar();
                                   action.onPressed();
                                 },
                                 style: TextButton.styleFrom(
@@ -138,9 +153,7 @@ class SnackbarHelper {
                               padding: const EdgeInsets.only(left: 8),
                               child: TextButton(
                                 onPressed: () {
-                                  if (overlayEntry.mounted) {
-                                    overlayEntry.remove();
-                                  }
+                                 _closeCurrentSnackbar();
                                 },
                                 style: TextButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(
@@ -178,60 +191,33 @@ class SnackbarHelper {
       },
     );
 
+    _currentEntry = overlayEntry;
     overlay.insert(overlayEntry);
 
-    // Auto-hide after duration
-    Future.delayed(duration, () {
-      if (overlayEntry.mounted) {
-        overlayEntry.remove();
-      }
+    // Auto-hide after duration (using safe timer handling)
+    _currentTimer = Timer(duration, () {
+      _closeCurrentSnackbar();
     });
 
-    // Context unmounted bo'lganda snackbar'ni olib tashlash
-    // Sahifa o'zgarganda overlay entry'ni olib tashlash uchun
-    // periodic tekshiruv qilamiz
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Context mounted ekanligini tekshirish
-      if (!context.mounted) {
-        if (overlayEntry.mounted) {
-          overlayEntry.remove();
-        }
-        return;
-      }
-
-      // Periodic tekshiruv - context unmounted bo'lganda snackbar'ni olib tashlash
-      final checkInterval = const Duration(milliseconds: 100);
-      Timer.periodic(checkInterval, (timer) {
-        if (!context.mounted || !overlayEntry.mounted) {
-          timer.cancel();
-          if (overlayEntry.mounted) {
-            overlayEntry.remove();
-          }
-          return;
-        }
-        // Agar duration o'tib ketgan bo'lsa, timer'ni to'xtatish
-        if (timer.tick * checkInterval.inMilliseconds >=
-            duration.inMilliseconds) {
-          timer.cancel();
-        }
-      });
-    });
+    // Handle context unmounting safety purely via Flutter Widget lifecycle if possible,
+    // but since this is overlapping, we keep a simple check.
+    // The previous aggressive periodic timer is removed as it might be overkill/glitchy.
   }
 
   /// Tepadan chiqadigan error snackbar
   static void showError(
     BuildContext context,
     String message, {
-    Duration duration = const Duration(seconds: 4),
+    Duration duration = const Duration(seconds: 3),
     SnackBarAction? action,
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    // Dark mode uchun yanada yorug' va kontrastli rang
+    // Dark mode uchun yanada yorug' va kontrastli rang - qizil
     final errorColor = isDark
-        ? const Color(0xFFE53935) // To'q qizil - dark mode uchun
-        : const Color(0xFFDC3545); // Oddiy qizil - light mode uchun
+        ? const Color(0xFFD32F2F) // To'q qizil - dark mode uchun
+        : const Color(0xFFF44336); // Yorug' qizil - light mode uchun
 
     _showTopSnackbar(
       context,
@@ -247,7 +233,7 @@ class SnackbarHelper {
   static void showSuccess(
     BuildContext context,
     String message, {
-    Duration duration = const Duration(seconds: 3),
+    Duration duration = const Duration(seconds: 2),
     SnackBarAction? action,
   }) {
     final theme = Theme.of(context);
@@ -272,7 +258,7 @@ class SnackbarHelper {
   static void showInfo(
     BuildContext context,
     String message, {
-    Duration duration = const Duration(seconds: 3),
+    Duration duration = const Duration(seconds: 2),
     SnackBarAction? action,
   }) {
     final theme = Theme.of(context);
@@ -297,7 +283,7 @@ class SnackbarHelper {
   static void showWarning(
     BuildContext context,
     String message, {
-    Duration duration = const Duration(seconds: 3),
+    Duration duration = const Duration(seconds: 2),
     SnackBarAction? action,
   }) {
     final theme = Theme.of(context);

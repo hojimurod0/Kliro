@@ -86,6 +86,61 @@ class AviaAuthInterceptor extends Interceptor {
 
     handler.next(options);
   }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    // 401: Token eskirgan -> avval refresh qilish, keyin retry
+    if (err.response?.statusCode == 401 && _authService != null) {
+      final requestOptions = err.requestOptions;
+      
+      // Agar bu refresh token yoki login request bo'lsa, loop'ga tushmaslik uchun
+      if (requestOptions.path.contains('/auth/refresh') || 
+          requestOptions.path.contains('/auth/login')) {
+        await _authService!.logout();
+        handler.next(err);
+        return;
+      }
+      
+      // Token refresh qilish
+      final newToken = await _authService!.refreshToken();
+      
+      if (newToken != null && newToken.isNotEmpty) {
+        // Yangi token bilan request'ni qayta yuborish
+        requestOptions.headers['Authorization'] = 'Bearer $newToken';
+        updateToken(newToken);
+        
+        try {
+          // Original request'ni yangi token bilan qayta yuborish
+          // RequestOptions'dan BaseOptions yaratish
+          final baseOptions = BaseOptions(
+            baseUrl: requestOptions.baseUrl,
+            connectTimeout: requestOptions.connectTimeout,
+            receiveTimeout: requestOptions.receiveTimeout,
+            sendTimeout: requestOptions.sendTimeout,
+            headers: requestOptions.headers,
+            responseType: requestOptions.responseType,
+            contentType: requestOptions.contentType,
+          );
+          final dio = Dio(baseOptions);
+          final response = await dio.fetch(requestOptions);
+          handler.resolve(response);
+          return;
+        } catch (e) {
+          // Retry ham muvaffaqiyatsiz bo'lsa, logout
+          await _authService!.logout();
+          handler.next(err);
+          return;
+        }
+      } else {
+        // Token refresh muvaffaqiyatsiz -> logout
+        await _authService!.logout();
+        handler.next(err);
+        return;
+      }
+    }
+    
+    handler.next(err);
+  }
 }
 
 /// Interceptor для логирования запросов и ответов

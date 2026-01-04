@@ -156,6 +156,7 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return BlocConsumer<RegisterBloc, RegisterState>(
       listener: (context, state) {
         if (state.flow == RegisterFlow.forgotPasswordOtp) {
@@ -175,7 +176,7 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
       },
       builder: (context, state) {
         return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: AppSpacing.screenPadding,
@@ -190,7 +191,9 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
               // Sarlavha
               Text(
                 'auth.verification.title_reset'.tr(),
-                style: AppTypography.headingXL,
+                style: AppTypography.headingXL.copyWith(
+                  color: isDark ? AppColors.white : AppColors.black,
+                ),
               ),
               SizedBox(height: AppSpacing.xs),
 
@@ -212,7 +215,7 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
                           text: contact,
                           style: AppTypography.bodyPrimary.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: AppColors.black,
+                            color: isDark ? AppColors.white : AppColors.black,
                           ),
                         ),
                         if (after.isNotEmpty)

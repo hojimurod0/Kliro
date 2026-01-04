@@ -1,8 +1,14 @@
+import 'package:flutter/foundation.dart';
+import 'package:json_annotation/json_annotation.dart';
+
 import '../../../../core/errors/exceptions.dart';
 import '../../domain/entities/hotel_search_result.dart';
 import '../../domain/entities/hotel_filter.dart';
 import 'hotel_model.dart';
 
+part 'search_response_model.g.dart';
+
+@JsonSerializable()
 class SearchResponseModel {
   const SearchResponseModel({
     required this.hotels,
@@ -31,67 +37,68 @@ class SearchResponseModel {
 
     final data = json['data'] as Map<String, dynamic>? ?? json;
     final hotelsData = data['hotels'] as List<dynamic>? ?? [];
-    
+
+    // Debug log qo'shamiz
+    debugPrint(
+        '🔍 SearchResponseModel.fromApiJson: hotelsData.length = ${hotelsData.length}');
+    debugPrint('🔍 SearchResponseModel: data keys = ${data.keys.toList()}');
+
     // Extract dates and guests from filter
     final checkInDate = filter?.checkInDate;
     final checkOutDate = filter?.checkOutDate;
-    final guests = (filter?.occupancies != null && filter!.occupancies!.isNotEmpty)
-        ? filter.occupancies!.first.adults
-        : filter?.guests ?? 1;
+    final guests =
+        (filter?.occupancies != null && filter!.occupancies!.isNotEmpty)
+            ? filter.occupancies!.first.adults
+            : filter?.guests ?? 1;
 
     final hotels = hotelsData
         .map((item) {
           try {
             final hotelMap = item as Map<String, dynamic>;
-            return HotelModel.fromApiJson(
+            debugPrint(
+                '🔍 SearchResponseModel: Parsing hotel, keys = ${hotelMap.keys.toList()}');
+            final hotel = HotelModel.fromApiJson(
               hotelMap,
               checkInDate: checkInDate,
               checkOutDate: checkOutDate,
               guests: guests,
             );
-          } catch (e) {
+            debugPrint(
+                '🔍 SearchResponseModel: Parsed hotel name="${hotel.name}", imageUrl="${hotel.imageUrl}"');
+            return hotel;
+          } catch (e, stackTrace) {
+            debugPrint('❌ SearchResponseModel: Error parsing hotel: $e');
+            debugPrint('❌ StackTrace: $stackTrace');
             return null;
           }
         })
         .whereType<HotelModel>()
         .toList();
 
+    // Debug log qo'shamiz
+    debugPrint(
+        '🔍 SearchResponseModel.fromApiJson: parsed hotels.length = ${hotels.length}');
+    if (hotels.isNotEmpty) {
+      debugPrint('🔍 First parsed hotel: ${hotels.first.name}');
+    }
+
     return SearchResponseModel(
       hotels: hotels,
-      total: data['total'] as int? ?? 
-             data['total_count'] as int? ?? 
-             hotels.length,
+      total:
+          data['total'] as int? ?? data['total_count'] as int? ?? hotels.length,
       page: data['page'] as int? ?? 1,
-      pageSize: data['page_size'] as int? ?? 
-                data['pageSize'] as int? ?? 
-                10,
+      pageSize: data['page_size'] as int? ?? data['pageSize'] as int? ?? 10,
     );
   }
 
-  /// Legacy format support
-  factory SearchResponseModel.fromJson(Map<String, dynamic> json) {
-    final hotelsData = json['hotels'] as List<dynamic>? ?? 
-                       json['data'] as List<dynamic>? ?? 
-                       json['results'] as List<dynamic>? ?? [];
-    final hotels = hotelsData
-        .map((item) {
-          try {
-            return HotelModel.fromJson(item as Map<String, dynamic>);
-          } catch (e) {
-            return null;
-          }
-        })
-        .whereType<HotelModel>()
-        .toList();
+  /// Standard JSON format support - uses generated fromJson
+  factory SearchResponseModel.fromJson(Map<String, dynamic> json) =>
+      _$SearchResponseModelFromJson(json);
 
-    return SearchResponseModel(
-      hotels: hotels,
-      total: json['total'] as int? ?? json['total_count'] as int? ?? hotels.length,
-      page: json['page'] as int? ?? 1,
-      pageSize: json['page_size'] as int? ?? json['pageSize'] as int? ?? 10,
-    );
-  }
+  Map<String, dynamic> toJson() => _$SearchResponseModelToJson(this);
+}
 
+extension SearchResponseModelX on SearchResponseModel {
   HotelSearchResult toEntity() {
     return HotelSearchResult(
       hotels: hotels,
@@ -101,4 +108,3 @@ class SearchResponseModel {
     );
   }
 }
-

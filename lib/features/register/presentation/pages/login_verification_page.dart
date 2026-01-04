@@ -148,6 +148,7 @@ class _LoginVerificationPageState extends State<LoginVerificationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return BlocProvider.value(
       value: _registerBloc,
       child: BlocConsumer<RegisterBloc, RegisterState>(
@@ -183,7 +184,7 @@ class _LoginVerificationPageState extends State<LoginVerificationPage> {
           final isLoading = state.isLoading && state.flow == RegisterFlow.registerConfirmOtp;
           
           return Scaffold(
-            backgroundColor: AppColors.white,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             body: SafeArea(
               child: Padding(
                 padding: AppSpacing.screenPadding,
@@ -195,7 +196,9 @@ class _LoginVerificationPageState extends State<LoginVerificationPage> {
                     SizedBox(height: AppSpacing.xl),
                     Text(
                       'auth.verification.title_login'.tr(),
-                      style: AppTypography.headingXL,
+                      style: AppTypography.headingXL.copyWith(
+                        color: isDark ? AppColors.white : AppColors.black,
+                      ),
                     ),
                     SizedBox(height: AppSpacing.xs),
                     Builder(
@@ -214,7 +217,7 @@ class _LoginVerificationPageState extends State<LoginVerificationPage> {
                                 text: contact,
                                 style: AppTypography.bodyPrimary.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.black,
+                                  color: isDark ? AppColors.white : AppColors.black,
                                 ),
                               ),
                               if (after.isNotEmpty) TextSpan(text: after),

@@ -47,7 +47,40 @@
       "forgot": "Паролни унутдингизми?",
       "no_account": "Аккаунтингиз йўқми? ",
       "register": "Рўйхатдан ўтиш",
-      "snack_required": "Илтимос, барча майдонларни тўлдиринг"
+      "snack_required": "Илтимос, барча майдонларни тўлдиринг",
+      "login_with_otp": "OTP орқали кириш",
+      "snack_contact_invalid": "Контакт маълумотини тўғри киритинг.",
+      "snack_contact_required": "Контактни киритинг",
+      "error_credentials": "Логин ёки парол нотўғри",
+      "error_credentials_detail": "Нотўғри маълумотлар",
+      "error_password_incorrect": "Парол нотўғри",
+      "error_phone_format": "Телефон формати нотўғри",
+      "error_password_complexity": "Парол рақам ва ҳарфлардан иборат бўлиши керак",
+      "agree_to_terms_required": "Илтимос, шартлар ва махфийлик сиёсатига розилик билдиринг",
+      "agree_to_terms_prefix": "Мен ",
+      "agree_to_terms_link": "фойдаланиш шартлари",
+      "agree_to_terms_suffix": " билан танишдим ва розиман",
+      "agree_to_privacy_prefix": "Мен ",
+      "agree_to_privacy_link": "махфийлик сиёсати",
+      "agree_to_privacy_suffix": " билан танишдим ва шахсий маълумотларимни қайта ишлашга розилик билдираман",
+      "agree_to_terms_and_privacy_prefix": "Мен ",
+      "agree_to_terms_and_privacy_link": "фойдаланиш шартлари ва махфийлик сиёсати"
+    },
+    "privacy": {
+      "title": "Махфийлик сиёсати",
+      "description": "Бизнинг махфийлик сиёсатимиз билан танишиб чиқинг. Бу ҳужжатда бизнинг шахсий маълумотларни қандай тўплаш, сақлаш ва ишлатишимиз ҳақида батафсил маълумот берилган.",
+      "open_document": "Ҳужжатни очиш",
+      "note": "Эслатма: Ҳужжат ташқи браузерда очилади",
+      "cannot_open": "Ҳужжатни очиб бўлмади",
+      "error": "Хатолик юз берди"
+    },
+    "terms": {
+      "title": "Фойдаланиш шартлари",
+      "description": "Иловадан фойдаланишдан олдин фойдаланиш шартларини ўқинг. Бу ҳужжатда хизматларимиздан фойдаланиш қоидалари ва шартлари батафсил кўрсатилган.",
+      "open_document": "Ҳужжатни очиш",
+      "note": "Эслатма: Ҳужжат ташқи браузерда очилади",
+      "cannot_open": "Ҳужжатни очиб бўлмади",
+      "error": "Хатолик юз берди"
     },
     "register": {
       "title": "Аккаунт яратиш",
@@ -1262,6 +1295,26 @@
     "video_error": "Видео юклашда хатолик"
   },
   "hotel": {
+    "common": {
+      "error": "Хатолик",
+      "retry": "Қайта уриниш",
+      "back": "Орқа",
+      "price_not_available": "Нарх кўрсатилмаган",
+      "data_not_found": "Маълумот топилмади",
+      "apply": "Қўллаш",
+      "search": "Қидириш",
+      "anywhere": "Қаерга?",
+      "select": "Танлаш",
+      "close": "Ёпиш",
+      "unknown_error": "Номаълум хатолик юз берди",
+      "parsing_error": "Маълумотларни қайта ишлашда хатолик",
+      "network_error": "Интернет алоқаси йўқ",
+      "server_error": "Сервер хатоси",
+      "timeout_error": "Сўров вақти тугади",
+      "invalid_hotel_id": "Нотоғри hotel ID",
+      "hotel_not_found": "Hotel топилмади",
+      "invalid_response_format": "Сервер жавоби нотўғри форматда"
+    },
     "search": {
       "title": "Меҳмонхона қидириш",
       "city": "Шаҳар",
@@ -1277,7 +1330,16 @@
       "adults": "Катталар",
       "children": "Болалар",
       "person": "Киши",
-      "recommended": "Тавсия этилган"
+      "recommended": "Тавсия этилган",
+      "select_city": "Шаҳар танланг ёки киритинг",
+      "select_dates": "Кириш ва чиқиш саналарини танланг",
+      "invalid_dates": "Чиқиш санаси кириш санасидан кейин бўлиши керак",
+      "city_not_found": "Шаҳар топилмади. Илтимос, рўйхатдан танланг",
+      "failed": "Қидирув муваффақиятсиз",
+      "guests_rooms": "Меҳмонлар ва хоналар",
+      "age_restrictions_adults": "18 ёшдан катта",
+      "age_restrictions_children": "17 ёшгача",
+      "room": "Хона"
     },
     "results": {
       "title": "Меҳмонxonalar",
@@ -1289,14 +1351,13 @@
       "person": "киши",
       "people": "киши",
       "night": "Тун",
-      "nights": "Тун"
-    },
-    "search": {
-      "select_city": "Шаҳар танланг ёки киритинг",
-      "select_dates": "Кириш ва чиқиш саналарини танланг",
-      "invalid_dates": "Чиқиш санаси кириш санасидан кейин бўлиши керак",
-      "city_not_found": "Шаҳар топилмади. Илтимос, рўйхатдан танланг",
-      "failed": "Қидирув муваффақиятсиз"
+      "nights": "Тун",
+      "for_price": "учун",
+      "breakfast": "Нонушта",
+      "details": "Тафсилот",
+      "loading": "Энг яхши вариантларни қидиряпмиз...",
+      "please_wait": "Илтимос, кутинг.",
+      "may_take_time": "Бу 60 сониягача вақт олиши мумкин"
     },
     "guest_details": {
       "title": "Маълумотларни киритиш",
@@ -1329,14 +1390,48 @@
       "booking_success": "Брон қилинди!"
     },
     "details": {
-      "price": "Нарх:",
+      "title": "Меҳмонхона тафсилотлари",
+      "price": "Нарх",
       "description": "Тавсиф:",
+      "read_more": "Кўпроқ ўқиш",
       "amenities": "Қулайликлар:",
+      "facilities": "Қулайликлар",
       "photos": "Расмлар",
       "book": "Брон қилиш",
       "coming_soon": "Брон қилиш функсияси тез орада қўшилади",
       "rooms": "Хонани танланг",
-      "book_now": "Расмийлаштириш"
+      "room_types": "Хона турлари",
+      "nearby_places": "Яқин атрофдаги жойлар",
+      "services_in_room": "Хонадаги хизматлар",
+      "book_now": "Расмийлаштириш",
+      "tab_description": "Меҳмонхона тавсифи",
+      "tab_availability": "Мавжудлик",
+      "tab_services": "Хизматлар",
+      "tab_conditions": "Шартлар",
+      "open_map": "Харитада кўриш",
+      "important_notes": "Муҳим эслатмалар",
+      "condition_arrival_time": "Илтимос, келиш вақтини олдиндан меҳмонхонага хабар қилинг",
+      "condition_visa": "Меҳмонхона виза ёрдами бермайди",
+      "condition_marriage": "Ўзбек жуфтликлари ҳақиқий никоҳ гувоҳномасини тақдим этиши керак",
+      "check_in_time": "Кириш вақти",
+      "check_out_time": "Чиқиш вақти",
+      "age_policy": "Меҳмонхона ёш сиёсати",
+      "age_policy_content": "Болаларга бепул 7 ёшгача",
+      "max_guests": "Максимал {count} меҳмон",
+      "all_data": "Барча маълумотлар",
+      "id": "ID",
+      "hotel_id": "Меҳмонхона ID",
+      "name": "Номи",
+      "city": "Шаҳар",
+      "address": "Манзил",
+      "image_url": "Расм URL",
+      "rating": "Рейтинг",
+      "stars": "Юлдузлар",
+      "check_in_date": "Кириш санаси",
+      "check_out_date": "Чиқиш санаси",
+      "guests_count": "Меҳмонлар сони",
+      "options_count": "Вариантлар сони",
+      "options": "Вариантлар"
     },
     "bookings": {
       "title": "Менинг бронларим",
@@ -1381,7 +1476,10 @@
       "quote_not_found": "Quote топилмади",
       "fill_field": "Майдонни тўлдиринг",
       "invalid_email": "Нотўғри email формати",
-      "hotel_data_not_found": "Hotel маълумотлари топилмади"
+      "hotel_data_not_found": "Hotel маълумотлари топилмади",
+      "room_photos": "Хона расмлари",
+      "room_types": "Хона турлари",
+      "equipment": "Жиҳозлар"
     },
     "success": {
       "title": "Брон қилинди",
@@ -1400,36 +1498,26 @@
       "share_title": "Меҳмонхона брон"
     },
     "from": "дан",
-    "common": {
-      "error": "Хатолик",
-      "retry": "Қайта уриниш",
-      "back": "Орқа",
-      "price_not_available": "Нарх кўрсатилмаган",
-      "data_not_found": "Маълумот топилмади",
-      "apply": "Қўллаш",
-      "search": "Қидириш",
-      "anywhere": "Қаерга?",
-      "select": "Танлаш",
-      "close": "Ёпиш",
-      "unknown_error": "Номаълум хатолик юз берди",
-      "parsing_error": "Маълумотларни қайта ишлашда хатолик",
-      "network_error": "Интернет алоқаси йўқ",
-      "server_error": "Сервер хатоси",
-      "timeout_error": "Сўров вақти тугади",
-      "invalid_hotel_id": "Нотоғри hotel ID",
-      "hotel_not_found": "Hotel топилмади",
-      "invalid_response_format": "Сервер жавоби нотўғри форматда"
-    },
     "filter": {
       "title": "Филтер",
       "price_range": "Нарх оралиғи",
       "stars": "Юлдузлар",
+      "hotel_types": "Меҳмонхона турлари",
+      "facilities": "Қулайликлар",
+      "equipment": "Жиҳозлар",
       "cancellation": "Бекор қилиш",
       "refundable": "Қайтарилган",
       "non_refundable": "Қайтарилмаган",
       "all": "Барчаси",
       "reset": "Тозалаш",
       "apply": "Қўллаш"
+    },
+    "coomon": {
+      "data": {
+        "not": {
+          "found": "Маълумот топилмади"
+        }
+      }
     }
   },
   "avia": {

@@ -89,6 +89,7 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
   final List<TextEditingController> _passportExpiryControllers = [];
   final List<TextEditingController> _citizenshipControllers = [];
   final List<String> _selectedGenders = [];
+  final List<bool> _savePassengerInfo = [];
 
   bool _isValidUzPhone(String raw) {
     final digitsOnly = raw.replaceAll(RegExp(r'[^0-9]'), '');
@@ -261,6 +262,12 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
     // Add babies
     for (int i = 0; i < widget.babies; i++) {
       _passengers.add(PassengerData(passengerType: 'baby', gender: 'Erkak'));
+    }
+    
+    // Initialize save preference to true (default) for each passenger
+    _savePassengerInfo.clear();
+    for (int i = 0; i < _passengers.length; i++) {
+      _savePassengerInfo.add(true);
     }
   }
 
@@ -918,10 +925,32 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                                       String formatDate(String? date) {
                                         if (date == null || date.isEmpty) return '';
                                         try {
-                                          final parts = date.split('/');
-                                          if (parts.length == 3) {
-                                            return '${parts[2]}-${parts[1]}-${parts[0]}';
+                                          if (date.isEmpty) return '';
+                                          
+                                          // 1. Handle yyyy-MM-dd (Standard API format)
+                                          if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(date)) {
+                                            return date;
                                           }
+                                          // 2. Handle yyyy/MM/dd (Converting to yyyy-MM-dd)
+                                          if (RegExp(r'^\d{4}/\d{2}/\d{2}$').hasMatch(date)) {
+                                            return date.replaceAll('/', '-');
+                                          }
+                                          
+                                          // 3. Handle dd/MM/yyyy (Manual input standard)
+                                          // Also support . or - as separators for robust manual handling
+                                          // Regex checks for d/M/yyyy, dd/MM/yyyy, d-M-yyyy etc.
+                                          // If it starts with 2 digits, assume day.
+                                          if (RegExp(r'^\d{1,2}[./-]\d{1,2}[./-]\d{4}$').hasMatch(date)) {
+                                             // Normalize separators to / for standard parsing
+                                             String normDate = date.replaceAll('.', '/').replaceAll('-', '/');
+                                             final inputFormat = DateFormat('dd/MM/yyyy');
+                                             final outputFormat = DateFormat('yyyy-MM-dd');
+                                             final dateTime = inputFormat.parse(normDate);
+                                             return outputFormat.format(dateTime);
+                                          }
+
+                                          // Fallback: try parsing with lenient format if above failed
+                                          // (E.g. maybe user typed ddMMyyyy without separators? unlikely given input formatter)
                                           return date;
                                         } catch (e) {
                                           // Date format error - using original date
@@ -1355,12 +1384,24 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                     controller: _passengerNameControllers[index],
                     label: 'avia.formalization.first_name'.tr(),
                     icon: Icons.person_outline,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return "Ism kiritish majburiy";
+                      }
+                      return null;
+                    },
                   ),
                   SizedBox(height: AppSpacing.md),
                   _buildInputField(
                     controller: _passengerSurnameControllers[index],
                     label: 'avia.formalization.last_name'.tr(),
                     icon: Icons.person_outline,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return "Familiya kiritish majburiy";
+                      }
+                      return null;
+                    },
                   ),
                   SizedBox(height: AppSpacing.md),
                   _buildInputField(
@@ -1377,6 +1418,16 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                     keyboardType: TextInputType.number,
                     inputFormatters: [DateFormatter()],
                     suffixIcon: Icons.calendar_month,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return "Tug'ilgan sana kiritish majburiy";
+                      }
+                      // Simple regex check dd/MM/yyyy
+                      if (!RegExp(r'^\d{2}/\d{2}/\d{4}$').hasMatch(value)) {
+                        return "Noto'g'ri sana formati";
+                      }
+                      return null;
+                    },
                     // Allow typing, open picker only on icon tap
                     onSuffixIconTap: () => _selectDate(
                        _passengerReturnDateControllers[index],
@@ -1392,6 +1443,12 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                     label: 'avia.formalization.passport_series'.tr(),
                     icon: Icons.credit_card_outlined,
                     inputFormatters: [PassportFormatter()],
+                    validator: (value) {
+                       if (value == null || value.trim().isEmpty) {
+                        return "Pasport seriya/raqam majburiy";
+                      }
+                      return null;
+                    },
                   ),
                   SizedBox(height: AppSpacing.md),
                   _buildInputField(
@@ -1402,6 +1459,15 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                     keyboardType: TextInputType.number,
                     inputFormatters: [DateFormatter()],
                     suffixIcon: Icons.calendar_month,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return "Amal qilish muddati majburiy";
+                      }
+                      if (!RegExp(r'^\d{2}/\d{2}/\d{4}$').hasMatch(value)) {
+                        return "Noto'g'ri sana formati";
+                      }
+                      return null;
+                    },
                     onSuffixIconTap: () =>
                         _selectDate(_passportExpiryControllers[index], index),
                   ),
@@ -1412,6 +1478,12 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                     icon: Icons.flag_outlined,
                     readOnly: true,
                     suffixIcon: Icons.arrow_drop_down,
+                    validator: (value) {
+                       if (value == null || value.trim().isEmpty) {
+                        return "Fuqarolik tanlash majburiy";
+                      }
+                      return null;
+                    },
                     onTap: () {
                       _showCitizenshipPicker(index);
                     },
@@ -1423,6 +1495,39 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                     icon: Icons.phone_outlined,
                     keyboardType: TextInputType.phone,
                     inputFormatters: [PhoneFormatter()],
+                  ),
+                  SizedBox(height: AppSpacing.md),
+                  // Save passenger info toggle
+                  Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkCardBg : AppColors.grayLight,
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: Border.all(
+                        color: AppColors.getBorderColor(isDark),
+                        width: 1,
+                      ),
+                    ),
+                    child: SwitchListTile(
+                      value: _savePassengerInfo[index],
+                      onChanged: (value) {
+                        setState(() {
+                          _savePassengerInfo[index] = value;
+                        });
+                      },
+                      title: Text(
+                        'avia.formalization.save_passenger_info'.tr(),
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.getTextColor(isDark),
+                        ),
+                      ),
+                      activeColor: AppColors.primaryBlue,
+                      contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1721,6 +1826,21 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
 
 
 
+  // Format date from YYYY-MM-DD to DD/MM/YYYY for UI
+  String _formatDateForUi(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '';
+    // Check YYYY-MM-DD
+    if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(dateStr)) {
+      try {
+        final parts = dateStr.split('-');
+        return '${parts[2]}/${parts[1]}/${parts[0]}';
+      } catch (e) {
+        return dateStr;
+      }
+    }
+    return dateStr;
+  }
+
   // Format phone number to match PhoneFormatter format: +998 90 123-45-67
   String _formatPhoneForDisplay(String phone) {
     if (phone.trim().isEmpty) return '+998';
@@ -1784,8 +1904,7 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
       _passengerPatronymicControllers[index].text = human.middleName ?? '';
       
       // Format dates if needed. HumanModel has String dates.
-      // Assuming HumanModel date format allows direct usage or simple parsing
-      _passengerReturnDateControllers[index].text = human.birthDate;
+      _passengerReturnDateControllers[index].text = _formatDateForUi(human.birthDate);
       
       if (human.gender.toLowerCase().contains('m') || human.gender.toLowerCase() == 'male') {
         _selectedGenders[index] = 'Erkak';
@@ -1794,8 +1913,12 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
       }
       
       _passportSeriesControllers[index].text = human.passportNumber;
-      _passportExpiryControllers[index].text = human.passportExpiry;
+      _passportExpiryControllers[index].text = _formatDateForUi(human.passportExpiry);
       _citizenshipControllers[index].text = human.citizenship;
+      
+      // Agar "Mening yo'lovchilarim" dan tanlansa, saqlash tugmasini o'chirib qo'yish (chunki allaqachon saqlangan)
+      // Ammo foydalanuvchi o'zgartirib qayta saqlashni xohlashi mumkin, shuning uchun o'zgarmaydi yoki true qoladi.
+      // Hozirchalik o'zgarishsiz qoldiramiz.
       
       // Format phone number to match PhoneFormatter format
       final phoneToFormat = human.phone.trim().isEmpty 
@@ -1819,6 +1942,11 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
   void _savePassengersToMyList() {
     for (int i = 0; i < _passengers.length; i++) {
       final p = _passengers[i];
+      
+      // Agar foydalanuvchi ma'lumotlarni saqlashni xohlamasa, o'tkazib yuborish
+      if (!_savePassengerInfo[i]) {
+        continue;
+      }
       
       // Ma'lumotlar to'liqligini tekshirish
       if ((p.name.trim().isEmpty) || 

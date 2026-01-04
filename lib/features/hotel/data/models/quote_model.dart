@@ -1,7 +1,11 @@
-import '../../../../core/errors/exceptions.dart';
+import 'package:json_annotation/json_annotation.dart';
+
 import '../../domain/entities/hotel_booking.dart';
 import 'hotel_model.dart';
 
+part 'quote_model.g.dart';
+
+@JsonSerializable()
 class QuoteModel {
   const QuoteModel({
     required this.quoteId,
@@ -11,24 +15,13 @@ class QuoteModel {
   final String quoteId;
   final HotelModel hotel;
 
-  factory QuoteModel.fromJson(Map<String, dynamic> json) {
-    final data = json['data'] as Map<String, dynamic>? ?? json;
-    final quoteId = data['quote_id'] as String? ?? '';
-    
-    // Parse hotel from quote response
-    final hotelData = data['hotel'] as Map<String, dynamic>?;
-    if (hotelData == null) {
-      throw ValidationException('Hotel ma\'lumotlari topilmadi');
-    }
+  factory QuoteModel.fromJson(Map<String, dynamic> json) =>
+      _$QuoteModelFromJson(json);
 
-    final hotel = HotelModel.fromApiJson(hotelData);
+  Map<String, dynamic> toJson() => _$QuoteModelToJson(this);
+}
 
-    return QuoteModel(
-      quoteId: quoteId,
-      hotel: hotel,
-    );
-  }
-
+extension QuoteModelX on QuoteModel {
   HotelQuote toEntity() {
     return HotelQuote(
       quoteId: quoteId,
@@ -36,4 +29,3 @@ class QuoteModel {
     );
   }
 }
-

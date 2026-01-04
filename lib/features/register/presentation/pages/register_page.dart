@@ -198,8 +198,9 @@ class _RegisterPageState extends State<RegisterPage> {
       builder: (context, state) {
         final isLoading = state.isLoading &&
             state.flow == RegisterFlow.registerSendOtp;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: AppSpacing.screenPadding,
@@ -209,7 +210,7 @@ class _RegisterPageState extends State<RegisterPage> {
               SizedBox(height: AppSpacing.sm),
               const CommonBackButton(),
               SizedBox(height: AppSpacing.lg),
-              Text('auth.register.title'.tr(), style: AppTypography.headingXL),
+              Text('auth.register.title'.tr(), style: AppTypography.headingXL.copyWith(color: isDark ? AppColors.white : AppColors.black)),
               SizedBox(height: AppSpacing.xs),
               Text(
                 'auth.register.subtitle'.tr(),
@@ -259,9 +260,13 @@ class _RegisterPageState extends State<RegisterPage> {
                     : null,
                 style: TextStyle(
                   fontSize: 16.sp,
-                  color: AppColors.black,
+                  color: isDark ? AppColors.white : AppColors.black,
                 ),
                 decoration: AppInputDecoration.outline(
+                  fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
+                  borderColor: isDark ? AppColors.darkBorder : null,
+                  hintColor: isDark ? AppColors.grayText : null,
+                  prefixIconColor: isDark ? AppColors.grayText : null,
                   hint: isPhoneMode
                       ? '_____'
                       : 'auth.field.email_hint'.tr(),
@@ -279,11 +284,11 @@ class _RegisterPageState extends State<RegisterPage> {
                               SizedBox(width: 8.w),
                               Text(
                                 '+998',
-                                style: TextStyle(
-                                  color: AppColors.grayText,
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w400,
-                                ),
+                                  style: TextStyle(
+                                    color: isDark ? AppColors.grayText : AppColors.grayText,
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.w400,
+                                  ),
                               ),
                             ],
                           ),

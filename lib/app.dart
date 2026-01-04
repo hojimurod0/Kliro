@@ -8,7 +8,6 @@ import 'core/navigation/app_router.dart';
 import 'core/services/locale/locale_prefs.dart';
 import 'core/services/theme/theme_controller.dart';
 import 'core/dio/singletons/service_locator.dart';
-import 'core/dio/singletons/service_locator_state.dart';
 import 'core/utils/logger.dart';
 import 'core/widgets/top_snackbar_messenger.dart';
 import 'features/kasko/presentation/providers/kasko_provider.dart';
@@ -23,148 +22,80 @@ class App extends StatefulWidget {
 
 class _AppState extends State<App> {
   static final AppRouter _appRouter = AppRouter();
-  bool _isServiceLocatorReady = false;
   Locale? _currentLocale;
-  StreamSubscription<ServiceLocatorState>? _stateSubscription;
+  bool _localeLoaded = false;
+  KaskoProvider? _kaskoProvider;
+  ValueKey<String>? _materialAppKey;
 
   @override
   void initState() {
     super.initState();
-    // ✅ App'ni darhol ishga tushirish - qora ekran muammosini hal qilish uchun
-    // ServiceLocator lazy loading bo'ladi - kerak bo'lganda resolve qilinadi
-    _isServiceLocatorReady = true;
-    
-    // ServiceLocator state ni keyinroq kuzatish - main thread'ni bloklamaslik uchun
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _listenToServiceLocatorState();
-      _loadAndApplyLocale();
-    });
+    // ServiceLocator allaqachon tayyor (runApp dan oldin init qilingan)
+    // Locale ni asinxron yuklash
+    _loadLocaleAsync();
+    // KaskoProvider ni lazy yaratish
+    _initKaskoProvider();
   }
 
   @override
   void dispose() {
-    _stateSubscription?.cancel();
+    _kaskoProvider?.dispose();
     super.dispose();
   }
 
-  /// ServiceLocator state ni yangilash - optimallashtirilgan setState
-  void _updateServiceLocatorState(bool ready) {
-    if (mounted && _isServiceLocatorReady != ready) {
-      setState(() {
-        _isServiceLocatorReady = ready;
-      });
-    }
+  /// KaskoProvider ni lazy yaratish - faqat bir marta
+  void _initKaskoProvider() {
+    Future.microtask(() {
+      if (!mounted) return;
+      try {
+        final repository = ServiceLocator.resolve<KaskoRepository>();
+        _kaskoProvider = KaskoProvider(repository);
+      } catch (e) {
+        AppLogger.error('KaskoProvider init failed: $e');
+      }
+    });
   }
 
-  /// ServiceLocator state ni kuzatish - polling o'rniga Stream ishlatish
-  void _listenToServiceLocatorState() {
-    _stateSubscription = ServiceLocatorStateController.instance.stateStream.listen(
-      (state) {
-        if (state == ServiceLocatorState.ready && !_isServiceLocatorReady) {
-          _updateServiceLocatorState(true);
-          AppLogger.success('ServiceLocator ready, app can proceed');
-        } else if (state == ServiceLocatorState.error) {
-          AppLogger.error('ServiceLocator initialization error');
-          // Xatolik bo'lsa ham app ishlashini davom ettirish
-          _updateServiceLocatorState(true);
-        }
-      },
-      onError: (error) {
-        AppLogger.error('ServiceLocator state stream error', error);
-        // Xatolik bo'lsa ham app ishlashini davom ettirish
-        _updateServiceLocatorState(true);
-      },
-    );
-
-    // Agar allaqachon ready bo'lsa
-    if (ServiceLocatorStateController.instance.currentState ==
-        ServiceLocatorState.ready) {
-      _updateServiceLocatorState(true);
-    } else {
-      // Timeout ni 2 soniyaga qisqartirish - tezroq ishga tushish uchun
-      // Va darhol fallback qilish - app ishlashini davom ettirish
-      ServiceLocatorStateController.instance.initializationComplete
-          .timeout(
-        const Duration(seconds: 2), // 3 dan 2 ga qisqartirildi
-        onTimeout: () {
-          AppLogger.warning('ServiceLocator initialization timeout - continuing anyway');
-          _updateServiceLocatorState(true);
-        },
-      ).catchError((error) {
-        AppLogger.error('ServiceLocator initialization error', error);
-        _updateServiceLocatorState(true);
-      });
-      
-      // Darhol fallback - 500ms dan keyin app ishga tushadi (tezroq)
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted && !_isServiceLocatorReady) {
-          _updateServiceLocatorState(true);
-        }
-      });
+  /// MaterialApp key ni yangilash - faqat locale o'zgarganda
+  ValueKey<String> _getMaterialAppKey(Locale locale) {
+    final keyString = 'material_app_${locale.toString()}';
+    if (_materialAppKey?.value != keyString) {
+      _materialAppKey = ValueKey(keyString);
     }
+    return _materialAppKey ?? ValueKey(keyString);
   }
 
-  Future<void> _loadAndApplyLocale() async {
-    try {
-      // Locale yuklashni keyinroq qilish - main thread'ni bloklamaslik uchun
-      await Future.delayed(const Duration(milliseconds: 50));
+  /// Locale ni asinxron yuklash - main thread'ni bloklamaslik uchun
+  void _loadLocaleAsync() {
+    // Locale ni keyinroq yuklash - UI render bo'lishini kutmaymiz
+    Future.microtask(() async {
+      if (!mounted || _localeLoaded) return;
       
-      final locale = await LocalePrefs.load();
-      if (locale != null && mounted) {
-        try {
-          final localeToSet = locale;
-          
-          // Кирилл локали учун қўшимча вақт бериш
-          if (localeToSet.languageCode == 'uz' && localeToSet.countryCode == 'CYR') {
-            await Future.delayed(const Duration(milliseconds: 50));
-          }
-          
-          await context.setLocale(localeToSet);
-          
-          final currentLocale = context.locale;
-          
-          // setState'ni keyinroq qilish - main thread'ni bloklamaslik uchun
-          if (mounted) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        final locale = await LocalePrefs.load();
+        if (locale != null && mounted && !_localeLoaded) {
+          _localeLoaded = true;
+          // setLocale ni keyinroq qilish - main thread'ni bloklamaslik uchun
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            if (!mounted) return;
+            try {
+              await context.setLocale(locale);
               if (mounted) {
-                setState(() {
-                  _currentLocale = currentLocale;
-                });
-                
-                // Кирилл локали учун қўшимча қайта билдириш
-                if (currentLocale.languageCode == 'uz' && currentLocale.countryCode == 'CYR') {
-                  Future.delayed(const Duration(milliseconds: 100), () {
-                    if (mounted) {
-                      setState(() {
-                        _currentLocale = context.locale;
-                      });
-                    }
-                  });
+                _currentLocale = locale;
+                // setState ni minimal qilish - faqat bir marta
+                if (mounted) {
+                  setState(() {});
                 }
               }
-            });
-          }
-        } catch (e) {
-          // Agar locale o'rnatishda xatolik bo'lsa, fallback locale'ni ishlatamiz
-          if (mounted) {
-            try {
-              // Кирилл локали учун қайта уриниш
-              if (locale.languageCode == 'uz' && locale.countryCode == 'CYR') {
-                await Future.delayed(const Duration(milliseconds: 100));
-                await context.setLocale(locale);
-              } else {
-                // Бошқа локаллар учун fallback
-                await context.setLocale(const Locale('en'));
-              }
-            } catch (fallbackError) {
-              // Agar fallback ham ishlamasa, e'tiborsiz qoldiramiz
+            } catch (e) {
+              AppLogger.warning('Locale set failed: $e');
             }
-          }
+          });
         }
+      } catch (e) {
+        AppLogger.warning('Locale load failed: $e');
       }
-    } catch (e) {
-      // Xatolik bo'lsa ham app ishlashini davom ettirish
-    }
+    });
   }
 
   /// Loading screen widget - to'g'ri theme va background color bilan
@@ -347,74 +278,23 @@ class _AppState extends State<App> {
         //   return _buildLoadingScreen(context);
         // }
 
-        return MultiProvider(
-          providers: [
-            // KASKO Provider - xavfsiz resolve
-            ChangeNotifierProvider(
-              create: (_) {
-                // ✅ ServiceLocator lazy loading - kerak bo'lganda resolve qilish
-                // Xatolik bo'lsa ham app ishlashini davom ettirish
-                try {
-                  // ServiceLocator tayyor bo'lsa resolve qilish
-                  if (ServiceLocatorStateController.instance.currentState ==
-                      ServiceLocatorState.ready) {
-                    return KaskoProvider(ServiceLocator.resolve<KaskoRepository>());
-                  } else {
-                    // ServiceLocator tayyor bo'lmasa, yana bir bor urinib ko'rish
-                    AppLogger.warning('ServiceLocator not ready, trying to resolve anyway');
-                    try {
-                      return KaskoProvider(ServiceLocator.resolve<KaskoRepository>());
-                    } catch (e) {
-                      AppLogger.error('ServiceLocator resolve failed: $e');
-                      // Xatolik bo'lsa ham app ishlashini davom ettirish
-                      // Fallback - null yoki default repository
-                      // Bu yerda siz fallback repository yaratishingiz mumkin
-                      rethrow;
-                    }
-                  }
-                } catch (e) {
-                  AppLogger.error('ServiceLocator resolve error: $e');
-                  // Xatolik bo'lsa ham app ishlashini davom ettirish
-                  // Fallback - yana bir bor urinib ko'rish
-                  try {
-                    return KaskoProvider(ServiceLocator.resolve<KaskoRepository>());
-                  } catch (e2) {
-                    AppLogger.error('ServiceLocator resolve retry failed: $e2');
-                    // Oxirgi fallback - null yoki default repository
-                    rethrow;
-                  }
-                }
-              },
-            ),
-            // Boshqa providerlar shu yerga qo'shiladi
-          ],
+        // KaskoProvider ni lazy yaratish - faqat kerak bo'lganda
+        final kaskoProvider = _kaskoProvider;
+        
+        return ChangeNotifierProvider<KaskoProvider?>.value(
+          value: kaskoProvider,
           child: Builder(
             builder: (context) {
-              // Locale o'zgarishini kuzatish uchun context.locale ni ishlatamiz
-              final contextLocale = context.locale;
-              
-              // _currentLocale ni faqat o'zgarganda yangilash
-              if (_currentLocale == null ||
-                  _currentLocale!.languageCode != contextLocale.languageCode ||
-                  _currentLocale!.countryCode != contextLocale.countryCode) {
-                // setState'ni keyinroq qilish - main thread'ni bloklamaslik uchun
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    setState(() {
-                      _currentLocale = contextLocale;
-                    });
-                  }
-                });
-              }
-              
-              final localeToUse = _currentLocale ?? contextLocale;
+              // Locale ni context'dan olish - setState'siz
+              final localeToUse = _currentLocale ?? context.locale;
+              final appKey = _getMaterialAppKey(localeToUse);
               
               return AnimatedBuilder(
                 animation: ThemeController.instance,
                 builder: (context, _) {
                   return TopSnackbarMessenger(
                     child: MaterialApp.router(
-                      key: ValueKey('material_app_${localeToUse.toString()}'),
+                      key: appKey,
                       title: _getAppTitle(context),
                       debugShowCheckedModeBanner: false,
                       localizationsDelegates: context.localizationDelegates,
@@ -426,9 +306,7 @@ class _AppState extends State<App> {
                       routerConfig: _appRouter.config(),
                       builder: (context, child) {
                         return MediaQuery(
-                          data: MediaQuery.of(
-                            context,
-                          ).copyWith(textScaleFactor: 1.0),
+                          data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
                           child: child ?? const SizedBox(),
                         );
                       },

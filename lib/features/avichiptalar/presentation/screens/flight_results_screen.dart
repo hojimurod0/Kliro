@@ -102,6 +102,7 @@ class FlightResultsScreen extends StatelessWidget {
         if (state is AviaSearchLoading) {
           AppLogger.debug('FlightResultsScreen: Showing loading...');
           return _FlightResultsScaffold(
+            searchRequest: state.searchRequest,
             child: FlightSearchLoadingWidget(
               searchRequest: state.searchRequest,
             ),
@@ -204,12 +205,20 @@ class FlightResultsScreen extends StatelessWidget {
               // Calculate total price
               // outboundOffer.price уже включает оба рейса (туда-обратно), если есть returnOffer
               // Не нужно добавлять returnOffer.price, так как это приведет к двойному расчету
-              final outboundPrice = _parsePriceValue(outboundOffer.price) ?? 0;
-              // Используем только outboundOffer.price, так как он уже включает оба рейса
-              final totalPriceNum = outboundPrice.toInt();
+              // Use the exact same price calculation as in the list view display
+              // outboundOffer already has the correct price from _offerWithSelectedFare
+              // This matches the calculation in _buildFlightCard:
+              // rawParsedPrice = _FlightUtils.parsePriceValue(rawDisplayPrice) ?? 0
+              // parsedPrice = rawParsedPrice * 1.1
+              // displayPrice = parsedPrice.toStringAsFixed(0)
+              final rawParsedPrice = _FlightUtils.parsePriceValue(outboundOffer.price) ?? 0;
+              final parsedPrice = rawParsedPrice * 1.1; // Apply 10% commission
+              // Round to integer (same as toStringAsFixed(0) in list view)
+              final totalPriceNum = parsedPrice.round();
               final totalPrice = _formatPriceForConfirmation(
                 totalPriceNum.toString(),
               );
+              
               final currency = outboundOffer.currency ?? 'sum';
 
               // Get passenger counts from search request
@@ -261,15 +270,19 @@ class FlightResultsScreen extends StatelessWidget {
 // Переиспользуемый Scaffold с AppBar
 class _FlightResultsScaffold extends StatelessWidget {
   final Widget child;
+  final SearchOffersRequestModel? searchRequest;
 
-  const _FlightResultsScaffold({required this.child});
+  const _FlightResultsScaffold({
+    required this.child,
+    this.searchRequest,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: _FlightAppBar(),
+      appBar: _FlightAppBar(searchRequest: searchRequest),
       body: child,
     );
   }
@@ -277,49 +290,100 @@ class _FlightResultsScaffold extends StatelessWidget {
 
 // Оптимизированный AppBar виджет
 class _FlightAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const _FlightAppBar();
+  final SearchOffersRequestModel? searchRequest;
+  final List<Widget>? actions;
+
+  const _FlightAppBar({this.searchRequest, this.actions});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final onPrimary = theme.colorScheme.onPrimary;
+    final isDark = theme.brightness == Brightness.dark;
+    
+    // Dynamic title and subtitle
+    String title = 'avia.results.title'.tr();
+    String subtitle = '';
+
+    if (searchRequest != null && searchRequest!.directions.isNotEmpty) {
+      final first = searchRequest!.directions.first;
+      // Route: Toshkent ⇄ Dubay
+      if (searchRequest!.directions.length > 1) {
+        title = '${first.departureAirport} ⇄ ${first.arrivalAirport}';
+      } else {
+        title = '${first.departureAirport} → ${first.arrivalAirport}';
+      }
+
+      // Subtitle: Date • Passengers • Class
+      final date = _formatDate(first.date);
+      final passengers = searchRequest!.adults + searchRequest!.children + searchRequest!.infants;
+      final cabin = searchRequest!.serviceClass; 
+      // Localization for cabin can be added if needed, e.g. 'avia.class.$cabin'.tr()
+
+      subtitle = '$date • $passengers ${'avia.search.passengers'.tr()} • $cabin';
+    }
+
     return AppBar(
-      backgroundColor: theme.colorScheme.primary,
+      backgroundColor: theme.scaffoldBackgroundColor,
       elevation: 0,
+      centerTitle: true,
       leading: IconButton(
-        icon: Icon(
-          Icons.arrow_back_ios_new_rounded,
-          color: onPrimary,
-          size: 20.sp,
-        ),
+        icon: _buildBackButton(isDark),
         onPressed: () => Navigator.of(context).pop(),
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(),
       ),
       title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            "Toshkent ⇄ Dubay",
+            title,
             style: TextStyle(
-              color: onPrimary,
+              color: theme.textTheme.titleLarge?.color,
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 4.h),
-          Text(
-            "12 Dek - 13 Dek • 2 yo'lovchi • Ekonom",
-            style: TextStyle(
-              color: onPrimary.withValues(alpha: 0.8),
-              fontSize: 12.sp,
+          if (subtitle.isNotEmpty)
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
         ],
       ),
-      titleSpacing: 0,
+      actions: actions,
     );
+  }
+
+  Widget _buildBackButton(bool isDark) {
+    return Container(
+      width: 32.w,
+      height: 32.w,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCardBg : AppColors.white,
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.grayBorder.withOpacity(0.5),
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.arrow_back_ios_new_rounded,
+          size: 16.sp,
+          color: isDark ? AppColors.white : AppColors.black,
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      return DateFormat('d MMM', 'en').format(date);
+    } catch (_) {
+      return dateStr;
+    }
   }
 
   @override
@@ -349,32 +413,41 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
   bool _didPrefetch = false;
   AvichiptaFilter? _currentFilter;
   List<OfferModel> _filteredOffers = [];
+  List<Map<String, dynamic>> _groupedOffers = [];
 
   @override
   void initState() {
     super.initState();
     _filteredOffers = widget.offers;
     _currentFilter = AvichiptaFilter.empty;
+    _updateGroupedOffers();
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _prefetchTopTariffs();
     });
   }
 
+  void _updateGroupedOffers() {
+    _groupedOffers = _FlightUtils.groupOffers(
+      _filteredOffers, 
+      widget.isRoundTrip, 
+      widget.searchRequest
+    );
+  }
+
   Future<void> _prefetchTopTariffs() async {
     if (_didPrefetch) return;
     _didPrefetch = true;
 
-    // Prefetch for first N grouped cards so user doesn't wait on expand.
-    final groupedOffers =
-        _groupOffers(widget.offers, widget.isRoundTrip, widget.searchRequest);
     final repo = context.read<AviaBloc>().repository;
 
     final ids = <String>[];
     final seen = <String>{};
-    for (var i = 0; i < groupedOffers.length && i < 10; i++) {
-      final outbound = groupedOffers[i]['outbound'] as OfferModel;
-      final id = _apiOfferIdForApi(outbound.id);
+    // Use the already computed groups
+    for (var i = 0; i < _groupedOffers.length && i < 10; i++) {
+      final outbound = _groupedOffers[i]['outbound'] as OfferModel;
+      final id = _FlightUtils.apiOfferIdForApi(outbound.id);
       if (id.isEmpty) continue;
       if (seen.add(id)) ids.add(id);
     }
@@ -382,22 +455,31 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
     // Small concurrency to avoid spamming the API.
     const batch = 3;
     for (var i = 0; i < ids.length; i += batch) {
+      if (!mounted) return; 
       final slice =
           ids.sublist(i, (i + batch) > ids.length ? ids.length : (i + batch));
       await Future.wait(slice.map((id) => repo.fareFamily(id)));
     }
   }
 
+  // ... (keeping _applyFilter as is, but ensuring it calls _updateGroupedOffers)
+  
   List<OfferModel> _applyFilter(
       List<OfferModel> offers, AvichiptaFilter filter) {
-    var filtered = offers;
+      // ... existing filter logic ...
+      // Can't replace the whole method content via this chunk if it's large, 
+      // but I need to make sure _groupOffers is called after filtering.
+      
+      // RE-IMPLEMENTING _applyFilter content here for correctness since I'm implementing the class logic
+      
+     var filtered = offers;
 
     // Price filter
     if (filter.minPrice != null || filter.maxPrice != null) {
       filtered = filtered.where((offer) {
-        final priceStr = offer.price?.replaceAll(RegExp(r'[^\d.]'), '') ?? '';
-        final price = double.tryParse(priceStr);
-        if (price == null) return false;
+        final rawPrice = _parsePriceValue(offer.price);
+        if (rawPrice == null) return false;
+        final price = rawPrice * 1.1; // Apply 10% commission for filtering
         final meetsMin = filter.minPrice == null || price >= filter.minPrice!;
         final meetsMax = filter.maxPrice == null || price <= filter.maxPrice!;
         return meetsMin && meetsMax;
@@ -484,10 +566,12 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
 
     return filtered;
   }
-
+  
+  // Helpers wrapping static Utils
+  double? _parsePriceValue(String? raw) => _FlightUtils.parsePriceValue(raw);
+  
   int _parseTimeToMinutes(String timeStr) {
-    // Parse time string like "17:10" or "2025-12-20T17:10:00"
-    final timeMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(timeStr);
+     final timeMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(timeStr);
     if (timeMatch != null) {
       final hours = int.tryParse(timeMatch.group(1) ?? '0') ?? 0;
       final minutes = int.tryParse(timeMatch.group(2) ?? '0') ?? 0;
@@ -506,19 +590,13 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
 
     switch (sortBy) {
       case 'optimal':
-        // Sort by price (ascending)
         sorted.sort((a, b) {
-          final priceA = double.tryParse(
-                  a.price?.replaceAll(RegExp(r'[^\d.]'), '') ?? '0') ??
-              0;
-          final priceB = double.tryParse(
-                  b.price?.replaceAll(RegExp(r'[^\d.]'), '') ?? '0') ??
-              0;
-          return priceA.compareTo(priceB);
+           final priceA = _parsePriceValue(a.price) ?? 0;
+           final priceB = _parsePriceValue(b.price) ?? 0;
+           return priceA.compareTo(priceB);
         });
         break;
       case 'earlier':
-        // Sort by departure time (ascending)
         sorted.sort((a, b) {
           final timeA = a.segments?.isNotEmpty == true
               ? _parseTimeToMinutes(a.segments!.first.departureTime ?? '')
@@ -530,7 +608,6 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
         });
         break;
       case 'fastest':
-        // Sort by duration (ascending)
         sorted.sort((a, b) {
           final durationA = _parseDuration(a.duration ?? '');
           final durationB = _parseDuration(b.duration ?? '');
@@ -539,24 +616,17 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
         break;
       case 'most_useful':
       default:
-        // Sort by price (ascending) as default
         sorted.sort((a, b) {
-          final priceA = double.tryParse(
-                  a.price?.replaceAll(RegExp(r'[^\d.]'), '') ?? '0') ??
-              0;
-          final priceB = double.tryParse(
-                  b.price?.replaceAll(RegExp(r'[^\d.]'), '') ?? '0') ??
-              0;
+          final priceA = _parsePriceValue(a.price) ?? 0;
+           final priceB = _parsePriceValue(b.price) ?? 0;
           return priceA.compareTo(priceB);
         });
         break;
     }
-
     return sorted;
   }
 
   int _parseDuration(String durationStr) {
-    // Parse duration like "3h" or "4h 30m"
     int totalMinutes = 0;
     final hourMatch = RegExp(r'(\d+)\s*h').firstMatch(durationStr);
     if (hourMatch != null) {
@@ -573,55 +643,14 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Borish-kelish uchun offers ni guruhlash
-    final groupedOffers =
-        _groupOffers(_filteredOffers, widget.isRoundTrip, widget.searchRequest);
+    // Using pre-grouped offers
+    final groupedOffers = _groupedOffers;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor:
-            theme.appBarTheme.backgroundColor ?? theme.scaffoldBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: theme.iconTheme.color,
-            size: 20.sp,
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-        ),
-        title: Text(
-          'avia.results.title'.tr(),
-          style: TextStyle(
-            color: theme.textTheme.titleLarge?.color,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
+      appBar: _FlightAppBar(
+        searchRequest: widget.searchRequest,
         actions: [
-          Padding(
-            padding: EdgeInsets.only(right: 6.w),
-            child: Center(
-              child: SizedBox(
-                width: 28.w,
-                height: 28.w,
-                child: ClipOval(
-                  child: Container(
-                    color: Colors.white,
-                    padding: EdgeInsets.all(4.w),
-                    child: SvgPicture.asset(
-                      'assets/images/klero_logo.svg',
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
           IconButton(
             icon: Icon(
               Icons.filter_list,
@@ -643,6 +672,7 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
                 setState(() {
                   _currentFilter = result;
                   _filteredOffers = _applyFilter(widget.offers, result);
+                  _updateGroupedOffers();
                 });
               }
             },
@@ -666,7 +696,6 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
                     offer: groupedOffer['outbound'] as OfferModel,
                     returnOffer: groupedOffer['inbound'] as OfferModel?,
                     isRoundTrip: widget.isRoundTrip,
-                    // Prefetch tariffs for every card so tariff info always comes from API.
                     prefetchTariffs: true,
                     onTap: (outbound, inbound) =>
                         widget.onOfferTap(outbound, inbound),
@@ -676,21 +705,49 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
             ),
     );
   }
+}
 
-  // Offers ni guruhlash funksiyasi
-  List<Map<String, dynamic>> _groupOffers(
+// Utility class to keep logic clean and reusable
+class _FlightUtils {
+  static double? parsePriceValue(String? raw) {
+    final s0 = (raw ?? '').trim();
+    if (s0.isEmpty) return null;
+    var s = s0.replaceAll('\u00A0', '').replaceAll(' ', '').replaceAll(',', '.');
+    s = s.replaceAll(RegExp(r'[^0-9.]'), '');
+    if (s.isEmpty) return null;
+    final parts = s.split('.');
+    if (parts.length > 2) {
+      final dec = parts.removeLast();
+      final intPart = parts.join();
+      s = dec.isEmpty ? intPart : '$intPart.$dec';
+    }
+    return double.tryParse(s);
+  }
+  
+  static String apiOfferIdForApi(String? id) {
+    final s = (id ?? '').trim();
+    final m = RegExp(r'-(\d+)$').firstMatch(s);
+    if (m == null) return s;
+    // logic preserved from original
+    final suffix = m.group(1);
+    if ((suffix == '0' || suffix == '1') && s.length > 25) {
+      return s.substring(0, m.start);
+    }
+    return s;
+  }
+
+  static List<Map<String, dynamic>> groupOffers(
     List<OfferModel> offers,
     bool isRoundTrip,
     SearchOffersRequestModel? searchRequest,
   ) {
     if (!isRoundTrip || searchRequest == null) {
-      // Bir tomonlama - oddiy ko'rsatish
+      // Single direction - simple map
       return offers
           .map((offer) => {'id': offer.id, 'outbound': offer, 'inbound': null})
           .toList();
     }
 
-    // Borish-kelish - guruhlash kerak
     final directions = searchRequest.directions;
     if (directions.length < 2) {
       return offers
@@ -705,6 +762,7 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
     final usedIndices = <int>{};
 
     for (var i = 0; i < offers.length; i++) {
+        // ... (preserving logic but optimizing where possible in future)
       if (usedIndices.contains(i)) continue;
 
       final outboundOffer = offers[i];
@@ -712,17 +770,14 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
 
       if (outboundSegments.isEmpty) continue;
 
-      // Birinchi segmentning ketish va yetib borish aeroportlari
       final firstDeparture = outboundSegments.first.departureAirport;
       final lastArrival = outboundSegments.last.arrivalAirport;
 
-      // Qidiruv parametrlariga mos keladimi tekshirish
       final matchesOutbound =
           firstDeparture == outboundDirection.departureAirport &&
               lastArrival == outboundDirection.arrivalAirport;
 
       if (!matchesOutbound) {
-        // Agar borish reysiga mos kelmasa, uni alohida qo'shamiz
         grouped.add({
           'id': outboundOffer.id,
           'outbound': outboundOffer,
@@ -732,7 +787,6 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
         continue;
       }
 
-      // Qaytish reysini topish
       OfferModel? inboundOffer;
       int? inboundIndex;
 
@@ -744,8 +798,6 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
 
         if (candidateSegments.isEmpty) continue;
 
-        // Qaytish reysi: ketish aeroporti = birinchi reysning yetib borish aeroporti
-        // va yetib borish aeroporti = birinchi reysning ketish aeroporti
         final candidateDeparture = candidateSegments.first.departureAirport;
         final candidateArrival = candidateSegments.last.arrivalAirport;
 
@@ -760,7 +812,6 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
         }
       }
 
-      // Guruh yaratish
       grouped.add({
         'id': '${outboundOffer.id}_${inboundOffer?.id ?? 'single'}',
         'outbound': outboundOffer,
@@ -773,7 +824,6 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
       }
     }
 
-    // Qo'shilmagan offers ni qo'shish (agar bor bo'lsa)
     for (var i = 0; i < offers.length; i++) {
       if (!usedIndices.contains(i)) {
         grouped.add({
@@ -2185,7 +2235,10 @@ class _TicketCardContentState extends State<_TicketCardContent> {
     final apiOfferId = _apiOfferId(offer.id);
     final selectedFare =
         apiOfferId.isEmpty ? null : _selectedFareForOfferId(apiOfferId);
-    final displayPrice = selectedFare?.price ?? offer.price;
+    final rawDisplayPrice = selectedFare?.price ?? offer.price;
+    final rawParsedPrice = _FlightUtils.parsePriceValue(rawDisplayPrice) ?? 0;
+    final parsedPrice = rawParsedPrice * 1.1; // Apply 10% commission
+    final displayPrice = parsedPrice.toStringAsFixed(0);
     final displayCurrency = selectedFare?.currency ?? offer.currency;
     // Tarif nomini _selectedTariffNameForOffer funksiyasidan olish (fallback bilan)
     final selectedFareName = _selectedTariffNameForOffer(offer);
@@ -2299,7 +2352,7 @@ class _TicketCardContentState extends State<_TicketCardContent> {
                         children: [
                           Text(
                             displayPrice != null
-                                ? _formatPrice(displayPrice)
+                                ? _formatPriceHuman(displayPrice)
                                 : 'avia.results.price'.tr(),
                             style: TextStyle(
                               color: AppColors.primaryBlue,
@@ -2991,7 +3044,10 @@ class _TicketCardContentState extends State<_TicketCardContent> {
                     ? _refundTextFromRules(fareOfferId)
                     : _refundTextFromFare(f);
 
-                final price = (f.price ?? '').toString();
+                final rawPrice = (f.price ?? '0').toString();
+                final pVal = _FlightUtils.parsePriceValue(rawPrice) ?? 0;
+                final commissionPrice = pVal * 1.1;
+                final price = commissionPrice.toStringAsFixed(0);
                 final currency = (f.currency ?? '').toString().trim();
 
                 final isRulesLoading = fareOfferId.isNotEmpty &&
@@ -3650,9 +3706,14 @@ class _TicketCardContentState extends State<_TicketCardContent> {
     );
   }
 
-  // Narxni formatlash funksiyasi (milyonlar uchun bo'shliq qo'shish)
+    // Narxni formatlash funksiyasi (milyonlar uchun bo'shliq qo'shish) + 10% komissiya
   String _formatPrice(String price) {
-    return _formatPriceHuman(price);
+    // Return formatted price with 10% markup
+    final v = _FlightUtils.parsePriceValue(price);
+    if (v == null) return _formatPriceHuman(price);
+    // Add 10% commission
+    final withCommission = v * 1.10;
+    return _formatPriceHuman(withCommission.toString());
   }
 }
 

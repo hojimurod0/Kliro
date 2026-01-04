@@ -6,6 +6,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
+import 'privacy_policy_page.dart';
+import 'terms_of_use_page.dart';
 
 @RoutePage()
 class AboutAppPage extends StatelessWidget {
@@ -131,10 +133,29 @@ class AboutAppPage extends StatelessWidget {
     String title, {
     bool isLast = false,
   }) {
+    final isTerms = title == tr('about_app.terms');
+    final isPrivacy = title == tr('about_app.privacy');
+    
     return Column(
       children: [
         InkWell(
-          onTap: () {},
+          onTap: () {
+            if (isTerms) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TermsOfUsePage(),
+                ),
+              );
+            } else if (isPrivacy) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PrivacyPolicyPage(),
+                ),
+              );
+            }
+          },
           child: Padding(
             padding: EdgeInsets.symmetric(vertical: 15.h),
             child: Row(

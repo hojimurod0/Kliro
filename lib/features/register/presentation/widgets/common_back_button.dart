@@ -12,13 +12,14 @@ class CommonBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: 44.h,
       width: 44.h,
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: isDark ? AppColors.darkCardBg : AppColors.white,
         borderRadius: BorderRadius.circular(15.r),
-        border: Border.all(color: AppColors.grayBorder),
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.grayBorder),
         boxShadow: [
           BoxShadow(
             color: AppColors.black.withOpacity(0.05),
@@ -30,7 +31,7 @@ class CommonBackButton extends StatelessWidget {
       child: IconButton(
         icon: Icon(
           Icons.arrow_back,
-          color: AppColors.black,
+          color: isDark ? AppColors.white : AppColors.black,
           size: 20.sp,
         ),
         onPressed: onPressed ?? () => Navigator.of(context).pop(),

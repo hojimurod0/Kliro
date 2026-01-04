@@ -14,9 +14,13 @@ T _$identity<T>(T value) => value;
 final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
+SaveOrderResponse _$SaveOrderResponseFromJson(Map<String, dynamic> json) {
+  return _SaveOrderResponse.fromJson(json);
+}
+
 /// @nodoc
 mixin _$SaveOrderResponse {
-  @JsonKey(name: 'order_id')
+  @JsonKey(name: 'order_id', fromJson: _stringFromJson)
   String? get orderId => throw _privateConstructorUsedError;
   double? get premium => throw _privateConstructorUsedError;
   @JsonKey(name: 'car_id')
@@ -32,9 +36,10 @@ mixin _$SaveOrderResponse {
   String? get urlShartnoma => throw _privateConstructorUsedError;
   @JsonKey(name: 'payme_url')
   String? get paymeUrl => throw _privateConstructorUsedError;
-  @JsonKey(name: 'contract_id')
+  @JsonKey(name: 'contract_id', fromJson: _stringFromJson)
   String? get contractId => throw _privateConstructorUsedError;
 
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
   $SaveOrderResponseCopyWith<SaveOrderResponse> get copyWith =>
       throw _privateConstructorUsedError;
@@ -47,7 +52,7 @@ abstract class $SaveOrderResponseCopyWith<$Res> {
       _$SaveOrderResponseCopyWithImpl<$Res, SaveOrderResponse>;
   @useResult
   $Res call(
-      {@JsonKey(name: 'order_id') String? orderId,
+      {@JsonKey(name: 'order_id', fromJson: _stringFromJson) String? orderId,
       double? premium,
       @JsonKey(name: 'car_id') int? carId,
       @JsonKey(name: 'owner_name') String? ownerName,
@@ -57,7 +62,8 @@ abstract class $SaveOrderResponseCopyWith<$Res> {
       String? url,
       @JsonKey(name: 'url_shartnoma') String? urlShartnoma,
       @JsonKey(name: 'payme_url') String? paymeUrl,
-      @JsonKey(name: 'contract_id') String? contractId});
+      @JsonKey(name: 'contract_id', fromJson: _stringFromJson)
+      String? contractId});
 }
 
 /// @nodoc
@@ -143,7 +149,7 @@ abstract class _$$SaveOrderResponseImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {@JsonKey(name: 'order_id') String? orderId,
+      {@JsonKey(name: 'order_id', fromJson: _stringFromJson) String? orderId,
       double? premium,
       @JsonKey(name: 'car_id') int? carId,
       @JsonKey(name: 'owner_name') String? ownerName,
@@ -153,7 +159,8 @@ abstract class _$$SaveOrderResponseImplCopyWith<$Res>
       String? url,
       @JsonKey(name: 'url_shartnoma') String? urlShartnoma,
       @JsonKey(name: 'payme_url') String? paymeUrl,
-      @JsonKey(name: 'contract_id') String? contractId});
+      @JsonKey(name: 'contract_id', fromJson: _stringFromJson)
+      String? contractId});
 }
 
 /// @nodoc
@@ -229,10 +236,10 @@ class __$$SaveOrderResponseImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-
+@JsonSerializable()
 class _$SaveOrderResponseImpl implements _SaveOrderResponse {
   const _$SaveOrderResponseImpl(
-      {@JsonKey(name: 'order_id') this.orderId,
+      {@JsonKey(name: 'order_id', fromJson: _stringFromJson) this.orderId,
       this.premium,
       @JsonKey(name: 'car_id') this.carId,
       @JsonKey(name: 'owner_name') this.ownerName,
@@ -242,10 +249,14 @@ class _$SaveOrderResponseImpl implements _SaveOrderResponse {
       this.url,
       @JsonKey(name: 'url_shartnoma') this.urlShartnoma,
       @JsonKey(name: 'payme_url') this.paymeUrl,
-      @JsonKey(name: 'contract_id') this.contractId});
+      @JsonKey(name: 'contract_id', fromJson: _stringFromJson)
+      this.contractId});
+
+  factory _$SaveOrderResponseImpl.fromJson(Map<String, dynamic> json) =>
+      _$$SaveOrderResponseImplFromJson(json);
 
   @override
-  @JsonKey(name: 'order_id')
+  @JsonKey(name: 'order_id', fromJson: _stringFromJson)
   final String? orderId;
   @override
   final double? premium;
@@ -271,7 +282,7 @@ class _$SaveOrderResponseImpl implements _SaveOrderResponse {
   @JsonKey(name: 'payme_url')
   final String? paymeUrl;
   @override
-  @JsonKey(name: 'contract_id')
+  @JsonKey(name: 'contract_id', fromJson: _stringFromJson)
   final String? contractId;
 
   @override
@@ -302,6 +313,7 @@ class _$SaveOrderResponseImpl implements _SaveOrderResponse {
                 other.contractId == contractId));
   }
 
+  @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
       runtimeType,
@@ -323,25 +335,36 @@ class _$SaveOrderResponseImpl implements _SaveOrderResponse {
   _$$SaveOrderResponseImplCopyWith<_$SaveOrderResponseImpl> get copyWith =>
       __$$SaveOrderResponseImplCopyWithImpl<_$SaveOrderResponseImpl>(
           this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$SaveOrderResponseImplToJson(
+      this,
+    );
+  }
 }
 
 abstract class _SaveOrderResponse implements SaveOrderResponse {
   const factory _SaveOrderResponse(
-          {@JsonKey(name: 'order_id') final String? orderId,
-          final double? premium,
-          @JsonKey(name: 'car_id') final int? carId,
-          @JsonKey(name: 'owner_name') final String? ownerName,
-          @JsonKey(name: 'owner_phone') final String? ownerPhone,
-          final String? status,
-          final String? message,
-          final String? url,
-          @JsonKey(name: 'url_shartnoma') final String? urlShartnoma,
-          @JsonKey(name: 'payme_url') final String? paymeUrl,
-          @JsonKey(name: 'contract_id') final String? contractId}) =
-      _$SaveOrderResponseImpl;
+      {@JsonKey(name: 'order_id', fromJson: _stringFromJson)
+      final String? orderId,
+      final double? premium,
+      @JsonKey(name: 'car_id') final int? carId,
+      @JsonKey(name: 'owner_name') final String? ownerName,
+      @JsonKey(name: 'owner_phone') final String? ownerPhone,
+      final String? status,
+      final String? message,
+      final String? url,
+      @JsonKey(name: 'url_shartnoma') final String? urlShartnoma,
+      @JsonKey(name: 'payme_url') final String? paymeUrl,
+      @JsonKey(name: 'contract_id', fromJson: _stringFromJson)
+      final String? contractId}) = _$SaveOrderResponseImpl;
+
+  factory _SaveOrderResponse.fromJson(Map<String, dynamic> json) =
+      _$SaveOrderResponseImpl.fromJson;
 
   @override
-  @JsonKey(name: 'order_id')
+  @JsonKey(name: 'order_id', fromJson: _stringFromJson)
   String? get orderId;
   @override
   double? get premium;
@@ -367,7 +390,7 @@ abstract class _SaveOrderResponse implements SaveOrderResponse {
   @JsonKey(name: 'payme_url')
   String? get paymeUrl;
   @override
-  @JsonKey(name: 'contract_id')
+  @JsonKey(name: 'contract_id', fromJson: _stringFromJson)
   String? get contractId;
   @override
   @JsonKey(ignore: true)

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/widgets/safe_network_image.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../domain/entities/hotel.dart';
 import '../../domain/entities/hotel_booking.dart';
 import '../../domain/entities/reference_data.dart';
@@ -101,8 +103,9 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
   Future<void> _createBooking() async {
     if (!_formKey.currentState!.validate()) return;
     if (_quoteId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('hotel.booking.quote_not_found'.tr())),
+      SnackbarHelper.showError(
+        context,
+        'hotel.booking.quote_not_found'.tr(),
       );
       return;
     }
@@ -156,17 +159,13 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
             });
           } else if (state is HotelQuoteFailure) {
             setState(() => _isLoading = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
+            SnackbarHelper.showError(context, state.message);
           } else if (state is HotelBookingCreateSuccess) {
             // After creating booking, confirm it
             _confirmBooking(state.booking.bookingId);
           } else if (state is HotelBookingCreateFailure) {
             setState(() => _isLoading = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
+            SnackbarHelper.showError(context, state.message);
           } else if (state is HotelBookingConfirmSuccess) {
             setState(() => _isLoading = false);
             Navigator.of(context).pushAndRemoveUntil(
@@ -177,9 +176,7 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
             );
           } else if (state is HotelBookingConfirmFailure) {
             setState(() => _isLoading = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
+            SnackbarHelper.showError(context, state.message);
           }
           
           // Update cached data
@@ -278,7 +275,6 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
                 ),
                 SizedBox(height: 24.h),
 
-                // Room Photos
                 if (roomPhotos.isNotEmpty || _isLoadingRoomPhotos)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,22 +301,10 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
                                 borderRadius: BorderRadius.circular(12.r),
                                 border: Border.all(color: Colors.grey.shade300),
                               ),
-                              child: ClipRRect(
+                              child: SafeNetworkImage(
+                                imageUrl: photo.thumbnailUrl ?? photo.url ?? '',
+                                fit: BoxFit.cover,
                                 borderRadius: BorderRadius.circular(12.r),
-                                child: CachedNetworkImage(
-                                  imageUrl: photo.thumbnailUrl ?? photo.url,
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) => Container(
-                                    color: Colors.grey[300],
-                                    child: const Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  ),
-                                  errorWidget: (context, url, error) => Container(
-                                    color: Colors.grey[300],
-                                    child: const Icon(Icons.image),
-                                  ),
-                                ),
                               ),
                             );
                           },
@@ -356,7 +340,7 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                roomType.name,
+                                roomType.getDisplayName(context.locale.toString()),
                                 style: TextStyle(
                                     fontSize: 14.sp, fontWeight: FontWeight.w600),
                               ),
@@ -392,9 +376,11 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
                         spacing: 12.w,
                         runSpacing: 12.h,
                         children: equipment.map((eq) {
+                          final locale = context.locale.toString();
+                          final displayName = eq.getDisplayName(locale);
                           return Chip(
                             avatar: Icon(Icons.check, size: 16.sp),
-                            label: Text(eq.name, style: TextStyle(fontSize: 12.sp)),
+                            label: Text(displayName, style: TextStyle(fontSize: 12.sp)),
                           );
                         }).toList(),
                       ),

@@ -186,6 +186,21 @@ class HotelCountriesFailure extends HotelState {
   List<Object?> get props => [message];
 }
 
+// Hotels list (for selection)
+class HotelHotelsListSuccess extends HotelState {
+  final List<Hotel> hotels;
+  const HotelHotelsListSuccess(this.hotels);
+  @override
+  List<Object?> get props => [hotels];
+}
+
+class HotelHotelsListFailure extends HotelState {
+  final String message;
+  const HotelHotelsListFailure(this.message);
+  @override
+  List<Object?> get props => [message];
+}
+
 // Regions
 class HotelRegionsLoading extends HotelState {}
 

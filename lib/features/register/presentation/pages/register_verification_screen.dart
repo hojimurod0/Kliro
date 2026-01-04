@@ -15,6 +15,7 @@ import '../bloc/register_bloc.dart';
 import '../bloc/register_event.dart';
 import '../bloc/register_state.dart';
 import '../widgets/auth_primary_button.dart';
+import '../widgets/common_back_button.dart';
 
 @RoutePage()
 class RegisterVerificationScreen extends StatefulWidget {
@@ -156,6 +157,7 @@ class _RegisterVerificationScreenState
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return BlocProvider.value(
       value: _registerBloc,
       child: BlocListener<RegisterBloc, RegisterState>(
@@ -188,7 +190,7 @@ class _RegisterVerificationScreenState
           }
         },
         child: Scaffold(
-          backgroundColor: AppColors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: SafeArea(
             child: Padding(
               padding: AppSpacing.screenPadding,
@@ -197,39 +199,15 @@ class _RegisterVerificationScreenState
                 children: [
                   SizedBox(height: AppSpacing.sm),
                   // Orqaga qaytish tugmasi
-                  Container(
-                    height: 44.h,
-                    width: 44.h,
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(15.r),
-                      border: Border.all(
-                        color: AppColors.grayBorder,
-                        width: 1.w,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.black.withOpacity(0.05),
-                          spreadRadius: 1.r,
-                          blurRadius: 5.r,
-                        ),
-                      ],
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        Icons.arrow_back,
-                        color: AppColors.black,
-                        size: 20.sp,
-                      ),
-                      onPressed: () => context.router.maybePop(),
-                    ),
-                  ),
+                  const CommonBackButton(),
                   SizedBox(height: AppSpacing.xl),
 
                   // Sarlavha
                   Text(
                     'auth.verification.title_register'.tr(),
-                    style: AppTypography.headingXL,
+                    style: AppTypography.headingXL.copyWith(
+                      color: isDark ? AppColors.white : AppColors.black,
+                    ),
                   ),
                   SizedBox(height: AppSpacing.xs),
                   Builder(
@@ -248,7 +226,7 @@ class _RegisterVerificationScreenState
                               text: contact,
                               style: AppTypography.bodyPrimary.copyWith(
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.black,
+                                color: isDark ? AppColors.white : AppColors.black,
                               ),
                             ),
                             if (after.isNotEmpty) TextSpan(text: after),
@@ -339,14 +317,15 @@ class _RegisterVerificationScreenState
 
   // OTP katakchasini chizish uchun yordamchi vidjet
   Widget _buildOtpBox(int index, double boxSize) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       height: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: isDark ? AppColors.darkCardBg : AppColors.white,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: AppColors.grayBorder.withOpacity(0.5),
+          color: isDark ? AppColors.darkBorder : AppColors.grayBorder.withOpacity(0.5),
           width: 1.w,
         ),
         boxShadow: [
@@ -368,7 +347,7 @@ class _RegisterVerificationScreenState
           style: TextStyle(
             fontSize: boxSize * 0.35,
             fontWeight: FontWeight.bold,
-            color: AppColors.black,
+            color: isDark ? AppColors.white : AppColors.black,
           ),
           decoration: const InputDecoration(
             border: InputBorder.none,

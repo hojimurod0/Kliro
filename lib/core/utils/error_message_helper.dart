@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import '../errors/exceptions.dart';
 
 /// Error message helper - foydalanuvchiga tushunarli xabarlar beradi
@@ -24,11 +25,11 @@ class ErrorMessageHelper {
     final message = exception.message.toLowerCase();
     
     if (message.contains('vaqti tugadi') || message.contains('timeout')) {
-      return 'So\'rov vaqti tugadi. Internet aloqasini tekshiring va qayta urinib ko\'ring.';
+      return 'error.network_timeout'.tr();
     } else if (message.contains('aloqasi yo\'q') || message.contains('connection')) {
-      return 'Internet aloqasi yo\'q. Internet aloqasini tekshiring.';
+      return 'error.no_internet'.tr();
     } else {
-      return 'Internet aloqasi bilan muammo. Qayta urinib ko\'ring.';
+      return 'error.connection_problem'.tr();
     }
   }
 
@@ -40,31 +41,31 @@ class ErrorMessageHelper {
     if (statusCode != null) {
       switch (statusCode) {
         case 400:
-          return 'Noto\'g\'ri so\'rov. Ma\'lumotlarni tekshiring.';
+          return 'error.bad_request'.tr();
         case 401:
-          return 'Kirish rad etildi. Iltimos, qayta kiring.';
+          return 'error.unauthorized'.tr();
         case 403:
-          return 'Ruxsat berilmadi.';
+          return 'error.forbidden'.tr();
         case 404:
-          return 'Ma\'lumot topilmadi.';
+          return 'error.not_found'.tr();
         case 500:
         case 502:
         case 503:
-          return 'Server bilan muammo. Iltimos, keyinroq urinib ko\'ring.';
+          return 'error.server_error'.tr();
         case 410:
           // Backend sometimes uses 410 for "request is processing"
           if (message.toLowerCase().contains('обрабатывается') ||
               message.toLowerCase().contains('processing') ||
               message.toLowerCase().contains('in progress')) {
-            return 'So\'rov qayta ishlanmoqda. Iltimos, biroz kuting...';
+            return 'error.processing'.tr();
           }
-          return message.isNotEmpty ? message : 'Server xatosi yuz berdi.';
+          return message.isNotEmpty ? _localizeMessage(message) : 'error.server_error_generic'.tr();
         default:
-          return message.isNotEmpty ? message : 'Server xatosi yuz berdi.';
+          return message.isNotEmpty ? _localizeMessage(message) : 'error.server_error_generic'.tr();
       }
     }
 
-    return message.isNotEmpty ? message : 'Server xatosi yuz berdi.';
+    return message.isNotEmpty ? _localizeMessage(message) : 'error.server_error_generic'.tr();
   }
 
   /// Validation xatoliklari uchun xabar
@@ -73,15 +74,15 @@ class ErrorMessageHelper {
     
     // O'zbek tilidagi xabarlarni to'g'ridan-to'g'ri qaytarish
     if (message.isNotEmpty) {
-      return message;
+      return _localizeMessage(message);
     }
     
-    return 'Ma\'lumotlar noto\'g\'ri. Iltimos, tekshiring.';
+    return 'error.validation'.tr();
   }
 
   /// Parsing xatoliklari uchun xabar
   static String _getParsingErrorMessage(ParsingException exception) {
-    return 'Ma\'lumotlarni qayta ishlashda xatolik yuz berdi. Qayta urinib ko\'ring.';
+    return 'error.parsing'.tr();
   }
 
   /// Umumiy xatolik xabari
@@ -89,23 +90,23 @@ class ErrorMessageHelper {
     final message = exception.message;
     
     if (message.isNotEmpty) {
-      return message;
+      return _localizeMessage(message);
     }
     
-    return 'Xatolik yuz berdi. Iltimos, qayta urinib ko\'ring.';
+    return 'error.unknown'.tr();
   }
 
   /// Retry uchun tavsiya xabari
   static String getRetryMessage(AppException exception) {
     if (exception is NetworkException) {
-      return 'Internet aloqasini tekshiring va qayta urinib ko\'ring.';
+      return 'error.retry_network'.tr();
     } else if (exception is ServerException) {
       final statusCode = exception.statusCode;
       if (statusCode != null && statusCode >= 500) {
-        return 'Server bilan muammo. Bir necha soniyadan keyin qayta urinib ko\'ring.';
+        return 'error.retry_server'.tr();
       }
     }
-    return 'Qayta urinib ko\'ring.';
+    return 'error.retry_generic'.tr();
   }
 
   /// Xatolik turini aniqlash
@@ -129,4 +130,14 @@ class ErrorMessageHelper {
     }
     return false; // Boshqa xatoliklar retry qilinmaydi
   }
+
+  /// Xabarni lokalizatsiya qilish va typo larni to'g'irlash
+  static String _localizeMessage(String message) {
+    // API dan kelishi mumkin bo'lgan typo ni to'g'irlash
+    var normalizedMessage = message.replaceAll('hotel.coomon', 'hotel.common');
+
+    // Agar bu kalit so'z bo'lsa tarjima qilish, matn bo'lsa o'zini qaytarish
+    return normalizedMessage.tr();
+  }
 }
+

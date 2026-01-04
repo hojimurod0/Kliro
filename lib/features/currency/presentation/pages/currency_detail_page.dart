@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/widgets/safe_network_image.dart';
 
 import '../../../common/utils/bank_assets.dart';
 import '../../../bank/domain/entities/currency_entity.dart';
@@ -175,25 +176,13 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Sarlavha va tushuntirish
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.currency_exchange_rounded,
-                              color: AppColors.primaryBlue,
-                              size: 24.sp,
-                            ),
-                            SizedBox(width: 8.w),
-                            Expanded(
-                              child: Text(
-                                'currency.bank_rates'.tr(),
-                                style: TextStyle(
-                                  color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal,
-                                  fontSize: 20.sp,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
+                        Text(
+                          'currency.bank_rates'.tr(),
+                          style: TextStyle(
+                            color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal,
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         SizedBox(height: 20.h),
                         // Лучшие банки для покупки и продажи (выше переключателя) - Bitta card ichida
@@ -567,26 +556,11 @@ class CurrencySummaryCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(50.r),
-                child: Image.network(
-                  "https://flagcdn.com/w40/us.png",
+                child: SafeNetworkImage(
+                  imageUrl: "https://flagcdn.com/w40/us.png",
                   width: 32.w,
                   height: 32.w,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 32.w,
-                      height: 32.w,
-                      decoration: BoxDecoration(
-                        color: AppColors.skySurface,
-                        borderRadius: BorderRadius.circular(50.r),
-                      ),
-                      child: Icon(
-                        Icons.flag,
-                        size: 20.sp,
-                        color: AppColors.skyAccent,
-                      ),
-                    );
-                  },
                 ),
               ),
               SizedBox(width: 12.w),
@@ -1005,14 +979,9 @@ class _BestBankCard extends StatelessWidget {
     required this.onTap,
   });
 
-  String? _getBankLogoAsset(String bankName) => bankLogoAsset(bankName);
-  bool _shouldUseContainFit(String bankName) => bankLogoUsesContainFit(bankName);
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final onlineBadgeBg = isDark ? const Color(0xFF1E3A5F) : AppColors.skySurface;
-    final onlineBadgeText = AppColors.skyAccent;
     final greenText = AppColors.accentGreen;
     final redText = AppColors.dangerRed;
     final greenBg = isDark ? const Color(0xFF1A3A2E) : AppColors.greenBg;
@@ -1039,57 +1008,16 @@ class _BestBankCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 8.h),
-            // Bank logo va nomi
-            Row(
-              children: [
-                Container(
-                  width: 36.w,
-                  height: 36.w,
-                  decoration: BoxDecoration(
-                    color: onlineBadgeBg,
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Builder(
-                    builder: (context) {
-                      final logoAsset = _getBankLogoAsset(currency.bankName);
-                      if (logoAsset != null) {
-                        final shouldContain = _shouldUseContainFit(currency.bankName);
-                        final image = Image.asset(
-                          logoAsset,
-                          fit: shouldContain ? BoxFit.contain : BoxFit.cover,
-                          filterQuality: FilterQuality.medium,
-                        );
-                        if (shouldContain) {
-                          return Padding(
-                            padding: EdgeInsets.all(4.w),
-                            child: image,
-                          );
-                        }
-                        return image;
-                      }
-                      return Icon(
-                        Icons.account_balance,
-                        color: onlineBadgeText,
-                        size: 18.sp,
-                      );
-                    },
-                  ),
-                ),
-                SizedBox(width: 8.w),
-                Expanded(
-                  child: Text(
-                    currency.bankName,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13.sp,
-                      color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ),
-              ],
+            // Bank nomi
+            Text(
+              currency.bankName,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13.sp,
+                color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
             SizedBox(height: 10.h),
             Text(

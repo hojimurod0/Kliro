@@ -55,6 +55,14 @@ class HotelResultsScreen extends StatelessWidget {
 
         if (state is HotelSearchSuccess) {
           final filter = state.filter ?? HotelFilter.empty;
+          // Debug log qo'shamiz
+          debugPrint('🔍 HotelResultsScreen: HotelSearchSuccess');
+          debugPrint('🔍 Hotels count in state: ${state.result.hotels.length}');
+          debugPrint('🔍 Hotels isEmpty: ${state.result.hotels.isEmpty}');
+          if (state.result.hotels.isNotEmpty) {
+            debugPrint('🔍 First hotel name: ${state.result.hotels.first.name}');
+          }
+          
           return HotelResultsPage(
             result: state.result,
             city: filter.city,

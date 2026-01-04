@@ -162,8 +162,9 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
       builder: (context, state) {
         final isLoading =
             state.isLoading && state.flow == RegisterFlow.registrationFinalize;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Scaffold(
-          backgroundColor: AppColors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: SafeArea(
             child: SingleChildScrollView(
               padding: AppSpacing.screenPadding,
@@ -179,7 +180,9 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                   // 2. Sarlavha
                   Text(
                     'auth.user_details.title'.tr(),
-                    style: AppTypography.headingXL,
+                    style: AppTypography.headingXL.copyWith(
+                      color: isDark ? AppColors.white : AppColors.black,
+                    ),
                   ),
                   SizedBox(height: AppSpacing.xs),
                   Text(
@@ -283,19 +286,27 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
     bool isVisible = false,
     VoidCallback? onVisibilityToggle,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return TextFormField(
       controller: controller,
       obscureText: isPassword && !isVisible,
+      style: TextStyle(
+        color: isDark ? AppColors.white : AppColors.black,
+      ),
       decoration: AppInputDecoration.outline(
         hint: hint,
         prefixIcon: icon,
+        fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
+        borderColor: isDark ? AppColors.darkBorder : null,
+        hintColor: isDark ? AppColors.grayText : null,
+        prefixIconColor: isDark ? AppColors.grayText : null,
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
                   isVisible
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
-                  color: Colors.grey,
+                  color: isDark ? AppColors.grayText : Colors.grey,
                   size: 20.sp,
                 ),
                 onPressed: onVisibilityToggle,
@@ -307,6 +318,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
 
   // Dropdown Field (Manzil tanlash uchun)
   Widget _buildDropdownField() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final selectedRegionName = _regions
         .firstWhere(
           (entry) => entry.value == _selectedRegionId,
@@ -320,20 +332,27 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
         value: _selectedRegionId != null ? selectedRegionName : null,
         icon: Icon(
           Icons.keyboard_arrow_down,
-          color: AppColors.black,
+          color: isDark ? AppColors.white : AppColors.black,
           size: 20.sp,
         ),
         decoration: AppInputDecoration.outline(
           hint: 'auth.user_details.address_hint'.tr(),
           prefixIcon: Icons.location_on_outlined,
+          fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
+          borderColor: isDark ? AppColors.darkBorder : null,
+          hintColor: isDark ? AppColors.grayText : null,
+          prefixIconColor: isDark ? AppColors.grayText : null,
         ),
-        dropdownColor: AppColors.white,
+        dropdownColor: isDark ? AppColors.darkCardBg : AppColors.white,
         items: _regions.map((entry) {
           return DropdownMenuItem<String>(
             value: entry.key,
             child: Text(
               entry.key,
-              style: TextStyle(fontSize: 13.sp, color: AppColors.black),
+              style: TextStyle(
+                fontSize: 13.sp,
+                color: isDark ? AppColors.white : AppColors.black,
+              ),
             ),
           );
         }).toList(),

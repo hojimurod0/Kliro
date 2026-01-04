@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:dartz/dartz.dart';
+import 'package:dio/dio.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/constants/avia_endpoints.dart';
 import '../../../../core/network/avia/avia_dio_client.dart';
@@ -820,21 +822,80 @@ class AvichiptalarRepositoryImpl implements AvichiptalarRepository {
         );
       }
 
-      final response = await _dioClient.get(
+      // Avval JSON sifatida olishga harakat qilish
+      try {
+        final jsonResponse = await _dioClient.get(
+          AviaEndpoints.pdfReceipt(bookingId),
+        );
+
+        final data = jsonResponse.data;
+        
+        // 1. Agar response Map bo'lsa (JSON format)
+        if (data is Map<String, dynamic>) {
+          final url = data['url'] ?? 
+                      data['pdf_url'] ?? 
+                      data['receipt_url'] ??
+                      data['data']?['url'] ??
+                      data['data']?['pdf_url'] ??
+                      data['data']?['receipt_url'];
+          if (url != null && url.toString().isNotEmpty) {
+            return Right(url.toString());
+          }
+          
+          // Base64 field tekshirish
+          final base64 = data['base64'] ?? 
+                         data['pdf_base64'] ?? 
+                         data['data']?['base64'];
+          if (base64 != null && base64.toString().isNotEmpty) {
+            return Right('data:application/pdf;base64,${base64.toString()}');
+          }
+        }
+        
+        // 2. Agar response String bo'lsa
+        if (data is String) {
+          // Base64 data URI format tekshirish
+          if (data.startsWith('data:application/pdf') || 
+              data.startsWith('data:application/octet-stream')) {
+            return Right(data);
+          }
+          // Oddiy base64 string bo'lsa
+          if (!data.startsWith('http://') && !data.startsWith('https://')) {
+            try {
+              // Base64 ekanligini tekshirish
+              base64Decode(data);
+              return Right('data:application/pdf;base64,$data');
+            } catch (_) {
+              // Base64 emas, oddiy string
+            }
+          }
+          // URL bo'lsa
+          if (data.startsWith('http://') || data.startsWith('https://')) {
+            return Right(data);
+          }
+        }
+      } catch (e) {
+        // JSON parse qilishda xatolik bo'lsa, bytes sifatida olishga harakat qilish
+        AppLogger.debug('JSON parse qilishda xatolik, bytes sifatida olishga harakat: $e');
+      }
+
+      // Agar JSON ishlamasa, bytes sifatida olish
+      final bytesResponse = await _dioClient.get(
         AviaEndpoints.pdfReceipt(bookingId),
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {'Accept': 'application/pdf'},
+        ),
       );
 
-      // PDF receipt usually returns a URL or base64 string
-      final data = response.data;
-      if (data is Map<String, dynamic>) {
-        final url = data['url'] ?? data['pdf_url'] ?? data['receipt_url'];
-        if (url != null) {
-          return Right(url.toString());
-        }
-        // If no URL, try to get the raw response as string
-        return Right(data.toString());
+      final bytesData = bytesResponse.data;
+      
+      // 3. Agar response bytes bo'lsa (to'g'ridan-to'g'ri PDF)
+      if (bytesData is List<int> || bytesData is Uint8List) {
+        final base64 = base64Encode(bytesData);
+        return Right('data:application/pdf;base64,$base64');
       }
-      return Right(data.toString());
+      
+      return Left(ParsingException('PDF formatini aniqlab bo\'lmadi. Response type: ${bytesData.runtimeType}'));
     } on AppException catch (e) {
       return Left(e);
     } catch (e) {

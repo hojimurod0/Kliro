@@ -1,5 +1,37 @@
 import 'package:equatable/equatable.dart';
 
+/// Helper function to get locale variants for lookup
+/// Returns list of possible locale keys to try in order
+List<String> _getLocaleVariants(String locale) {
+  final variants = <String>[];
+  final localeLower = locale.toLowerCase();
+  
+  // Add exact match first (preserve original case)
+  variants.add(locale);
+  
+  // Handle Cyrillic Uzbek - try all possible formats
+  // context.locale.toString() returns 'uz_CYR' (with underscore and uppercase)
+  if (localeLower == 'uz_cyr' || localeLower == 'uz-cyr') {
+    // Try all possible formats for Cyrillic
+    variants.add('uz_CYR');  // Most common in API
+    variants.add('uz-CYR');  // Alternative format
+    variants.add('uz_cyr');  // Lowercase variant
+    variants.add('uz-cyr'); // Lowercase with dash
+  }
+  
+  // Normalize locale (remove country code) - only if not Cyrillic
+  if (localeLower != 'uz_cyr' && localeLower != 'uz-cyr') {
+    if (locale.contains('-') || locale.contains('_')) {
+      final normalized = locale.split(RegExp(r'[-_]')).first.toLowerCase();
+      if (normalized != localeLower && normalized.isNotEmpty) {
+        variants.add(normalized);
+      }
+    }
+  }
+  
+  return variants;
+}
+
 /// Country Entity
 class Country extends Equatable {
   const Country({
@@ -16,7 +48,19 @@ class Country extends Equatable {
 
   String getDisplayName(String locale) {
     if (names != null) {
-      return names![locale] ?? names!['uz'] ?? names!['ru'] ?? names!['en'] ?? name;
+      // Try all locale variants
+      final variants = _getLocaleVariants(locale);
+      for (final variant in variants) {
+        if (names!.containsKey(variant)) {
+          return names![variant]!;
+        }
+      }
+      
+      // Fallback to common locales
+      return names!['uz'] ?? 
+             names!['ru'] ?? 
+             names!['en'] ?? 
+             name;
     }
     return name;
   }
@@ -41,7 +85,16 @@ class Region extends Equatable {
 
   String getDisplayName(String locale) {
     if (names != null) {
-      return names![locale] ?? names!['uz'] ?? names!['ru'] ?? names!['en'] ?? name;
+      final variants = _getLocaleVariants(locale);
+      for (final variant in variants) {
+        if (names!.containsKey(variant)) {
+          return names![variant]!;
+        }
+      }
+      return names!['uz'] ?? 
+             names!['ru'] ?? 
+             names!['en'] ?? 
+             name;
     }
     return name;
   }
@@ -64,7 +117,16 @@ class HotelType extends Equatable {
 
   String getDisplayName(String locale) {
     if (names != null) {
-      return names![locale] ?? names!['uz'] ?? names!['ru'] ?? names!['en'] ?? name;
+      final variants = _getLocaleVariants(locale);
+      for (final variant in variants) {
+        if (names!.containsKey(variant)) {
+          return names![variant]!;
+        }
+      }
+      return names!['uz'] ?? 
+             names!['ru'] ?? 
+             names!['en'] ?? 
+             name;
     }
     return name;
   }
@@ -89,7 +151,16 @@ class Facility extends Equatable {
 
   String getDisplayName(String locale) {
     if (names != null) {
-      return names![locale] ?? names!['uz'] ?? names!['ru'] ?? names!['en'] ?? name;
+      final variants = _getLocaleVariants(locale);
+      for (final variant in variants) {
+        if (names!.containsKey(variant)) {
+          return names![variant]!;
+        }
+      }
+      return names!['uz'] ?? 
+             names!['ru'] ?? 
+             names!['en'] ?? 
+             name;
     }
     return name;
   }
@@ -114,7 +185,16 @@ class Equipment extends Equatable {
 
   String getDisplayName(String locale) {
     if (names != null) {
-      return names![locale] ?? names!['uz'] ?? names!['ru'] ?? names!['en'] ?? name;
+      final variants = _getLocaleVariants(locale);
+      for (final variant in variants) {
+        if (names!.containsKey(variant)) {
+          return names![variant]!;
+        }
+      }
+      return names!['uz'] ?? 
+             names!['ru'] ?? 
+             names!['en'] ?? 
+             name;
     }
     return name;
   }
@@ -163,6 +243,7 @@ class HotelPhoto extends Equatable {
     this.thumbnailUrl,
     this.description,
     this.category,
+    this.isDefault = false,
   });
 
   final int id;
@@ -170,9 +251,10 @@ class HotelPhoto extends Equatable {
   final String? thumbnailUrl;
   final String? description;
   final String? category; // exterior, interior, room, etc.
+  final bool isDefault; // Is this the default/main photo for the hotel
 
   @override
-  List<Object?> get props => [id, url, thumbnailUrl, description, category];
+  List<Object?> get props => [id, url, thumbnailUrl, description, category, isDefault];
 }
 
 /// Room Type Entity
@@ -195,7 +277,16 @@ class RoomType extends Equatable {
 
   String getDisplayName(String locale) {
     if (names != null) {
-      return names![locale] ?? names!['uz'] ?? names!['ru'] ?? names!['en'] ?? name;
+      final variants = _getLocaleVariants(locale);
+      for (final variant in variants) {
+        if (names!.containsKey(variant)) {
+          return names![variant]!;
+        }
+      }
+      return names!['uz'] ?? 
+             names!['ru'] ?? 
+             names!['en'] ?? 
+             name;
     }
     return name;
   }
@@ -254,7 +345,16 @@ class NearbyPlaceType extends Equatable {
 
   String getDisplayName(String locale) {
     if (names != null) {
-      return names![locale] ?? names!['uz'] ?? names!['ru'] ?? names!['en'] ?? name;
+      final variants = _getLocaleVariants(locale);
+      for (final variant in variants) {
+        if (names!.containsKey(variant)) {
+          return names![variant]!;
+        }
+      }
+      return names!['uz'] ?? 
+             names!['ru'] ?? 
+             names!['en'] ?? 
+             name;
     }
     return name;
   }
@@ -285,7 +385,16 @@ class NearbyPlace extends Equatable {
 
   String getDisplayName(String locale) {
     if (names != null) {
-      return names![locale] ?? names!['uz'] ?? names!['ru'] ?? names!['en'] ?? name;
+      final variants = _getLocaleVariants(locale);
+      for (final variant in variants) {
+        if (names!.containsKey(variant)) {
+          return names![variant]!;
+        }
+      }
+      return names!['uz'] ?? 
+             names!['ru'] ?? 
+             names!['en'] ?? 
+             name;
     }
     return name;
   }
@@ -310,7 +419,16 @@ class ServiceInRoom extends Equatable {
 
   String getDisplayName(String locale) {
     if (names != null) {
-      return names![locale] ?? names!['uz'] ?? names!['ru'] ?? names!['en'] ?? name;
+      final variants = _getLocaleVariants(locale);
+      for (final variant in variants) {
+        if (names!.containsKey(variant)) {
+          return names![variant]!;
+        }
+      }
+      return names!['uz'] ?? 
+             names!['ru'] ?? 
+             names!['en'] ?? 
+             name;
     }
     return name;
   }
@@ -335,7 +453,16 @@ class BedType extends Equatable {
 
   String getDisplayName(String locale) {
     if (names != null) {
-      return names![locale] ?? names!['uz'] ?? names!['ru'] ?? names!['en'] ?? name;
+      final variants = _getLocaleVariants(locale);
+      for (final variant in variants) {
+        if (names!.containsKey(variant)) {
+          return names![variant]!;
+        }
+      }
+      return names!['uz'] ?? 
+             names!['ru'] ?? 
+             names!['en'] ?? 
+             name;
     }
     return name;
   }

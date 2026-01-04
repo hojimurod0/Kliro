@@ -1,6 +1,5 @@
+import 'package:flutter/foundation.dart';
 import '../../../../core/errors/exceptions.dart';
-import '../../../../core/constants/hotel_endpoints.dart';
-import '../../../../core/network/hotel/hotel_dio_client.dart';
 import '../../domain/entities/hotel.dart';
 import '../../domain/entities/hotel_filter.dart';
 import '../../domain/entities/hotel_search_result.dart';
@@ -8,17 +7,294 @@ import '../../domain/entities/hotel_booking.dart';
 import '../../domain/entities/city.dart';
 import '../../domain/entities/reference_data.dart';
 import '../../domain/repositories/hotel_repository.dart';
+import '../datasources/hotel_remote_data_source.dart';
 import '../models/search_request_model.dart';
 import '../models/search_response_model.dart';
-import '../models/hotel_model.dart';
 import '../models/quote_model.dart';
 import '../models/booking_model.dart';
+import '../models/hotel_model.dart';
 
 class HotelRepositoryImpl implements HotelRepository {
-  HotelRepositoryImpl({required HotelDioClient dioClient})
-      : _dioClient = dioClient;
+  HotelRepositoryImpl({required HotelRemoteDataSource remoteDataSource})
+      : _remoteDataSource = remoteDataSource;
 
-  final HotelDioClient _dioClient;
+  final HotelRemoteDataSource _remoteDataSource;
+
+  // Helper methods for mapping
+  // Helper methods for mapping
+  Map<String, String>? _extractNameMap(Map<String, dynamic> item) {
+    final names = item['names'];
+    if (names is Map) {
+      return Map<String, String>.from(
+        names.map((key, value) => MapEntry(key.toString(), value.toString())),
+      );
+    }
+    return null;
+  }
+
+  String _extractName(Map<String, String>? nameMap, Map<String, dynamic> item) {
+    return nameMap?['uz'] ??
+        nameMap?['ru'] ??
+        nameMap?['en'] ??
+        item['name']?.toString() ??
+        item['title']?.toString() ??
+        item['label']?.toString() ??
+        item['text']?.toString() ??
+        item['value']?.toString() ??
+        item['description']?.toString() ??
+        item['content']?.toString() ??
+        '';
+  }
+
+  City _mapCityFromMap(Map<String, dynamic> item) {
+    final id = (item['id'] ?? item['city_id']) is int
+        ? (item['id'] ?? item['city_id']) as int
+        : int.tryParse(
+                (item['id'] ?? item['city_id'])?.toString() ?? '') ??
+            0;
+
+    // names could be under 'names' or 'translations'
+    final dynamic rawNames = item['names'] ?? item['translations'];
+    Map<String, String>? nameMap;
+    if (rawNames is Map) {
+      nameMap = rawNames.map(
+          (key, value) => MapEntry(key.toString(), value.toString()));
+    } else if (rawNames is List) {
+      nameMap = {};
+      for (var tr in rawNames) {
+        if (tr is Map) {
+          final key = tr['locale'] ?? tr['language'] ?? tr['lang'];
+          final value = tr['value'] ?? tr['name'] ?? tr['text'];
+          if (key != null && value != null) {
+            nameMap[key.toString()] = value.toString();
+          }
+        }
+      }
+    }
+
+    final String name = nameMap?['uz'] ??
+        nameMap?['ru'] ??
+        nameMap?['en'] ??
+        item['name']?.toString() ??
+        item['title']?.toString() ??
+        '';
+
+    return City(id: id, name: name, names: nameMap);
+  }
+
+  Country _mapCountryFromMap(Map<String, dynamic> item) {
+    final id = item['id'] as int? ?? 0;
+    final nameMap = _extractNameMap(item);
+    final name = _extractName(nameMap, item);
+    final code = item['code'] as String?;
+    return Country(id: id, name: name, names: nameMap, code: code);
+  }
+
+  Region _mapRegionFromMap(Map<String, dynamic> item) {
+    final id = item['id'] as int? ?? 0;
+    final nameMap = _extractNameMap(item);
+    final name = _extractName(nameMap, item);
+    final countryId = item['country_id'] as int?;
+    return Region(id: id, name: name, names: nameMap, countryId: countryId);
+  }
+
+  HotelType _mapHotelTypeFromMap(Map<String, dynamic> item) {
+    final id = item['id'] as int? ?? 0;
+    final nameMap = _extractNameMap(item);
+    final name = _extractName(nameMap, item);
+    return HotelType(id: id, name: name, names: nameMap);
+  }
+
+  Facility _mapFacilityFromMap(Map<String, dynamic> item) {
+    debugPrint('🧐 Facility Item: $item');
+    final id = item['id'] as int? ?? 0;
+    final nameMap = _extractNameMap(item);
+    final name = _extractName(nameMap, item);
+    final icon = item['icon'] as String?;
+    return Facility(id: id, name: name, names: nameMap, icon: icon);
+  }
+
+  Equipment _mapEquipmentFromMap(Map<String, dynamic> item) {
+    final id = item['id'] as int? ?? 0;
+    final nameMap = _extractNameMap(item);
+    final name = _extractName(nameMap, item);
+    final icon = item['icon'] as String?;
+    return Equipment(id: id, name: name, names: nameMap, icon: icon);
+  }
+
+  Currency _mapCurrencyFromMap(Map<String, dynamic> item) {
+    final code = item['code'] as String? ?? '';
+    final name = item['name'] as String? ?? code;
+    final symbol = item['symbol'] as String?;
+    final rate = (item['rate'] as num?)?.toDouble();
+    return Currency(code: code, name: name, symbol: symbol, rate: rate);
+  }
+
+  Star _mapStarFromMap(dynamic item) {
+    if (item is Map<String, dynamic>) {
+      final value = item['value'] as int? ?? item['id'] as int? ?? 0;
+      final name = item['name'] as String?;
+      return Star(value: value, name: name);
+    } else if (item is int) {
+      return Star(value: item);
+    }
+    return const Star(value: 0);
+  }
+
+  HotelPhoto _mapHotelPhotoFromMap(Map<String, dynamic> item) {
+    final id = item['id'] as int? ?? 0;
+    // API javobida 'link' maydoni bor
+    final url = item['link'] as String? ??
+        item['url'] as String? ??
+        item['photo_url'] as String? ??
+        item['image_url'] as String? ??
+        '';
+    final thumbnailUrl = item['thumbnail_url'] as String?;
+    final description = item['description'] as String?;
+    final category = item['category'] as String? ??
+        item['type'] as String? ??
+        'general';
+    final isDefault = item['default'] as bool? ?? 
+        item['is_default'] as bool? ?? 
+        item['isDefault'] as bool? ?? 
+        false;
+    
+    debugPrint('🔍 HotelPhoto: id=$id, url=$url, isDefault=$isDefault');
+    
+    return HotelPhoto(
+      id: id,
+      url: url,
+      thumbnailUrl: thumbnailUrl,
+      description: description,
+      category: category,
+      isDefault: isDefault,
+    );
+  }
+
+  RoomType _mapRoomTypeFromMap(Map<String, dynamic> item, int hotelId) {
+    final id = item['id'] as int? ?? 0;
+    final nameMap = _extractNameMap(item);
+    final name = _extractName(nameMap, item);
+    final maxOccupancy = item['max_occupancy'] as int?;
+    final description = item['description'] as String?;
+    return RoomType(
+      id: id,
+      name: name,
+      names: nameMap,
+      hotelId: hotelId,
+      maxOccupancy: maxOccupancy,
+      description: description,
+    );
+  }
+
+  NearbyPlaceType _mapNearbyPlaceTypeFromMap(Map<String, dynamic> item) {
+    final id = item['id'] as int? ?? 0;
+    final nameMap = _extractNameMap(item);
+    final name = _extractName(nameMap, item);
+    final icon = item['icon'] as String?;
+    return NearbyPlaceType(id: id, name: name, names: nameMap, icon: icon);
+  }
+
+  NearbyPlace _mapNearbyPlaceFromMap(Map<String, dynamic> item, int hotelId) {
+    final id = item['id'] as int? ?? 0;
+    final nameMap = _extractNameMap(item);
+    final name = _extractName(nameMap, item);
+    final typeId = item['type_id'] as int?;
+    final distance = (item['distance'] as num?)?.toDouble();
+    final coordinates = item['coordinates'] as Map<String, dynamic>?;
+    Map<String, double>? coordsMap;
+    if (coordinates != null) {
+      coordsMap = coordinates.map(
+        (key, value) => MapEntry(
+          key.toString(),
+          (value as num?)?.toDouble() ?? 0.0,
+        ),
+      );
+    }
+    return NearbyPlace(
+      id: id,
+      name: name,
+      names: nameMap,
+      hotelId: hotelId,
+      typeId: typeId,
+      distance: distance,
+      coordinates: coordsMap,
+    );
+  }
+
+  ServiceInRoom _mapServiceInRoomFromMap(Map<String, dynamic> item) {
+    debugPrint('🧐 ServiceInRoom Item: $item');
+    final id = item['id'] as int? ?? 0;
+    final nameMap = _extractNameMap(item);
+    final name = _extractName(nameMap, item);
+    final icon = item['icon'] as String?;
+    return ServiceInRoom(id: id, name: name, names: nameMap, icon: icon);
+  }
+
+  BedType _mapBedTypeFromMap(Map<String, dynamic> item) {
+    final id = item['id'] as int? ?? 0;
+    final nameMap = _extractNameMap(item);
+    final name = _extractName(nameMap, item);
+    final icon = item['icon'] as String?;
+    return BedType(id: id, name: name, names: nameMap, icon: icon);
+  }
+
+  /// Загружает фотографии для списка отелей параллельно
+  Future<List<HotelModel>> _loadPhotosForHotels(List<HotelModel> hotels) async {
+    debugPrint('📸 Загрузка фотографий для ${hotels.length} отелей...');
+    
+    // Загружаем фотографии параллельно для всех отелей
+    final hotelsWithPhotos = await Future.wait(
+      hotels.map((hotel) async {
+        try {
+          // Remote data source dan Map list olamiz
+          final photosData = await _remoteDataSource.getHotelPhotos(hotel.hotelId);
+          debugPrint('✅ getHotelPhotos: Получено ${photosData.length} фотографий (raw data) для отеля ${hotel.hotelId}');
+          
+          // Map'larni HotelPhoto entity'larga aylantiramiz
+          final photos = photosData.map((item) {
+            try {
+              return _mapHotelPhotoFromMap(item);
+            } catch (e) {
+              debugPrint('⚠️ Ошибка mapping фотографии для отеля ${hotel.hotelId}: $e');
+              debugPrint('⚠️ Photo data: $item');
+              return null;
+            }
+          }).whereType<HotelPhoto>().toList();
+          
+          debugPrint('✅ Загружено ${photos.length} фотографий для отеля ${hotel.hotelId} (${hotel.name})');
+          
+          // Если есть фотографии, обновляем отель
+          if (photos.isNotEmpty) {
+            // Если у отеля нет imageUrl, используем первую фотографию
+            final imageUrl = hotel.imageUrl?.isNotEmpty == true 
+                ? hotel.imageUrl 
+                : (photos.first.url.isNotEmpty ? photos.first.url : null);
+            
+            if (imageUrl != null && imageUrl.isNotEmpty) {
+              debugPrint('📸 Отель ${hotel.hotelId} (${hotel.name}): Установлен imageUrl = $imageUrl');
+            }
+            
+            return hotel.copyWith(
+              photos: photos,
+              imageUrl: imageUrl,
+            ) as HotelModel;
+          } else {
+            debugPrint('⚠️ Отель ${hotel.hotelId} (${hotel.name}): Фотографий не найдено');
+          }
+          return hotel;
+        } catch (e, stackTrace) {
+          debugPrint('⚠️ Ошибка загрузки фотографий для отеля ${hotel.hotelId} (${hotel.name}): $e');
+          debugPrint('❌ StackTrace: $stackTrace');
+          return hotel;
+        }
+      }),
+    );
+    
+    final hotelsWithPhotosCount = hotelsWithPhotos.where((h) => h.photos?.isNotEmpty == true).length;
+    debugPrint('✅ Загрузка фотографий завершена: ${hotelsWithPhotosCount} из ${hotelsWithPhotos.length} отелей имеют фотографии');
+    return hotelsWithPhotos;
+  }
 
   // Search methods
   @override
@@ -27,22 +303,131 @@ class HotelRepositoryImpl implements HotelRepository {
   }) async {
     try {
       final request = SearchRequestModel.fromFilter(filter);
-      final requestBody = request.toJson(); // {"data": {...}}
-
-      final response = await _dioClient.post(
-        HotelEndpoints.searchHotels,
-        data: requestBody,
-      );
-
-      final responseData = _ensureMap(response.data);
-
-      // Parse API response format: {"success": true, "data": {...}}
-      final model = SearchResponseModel.fromApiJson(
-        responseData,
-        filter: filter,
-      );
-
+      final model = await _remoteDataSource.searchHotels(request);
+      
+      // Agar mehmonxonalarda to'liq ma'lumotlar bo'lmasa, ularni to'ldiramiz
+      if (model.hotels.isNotEmpty) {
+        final firstHotel = model.hotels.first;
+        final maLumotlarToLiqEmas = firstHotel.name.startsWith('Hotel #') || 
+                                     (firstHotel.imageUrl == null || firstHotel.imageUrl!.isEmpty);
+        
+        if (maLumotlarToLiqEmas) {
+          debugPrint('🔍 Mehmonxona ma\'lumotlarini to\'ldirish...');
+          debugPrint('🔍 To\'ldirish kerak bo\'lgan mehmonxonalar: ${model.hotels.length}');
+          
+          try {
+            // /hotels/list API dan to'liq ma'lumotlarni olamiz
+            final cityId = filter.cityId;
+            // _remoteDataSource.getHotelsList returns List<HotelModel>
+            final toLiqMehmonxonalar = await _remoteDataSource.getHotelsList(
+              cityId: cityId,
+            );
+            
+            debugPrint('🔍 /hotels/list dan olingan mehmonxonalar: ${toLiqMehmonxonalar.length}');
+            
+            // hotelId bo'yicha tez qidirish uchun Map yaratamiz
+            final mehmonxonalarMap = <int, HotelModel>{};
+            for (final mehmonxona in toLiqMehmonxonalar) {
+              mehmonxonalarMap[mehmonxona.hotelId] = mehmonxona;
+            }
+            
+            // Ma'lumotlarni birlashtiramiz: to'liq ma'lumotlar + narxlar/opsiyalar
+            final toLiqHotellar = model.hotels.map((qidiruvMehmonxonasi) {
+              final toLiqMehmonxona = mehmonxonalarMap[qidiruvMehmonxonasi.hotelId];
+              
+              if (toLiqMehmonxona != null) {
+                debugPrint('✅ Mehmonxona ${qidiruvMehmonxonasi.hotelId} to\'ldirildi: "${toLiqMehmonxona.name}"');
+                // To'liq ma'lumotlar + qidiruvdan kelgan narxlar/opsiyalar
+                return toLiqMehmonxona.copyWith(
+                  price: qidiruvMehmonxonasi.price,
+                  options: qidiruvMehmonxonasi.options,
+                  checkInDate: qidiruvMehmonxonasi.checkInDate,
+                  checkOutDate: qidiruvMehmonxonasi.checkOutDate,
+                  guests: qidiruvMehmonxonasi.guests,
+                  // Saqlangan fotografiyalarni ham saqlaymiz
+                  photos: toLiqMehmonxona.photos,
+                );
+              } else {
+                debugPrint('⚠️ Mehmonxona ${qidiruvMehmonxonasi.hotelId} /hotels/list da topilmadi');
+                return qidiruvMehmonxonasi;
+              }
+            }).toList();
+            
+            final toLiqModel = SearchResponseModel(
+              hotels: toLiqHotellar,
+              total: model.total,
+              page: model.page,
+              pageSize: model.pageSize,
+            );
+            
+            // Загружаем фотографии для всех отелей
+            final hotelsWithPhotos = await _loadPhotosForHotels(toLiqModel.hotels);
+            final finalModel = SearchResponseModel(
+              hotels: hotelsWithPhotos,
+              total: toLiqModel.total,
+              page: toLiqModel.page,
+              pageSize: toLiqModel.pageSize,
+            );
+            
+            return finalModel.toEntity();
+          } catch (e) {
+            debugPrint('❌ Mehmonxona ma\'lumotlarini to\'ldirishda xatolik: $e');
+            // Xatolik bo'lsa, asl ma'lumotlarni qaytaramiz
+            final hotelsWithPhotos = await _loadPhotosForHotels(model.hotels);
+            final finalModel = SearchResponseModel(
+              hotels: hotelsWithPhotos,
+              total: model.total,
+              page: model.page,
+              pageSize: model.pageSize,
+            );
+            return finalModel.toEntity();
+          }
+        } else {
+          // Загружаем фотографии для всех отелей
+          debugPrint('📸 Загружаем фотографии для отелей (ma\'lumotlar to\'liq)...');
+          final hotelsWithPhotos = await _loadPhotosForHotels(model.hotels);
+          final finalModel = SearchResponseModel(
+            hotels: hotelsWithPhotos,
+            total: model.total,
+            page: model.page,
+            pageSize: model.pageSize,
+          );
+          return finalModel.toEntity();
+        }
+      }
+      
+      // Agar mehmonxonalar bo'sh bo'lsa ham, fotografiyalarni yuklashga harakat qilamiz
+      if (model.hotels.isNotEmpty) {
+        debugPrint('📸 Загружаем фотографии для отелей (fallback)...');
+        final hotelsWithPhotos = await _loadPhotosForHotels(model.hotels);
+        final finalModel = SearchResponseModel(
+          hotels: hotelsWithPhotos,
+          total: model.total,
+          page: model.page,
+          pageSize: model.pageSize,
+        );
+        return finalModel.toEntity();
+      }
+      
       return model.toEntity();
+    } on AppException {
+      rethrow;
+    } catch (e) {
+      throw ParsingException('Ma\'lumotlarni qayta ishlashda xatolik: $e');
+    }
+  }
+
+  @override
+  Future<List<Hotel>> getHotelsList(
+      {int? hotelTypeId, int? countryId, int? regionId, int? cityId}) async {
+    try {
+      final models = await _remoteDataSource.getHotelsList(
+        hotelTypeId: hotelTypeId,
+        countryId: countryId,
+        regionId: regionId,
+        cityId: cityId,
+      );
+      return models;
     } on AppException {
       rethrow;
     } catch (e) {
@@ -53,44 +438,7 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<Hotel> getHotelDetails({required String hotelId}) async {
     try {
-      // Hotelios API'da alohida hotel details endpoint yo'q
-      // Search natijalaridan hotel details olish kerak
-      // Yoki /hotels/list?hotel_id=123 endpoint'idan foydalanish mumkin
-
-      final hotelIdInt = int.tryParse(hotelId);
-      if (hotelIdInt == null) {
-        throw ValidationException('Noto\'g\'ri hotel ID');
-      }
-
-      // /hotels/list endpoint'idan foydalanish
-      final response = await _dioClient.post(
-        HotelEndpoints.getHotelList,
-        queryParameters: {'hotel_id': hotelIdInt},
-        data: {},
-      );
-
-      final responseData = response.data;
-
-      // Response format: List yoki {"data": [...]}
-      List<dynamic>? hotelsData;
-      if (responseData is List) {
-        hotelsData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        if (responseData.containsKey('data') && responseData['data'] is List) {
-          hotelsData = responseData['data'] as List;
-        } else if (responseData.containsKey('result') &&
-            responseData['result'] is List) {
-          hotelsData = responseData['result'] as List;
-        }
-      }
-
-      if (hotelsData != null && hotelsData.isNotEmpty) {
-        final hotelData = hotelsData.first as Map<String, dynamic>;
-        final model = HotelModel.fromJson(hotelData);
-        return model;
-      }
-
-      throw ValidationException('Hotel topilmadi');
+      return await _remoteDataSource.getHotelDetails(hotelId);
     } on AppException {
       rethrow;
     } catch (e) {
@@ -101,72 +449,7 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<String>> getCities({String? query}) async {
     try {
-      // Hotelios API: POST /hotels/cities?country_id=1
-      // Request body: {}
-      final queryParams = <String, dynamic>{};
-      if (query != null && query.isNotEmpty) {
-        // Agar query city name bo'lsa, uni country_id ga o'girish kerak
-        // Hozircha query ni country_id sifatida ishlatamiz (agar int bo'lsa)
-        final countryId = int.tryParse(query);
-        if (countryId != null) {
-          queryParams['country_id'] = countryId;
-        }
-      }
-
-      final response = await _dioClient.post(
-        HotelEndpoints.getCities,
-        queryParameters: queryParams.isNotEmpty ? queryParams : null,
-        data: {},
-      );
-
-      final responseData = response.data;
-
-      // API response format: List yoki {"data": [...]}
-      if (responseData is List) {
-        // Har bir city object: {"id": 67, "names": {"ru": "...", "uz": "...", "en": "..."}}
-        return responseData.map((item) {
-          if (item is Map<String, dynamic>) {
-            final names = item['names'] as Map<String, dynamic>?;
-            // Uzbek tilini qaytarish (yoki ru, en)
-            return names?['uz'] as String? ??
-                names?['ru'] as String? ??
-                names?['en'] as String? ??
-                item['name'] as String? ??
-                item.toString();
-          }
-          return item.toString();
-        }).toList();
-      }
-
-      if (responseData is Map<String, dynamic>) {
-        List<dynamic>? cities;
-
-        if (responseData.containsKey('data') && responseData['data'] is List) {
-          cities = responseData['data'] as List;
-        } else if (responseData.containsKey('result') &&
-            responseData['result'] is List) {
-          cities = responseData['result'] as List;
-        } else if (responseData.containsKey('cities') &&
-            responseData['cities'] is List) {
-          cities = responseData['cities'] as List;
-        }
-
-        if (cities != null) {
-          return cities.map((item) {
-            if (item is Map<String, dynamic>) {
-              final names = item['names'] as Map<String, dynamic>?;
-              return names?['uz'] as String? ??
-                  names?['ru'] as String? ??
-                  names?['en'] as String? ??
-                  item['name'] as String? ??
-                  item.toString();
-            }
-            return item.toString();
-          }).toList();
-        }
-      }
-
-      return [];
+      return await _remoteDataSource.getCities(query: query);
     } on AppException catch (e) {
       if (e is ServerException && e.statusCode == 404) {
         return [];
@@ -180,82 +463,51 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<City>> getCitiesWithIds({int? countryId}) async {
     try {
-      final queryParams = <String, dynamic>{};
-      if (countryId != null) {
-        queryParams['country_id'] = countryId;
-      } else {
-        queryParams['country_id'] = 1; // Default: Uzbekistan
-      }
-
-      final response = await _dioClient.post(
-        HotelEndpoints.getCities,
-        queryParameters: queryParams,
-        data: {},
+      final data = await _remoteDataSource.getCitiesWithIds(
+        countryId: countryId ?? 1, // Default: Uzbekistan
       );
 
-      final responseData = response.data;
-
-      List<City> cities = [];
-
-      if (responseData is List) {
-        cities = responseData.map((item) {
-          if (item is Map<String, dynamic>) {
-            final id = item['id'] as int? ?? 0;
-            final names = item['names'] as Map<String, dynamic>?;
-            final nameMap = names != null
-                ? Map<String, String>.from(
-                    names.map((key, value) => MapEntry(key, value.toString())))
-                : null;
-            final name = nameMap?['uz'] ??
-                nameMap?['ru'] ??
-                nameMap?['en'] ??
-                item['name'] as String? ??
-                '';
-            return City(id: id, name: name, names: nameMap);
-          }
-          return City(id: 0, name: item.toString());
-        }).toList();
-      } else if (responseData is Map<String, dynamic>) {
-        List<dynamic>? citiesData;
-
-        if (responseData.containsKey('data') && responseData['data'] is List) {
-          citiesData = responseData['data'] as List;
-        } else if (responseData.containsKey('result') &&
-            responseData['result'] is List) {
-          citiesData = responseData['result'] as List;
-        } else if (responseData.containsKey('cities') &&
-            responseData['cities'] is List) {
-          citiesData = responseData['cities'] as List;
-        }
-
-        if (citiesData != null) {
-          cities = citiesData.map((item) {
-            if (item is Map<String, dynamic>) {
-              final id = item['id'] as int? ?? 0;
-              final names = item['names'] as Map<String, dynamic>?;
-              final nameMap = names != null
-                  ? Map<String, String>.from(names
-                      .map((key, value) => MapEntry(key, value.toString())))
-                  : null;
-              final name = nameMap?['uz'] ??
-                  nameMap?['ru'] ??
-                  nameMap?['en'] ??
-                  item['name'] as String? ??
-                  '';
-              return City(id: id, name: name, names: nameMap);
-            }
-            return City(id: 0, name: item.toString());
-          }).toList();
-        }
+      debugPrint('🔍 Repository.getCitiesWithIds: Received ${data.length} items from API');
+      if (data.isNotEmpty) {
+        debugPrint('🔍 Repository.getCitiesWithIds: First item keys = ${data.first.keys}');
       }
-
+      final cities = data.map((item) => _mapCityFromMap(item)).toList();
+      debugPrint('✅ Repository.getCitiesWithIds: Mapped ${cities.length} cities');
+      if (cities.isNotEmpty) {
+        debugPrint('🔍 Repository.getCitiesWithIds: First city = ${cities.first.name} (id: ${cities.first.id})');
+      }
       return cities;
     } on AppException catch (e) {
-      if (e is ServerException && e.statusCode == 404) {
-        return [];
+      if ((e is ServerException && e.statusCode == 404) || e.message.contains('404')) {
+        // Return fallback cities if API is missing (404)
+        final fallbackCities = [
+          {'id': 1, 'name': 'Toshkent', 'names': {'uz': 'Toshkent', 'ru': 'Ташкент', 'en': 'Tashkent'}},
+          {'id': 2, 'name': 'Samarqand', 'names': {'uz': 'Samarqand', 'ru': 'Самарканд', 'en': 'Samarkand'}},
+          {'id': 3, 'name': 'Buxoro', 'names': {'uz': 'Buxoro', 'ru': 'Бухара', 'en': 'Bukhara'}},
+          {'id': 4, 'name': 'Xiva', 'names': {'uz': 'Xiva', 'ru': 'Хива', 'en': 'Khiva'}},
+          {'id': 5, 'name': 'Namangan', 'names': {'uz': 'Namangan', 'ru': 'Наманган', 'en': 'Namangan'}},
+          {'id': 6, 'name': 'Andijon', 'names': {'uz': 'Andijon', 'ru': 'Андижан', 'en': 'Andijan'}},
+          {'id': 7, 'name': 'Farg\'ona', 'names': {'uz': 'Farg\'ona', 'ru': 'Фергана', 'en': 'Fergana'}},
+          {'id': 8, 'name': 'Nukus', 'names': {'uz': 'Nukus', 'ru': 'Нукус', 'en': 'Nukus'}},
+        ];
+        return fallbackCities.map((item) => _mapCityFromMap(item)).toList();
       }
       rethrow;
     } catch (e) {
+      if (e.toString().contains('404')) {
+         final fallbackCities = [
+          {'id': 1, 'name': 'Toshkent', 'names': {'uz': 'Toshkent', 'ru': 'Ташкент', 'en': 'Tashkent'}},
+          {'id': 2, 'name': 'Samarqand', 'names': {'uz': 'Samarqand', 'ru': 'Самарканд', 'en': 'Samarkand'}},
+          {'id': 3, 'name': 'Buxoro', 'names': {'uz': 'Buxoro', 'ru': 'Бухара', 'en': 'Bukhara'}},
+          {'id': 4, 'name': 'Xiva', 'names': {'uz': 'Xiva', 'ru': 'Хива', 'en': 'Khiva'}},
+          {'id': 5, 'name': 'Namangan', 'names': {'uz': 'Namangan', 'ru': 'Наманган', 'en': 'Namangan'}},
+          {'id': 6, 'name': 'Andijon', 'names': {'uz': 'Andijon', 'ru': 'Андижан', 'en': 'Andijan'}},
+          {'id': 7, 'name': 'Farg\'ona', 'names': {'uz': 'Farg\'ona', 'ru': 'Фергана', 'en': 'Fergana'}},
+          {'id': 8, 'name': 'Nukus', 'names': {'uz': 'Nukus', 'ru': 'Нукус', 'en': 'Nukus'}},
+        ];
+        return fallbackCities.map((item) => _mapCityFromMap(item)).toList();
+      }
+      debugPrint('HotelRepositoryImpl error: $e');
       throw ParsingException('Ma\'lumotlarni qayta ishlashda xatolik: $e');
     }
   }
@@ -266,19 +518,7 @@ class HotelRepositoryImpl implements HotelRepository {
     required List<String> optionRefIds,
   }) async {
     try {
-      final requestBody = {
-        'data': {
-          'options': optionRefIds.map((id) => {'option_ref_id': id}).toList(),
-        },
-      };
-
-      final response = await _dioClient.post(
-        HotelEndpoints.getQuote,
-        data: requestBody,
-      );
-
-      final responseData = _ensureMap(response.data);
-      final model = QuoteModel.fromJson(responseData);
+      final model = await _remoteDataSource.getQuote(optionRefIds);
       return model.toEntity();
     } on AppException {
       rethrow;
@@ -293,13 +533,7 @@ class HotelRepositoryImpl implements HotelRepository {
   }) async {
     try {
       final requestModel = CreateBookingRequestModel.fromEntity(request);
-      final response = await _dioClient.post(
-        HotelEndpoints.createBooking,
-        data: requestModel.toJson(),
-      );
-
-      final responseData = _ensureMap(response.data);
-      final model = HotelBookingModel.fromJson(responseData);
+      final model = await _remoteDataSource.createBooking(requestModel);
       return model;
     } on AppException {
       rethrow;
@@ -314,26 +548,17 @@ class HotelRepositoryImpl implements HotelRepository {
     required PaymentInfo paymentInfo,
   }) async {
     try {
-      final requestBody = {
-        'data': {
-          'booking_id': bookingId,
-          'payment_info': {
-            'payment_method': paymentInfo.paymentMethod,
-            if (paymentInfo.cardNumber != null)
-              'card_number': paymentInfo.cardNumber,
-            if (paymentInfo.transactionId != null)
-              'transaction_id': paymentInfo.transactionId,
-          },
-        },
+      final paymentInfoMap = {
+        'payment_method': paymentInfo.paymentMethod,
+        if (paymentInfo.cardNumber != null)
+          'card_number': paymentInfo.cardNumber,
+        if (paymentInfo.transactionId != null)
+          'transaction_id': paymentInfo.transactionId,
       };
-
-      final response = await _dioClient.post(
-        HotelEndpoints.confirmBooking,
-        data: requestBody,
+      final model = await _remoteDataSource.confirmBooking(
+        bookingId,
+        paymentInfoMap,
       );
-
-      final responseData = _ensureMap(response.data);
-      final model = HotelBookingModel.fromJson(responseData);
       return model;
     } on AppException {
       rethrow;
@@ -348,21 +573,10 @@ class HotelRepositoryImpl implements HotelRepository {
     String? cancellationReason,
   }) async {
     try {
-      final requestBody = {
-        'data': {
-          'booking_id': bookingId,
-          if (cancellationReason != null)
-            'cancellation_reason': cancellationReason,
-        },
-      };
-
-      final response = await _dioClient.post(
-        HotelEndpoints.cancelBooking,
-        data: requestBody,
+      final model = await _remoteDataSource.cancelBooking(
+        bookingId,
+        cancellationReason,
       );
-
-      final responseData = _ensureMap(response.data);
-      final model = HotelBookingModel.fromJson(responseData);
       return model;
     } on AppException {
       rethrow;
@@ -376,19 +590,7 @@ class HotelRepositoryImpl implements HotelRepository {
     required String bookingId,
   }) async {
     try {
-      final requestBody = {
-        'data': {
-          'booking_id': bookingId,
-        },
-      };
-
-      final response = await _dioClient.post(
-        HotelEndpoints.readBooking,
-        data: requestBody,
-      );
-
-      final responseData = _ensureMap(response.data);
-      final model = HotelBookingModel.fromJson(responseData);
+      final model = await _remoteDataSource.readBooking(bookingId);
       return model;
     } on AppException {
       rethrow;
@@ -401,42 +603,8 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<Country>> getCountries() async {
     try {
-      final response = await _dioClient.post(
-        HotelEndpoints.getCountries,
-        data: {},
-      );
-
-      final responseData = response.data;
-      List<dynamic>? countriesData;
-
-      if (responseData is List) {
-        countriesData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        countriesData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['countries'] as List<dynamic>?;
-      }
-
-      if (countriesData == null) return [];
-
-      return countriesData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final id = item['id'] as int? ?? 0;
-          final names = item['names'] as Map<String, dynamic>?;
-          final nameMap = names != null
-              ? Map<String, String>.from(
-                  names.map((key, value) => MapEntry(key, value.toString())))
-              : null;
-          final name = nameMap?['uz'] ??
-              nameMap?['ru'] ??
-              nameMap?['en'] ??
-              item['name'] as String? ??
-              '';
-          final code = item['code'] as String?;
-          return Country(id: id, name: name, names: nameMap, code: code);
-        }
-        return Country(id: 0, name: item.toString());
-      }).toList();
+      final data = await _remoteDataSource.getCountries();
+      return data.map((item) => _mapCountryFromMap(item)).toList();
     } on AppException {
       rethrow;
     } catch (e) {
@@ -447,49 +615,8 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<Region>> getRegions({int? countryId}) async {
     try {
-      final queryParams = <String, dynamic>{};
-      if (countryId != null) {
-        queryParams['country_id'] = countryId;
-      }
-
-      final response = await _dioClient.post(
-        HotelEndpoints.getRegions,
-        queryParameters: queryParams.isNotEmpty ? queryParams : null,
-        data: {},
-      );
-
-      final responseData = response.data;
-      List<dynamic>? regionsData;
-
-      if (responseData is List) {
-        regionsData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        regionsData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['regions'] as List<dynamic>?;
-      }
-
-      if (regionsData == null) return [];
-
-      return regionsData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final id = item['id'] as int? ?? 0;
-          final names = item['names'] as Map<String, dynamic>?;
-          final nameMap = names != null
-              ? Map<String, String>.from(
-                  names.map((key, value) => MapEntry(key, value.toString())))
-              : null;
-          final name = nameMap?['uz'] ??
-              nameMap?['ru'] ??
-              nameMap?['en'] ??
-              item['name'] as String? ??
-              '';
-          final countryId = item['country_id'] as int?;
-          return Region(
-              id: id, name: name, names: nameMap, countryId: countryId);
-        }
-        return Region(id: 0, name: item.toString());
-      }).toList();
+      final data = await _remoteDataSource.getRegions(countryId: countryId);
+      return data.map((item) => _mapRegionFromMap(item)).toList();
     } on AppException {
       rethrow;
     } catch (e) {
@@ -500,41 +627,8 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<HotelType>> getHotelTypes() async {
     try {
-      final response = await _dioClient.post(
-        HotelEndpoints.getHotelTypes,
-        data: {},
-      );
-
-      final responseData = response.data;
-      List<dynamic>? typesData;
-
-      if (responseData is List) {
-        typesData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        typesData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['types'] as List<dynamic>?;
-      }
-
-      if (typesData == null) return [];
-
-      return typesData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final id = item['id'] as int? ?? 0;
-          final names = item['names'] as Map<String, dynamic>?;
-          final nameMap = names != null
-              ? Map<String, String>.from(
-                  names.map((key, value) => MapEntry(key, value.toString())))
-              : null;
-          final name = nameMap?['uz'] ??
-              nameMap?['ru'] ??
-              nameMap?['en'] ??
-              item['name'] as String? ??
-              '';
-          return HotelType(id: id, name: name, names: nameMap);
-        }
-        return HotelType(id: 0, name: item.toString());
-      }).toList();
+      final data = await _remoteDataSource.getHotelTypes();
+      return data.map((item) => _mapHotelTypeFromMap(item)).toList();
     } on AppException {
       rethrow;
     } catch (e) {
@@ -545,42 +639,8 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<Facility>> getFacilities() async {
     try {
-      final response = await _dioClient.post(
-        HotelEndpoints.getFacilities,
-        data: {},
-      );
-
-      final responseData = response.data;
-      List<dynamic>? facilitiesData;
-
-      if (responseData is List) {
-        facilitiesData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        facilitiesData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['facilities'] as List<dynamic>?;
-      }
-
-      if (facilitiesData == null) return [];
-
-      return facilitiesData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final id = item['id'] as int? ?? 0;
-          final names = item['names'] as Map<String, dynamic>?;
-          final nameMap = names != null
-              ? Map<String, String>.from(
-                  names.map((key, value) => MapEntry(key, value.toString())))
-              : null;
-          final name = nameMap?['uz'] ??
-              nameMap?['ru'] ??
-              nameMap?['en'] ??
-              item['name'] as String? ??
-              '';
-          final icon = item['icon'] as String?;
-          return Facility(id: id, name: name, names: nameMap, icon: icon);
-        }
-        return Facility(id: 0, name: item.toString());
-      }).toList();
+      final data = await _remoteDataSource.getFacilities();
+      return data.map((item) => _mapFacilityFromMap(item)).toList();
     } on AppException {
       rethrow;
     } catch (e) {
@@ -591,43 +651,8 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<Facility>> getHotelFacilities({required int hotelId}) async {
     try {
-      final response = await _dioClient.post(
-        HotelEndpoints.getHotelFacilities,
-        queryParameters: {'hotel_id': hotelId},
-        data: {},
-      );
-
-      final responseData = response.data;
-      List<dynamic>? facilitiesData;
-
-      if (responseData is List) {
-        facilitiesData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        facilitiesData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['facilities'] as List<dynamic>?;
-      }
-
-      if (facilitiesData == null) return [];
-
-      return facilitiesData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final id = item['id'] as int? ?? 0;
-          final names = item['names'] as Map<String, dynamic>?;
-          final nameMap = names != null
-              ? Map<String, String>.from(
-                  names.map((key, value) => MapEntry(key, value.toString())))
-              : null;
-          final name = nameMap?['uz'] ??
-              nameMap?['ru'] ??
-              nameMap?['en'] ??
-              item['name'] as String? ??
-              '';
-          final icon = item['icon'] as String?;
-          return Facility(id: id, name: name, names: nameMap, icon: icon);
-        }
-        return Facility(id: 0, name: item.toString());
-      }).toList();
+      final data = await _remoteDataSource.getHotelFacilities(hotelId);
+      return data.map((item) => _mapFacilityFromMap(item)).toList();
     } on AppException {
       rethrow;
     } catch (e) {
@@ -638,42 +663,8 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<Equipment>> getEquipment() async {
     try {
-      final response = await _dioClient.post(
-        HotelEndpoints.getEquipment,
-        data: {},
-      );
-
-      final responseData = response.data;
-      List<dynamic>? equipmentData;
-
-      if (responseData is List) {
-        equipmentData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        equipmentData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['equipment'] as List<dynamic>?;
-      }
-
-      if (equipmentData == null) return [];
-
-      return equipmentData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final id = item['id'] as int? ?? 0;
-          final names = item['names'] as Map<String, dynamic>?;
-          final nameMap = names != null
-              ? Map<String, String>.from(
-                  names.map((key, value) => MapEntry(key, value.toString())))
-              : null;
-          final name = nameMap?['uz'] ??
-              nameMap?['ru'] ??
-              nameMap?['en'] ??
-              item['name'] as String? ??
-              '';
-          final icon = item['icon'] as String?;
-          return Equipment(id: id, name: name, names: nameMap, icon: icon);
-        }
-        return Equipment(id: 0, name: item.toString());
-      }).toList();
+      final data = await _remoteDataSource.getEquipment();
+      return data.map((item) => _mapEquipmentFromMap(item)).toList();
     } on AppException {
       rethrow;
     } catch (e) {
@@ -687,50 +678,11 @@ class HotelRepositoryImpl implements HotelRepository {
     int? hotelId,
   }) async {
     try {
-      final queryParams = <String, dynamic>{
-        'room_type_id': roomTypeId,
-      };
-      if (hotelId != null) {
-        queryParams['hotel_id'] = hotelId;
-      }
-
-      final response = await _dioClient.post(
-        HotelEndpoints.getRoomTypeEquipment,
-        queryParameters: queryParams,
-        data: {},
+      final data = await _remoteDataSource.getRoomTypeEquipment(
+        roomTypeId,
+        hotelId,
       );
-
-      final responseData = response.data;
-      List<dynamic>? equipmentData;
-
-      if (responseData is List) {
-        equipmentData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        equipmentData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['equipment'] as List<dynamic>?;
-      }
-
-      if (equipmentData == null) return [];
-
-      return equipmentData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final id = item['id'] as int? ?? 0;
-          final names = item['names'] as Map<String, dynamic>?;
-          final nameMap = names != null
-              ? Map<String, String>.from(
-                  names.map((key, value) => MapEntry(key, value.toString())))
-              : null;
-          final name = nameMap?['uz'] ??
-              nameMap?['ru'] ??
-              nameMap?['en'] ??
-              item['name'] as String? ??
-              '';
-          final icon = item['icon'] as String?;
-          return Equipment(id: id, name: name, names: nameMap, icon: icon);
-        }
-        return Equipment(id: 0, name: item.toString());
-      }).toList();
+      return data.map((item) => _mapEquipmentFromMap(item)).toList();
     } on AppException {
       rethrow;
     } catch (e) {
@@ -741,34 +693,26 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<Currency>> getCurrencies() async {
     try {
-      final response = await _dioClient.post(
-        HotelEndpoints.getCurrencies,
-        data: {},
-      );
-
-      final responseData = response.data;
-      List<dynamic>? currenciesData;
-
-      if (responseData is List) {
-        currenciesData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        currenciesData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['currencies'] as List<dynamic>?;
+      final data = await _remoteDataSource.getCurrencies();
+      // API might return Map with 'currencies' key or Map with currency codes as keys
+      if (data.containsKey('currencies') && data['currencies'] is List) {
+        final currenciesList = data['currencies'] as List<dynamic>;
+        return currenciesList
+            .map((item) => _mapCurrencyFromMap(item as Map<String, dynamic>))
+            .toList();
       }
-
-      if (currenciesData == null) return [];
-
-      return currenciesData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final code = item['code'] as String? ?? '';
-          final name = item['name'] as String? ?? code;
-          final symbol = item['symbol'] as String?;
-          final rate = (item['rate'] as num?)?.toDouble();
+      // If Map keys are currency codes (e.g., {"USD": {...}, "UZS": {...}})
+      if (data.isNotEmpty && data.values.every((v) => v is Map)) {
+        return data.entries.map((entry) {
+          final currencyData = entry.value as Map<String, dynamic>;
+          final code = entry.key;
+          final name = currencyData['name'] as String? ?? code;
+          final symbol = currencyData['symbol'] as String?;
+          final rate = (currencyData['rate'] as num?)?.toDouble();
           return Currency(code: code, name: name, symbol: symbol, rate: rate);
-        }
-        return Currency(code: item.toString(), name: item.toString());
-      }).toList();
+        }).toList();
+      }
+      return [];
     } on AppException {
       rethrow;
     } catch (e) {
@@ -779,34 +723,8 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<Star>> getStars() async {
     try {
-      final response = await _dioClient.post(
-        HotelEndpoints.getStars,
-        data: {},
-      );
-
-      final responseData = response.data;
-      List<dynamic>? starsData;
-
-      if (responseData is List) {
-        starsData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        starsData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['stars'] as List<dynamic>?;
-      }
-
-      if (starsData == null) return [];
-
-      return starsData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final value = item['value'] as int? ?? item['id'] as int? ?? 0;
-          final name = item['name'] as String?;
-          return Star(value: value, name: name);
-        } else if (item is int) {
-          return Star(value: item);
-        }
-        return Star(value: 0);
-      }).toList();
+      final data = await _remoteDataSource.getStars();
+      return data.map((item) => _mapStarFromMap(item)).toList();
     } on AppException {
       rethrow;
     } catch (e) {
@@ -817,43 +735,8 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<HotelPhoto>> getHotelPhotos({required int hotelId}) async {
     try {
-      final response = await _dioClient.post(
-        HotelEndpoints.getHotelPhotos,
-        queryParameters: {'hotel_id': hotelId},
-        data: {},
-      );
-
-      final responseData = response.data;
-      List<dynamic>? photosData;
-
-      if (responseData is List) {
-        photosData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        photosData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['photos'] as List<dynamic>?;
-      }
-
-      if (photosData == null) return [];
-
-      return photosData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final id = item['id'] as int? ?? 0;
-          final url =
-              item['url'] as String? ?? item['photo_url'] as String? ?? '';
-          final thumbnailUrl = item['thumbnail_url'] as String?;
-          final description = item['description'] as String?;
-          final category = item['category'] as String?;
-          return HotelPhoto(
-            id: id,
-            url: url,
-            thumbnailUrl: thumbnailUrl,
-            description: description,
-            category: category,
-          );
-        }
-        return HotelPhoto(id: 0, url: item.toString());
-      }).toList();
+      final data = await _remoteDataSource.getHotelPhotos(hotelId);
+      return data.map((item) => _mapHotelPhotoFromMap(item)).toList();
     } on AppException {
       rethrow;
     } catch (e) {
@@ -864,30 +747,8 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<HotelBooking>> getUserBookings() async {
     try {
-      final response = await _dioClient.post(
-        HotelEndpoints.getUserBookings,
-        data: {},
-      );
-
-      final responseData = response.data;
-      List<dynamic>? bookingsData;
-
-      if (responseData is List) {
-        bookingsData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        bookingsData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['bookings'] as List<dynamic>?;
-      }
-
-      if (bookingsData == null) return [];
-
-      return bookingsData.map((item) {
-        if (item is Map<String, dynamic>) {
-          return HotelBookingModel.fromJson(item);
-        }
-        throw const ParsingException('Noto\'g\'ri booking format');
-      }).toList();
+      final models = await _remoteDataSource.getUserBookings();
+      return models;
     } on AppException {
       rethrow;
     } catch (e) {
@@ -898,51 +759,8 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<RoomType>> getHotelRoomTypes({required int hotelId}) async {
     try {
-      final response = await _dioClient.post(
-        HotelEndpoints.getHotelRoomTypes,
-        queryParameters: {'hotel_id': hotelId},
-        data: {},
-      );
-
-      final responseData = response.data;
-      List<dynamic>? roomTypesData;
-
-      if (responseData is List) {
-        roomTypesData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        roomTypesData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['room_types'] as List<dynamic>?;
-      }
-
-      if (roomTypesData == null) return [];
-
-      return roomTypesData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final id = item['id'] as int? ?? 0;
-          final names = item['names'] as Map<String, dynamic>?;
-          final nameMap = names != null
-              ? Map<String, String>.from(
-                  names.map((key, value) => MapEntry(key, value.toString())))
-              : null;
-          final name = nameMap?['uz'] ??
-              nameMap?['ru'] ??
-              nameMap?['en'] ??
-              item['name'] as String? ??
-              '';
-          final maxOccupancy = item['max_occupancy'] as int?;
-          final description = item['description'] as String?;
-          return RoomType(
-            id: id,
-            name: name,
-            names: nameMap,
-            hotelId: hotelId,
-            maxOccupancy: maxOccupancy,
-            description: description,
-          );
-        }
-        return RoomType(id: 0, name: item.toString());
-      }).toList();
+      final data = await _remoteDataSource.getHotelRoomTypes(hotelId);
+      return data.map((item) => _mapRoomTypeFromMap(item, hotelId)).toList();
     } on AppException {
       rethrow;
     } catch (e) {
@@ -956,46 +774,11 @@ class HotelRepositoryImpl implements HotelRepository {
     int? roomTypeId,
   }) async {
     try {
-      final queryParams = <String, dynamic>{};
-      if (hotelId != null) queryParams['hotel_id'] = hotelId;
-      if (roomTypeId != null) queryParams['room_type_id'] = roomTypeId;
-
-      final response = await _dioClient.post(
-        HotelEndpoints.getHotelRoomPhotos,
-        queryParameters: queryParams.isNotEmpty ? queryParams : null,
-        data: {},
+      final data = await _remoteDataSource.getHotelRoomPhotos(
+        hotelId: hotelId,
+        roomTypeId: roomTypeId,
       );
-
-      final responseData = response.data;
-      List<dynamic>? photosData;
-
-      if (responseData is List) {
-        photosData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        photosData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['photos'] as List<dynamic>?;
-      }
-
-      if (photosData == null) return [];
-
-      return photosData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final id = item['id'] as int? ?? 0;
-          final url = item['url'] as String? ?? '';
-          final thumbnailUrl = item['thumbnail_url'] as String?;
-          final description = item['description'] as String?;
-          final category = item['type'] as String? ?? 'room';
-          return HotelPhoto(
-            id: id,
-            url: url,
-            thumbnailUrl: thumbnailUrl,
-            description: description,
-            category: category,
-          );
-        }
-        return const HotelPhoto(id: 0, url: '');
-      }).toList();
+      return data.map((item) => _mapHotelPhotoFromMap(item)).toList();
     } on AppException {
       rethrow;
     } catch (e) {
@@ -1006,24 +789,7 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<PriceRange> getPriceRange() async {
     try {
-      final response = await _dioClient.post(
-        HotelEndpoints.getPriceRange,
-        data: {},
-      );
-
-      final responseData = response.data;
-      Map<String, dynamic>? data;
-
-      if (responseData is Map<String, dynamic>) {
-        data = responseData['data'] as Map<String, dynamic>? ??
-            responseData['result'] as Map<String, dynamic>? ??
-            responseData;
-      }
-
-      if (data == null) {
-        throw const ParsingException('Price range ma\'lumotlari topilmadi');
-      }
-
+      final data = await _remoteDataSource.getPriceRange();
       final minPrice = (data['min_price'] as num?)?.toDouble() ?? 0.0;
       final maxPrice = (data['max_price'] as num?)?.toDouble() ?? 10000000.0;
       final currency = data['currency'] as String? ?? 'uzs';
@@ -1058,43 +824,8 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<NearbyPlaceType>> getNearbyPlacesTypes() async {
     try {
-      final response = await _dioClient.post(
-        HotelEndpoints.getNearbyPlacesTypes,
-        data: {},
-      );
-
-      final responseData = response.data;
-      List<dynamic>? typesData;
-
-      if (responseData is List) {
-        typesData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        typesData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['types'] as List<dynamic>?;
-      }
-
-      if (typesData == null) return [];
-
-      return typesData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final id = item['id'] as int? ?? 0;
-          final names = item['names'] as Map<String, dynamic>?;
-          final nameMap = names != null
-              ? Map<String, String>.from(
-                  names.map((key, value) => MapEntry(key, value.toString())))
-              : null;
-          final name = nameMap?['uz'] ??
-              nameMap?['ru'] ??
-              nameMap?['en'] ??
-              item['name'] as String? ??
-              '';
-          final icon = item['icon'] as String?;
-          return NearbyPlaceType(
-              id: id, name: name, names: nameMap, icon: icon);
-        }
-        return NearbyPlaceType(id: 0, name: item.toString());
-      }).toList();
+      final data = await _remoteDataSource.getNearbyPlacesTypes();
+      return data.map((item) => _mapNearbyPlaceTypeFromMap(item)).toList();
     } on AppException {
       rethrow;
     } catch (e) {
@@ -1105,58 +836,8 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<NearbyPlace>> getHotelNearbyPlaces({required int hotelId}) async {
     try {
-      final response = await _dioClient.post(
-        HotelEndpoints.getHotelNearbyPlaces,
-        queryParameters: {'hotel_id': hotelId},
-        data: {},
-      );
-
-      final responseData = response.data;
-      List<dynamic>? placesData;
-
-      if (responseData is List) {
-        placesData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        placesData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['nearby_places'] as List<dynamic>?;
-      }
-
-      if (placesData == null) return [];
-
-      return placesData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final id = item['id'] as int? ?? 0;
-          final names = item['names'] as Map<String, dynamic>?;
-          final nameMap = names != null
-              ? Map<String, String>.from(
-                  names.map((key, value) => MapEntry(key, value.toString())))
-              : null;
-          final name = nameMap?['uz'] ??
-              nameMap?['ru'] ??
-              nameMap?['en'] ??
-              item['name'] as String? ??
-              '';
-          final typeId = item['type_id'] as int?;
-          final distance = (item['distance'] as num?)?.toDouble();
-          final coordinates = item['coordinates'] as Map<String, dynamic>?;
-          Map<String, double>? coordsMap;
-          if (coordinates != null) {
-            coordsMap = coordinates.map((key, value) =>
-                MapEntry(key, (value as num?)?.toDouble() ?? 0.0));
-          }
-          return NearbyPlace(
-            id: id,
-            name: name,
-            names: nameMap,
-            hotelId: hotelId,
-            typeId: typeId,
-            distance: distance,
-            coordinates: coordsMap,
-          );
-        }
-        return NearbyPlace(id: 0, name: item.toString(), hotelId: hotelId);
-      }).toList();
+      final data = await _remoteDataSource.getHotelNearbyPlaces(hotelId);
+      return data.map((item) => _mapNearbyPlaceFromMap(item, hotelId)).toList();
     } on AppException {
       rethrow;
     } catch (e) {
@@ -1167,42 +848,8 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<ServiceInRoom>> getServicesInRoom() async {
     try {
-      final response = await _dioClient.post(
-        HotelEndpoints.getServicesInRoom,
-        data: {},
-      );
-
-      final responseData = response.data;
-      List<dynamic>? servicesData;
-
-      if (responseData is List) {
-        servicesData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        servicesData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['services'] as List<dynamic>?;
-      }
-
-      if (servicesData == null) return [];
-
-      return servicesData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final id = item['id'] as int? ?? 0;
-          final names = item['names'] as Map<String, dynamic>?;
-          final nameMap = names != null
-              ? Map<String, String>.from(
-                  names.map((key, value) => MapEntry(key, value.toString())))
-              : null;
-          final name = nameMap?['uz'] ??
-              nameMap?['ru'] ??
-              nameMap?['en'] ??
-              item['name'] as String? ??
-              '';
-          final icon = item['icon'] as String?;
-          return ServiceInRoom(id: id, name: name, names: nameMap, icon: icon);
-        }
-        return ServiceInRoom(id: 0, name: item.toString());
-      }).toList();
+      final data = await _remoteDataSource.getServicesInRoom();
+      return data.map((item) => _mapServiceInRoomFromMap(item)).toList();
     } on AppException {
       rethrow;
     } catch (e) {
@@ -1214,43 +861,8 @@ class HotelRepositoryImpl implements HotelRepository {
   Future<List<ServiceInRoom>> getHotelServicesInRoom(
       {required int hotelId}) async {
     try {
-      final response = await _dioClient.post(
-        HotelEndpoints.getHotelServicesInRoom,
-        queryParameters: {'hotel_id': hotelId},
-        data: {},
-      );
-
-      final responseData = response.data;
-      List<dynamic>? servicesData;
-
-      if (responseData is List) {
-        servicesData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        servicesData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['services'] as List<dynamic>?;
-      }
-
-      if (servicesData == null) return [];
-
-      return servicesData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final id = item['id'] as int? ?? 0;
-          final names = item['names'] as Map<String, dynamic>?;
-          final nameMap = names != null
-              ? Map<String, String>.from(
-                  names.map((key, value) => MapEntry(key, value.toString())))
-              : null;
-          final name = nameMap?['uz'] ??
-              nameMap?['ru'] ??
-              nameMap?['en'] ??
-              item['name'] as String? ??
-              '';
-          final icon = item['icon'] as String?;
-          return ServiceInRoom(id: id, name: name, names: nameMap, icon: icon);
-        }
-        return ServiceInRoom(id: 0, name: item.toString());
-      }).toList();
+      final data = await _remoteDataSource.getHotelServicesInRoom(hotelId);
+      return data.map((item) => _mapServiceInRoomFromMap(item)).toList();
     } on AppException {
       rethrow;
     } catch (e) {
@@ -1261,53 +873,12 @@ class HotelRepositoryImpl implements HotelRepository {
   @override
   Future<List<BedType>> getBedTypes() async {
     try {
-      final response = await _dioClient.post(
-        HotelEndpoints.getBedTypes,
-        data: {},
-      );
-
-      final responseData = response.data;
-      List<dynamic>? bedTypesData;
-
-      if (responseData is List) {
-        bedTypesData = responseData;
-      } else if (responseData is Map<String, dynamic>) {
-        bedTypesData = responseData['data'] as List<dynamic>? ??
-            responseData['result'] as List<dynamic>? ??
-            responseData['bed_types'] as List<dynamic>?;
-      }
-
-      if (bedTypesData == null) return [];
-
-      return bedTypesData.map((item) {
-        if (item is Map<String, dynamic>) {
-          final id = item['id'] as int? ?? 0;
-          final names = item['names'] as Map<String, dynamic>?;
-          final nameMap = names != null
-              ? Map<String, String>.from(
-                  names.map((key, value) => MapEntry(key, value.toString())))
-              : null;
-          final name = nameMap?['uz'] ??
-              nameMap?['ru'] ??
-              nameMap?['en'] ??
-              item['name'] as String? ??
-              '';
-          final icon = item['icon'] as String?;
-          return BedType(id: id, name: name, names: nameMap, icon: icon);
-        }
-        return BedType(id: 0, name: item.toString());
-      }).toList();
+      final data = await _remoteDataSource.getBedTypes();
+      return data.map((item) => _mapBedTypeFromMap(item)).toList();
     } on AppException {
       rethrow;
     } catch (e) {
       throw ParsingException('Ma\'lumotlarni qayta ishlashda xatolik: $e');
     }
-  }
-
-  Map<String, dynamic> _ensureMap(Object? data) {
-    if (data is Map<String, dynamic>) {
-      return data;
-    }
-    throw const ParsingException('Server javobi noto\'g\'ri formatda');
   }
 }

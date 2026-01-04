@@ -96,6 +96,16 @@ class GetCountriesRequested extends HotelEvent {
   const GetCountriesRequested();
 }
 
+class GetHotelsListRequested extends HotelEvent {
+  final int? hotelTypeId;
+  final int? countryId;
+  final int? regionId;
+  final int? cityId;
+  const GetHotelsListRequested({this.hotelTypeId, this.countryId, this.regionId, this.cityId});
+  @override
+  List<Object?> get props => [hotelTypeId, countryId, regionId, cityId];
+}
+
 class GetRegionsRequested extends HotelEvent {
   final int? countryId;
   const GetRegionsRequested({this.countryId});

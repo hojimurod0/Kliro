@@ -3,10 +3,16 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'save_order_response.freezed.dart';
 part 'save_order_response.g.dart';
 
+String? _stringFromJson(dynamic value) {
+  if (value == null) return null;
+  if (value is String) return value;
+  return value.toString();
+}
+
 @freezed
 class SaveOrderResponse with _$SaveOrderResponse {
   const factory SaveOrderResponse({
-    @JsonKey(name: 'order_id') String? orderId,
+    @JsonKey(name: 'order_id', fromJson: _stringFromJson) String? orderId,
     double? premium,
     @JsonKey(name: 'car_id') int? carId,
     @JsonKey(name: 'owner_name') String? ownerName,
@@ -16,19 +22,9 @@ class SaveOrderResponse with _$SaveOrderResponse {
     String? url,
     @JsonKey(name: 'url_shartnoma') String? urlShartnoma,
     @JsonKey(name: 'payme_url') String? paymeUrl,
-    @JsonKey(name: 'contract_id') String? contractId,
+    @JsonKey(name: 'contract_id', fromJson: _stringFromJson) String? contractId,
   }) = _SaveOrderResponse;
 
-  factory SaveOrderResponse.fromJson(Map<String, dynamic> json) {
-    // Handle int to String conversion for order_id and contract_id
-    final processedJson = Map<String, dynamic>.from(json);
-    if (processedJson['order_id'] != null && processedJson['order_id'] is int) {
-      processedJson['order_id'] = processedJson['order_id'].toString();
-    }
-    if (processedJson['contract_id'] != null &&
-        processedJson['contract_id'] is int) {
-      processedJson['contract_id'] = processedJson['contract_id'].toString();
-    }
-    return _$$SaveOrderResponseImplFromJson(processedJson);
-  }
+  factory SaveOrderResponse.fromJson(Map<String, dynamic> json) =>
+      _$SaveOrderResponseFromJson(json);
 }

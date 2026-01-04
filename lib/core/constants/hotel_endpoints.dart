@@ -8,8 +8,9 @@ class HotelEndpoints {
   static const String getCities = '/hotels/cities';
   static const String getHotelTypes = '/hotels/types';
   static const String getHotelList = '/hotels/list';
+  static String getHotelDetails(String hotelId) => '/hotels/$hotelId';
   static const String getHotelPhotos = '/hotels/photos';
-  static const String getHotelRoomTypes = '/hotels/room-types';
+  static String getHotelRoomTypes(int hotelId) => '/hotels/$hotelId/room-types';
   static const String getHotelRoomPhotos = '/hotels/room-photos';
   static const String getFacilities = '/hotels/facilities';
   static const String getHotelFacilities = '/hotels/hotel-facilities';
@@ -23,6 +24,7 @@ class HotelEndpoints {
   static const String getServicesInRoom = '/hotels/services-in-room';
   static const String getHotelServicesInRoom = '/hotels/hotel-services-in-room';
   static const String getBedTypes = '/hotels/bed-types';
+  static const String getCitiesWithIds = '/hotels/cities';
 
   // Booking-Flow API (v1.1.0)
   static const String searchHotels = '/hotels/search';

@@ -84,6 +84,11 @@ import '../../services/auth/auth_service.dart';
 import '../../constants/constants.dart';
 import '../client/dio_client.dart';
 import '../../network/avia/avia_dio_client.dart';
+import '../../network/hotel/hotel_dio_client.dart';
+import '../../../features/hotel/data/datasources/hotel_remote_data_source.dart';
+import '../../../features/hotel/data/repositories/hotel_repository_impl.dart';
+import '../../../features/hotel/domain/repositories/hotel_repository.dart';
+import '../../../features/hotel/presentation/bloc/hotel_bloc.dart';
 
 class ServiceLocator {
   ServiceLocator._();
@@ -243,6 +248,17 @@ class ServiceLocator {
         () => AviaDioClient(authService: _getIt<AuthService>()),
       );
     }
+    // Hotel Data Sources
+    if (!_getIt.isRegistered<HotelDioClient>()) {
+      _getIt.registerLazySingleton<HotelDioClient>(
+        () => HotelDioClient(authService: _getIt<AuthService>()),
+      );
+    }
+    if (!_getIt.isRegistered<HotelRemoteDataSource>()) {
+      _getIt.registerLazySingleton<HotelRemoteDataSource>(
+        () => HotelRemoteDataSourceImpl(dioClient: _getIt<HotelDioClient>()),
+      );
+    }
     // Trust Insurance Data Sources
     if (!_getIt.isRegistered<TrustInsuranceDioClient>()) {
       // Config tekshiruvi
@@ -355,6 +371,14 @@ class ServiceLocator {
       _getIt.registerLazySingleton<AvichiptalarRepository>(
         () => AvichiptalarRepositoryImpl(
           dioClient: _getIt<AviaDioClient>(),
+        ),
+      );
+    }
+    // Hotel Repository
+    if (!_getIt.isRegistered<HotelRepository>()) {
+      _getIt.registerLazySingleton<HotelRepository>(
+        () => HotelRepositoryImpl(
+          remoteDataSource: _getIt<HotelRemoteDataSource>(),
         ),
       );
     }
@@ -524,6 +548,10 @@ class ServiceLocator {
         repository: _getIt<AvichiptalarRepository>(),
         dioClient: _getIt<AviaDioClient>(),
       ),
+    );
+    // Hotel BLoC
+    _getIt.registerFactory<HotelBloc>(
+      () => HotelBloc(repository: _getIt<HotelRepository>()),
     );
   }
 }

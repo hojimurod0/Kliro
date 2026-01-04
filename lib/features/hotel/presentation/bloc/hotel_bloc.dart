@@ -17,6 +17,9 @@ part 'hotel_state.dart';
 class HotelBloc extends Bloc<HotelEvent, HotelState> {
   final HotelRepository repository;
 
+  // Cache full hotel details to enrich search results
+  List<Hotel> _cachedHotels = [];
+
   HotelBloc({required this.repository}) : super(HotelInitial()) {
     // Search
     on<SearchHotelsRequested>(_onSearchHotelsRequested);
@@ -41,6 +44,7 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
 
     // Reference Data
     on<GetCountriesRequested>(_onGetCountriesRequested);
+    on<GetHotelsListRequested>(_onGetHotelsListRequested);
     on<GetRegionsRequested>(_onGetRegionsRequested);
     on<GetHotelTypesRequested>(_onGetHotelTypesRequested);
     on<GetFacilitiesRequested>(_onGetFacilitiesRequested);
@@ -60,6 +64,49 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     on<GetBedTypesRequested>(_onGetBedTypesRequested);
   }
 
+  Future<void> _onGetHotelsListRequested(
+    GetHotelsListRequested event,
+    Emitter<HotelState> emit,
+  ) async {
+    try {
+      final hotels = await repository.getHotelsList(
+        hotelTypeId: event.hotelTypeId,
+        countryId: event.countryId,
+        regionId: event.regionId,
+        cityId: event.cityId,
+      );
+
+      // Update cache
+      _cachedHotels = hotels;
+
+      debugPrint('✅ Get Hotels List Success: Loaded ${hotels.length} hotels');
+
+      // Check if we are currently displaying search results
+      if (state is HotelSearchSuccess) {
+        final currentSearchState = state as HotelSearchSuccess;
+        debugPrint(
+            '🔄 HotelBloc: Enriching current search results with new hotel list data');
+
+        final enrichedResult = currentSearchState.result.copyWith(
+          hotels: _enrichSearchResults(currentSearchState.result.hotels),
+        );
+
+        emit(HotelSearchSuccess(enrichedResult,
+            filter: currentSearchState.filter));
+      } else {
+        emit(HotelHotelsListSuccess(hotels));
+      }
+    } on AppException catch (e) {
+      if (state is! HotelSearchSuccess) {
+        emit(HotelHotelsListFailure(ErrorMessageHelper.getMessage(e)));
+      }
+    } catch (e) {
+      if (state is! HotelSearchSuccess) {
+        emit(HotelHotelsListFailure('Noma\'lum xatolik yuz berdi'));
+      }
+    }
+  }
+
   // Search
   Future<void> _onSearchHotelsRequested(
     SearchHotelsRequested event,
@@ -67,10 +114,30 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
   ) async {
     emit(HotelSearchLoading(event.filter));
     try {
+      final startTime = DateTime.now();
       final result = await repository.searchHotels(filter: event.filter);
+
+      // Merge search results with cached hotel details
+      final enrichedHotels = _enrichSearchResults(result.hotels);
+      final enrichedResult = result.copyWith(hotels: enrichedHotels);
+
+      // Calculate delay needed to reach 2.5 seconds minimum
+      final elapsed = DateTime.now().difference(startTime);
+      final remaining = const Duration(milliseconds: 2500) - elapsed;
+      if (remaining > Duration.zero) {
+        await Future.delayed(remaining);
+      }
+
       debugPrint(
-          '✅ Search Hotels Success: Found ${result.hotels.length} hotels');
-      emit(HotelSearchSuccess(result, filter: event.filter));
+          '✅ Search Hotels Success: Found ${enrichedResult.hotels.length} hotels');
+      if (enrichedResult.hotels.isNotEmpty) {
+        debugPrint(
+            '🔍 First hotel in result: ${enrichedResult.hotels.first.name}');
+        debugPrint('🔍 First hotel ID: ${enrichedResult.hotels.first.id}');
+      } else {
+        debugPrint('⚠️ WARNING: result.hotels is EMPTY!');
+      }
+      emit(HotelSearchSuccess(enrichedResult, filter: event.filter));
     } on AppException catch (e) {
       debugPrint('❌ Search Hotels Error: ${ErrorMessageHelper.getMessage(e)}');
       emit(HotelSearchFailure(
@@ -84,6 +151,36 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
         filter: event.filter,
       ));
     }
+  }
+
+  List<Hotel> _enrichSearchResults(List<Hotel> searchHotels) {
+    if (_cachedHotels.isEmpty) return searchHotels;
+
+    return searchHotels.map((searchHotel) {
+      try {
+        // Find matching hotel in cache
+        final cached = _cachedHotels.firstWhere(
+          (h) => h.hotelId == searchHotel.hotelId,
+          orElse: () => searchHotel,
+        );
+
+        if (cached == searchHotel) {
+          return searchHotel;
+        }
+
+        // Merge: use cached details + search options/price
+        return cached.copyWith(
+          price: searchHotel.price,
+          options: searchHotel.options,
+          // Keep the search request params valid
+          checkInDate: searchHotel.checkInDate,
+          checkOutDate: searchHotel.checkOutDate,
+          guests: searchHotel.guests,
+        );
+      } catch (e) {
+        return searchHotel;
+      }
+    }).toList();
   }
 
   Future<void> _onHotelStateReset(
@@ -133,13 +230,23 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     GetCitiesWithIdsRequested event,
     Emitter<HotelState> emit,
   ) async {
+    debugPrint(
+        '🔍 _onGetCitiesWithIdsRequested: countryId = ${event.countryId}');
     try {
       final cities =
           await repository.getCitiesWithIds(countryId: event.countryId);
+      debugPrint('✅ GetCitiesWithIds Success: Loaded ${cities.length} cities');
+      if (cities.isNotEmpty) {
+        debugPrint(
+            '🔍 First city: ${cities.first.name} (id: ${cities.first.id})');
+      }
       emit(HotelCitiesWithIdsSuccess(cities));
     } on AppException catch (e) {
+      debugPrint(
+          '❌ GetCitiesWithIds Error: ${ErrorMessageHelper.getMessage(e)}');
       emit(HotelCitiesWithIdsFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
+      debugPrint('❌ GetCitiesWithIds Error: $e');
       emit(HotelCitiesWithIdsFailure('Noma\'lum xatolik yuz berdi'));
     }
   }
@@ -423,7 +530,38 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     emit(HotelPhotosLoading());
     try {
       final photos = await repository.getHotelPhotos(hotelId: event.hotelId);
-      debugPrint('✅ Get Hotel Photos Success: Found ${photos.length} photos');
+      // debugPrint('✅ Get Hotel Photos Success: Found ${photos.length} photos');
+
+      // If we're in search success state and hotel doesn't have imageUrl, update it
+      if (state is HotelSearchSuccess && photos.isNotEmpty) {
+        final currentState = state as HotelSearchSuccess;
+        final currentHotels = currentState.result.hotels;
+
+        // Find default photo or first photo
+        final defaultPhoto = photos.firstWhere(
+          (p) => p.isDefault && p.url.isNotEmpty,
+          orElse: () => photos.firstWhere(
+            (p) => p.url.isNotEmpty,
+            orElse: () => photos.first,
+          ),
+        );
+
+        if (defaultPhoto.url.isNotEmpty) {
+          final updatedHotels = currentHotels.map((h) {
+            if (h.hotelId == event.hotelId &&
+                (h.imageUrl == null || h.imageUrl!.isEmpty)) {
+              // debugPrint('✅ HotelBloc: Updating hotel ${h.hotelId} with image: ${defaultPhoto.url}');
+              return h.copyWith(imageUrl: defaultPhoto.url);
+            }
+            return h;
+          }).toList();
+
+          final updatedResult =
+              currentState.result.copyWith(hotels: updatedHotels);
+          emit(HotelSearchSuccess(updatedResult, filter: currentState.filter));
+        }
+      }
+
       emit(HotelPhotosSuccess(photos));
     } on AppException catch (e) {
       debugPrint(

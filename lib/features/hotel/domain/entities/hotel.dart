@@ -1,6 +1,12 @@
 import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
+import 'reference_data.dart';
+
+part 'hotel.g.dart';
 
 /// Hotel option - вариант бронирования
+/// Note: JSON serialization is included here because HotelOption is used directly in generated code
+@JsonSerializable()
 class HotelOption extends Equatable {
   const HotelOption({
     required this.optionRefId,
@@ -11,7 +17,13 @@ class HotelOption extends Equatable {
     this.priceBreakdown,
     this.cancellationPolicy,
     this.includedMealOptions,
+    this.discount,
   });
+
+  factory HotelOption.fromJson(Map<String, dynamic> json) =>
+      _$HotelOptionFromJson(json);
+
+  Map<String, dynamic> toJson() => _$HotelOptionToJson(this);
 
   final String optionRefId;
   final int? roomTypeId;
@@ -21,6 +33,7 @@ class HotelOption extends Equatable {
   final Map<String, dynamic>? priceBreakdown;
   final Map<String, dynamic>? cancellationPolicy;
   final List<String>? includedMealOptions;
+  final int? discount;
 
   @override
   List<Object?> get props => [
@@ -32,6 +45,7 @@ class HotelOption extends Equatable {
         priceBreakdown,
         cancellationPolicy,
         includedMealOptions,
+        discount,
       ];
 }
 
@@ -52,6 +66,8 @@ class Hotel extends Equatable {
     this.amenities,
     this.options,
     this.stars,
+    this.discount,
+    this.photos,
   });
 
   /// String ID (legacy support)
@@ -78,6 +94,12 @@ class Hotel extends Equatable {
   /// Количество звезд
   final int? stars;
 
+  /// Chegirma foizi (masalan, 30)
+  final int? discount;
+
+  /// Фотографии отеля
+  final List<HotelPhoto>? photos;
+
   Hotel copyWith({
     String? id,
     int? hotelId,
@@ -94,6 +116,8 @@ class Hotel extends Equatable {
     List<String>? amenities,
     List<HotelOption>? options,
     int? stars,
+    int? discount,
+    List<HotelPhoto>? photos,
   }) {
     return Hotel(
       id: id ?? this.id,
@@ -111,6 +135,8 @@ class Hotel extends Equatable {
       amenities: amenities ?? this.amenities,
       options: options ?? this.options,
       stars: stars ?? this.stars,
+      discount: discount ?? this.discount,
+      photos: photos ?? this.photos,
     );
   }
 
@@ -131,6 +157,8 @@ class Hotel extends Equatable {
         amenities,
         options,
         stars,
+        discount,
+        photos,
       ];
 }
 

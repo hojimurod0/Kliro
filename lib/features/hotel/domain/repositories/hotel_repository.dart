@@ -1,8 +1,8 @@
-import '../entities/hotel.dart';
 import '../entities/hotel_filter.dart';
 import '../entities/hotel_search_result.dart';
 import '../entities/hotel_booking.dart';
 import '../entities/city.dart';
+import '../entities/hotel.dart';
 import '../entities/reference_data.dart';
 
 abstract class HotelRepository {
@@ -12,6 +12,9 @@ abstract class HotelRepository {
   });
 
   Future<Hotel> getHotelDetails({required String hotelId});
+  
+  /// Get hotels list (lightweight list for selection)
+  Future<List<Hotel>> getHotelsList({int? hotelTypeId, int? countryId, int? regionId, int? cityId});
 
   Future<List<String>> getCities({String? query});
 
@@ -69,7 +72,7 @@ abstract class HotelRepository {
   Future<List<Equipment>> getEquipment();
 
   /// Get room type equipment list
-  Future<List<Equipment>> getRoomTypeEquipment({required int roomTypeId});
+  Future<List<Equipment>> getRoomTypeEquipment({required int roomTypeId, int? hotelId});
 
   /// Get currencies list
   Future<List<Currency>> getCurrencies();

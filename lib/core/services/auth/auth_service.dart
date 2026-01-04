@@ -1,4 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
+import '../../constants/constants.dart';
 import '../../utils/logger.dart';
 
 class AuthUser {
@@ -254,5 +256,104 @@ class AuthService {
       email: email,
       phone: phone,
     );
+  }
+  Future<String?> refreshToken() async {
+    final prefs = _preferences;
+    final refreshToken = prefs.getString(_keyRefreshToken);
+
+    if (refreshToken == null) {
+      AppLogger.debug('🔄 AUTH_SERVICE: No refresh token found');
+      return null;
+    }
+
+    try {
+      AppLogger.debug('🔄 AUTH_SERVICE: Attempting to refresh token via Body...');
+      
+      // Independent Dio instance to avoid interceptor loops
+      final dio = Dio(BaseOptions(
+        baseUrl: ApiConstants.effectiveBaseUrl,
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          // Headerda token YUBORILMAYDI (Body'da ketadi)
+        },
+      ));
+
+      // 1-URINISH: Refresh Token Endpoint (Body orqali)
+      try {
+        final response = await dio.post(
+          ApiPaths.refreshToken,
+          data: {
+            'refresh_token': refreshToken,
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = response.data;
+          if (data is Map<String, dynamic> && data['data'] != null) {
+             final result = data['data'];
+             final newAccessToken = result['access_token'] as String?;
+             final newRefreshToken = result['refresh_token'] as String?;
+             
+             if (newAccessToken != null) {
+               await saveTokens(
+                 accessToken: newAccessToken,
+                 refreshToken: newRefreshToken ?? refreshToken,
+               );
+               AppLogger.debug('✅ AUTH_SERVICE: Token refreshed successfully (via Endpoint)');
+               return newAccessToken;
+             }
+          }
+        }
+      } catch (e) {
+        AppLogger.warning('⚠️ AUTH_SERVICE: Refresh endpoint failed: $e');
+        // Kuting, pastda Silent Login bor
+      }
+
+      // 2-URINISH: Silent Login (Agar endpoint 404/401 bersa)
+      AppLogger.debug('🔄 AUTH_SERVICE: Attempting Silent Login fallback...');
+      final contact = prefs.getString(_keyContact);
+      final password = prefs.getString(_keyPassword);
+
+      if (contact != null && password != null) {
+        final loginResponse = await dio.post(
+          ApiPaths.login,
+          data: {
+            'phone': contact, // Yoki email, normalize qilingan bo'lsa
+            'password': password,
+            // access_type "avia" uchun kerak bo'lsa qo'shamiz, lekin bu global auth
+          },
+        );
+
+        if (loginResponse.statusCode == 200) {
+           final data = loginResponse.data;
+           // Login response strukturasi: ApiResponse -> result -> AuthTokensModel
+           // Lekin bu yerda raw dio, shuning uchun qo'lda pars qilamiz
+           // Odatda: { success: true, data: { ...tokens... } }
+           if (data is Map<String, dynamic> && data['data'] != null) {
+             final result = data['data'];
+             final newAccessToken = result['access_token'] as String?;
+             final newRefreshToken = result['refresh_token'] as String?;
+
+             if (newAccessToken != null) {
+               await saveTokens(
+                 accessToken: newAccessToken,
+                 refreshToken: newRefreshToken ?? refreshToken,
+               );
+               AppLogger.debug('✅ AUTH_SERVICE: Token refreshed successfully (via Silent Login)');
+               return newAccessToken;
+             }
+           }
+        }
+      }
+
+      AppLogger.error('❌ AUTH_SERVICE: All refresh attempts failed');
+      return null;
+    } catch (e) {
+      AppLogger.error('❌ AUTH_SERVICE: Refresh logic error', e); 
+      return null;
+    }
   }
 }

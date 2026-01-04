@@ -116,6 +116,7 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return BlocConsumer<RegisterBloc, RegisterState>(
       listener: (context, state) {
         if (state.flow != RegisterFlow.resetPassword) return;
@@ -139,8 +140,8 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
             state.isLoading && state.flow == RegisterFlow.resetPassword;
 
         return Scaffold(
-          // Dark Mode fix: Fonni oq rangda qotiramiz
-          backgroundColor: AppColors.white,
+          // Dark Mode fix: Dynamic background
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: SafeArea(
             child: SingleChildScrollView(
               padding: AppSpacing.screenPadding,
@@ -155,7 +156,7 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
                   Text(
                     'auth.reset_password.title'.tr(),
                     style: AppTypography.headingXL.copyWith(
-                      color: AppColors.black, // Matn rangi qora
+                      color: isDark ? AppColors.white : AppColors.black,
                     ),
                   ),
                   SizedBox(height: AppSpacing.xs),
@@ -234,12 +235,13 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
     required VoidCallback onVisibilityChanged,
     bool isConfirm = false,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return TextField(
       controller: controller,
       obscureText: !isVisible,
       // --- DARK MODE FIX START ---
       style: TextStyle(
-        color: Colors.black, // Input ichidagi yozuv doim qora
+        color: isDark ? AppColors.white : Colors.black,
         fontSize: 16.sp,
         fontWeight: FontWeight.w500,
       ),
@@ -255,8 +257,7 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
 
         // Orqa fon (Kulrang)
         filled: true,
-        fillColor: AppColors
-            .grayBackground, // AppColors.grayBackground borligiga ishonch hosil qiling
+        fillColor: isDark ? AppColors.darkCardBg : AppColors.grayBackground,
 
         prefixIcon: Icon(
           Icons.lock_outline_rounded,
@@ -279,7 +280,7 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
         // Borderlar
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: AppColors.grayLight, width: 1),
+          borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.grayLight, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),

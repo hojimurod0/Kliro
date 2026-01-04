@@ -270,12 +270,17 @@ class _MicrocreditList extends StatelessWidget {
     );
     debugPrint('[MicrocreditList] State isPaginating: ${state.isPaginating}');
 
+    // Uzum Bankni ro'yxatdan chiqaramiz
+    final filteredItems = state.items.where((item) => 
+      !item.bankName.toLowerCase().contains('uzum')
+    ).toList();
+
     final hasPaginationError = state.paginationErrorMessage != null;
     final extraSlots = (state.hasMore ? 1 : 0) + (hasPaginationError ? 1 : 0);
-    final itemCount = state.items.length + extraSlots;
+    final itemCount = filteredItems.length + extraSlots;
 
     debugPrint(
-      '[MicrocreditList] Item count: $itemCount (items: ${state.items.length}, extra: $extraSlots)',
+      '[MicrocreditList] Item count: $itemCount (items: ${filteredItems.length}, extra: $extraSlots)',
     );
 
     return ListView.separated(
@@ -295,16 +300,16 @@ class _MicrocreditList extends StatelessWidget {
         }
 
         final adjustedIndex = hasPaginationError ? index - 1 : index;
-        if (adjustedIndex >= state.items.length) {
+        if (adjustedIndex >= filteredItems.length) {
           debugPrint(
-            '[MicrocreditList] Index $adjustedIndex >= items.length ${state.items.length}, showing loader',
+            '[MicrocreditList] Index $adjustedIndex >= items.length ${filteredItems.length}, showing loader',
           );
           return state.hasMore
               ? const _BottomLoader()
               : const SizedBox.shrink();
         }
 
-        final item = state.items[adjustedIndex];
+        final item = filteredItems[adjustedIndex];
         debugPrint(
           '[MicrocreditList] Building card for item: ${item.bankName}',
         );
@@ -328,14 +333,15 @@ class _MicrocreditCardState extends State<_MicrocreditCard> {
 
   List<String> _getAdvantages() {
     final advantages = <String>[];
-    if (widget.item.rate.isNotEmpty) {
+    // Uzum Bank uchun foizni ko'rsatmaymiz
+    if (widget.item.rate.isNotEmpty && !widget.item.bankName.toLowerCase().contains('uzum')) {
       advantages.add('${tr('micro_loan.interest_rate_label')} ${localizeApiText(widget.item.rate)}');
     }
     if (widget.item.term.isNotEmpty) {
       advantages.add('${tr('micro_loan.term_label')} ${localizeApiText(widget.item.term)}');
     }
     if (widget.item.amount.isNotEmpty) {
-      advantages.add('${tr('micro_loan.max_amount_label')} ${widget.item.amount}');
+      advantages.add('${tr('micro_loan.max_amount_label')} ${formatCompactAmount(widget.item.amount)}');
     }
     if (advantages.isEmpty) {
       advantages.add(tr('micro_loan.default_advantages'));
@@ -454,15 +460,18 @@ class _MicrocreditCardState extends State<_MicrocreditCard> {
           SizedBox(height: 16.h),
           Row(
             children: [
-              Expanded(
-                child: _InfoBlock(
-                  icon: Icons.percent_rounded,
-                  label: tr('micro_loan.interest_rate'),
-                  value: localizeApiText(widget.item.rate),
-                  isAccent: true,
+              // Uzum Bank uchun foizni ko'rsatmaymiz
+              if (!widget.item.bankName.toLowerCase().contains('uzum'))
+                Expanded(
+                  child: _InfoBlock(
+                    icon: Icons.percent_rounded,
+                    label: tr('micro_loan.interest_rate'),
+                    value: localizeApiText(widget.item.rate),
+                    isAccent: true,
+                  ),
                 ),
-              ),
-              SizedBox(width: 8.w),
+              if (!widget.item.bankName.toLowerCase().contains('uzum'))
+                SizedBox(width: 8.w),
               Expanded(
                 child: _InfoBlock(
                   icon: Icons.calendar_month_outlined,
