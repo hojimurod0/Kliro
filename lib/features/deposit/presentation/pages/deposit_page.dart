@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_text_size.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/widgets/primary_back_button.dart';
 import '../../../../core/widgets/primary_search_filter_bar.dart';
@@ -108,7 +109,7 @@ class _DepositPageState extends State<DepositPage> {
             style: TextStyle(
               color:
                   Theme.of(context).textTheme.titleLarge?.color ?? Colors.black,
-              fontSize: 17.sp,
+              fontSize: AppTextSize.appBarTitle,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -372,38 +373,12 @@ class _DepositCardState extends State<_DepositCard> {
                     Text(
                       widget.item.bankName,
                       style: TextStyle(
-                        fontSize: 16.sp,
+                        fontSize: AppTextSize.headingS,
                         fontWeight: FontWeight.w700,
                         color:
                             Theme.of(context).textTheme.titleLarge?.color ??
                             const Color(0xFF111827),
                       ),
-                    ),
-                    SizedBox(height: 8.h),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.access_time,
-                          size: 14.sp,
-                          color:
-                              Theme.of(context).textTheme.bodySmall?.color ??
-                              const Color(0xFF9CA3AF),
-                        ),
-                        SizedBox(width: 4.w),
-                        Text(
-                          widget.item.createdAt != null
-                              ? DateFormat(
-                                  'dd MMM, HH:mm',
-                                ).format(widget.item.createdAt!.toLocal())
-                              : tr('deposit.updated_recently'),
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color:
-                                Theme.of(context).textTheme.bodyMedium?.color ??
-                                AppColors.gray500,
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
@@ -468,7 +443,7 @@ class _DepositCardState extends State<_DepositCard> {
                           tr('deposit.advantages_count', namedArgs: {'count': advantages.length.toString()}),
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
-                            fontSize: 14.sp,
+                            fontSize: AppTextSize.advantagesCount,
                             color:
                                 Theme.of(context).textTheme.titleLarge?.color ??
                                 const Color(0xFF111827),
@@ -500,7 +475,7 @@ class _DepositCardState extends State<_DepositCard> {
                               child: Text(
                                 advantage,
                                 style: TextStyle(
-                                  fontSize: 13.sp,
+                                  fontSize: AppTextSize.advantagesItem,
                                   color:
                                       Theme.of(context).textTheme.bodyMedium?.color ??
                                       AppColors.gray500,
@@ -543,7 +518,7 @@ class _DepositCardState extends State<_DepositCard> {
               child: Text(
                 tr('deposit.open_deposit'),
                 style: TextStyle(
-                  fontSize: 14.sp,
+                  fontSize: AppTextSize.buttonPrimary,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
@@ -599,7 +574,7 @@ class _InfoBlock extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 11.sp,
+              fontSize: AppTextSize.infoLabel,
               color:
                   Theme.of(context).textTheme.bodyMedium?.color ??
                   AppColors.gray500,
@@ -609,7 +584,7 @@ class _InfoBlock extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontSize: 12.sp,
+              fontSize: AppTextSize.infoValue,
               fontWeight: FontWeight.w700,
                   color: isAccent
                   ? accentColor
@@ -657,14 +632,14 @@ class _StateMessage extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: AppTextSize.bodyLarge, fontWeight: FontWeight.w700),
             ),
             SizedBox(height: 8.h),
             Text(
               subtitle,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 13.sp,
+                fontSize: AppTextSize.bodySmall,
                 color:
                     Theme.of(context).textTheme.bodyMedium?.color ??
                     Colors.grey,
@@ -797,7 +772,7 @@ class _DepositFilterSheetState extends State<_DepositFilterSheet> {
             Text(
               tr('deposit.filters'),
               style: TextStyle(
-                fontSize: 18.sp,
+                fontSize: AppTextSize.filterTitle,
                 fontWeight: FontWeight.w600,
                 color:
                     Theme.of(context).textTheme.titleLarge?.color ??
@@ -849,7 +824,7 @@ class _DepositFilterSheetState extends State<_DepositFilterSheet> {
                       child: Text(
                         tr('common.reset'),
                         style: TextStyle(
-                          fontSize: 16.sp,
+                          fontSize: AppTextSize.buttonPrimary,
                           fontWeight: FontWeight.w500,
                           color:
                               Theme.of(context).textTheme.titleLarge?.color ??
@@ -874,7 +849,7 @@ class _DepositFilterSheetState extends State<_DepositFilterSheet> {
                         tr('common.apply'),
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 16.sp,
+                          fontSize: AppTextSize.buttonPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -909,7 +884,7 @@ class _DepositFilterSheetState extends State<_DepositFilterSheet> {
             Text(
               type.icon,
               style: TextStyle(
-                fontSize: 16.sp,
+                fontSize: AppTextSize.bodyLarge,
                 color: isSelected ? Colors.white : Colors.black87,
                 fontWeight: FontWeight.w500,
               ),
@@ -918,7 +893,7 @@ class _DepositFilterSheetState extends State<_DepositFilterSheet> {
             Text(
               type.label,
               style: TextStyle(
-                fontSize: 16.sp,
+                fontSize: AppTextSize.bodyLarge,
                 color: isSelected ? Colors.white : Colors.black87,
                 fontWeight: FontWeight.w600,
               ),
@@ -952,7 +927,7 @@ class _PaginationErrorBanner extends StatelessWidget {
             child: Text(
               message,
               style: TextStyle(
-                fontSize: 12.sp,
+                fontSize: AppTextSize.labelMedium,
                 color: Theme.of(context).colorScheme.error,
               ),
             ),

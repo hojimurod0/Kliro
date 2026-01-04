@@ -1,45 +1,32 @@
 import 'package:equatable/equatable.dart';
-import 'package:json_annotation/json_annotation.dart';
 
-part 'price_check_model.g.dart';
-
-@JsonSerializable()
 class PriceCheckModel extends Equatable {
-  final String? price;
-  final String? currency;
-  @JsonKey(name: 'price_changed')
-  final bool? priceChanged;
-  @JsonKey(name: 'old_price')
-  final String? oldPrice;
+  final bool? isPriceChanged;
 
   const PriceCheckModel({
-    this.price,
-    this.currency,
-    this.priceChanged,
-    this.oldPrice,
+    this.isPriceChanged,
   });
 
-  factory PriceCheckModel.fromJson(Map<String, dynamic> json) =>
-      _$PriceCheckModelFromJson(json);
+  factory PriceCheckModel.fromJson(Map<String, dynamic> json) {
+    return PriceCheckModel(
+      isPriceChanged: json['is_price_changed'] as bool?,
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$PriceCheckModelToJson(this);
+  Map<String, dynamic> toJson() => {
+        'is_price_changed': isPriceChanged,
+      };
 
   PriceCheckModel copyWith({
-    String? price,
-    String? currency,
-    bool? priceChanged,
-    String? oldPrice,
+    bool? isPriceChanged,
   }) {
     return PriceCheckModel(
-      price: price ?? this.price,
-      currency: currency ?? this.currency,
-      priceChanged: priceChanged ?? this.priceChanged,
-      oldPrice: oldPrice ?? this.oldPrice,
+      isPriceChanged: isPriceChanged ?? this.isPriceChanged,
     );
   }
 
   @override
-  List<Object?> get props => [price, currency, priceChanged, oldPrice];
+  List<Object?> get props => [isPriceChanged];
 }
 
 

@@ -50,7 +50,35 @@
       "snack_contact_invalid": "Kontakt ma'lumotini to'g'ri kiriting.",
       "snack_contact_required": "Kontaktni kiriting",
       "error_credentials": "Login yoki parol noto'g'ri",
-      "error_credentials_detail": "Telefon raqami yoki parol noto'g'ri.\n\nTekshiring:\n• Telefon raqamini to'g'ri kiritganingizni\n• Parolni to'g'ri kiritganingizni (katta/kichik harflar)\n• Agar parolni unutgan bo'lsangiz, 'Parolni unutdingizmi?' tugmasidan foydalaning"
+      "error_credentials_detail": "Noto'g'ri ma'lumotlar",
+      "error_password_incorrect": "Parol noto'g'ri",
+      "error_phone_format": "Telefon formati noto'g'ri",
+      "error_password_complexity": "Parol raqam va harflardan iborat bo'lishi kerak",
+      "agree_to_terms_required": "Iltimos, shartlar va maxfiylik siyosatiga rozilik bildiring",
+      "agree_to_terms_prefix": "Men ",
+      "agree_to_terms_link": "foydalanish shartlari",
+      "agree_to_terms_suffix": " bilan tanishdim va roziman",
+      "agree_to_privacy_prefix": "Men ",
+      "agree_to_privacy_link": "maxfiylik siyosati",
+      "agree_to_privacy_suffix": " bilan tanishdim va shaxsiy ma'lumotlarimni qayta ishlashga rozilik bildiraman",
+      "agree_to_terms_and_privacy_prefix": "Men ",
+      "agree_to_terms_and_privacy_link": "foydalanish shartlari va maxfiylik siyosati"
+    },
+    "privacy": {
+      "title": "Maxfiylik siyosati",
+      "description": "Bizning maxfiylik siyosatimiz bilan tanishib chiqing. Bu hujjatda bizning shaxsiy ma'lumotlarni qanday to'plash, saqlash va ishlatishimiz haqida batafsil ma'lumot berilgan.",
+      "open_document": "Hujjatni ochish",
+      "note": "Eslatma: Hujjat tashqi brauzerda ochiladi",
+      "cannot_open": "Hujjatni ochib bo'lmadi",
+      "error": "Xatolik yuz berdi"
+    },
+    "terms": {
+      "title": "Foydalanish shartlari",
+      "description": "Ilovadan foydalanishdan oldin foydalanish shartlarini o'qing. Bu hujjatda xizmatlarimizdan foydalanish qoidalari va shartlari batafsil ko'rsatilgan.",
+      "open_document": "Hujjatni ochish",
+      "note": "Eslatma: Hujjat tashqi brauzerda ochiladi",
+      "cannot_open": "Hujjatni ochib bo'lmadi",
+      "error": "Xatolik yuz berdi"
     },
     "register": {
       "title": "Akkaunt yaratish",
@@ -281,9 +309,15 @@
     "best_buy": "Eng yaxshi sotib olish",
     "best_sell": "Eng yaxshi sotish",
     "bank_rates": "Banklardagi valyuta kurslari",
+    "bank_rates_description": "Banklardagi valyuta kurslarini solishtiring va eng yaxshi taklifni toping",
+    "best_rates": "Eng yaxshi kurslar",
+    "best": "Eng yaxshi",
     "best_offer": "Eng yaxshi taklif",
+    "select_operation": "Amalni tanlang",
     "som": "so'm",
     "per_day": "bir kunda",
+    "per_unit": "birlik uchun",
+    "empty_description": "Hozircha ma'lumotlar mavjud emas",
     "bank_name_hamkorbank": "Hamkorbank",
     "bank_name_universal": "Universal bank"
   },
@@ -488,7 +522,8 @@
     "payment_status": "To'lov holati",
     "prepaid": "Oldindan to'langan",
     "total_amount": "Jami summa",
-    "contact": "Aloqa"
+    "contact": "Aloqa",
+    "view_rules": "Tarif qoidalari"
   },
   "amenities": {
     "title": "Qulayliklar",
@@ -787,7 +822,10 @@
         "not_found": "Avtomobillar topilmadi",
         "marka": "Marka",
         "model": "Model",
-        "yil": "Yil"
+        "yil": "Yil",
+        "retry": "Qayta urinib ko'ring",
+        "brand": "Marka",
+        "year": "Yil"
       },
       "payment": {
         "title": "KASKO - To'lov",
@@ -971,14 +1009,6 @@
         "download_policy": "Polisni yuklab olish",
         "share": "Ulashish",
         "close": "Yopish"
-      },
-      "cars_list": {
-        "title": "KASKO - Avtomobillar",
-        "not_found": "Avtomobillar topilmadi",
-        "retry": "Qayta urinib ko'ring",
-        "brand": "Marka",
-        "model": "Model",
-        "year": "Yil"
       },
       "personal_data_page": {
         "birth_date_label": "Tug'ilgan kun sanasi",
@@ -1426,6 +1456,7 @@
       "my_passengers": "Mening yo'lovchilarim",
       "no_passengers_found": "Saqlangan yo'lovchilar topilmadi",
       "select_passenger": "Yo'lovchini tanlang",
+      "save_passenger_info": "Yo'lovchi ma'lumotlarini saqlash",
       "fill_all_fields": "Iltimos, barcha maydonlarni to'ldiring",
       "fill_passenger_fields": "Iltimos, {index}-yo'lovchi ma'lumotlarini to'liq to'ldiring"
     },
@@ -1478,7 +1509,8 @@
       "back": "Orqaga",
       "pay_now": "Hozir to'lash",
       "currency_sum": "sum",
-      "na": "—"
+      "na": "—",
+      "view_rules": "Tarif qoidalari"
     },
     "login_required": {
       "title": "Kirish talab qilinadi",
@@ -1608,30 +1640,48 @@
   },
   "hotel": {
     "search": {
-      "title": "Mehmonxona qidirish",
+      "title": "Mehmonxona qidiruvi",
       "city": "Shahar",
-      "city_hint": "Qayerga borasiz?",
+      "city_hint": "Shaharni kiriting",
       "check_in_date": "Kirish sanasi",
       "check_out_date": "Chiqish sanasi",
-      "check_in": "Kirish",
-      "check_out": "Chiqish",
+      "check_in": "Kirish sanasi",
+      "check_out": "Chiqish sanasi",
       "guests": "Mehmonlar",
       "guests_title": "Mehmonlar soni",
+      "guests_rooms": "Mehmonlar va xonalar",
       "rooms": "Xonalar soni",
       "search_button": "Qidirish",
       "adults": "Kattalar",
       "children": "Bolalar",
-      "person": "Kishi",
-      "recommended": "Tavsiya etilgan"
+      "person": "kishi",
+      "room": "xona",
+      "recommended": "Tavsiya etamiz",
+      "select_city": "Shahar tanlang yoki kiriting",
+      "select_dates": "Kirish va chiqish sanalarini tanlang",
+      "invalid_dates": "Chiqish sanasi kirish sanasidan keyin bo'lishi kerak",
+      "city_not_found": "Shahar topilmadi. Iltimos, ro'yxatdan tanlang",
+      "failed": "Qidiruv muvaffaqiyatsiz",
+      "age_restrictions_adults": "18+ yosh",
+      "age_restrictions_children": "0-17 yosh"
     },
     "results": {
       "title": "Mehmonxonalar",
-      "not_found": "Mehmonxona topilmadi",
+      "options_available": "variantlar mavjud",
+      "empty_title": "Mehmonxonalar topilmadi",
+      "empty_subtitle": "Boshqa qidiruv parametrlarini sinab ko'ring",
+      "not_found": "Mehmonxonalar topilmadi",
       "select": "Tanlash",
       "person": "kishi",
       "people": "kishi",
-      "night": "Tun",
-      "nights": "Tun"
+      "night": "tun",
+      "nights": "tun",
+      "for_price": " ",
+      "breakfast": "Nonushta",
+      "details": "Batafsil",
+      "loading": "Eng yaxshi variantlarni qidiryapmiz...",
+      "please_wait": "Iltimos, kuting.",
+      "may_take_time": "Bu 60 soniyagacha vaqt olishi mumkin"
     },
     "guest_details": {
       "title": "Ma'lumotlarni kiritish",
@@ -1663,14 +1713,81 @@
       "confirm_and_pay": "Tasdiqlash va To'lash",
       "booking_success": "Bron qilindi!"
     },
+    "bookings": {
+      "title": "Mening bronlarim",
+      "empty_title": "Hozircha bronlar yo'q",
+      "empty_subtitle": "Siz bron qilgan mehmonxonalar shu yerda ko'rinadi",
+      "booking_id": "Bron ID",
+      "total": "Jami summa",
+      "status": {
+        "confirmed": "Tasdiqlangan",
+        "pending": "Kutilmoqda",
+        "cancelled": "Bekor qilingan"
+      }
+    },
+    "booking_details": {
+      "title": "Bron tafsilotlari",
+      "hotel_info": "Mehmonxona ma'lumotlari",
+      "dates": "Sanalar",
+      "booking_details": "Bron ma'lumotlari",
+      "booking_id": "Bron ID",
+      "confirmation_number": "Tasdiqlash raqami",
+      "hotel_confirmation": "Mehmonxona tasdiqlash raqami",
+      "payment": "To'lov",
+      "total_amount": "Jami summa",
+      "payment_status": "To'lov holati",
+      "checkin_instructions": "Kirish ko'rsatmalari",
+      "download_voucher": "Voucher yuklab olish",
+      "cancel": "Bekor qilish",
+      "cancel_confirm_title": "Bronni bekor qilish",
+      "cancel_confirm_message": "Haqiqatan ham bu bronni bekor qilmoqchimisiz?",
+      "cancelled_success": "Bron muvaffaqiyatli bekor qilindi",
+      "voucher_error": "Voucher yuklab olishda xatolik",
+      "nights": "kecha"
+    },
     "details": {
-      "price": "Narx:",
+      "title": "Mehmonxona tafsilotlari",
+      "price": "Narx",
       "description": "Tavsif",
+      "read_more": "Ko'proq o'qish",
       "amenities": "Qulayliklar",
+      "photos": "Rasmlar",
       "book": "Bron qilish",
-      "book_now": "Rasmiylashtirish",
-      "rooms": "Xonani tanlang",
-      "coming_soon": "Bron qilish funksiyasi tez orada qo'shiladi"
+      "book_now": "Hoziroq band qilish",
+      "rooms": "Xonalar",
+      "coming_soon": "Bron qilish funksiyasi tez orada qo'shiladi",
+      "tab_description": "Tavsif",
+      "tab_availability": "Mavjudlik",
+      "tab_services": "Xizmatlar",
+      "tab_conditions": "Shartlar",
+      "open_map": "Xaritada ochish",
+      "important_notes": "Muhim ma'lumotlar",
+      "condition_arrival_time": "Kirish vaqti",
+      "condition_visa": "Viza talablari",
+      "condition_marriage": "Nikoh guvohnomasi talab qilinishi mumkin",
+      "check_in_time": "Kirish vaqti",
+      "check_out_time": "Chiqish vaqti",
+      "age_policy": "Yosh cheklovlari",
+      "age_policy_content": "Barcha yoshdagi bolalar qabul qilinadi",
+      "facilities": "Qulayliklar",
+      "room_types": "Xona turlari",
+      "max_guests": "{count} kishilik",
+      "all_data": "Barcha ma'lumotlar",
+      "id": "ID",
+      "hotel_id": "Mehmonxona ID",
+      "name": "Nomi",
+      "city": "Shahar",
+      "address": "Manzil",
+      "image_url": "Rasm URL",
+      "rating": "Reyting",
+      "stars": "Yulduzlar",
+      "check_in_date": "Kirish sanasi",
+      "check_out_date": "Chiqish sanasi",
+      "guests_count": "Mehmonlar soni",
+      "options_count": "Variantlar soni",
+      "read_less": "Yopish",
+      "services": "Xizmatlar",
+      "open_map_error": "Xaritani ochib bo'lmadi"
     },
     "common": {
       "error": "Xatolik",
@@ -1682,7 +1799,20 @@
       "search": "Qidirish",
       "anywhere": "Qayerga?",
       "select": "Tanlash",
-      "close": "Yopish"
+      "close": "Yopish",
+      "unknown_error": "Noma'lum xatolik yuz berdi",
+      "parsing_error": "Ma'lumotlarni qayta ishlashda xatolik",
+      "network_error": "Internet aloqasi yo'q",
+      "server_error": "Server xatosi",
+      "timeout_error": "So'rov vaqti tugadi",
+      "invalid_hotel_id": "Noto'g'ri hotel ID",
+      "hotel_not_found": "Hotel topilmadi",
+      "invalid_response_format": "Server javobi noto'g'ri formatda",
+      "data": {
+        "not": {
+          "found": "Ma'lumot topilmadi"
+        }
+      }
     },
     "booking": {
       "title": "Rasmiylashtirish",
@@ -1691,14 +1821,57 @@
       "email": "Email",
       "phone": "Telefon",
       "payment_type": "To'lov turi",
-      "pay": "To'lov qilish"
+      "pay": "To'lov qilish",
+      "quote_not_found": "Quote topilmadi",
+      "fill_field": "Maydonni to'ldiring",
+      "invalid_email": "Noto'g'ri email formati",
+      "hotel_data_not_found": "Hotel ma'lumotlari topilmadi"
     },
     "success": {
       "title": "Bron qilindi",
       "subtitle": "Ma'lumotlar emailingizga yuborildi",
       "download": "Polisni yuklab olish",
-      "share": "Ulashish"
+      "share": "Ulashish",
+      "downloading": "Yuklanmoqda...",
+      "sharing": "Ulashilmoqda...",
+      "downloaded": "Muvaffaqiyatli yuklab olindi",
+      "download_error": "Yuklab olishda xatolik yuz berdi",
+      "share_error": "Ulashishda xatolik yuz berdi",
+      "voucher_not_available": "Voucher mavjud emas",
+      "open": "Ochish",
+      "booking_id": "Bron ID",
+      "confirmation": "Tasdiqlash raqami",
+      "share_title": "Mehmonxona broni"
     },
-    "from": "dan"
+    "from": "dan",
+    "filter": {
+      "title": "Filter",
+      "price_range": "Narx oralig'i",
+      "stars": "Yulduzlar",
+      "cancellation": "Bekor qilish",
+      "refundable": "Qaytariladigan",
+      "non_refundable": "Qaytarilmaydigan",
+      "all": "Barchasi",
+      "reset": "Tozalash",
+      "apply": "Qo'llash"
+    },
+    "error": {
+      "network_timeout": "So'rov vaqti tugadi. Internet aloqasini tekshiring va qayta urinib ko'ring.",
+      "no_internet": "Internet aloqasi yo'q. Internet aloqasini tekshiring.",
+      "connection_problem": "Internet aloqasi bilan muammo. Qayta urinib ko'ring.",
+      "bad_request": "Noto'g'ri so'rov. Ma'lumotlarni tekshiring.",
+      "unauthorized": "Kirish rad etildi. Iltimos, qayta kiring.",
+      "forbidden": "Ruxsat berilmadi.",
+      "not_found": "Ma'lumot topilmadi.",
+      "server_error": "Server bilan muammo. Iltimos, keyinroq urinib ko'ring.",
+      "server_error_generic": "Server xatosi yuz berdi.",
+      "processing": "So'rov qayta ishlanmoqda. Iltimos, biroz kuting...",
+      "validation": "Ma'lumotlar noto'g'ri. Iltimos, tekshiring.",
+      "parsing": "Ma'lumotlarni qayta ishlashda xatolik yuz berdi. Qayta urinib ko'ring.",
+      "unknown": "Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.",
+      "retry_network": "Internet aloqasini tekshiring va qayta urinib ko'ring.",
+      "retry_server": "Server bilan muammo. Bir necha soniyadan keyin qayta urinib ko'ring.",
+      "retry_generic": "Qayta urinib ko'ring."
+    }
   }
 }

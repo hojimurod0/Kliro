@@ -27,8 +27,9 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
 
       return InvoiceResponseModel.fromJson(response.data);
     } on DioException catch (e) {
+      final msg = _extractErrorMessage(e) ?? 'Invoice yaratishda xatolik';
       throw ServerException(
-        message: e.response?.data['message'] ?? 'Invoice yaratishda xatolik',
+        message: msg,
         statusCode: e.response?.statusCode,
       );
     }
@@ -40,8 +41,9 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
       final response = await client.get('/payment/invoice/$uuid');
       return InvoiceResponseModel.fromJson(response.data);
     } on DioException catch (e) {
+      final msg = _extractErrorMessage(e) ?? 'Invoice ma\'lumotlarini olishda xatolik';
       throw ServerException(
-        message: e.response?.data['message'] ?? 'Invoice ma\'lumotlarini olishda xatolik',
+        message: msg,
         statusCode: e.response?.statusCode,
       );
     }
@@ -56,8 +58,9 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
       );
       return InvoiceResponseModel.fromJson(response.data);
     } on DioException catch (e) {
+      final msg = _extractErrorMessage(e) ?? 'Scanpay amalga oshirishda xatolik';
       throw ServerException(
-        message: e.response?.data['message'] ?? 'Scanpay amalga oshirishda xatolik',
+        message: msg,
         statusCode: e.response?.statusCode,
       );
     }
@@ -84,8 +87,9 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
       }
       return data.toString();
     } on DioException catch (e) {
+      final msg = _extractErrorMessage(e) ?? 'Status tekshirishda xatolik';
       throw ServerException(
-        message: e.response?.data['message'] ?? 'Status tekshirishda xatolik',
+        message: msg,
         statusCode: e.response?.statusCode,
       );
     }
@@ -96,10 +100,30 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
     try {
       await client.delete('/payment/invoice/$uuid');
     } on DioException catch (e) {
+      final msg = _extractErrorMessage(e) ?? 'Invoice o\'chirishda xatolik';
       throw ServerException(
-        message: e.response?.data['message'] ?? 'Invoice o\'chirishda xatolik',
+        message: msg,
         statusCode: e.response?.statusCode,
       );
+    }
+  }
+}
+
+extension on PaymentRemoteDataSourceImpl {
+  String? _extractErrorMessage(DioException e) {
+    try {
+      final resp = e.response;
+      final data = resp?.data;
+      if (data is Map<String, dynamic>) {
+        // common keys
+        return data['message'] ?? data['error'] ?? data['detail'] ?? data['error_message'];
+      }
+      if (data is String) {
+        return data;
+      }
+      return e.message;
+    } catch (_) {
+      return e.message;
     }
   }
 }

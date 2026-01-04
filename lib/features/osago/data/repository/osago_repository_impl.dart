@@ -156,29 +156,10 @@ class OsagoRepositoryImpl implements OsagoRepository {
       name: 'OSAGO',
     );
     
-    // Avval provider ni tekshiramiz (ustunlik) - NEO doim cheklanmagan (0)
-    final providerLower = insurance.provider.toLowerCase().trim();
-    log(
-      '[OSAGO_REPO] Provider lower: "$providerLower"',
-      name: 'OSAGO',
-    );
-    
-    if (providerLower == 'neo') {
-      // NEO -> cheklanmagan (0) - nechta bo'lsa, hammasini qo'shadi
-      finalNumberDriversId = '0';
-      log(
-        '[OSAGO_REPO] ✅ Provider=NEO, finalNumberDriversId=0 (Cheklanmagan)',
-        name: 'OSAGO',
-      );
-    } else if (providerLower == 'gross') {
-      // GROSS -> cheklangan (5) - 5 tagacha
-      finalNumberDriversId = '5';
-      log(
-        '[OSAGO_REPO] ✅ Provider=GROSS, finalNumberDriversId=5 (Cheklangan)',
-        name: 'OSAGO',
-      );
-    } else if (insurance.isUnlimited) {
-      // Keyin isUnlimited ni tekshiramiz
+    // numberDriversId ni aniqlash: isUnlimited yoki insurance.numberDriversId ga qarab
+    // Bloc'da OSAGO type'ga qarab to'g'ri mapping qilingan, shuning uchun insurance.numberDriversId ni ishlatamiz
+    if (insurance.isUnlimited) {
+      // isUnlimited=true -> cheklanmagan (0)
       finalNumberDriversId = '0';
       log(
         '[OSAGO_REPO] ✅ isUnlimited=true, finalNumberDriversId=0 (Cheklanmagan)',
@@ -206,7 +187,7 @@ class OsagoRepositoryImpl implements OsagoRepository {
     }
     
     log(
-      '[OSAGO_REPO] ✅ Final numberDriversId: $finalNumberDriversId (provider="$providerLower")',
+      '[OSAGO_REPO] ✅ Final numberDriversId: $finalNumberDriversId (provider="${insurance.provider}")',
       name: 'OSAGO',
     );
 

@@ -11,7 +11,8 @@ class AppConfig {
   /// Включить логирование HTTP запросов
   static bool get enableLogging {
     const String? envLogging = String.fromEnvironment('ENABLE_LOGGING');
-    return envLogging == 'true' || const bool.fromEnvironment('ENABLE_LOGGING', defaultValue: true);
+    return envLogging == 'true' ||
+        const bool.fromEnvironment('ENABLE_LOGGING', defaultValue: true);
   }
 
   /// Таймаут подключения в секундах
@@ -20,4 +21,3 @@ class AppConfig {
   /// Таймаут получения данных в секундах
   static const int receiveTimeout = 30;
 }
-

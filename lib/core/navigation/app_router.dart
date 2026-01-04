@@ -30,6 +30,9 @@ import '../../features/accident/accident_module.dart';
 import '../../features/micro_loan/presentation/pages/micro_loan_page.dart';
 import '../../features/profile/presentation/pages/profile_edit_page.dart';
 import '../../features/profile/presentation/pages/about_app_page.dart';
+// Privacy and Terms pages are accessed via Navigator.push(), not auto-routes
+// import '../../features/profile/presentation/pages/privacy_policy_page.dart';
+// import '../../features/profile/presentation/pages/terms_of_use_page.dart';
 import '../../features/profile/presentation/pages/support_page.dart';
 import '../../features/profile/presentation/pages/support_chat_page.dart';
 import '../../features/profile/presentation/pages/security_page.dart';

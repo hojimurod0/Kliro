@@ -11,7 +11,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/navigation/app_router.dart';
 import '../bloc/kasko_bloc.dart';
 import '../bloc/kasko_event.dart';
 import '../bloc/kasko_state.dart';
@@ -655,6 +654,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
     bool urlOpened = false;
 
     debugPrint('🔗 Payment URL ochilmoqda: $url');
+    debugPrint('💳 Payment method: $paymentMethod');
 
     // Avval payment URL ni to'g'ridan-to'g'ri ochishga harakat qilamiz
     // Bir nechta LaunchMode bilan sinab ko'ramiz
@@ -663,6 +663,7 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
       debugPrint('🔗 Parsed URI: $uri');
 
       // 1. externalApplication mode bilan sinab ko'ramiz (brauzerda ochadi)
+      // canLaunchUrl false qaytishi mumkin, lekin launchUrl ishlashi mumkin
       try {
         urlOpened = await launchUrl(uri, mode: LaunchMode.externalApplication);
 
@@ -705,6 +706,24 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
           debugPrint('⚠️ launchUrlString xatosi: $e');
         }
       }
+
+      // 4. launchUrlString platformDefault mode bilan sinab ko'ramiz
+      if (!urlOpened) {
+        try {
+          debugPrint('🔄 launchUrlString platformDefault mode bilan sinab ko\'ramiz...');
+          urlOpened = await launchUrlString(
+            url,
+            mode: LaunchMode.platformDefault,
+          );
+
+          if (urlOpened) {
+            debugPrint('✅ Payment URL launchUrlString platformDefault mode bilan ochildi');
+            return;
+          }
+        } catch (e) {
+          debugPrint('⚠️ launchUrlString platformDefault mode xatosi: $e');
+        }
+      }
     } catch (e) {
       debugPrint('⚠️ Payment URL ochishda umumiy xatolik: $e');
       urlOpened = false;
@@ -712,8 +731,59 @@ class _KaskoPaymentTypePageState extends State<KaskoPaymentTypePage> {
 
     if (!context.mounted) return;
 
-    // Agar payment URL ishlamasa, foydalanuvchiga xabar beramiz
-    // Deep link yoki store URL'ga o'tmasdan, chunki API'dan kelgan URL asosiy
+    // Agar payment URL ishlamasa, deep link yoki store URL dan foydalanamiz
+    if (!urlOpened && paymentMethod.isNotEmpty) {
+      debugPrint('🔄 Deep link yoki store URL sinab ko\'ramiz...');
+      final appUrl = _getPaymentAppUrl(paymentMethod);
+
+      if (appUrl != null) {
+        try {
+          // Deep link ochishga harakat qilamiz
+          debugPrint('🔗 Deep link ochilmoqda: $appUrl');
+          urlOpened = await launchUrlString(
+            appUrl,
+            mode: LaunchMode.externalApplication,
+          );
+          
+          if (urlOpened) {
+            debugPrint('✅ Deep link ochildi');
+            return;
+          }
+        } catch (e) {
+          debugPrint('⚠️ Deep link xatosi: $e');
+          urlOpened = false;
+        }
+      }
+
+      // Agar deep link ham ishlamasa, store URL dan foydalanamiz
+      if (!urlOpened) {
+        final storeUrl = _getPaymentStoreUrl(paymentMethod);
+        if (storeUrl.isNotEmpty) {
+          try {
+            debugPrint('🔗 Store URL ochilmoqda: $storeUrl');
+            final success = await launchUrlString(
+              storeUrl,
+              mode: LaunchMode.externalApplication,
+            );
+
+            if (!context.mounted) return;
+
+            if (success) {
+              debugPrint('✅ Store URL ochildi');
+              return;
+            } else {
+              debugPrint('❌ Store URL ochilmadi');
+            }
+          } catch (e) {
+            debugPrint('⚠️ Store URL xatosi: $e');
+          }
+        }
+      }
+    }
+
+    if (!context.mounted) return;
+
+    // Agar hali ham ochilmagan bo'lsa, foydalanuvchiga xabar beramiz
     if (!urlOpened) {
       debugPrint('❌ Payment URL ochilmadi');
       if (context.mounted) {

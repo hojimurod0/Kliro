@@ -19,6 +19,7 @@ import '../widgets/flight_search_loading_widget.dart';
 import '../widgets/flight_filter_sheet.dart';
 import '../../data/models/fare_rules_model.dart';
 import '../../domain/entities/avichipta_filter.dart';
+import '../../domain/constants/airline_logo_manifest.dart';
 
 double? _parsePriceValue(String? raw) {
   final s0 = (raw ?? '').trim();
@@ -101,6 +102,7 @@ class FlightResultsScreen extends StatelessWidget {
         if (state is AviaSearchLoading) {
           AppLogger.debug('FlightResultsScreen: Showing loading...');
           return _FlightResultsScaffold(
+            searchRequest: state.searchRequest,
             child: FlightSearchLoadingWidget(
               searchRequest: state.searchRequest,
             ),
@@ -203,12 +205,20 @@ class FlightResultsScreen extends StatelessWidget {
               // Calculate total price
               // outboundOffer.price уже включает оба рейса (туда-обратно), если есть returnOffer
               // Не нужно добавлять returnOffer.price, так как это приведет к двойному расчету
-              final outboundPrice = _parsePriceValue(outboundOffer.price) ?? 0;
-              // Используем только outboundOffer.price, так как он уже включает оба рейса
-              final totalPriceNum = outboundPrice.toInt();
+              // Use the exact same price calculation as in the list view display
+              // outboundOffer already has the correct price from _offerWithSelectedFare
+              // This matches the calculation in _buildFlightCard:
+              // rawParsedPrice = _FlightUtils.parsePriceValue(rawDisplayPrice) ?? 0
+              // parsedPrice = rawParsedPrice * 1.1
+              // displayPrice = parsedPrice.toStringAsFixed(0)
+              final rawParsedPrice = _FlightUtils.parsePriceValue(outboundOffer.price) ?? 0;
+              final parsedPrice = rawParsedPrice * 1.1; // Apply 10% commission
+              // Round to integer (same as toStringAsFixed(0) in list view)
+              final totalPriceNum = parsedPrice.round();
               final totalPrice = _formatPriceForConfirmation(
                 totalPriceNum.toString(),
               );
+              
               final currency = outboundOffer.currency ?? 'sum';
 
               // Get passenger counts from search request
@@ -260,15 +270,19 @@ class FlightResultsScreen extends StatelessWidget {
 // Переиспользуемый Scaffold с AppBar
 class _FlightResultsScaffold extends StatelessWidget {
   final Widget child;
+  final SearchOffersRequestModel? searchRequest;
 
-  const _FlightResultsScaffold({required this.child});
+  const _FlightResultsScaffold({
+    required this.child,
+    this.searchRequest,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: _FlightAppBar(),
+      appBar: _FlightAppBar(searchRequest: searchRequest),
       body: child,
     );
   }
@@ -276,49 +290,100 @@ class _FlightResultsScaffold extends StatelessWidget {
 
 // Оптимизированный AppBar виджет
 class _FlightAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const _FlightAppBar();
+  final SearchOffersRequestModel? searchRequest;
+  final List<Widget>? actions;
+
+  const _FlightAppBar({this.searchRequest, this.actions});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final onPrimary = theme.colorScheme.onPrimary;
+    final isDark = theme.brightness == Brightness.dark;
+    
+    // Dynamic title and subtitle
+    String title = 'avia.results.title'.tr();
+    String subtitle = '';
+
+    if (searchRequest != null && searchRequest!.directions.isNotEmpty) {
+      final first = searchRequest!.directions.first;
+      // Route: Toshkent ⇄ Dubay
+      if (searchRequest!.directions.length > 1) {
+        title = '${first.departureAirport} ⇄ ${first.arrivalAirport}';
+      } else {
+        title = '${first.departureAirport} → ${first.arrivalAirport}';
+      }
+
+      // Subtitle: Date • Passengers • Class
+      final date = _formatDate(first.date);
+      final passengers = searchRequest!.adults + searchRequest!.children + searchRequest!.infants;
+      final cabin = searchRequest!.serviceClass; 
+      // Localization for cabin can be added if needed, e.g. 'avia.class.$cabin'.tr()
+
+      subtitle = '$date • $passengers ${'avia.search.passengers'.tr()} • $cabin';
+    }
+
     return AppBar(
-      backgroundColor: theme.colorScheme.primary,
+      backgroundColor: theme.scaffoldBackgroundColor,
       elevation: 0,
+      centerTitle: true,
       leading: IconButton(
-        icon: Icon(
-          Icons.arrow_back_ios_new_rounded,
-          color: onPrimary,
-          size: 20.sp,
-        ),
+        icon: _buildBackButton(isDark),
         onPressed: () => Navigator.of(context).pop(),
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(),
       ),
       title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            "Toshkent ⇄ Dubay",
+            title,
             style: TextStyle(
-              color: onPrimary,
+              color: theme.textTheme.titleLarge?.color,
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 4.h),
-          Text(
-            "12 Dek - 13 Dek • 2 yo'lovchi • Ekonom",
-            style: TextStyle(
-              color: onPrimary.withValues(alpha: 0.8),
-              fontSize: 12.sp,
+          if (subtitle.isNotEmpty)
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
         ],
       ),
-      titleSpacing: 0,
+      actions: actions,
     );
+  }
+
+  Widget _buildBackButton(bool isDark) {
+    return Container(
+      width: 32.w,
+      height: 32.w,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCardBg : AppColors.white,
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.grayBorder.withOpacity(0.5),
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.arrow_back_ios_new_rounded,
+          size: 16.sp,
+          color: isDark ? AppColors.white : AppColors.black,
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      return DateFormat('d MMM', 'en').format(date);
+    } catch (_) {
+      return dateStr;
+    }
   }
 
   @override
@@ -348,32 +413,41 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
   bool _didPrefetch = false;
   AvichiptaFilter? _currentFilter;
   List<OfferModel> _filteredOffers = [];
+  List<Map<String, dynamic>> _groupedOffers = [];
 
   @override
   void initState() {
     super.initState();
     _filteredOffers = widget.offers;
     _currentFilter = AvichiptaFilter.empty;
+    _updateGroupedOffers();
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _prefetchTopTariffs();
     });
   }
 
+  void _updateGroupedOffers() {
+    _groupedOffers = _FlightUtils.groupOffers(
+      _filteredOffers, 
+      widget.isRoundTrip, 
+      widget.searchRequest
+    );
+  }
+
   Future<void> _prefetchTopTariffs() async {
     if (_didPrefetch) return;
     _didPrefetch = true;
 
-    // Prefetch for first N grouped cards so user doesn't wait on expand.
-    final groupedOffers =
-        _groupOffers(widget.offers, widget.isRoundTrip, widget.searchRequest);
     final repo = context.read<AviaBloc>().repository;
 
     final ids = <String>[];
     final seen = <String>{};
-    for (var i = 0; i < groupedOffers.length && i < 10; i++) {
-      final outbound = groupedOffers[i]['outbound'] as OfferModel;
-      final id = _apiOfferIdForApi(outbound.id);
+    // Use the already computed groups
+    for (var i = 0; i < _groupedOffers.length && i < 10; i++) {
+      final outbound = _groupedOffers[i]['outbound'] as OfferModel;
+      final id = _FlightUtils.apiOfferIdForApi(outbound.id);
       if (id.isEmpty) continue;
       if (seen.add(id)) ids.add(id);
     }
@@ -381,45 +455,57 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
     // Small concurrency to avoid spamming the API.
     const batch = 3;
     for (var i = 0; i < ids.length; i += batch) {
+      if (!mounted) return; 
       final slice =
           ids.sublist(i, (i + batch) > ids.length ? ids.length : (i + batch));
       await Future.wait(slice.map((id) => repo.fareFamily(id)));
     }
   }
 
-  List<OfferModel> _applyFilter(List<OfferModel> offers, AvichiptaFilter filter) {
-    var filtered = offers;
-    
+  // ... (keeping _applyFilter as is, but ensuring it calls _updateGroupedOffers)
+  
+  List<OfferModel> _applyFilter(
+      List<OfferModel> offers, AvichiptaFilter filter) {
+      // ... existing filter logic ...
+      // Can't replace the whole method content via this chunk if it's large, 
+      // but I need to make sure _groupOffers is called after filtering.
+      
+      // RE-IMPLEMENTING _applyFilter content here for correctness since I'm implementing the class logic
+      
+     var filtered = offers;
+
     // Price filter
     if (filter.minPrice != null || filter.maxPrice != null) {
       filtered = filtered.where((offer) {
-        final priceStr = offer.price?.replaceAll(RegExp(r'[^\d.]'), '') ?? '';
-        final price = double.tryParse(priceStr);
-        if (price == null) return false;
+        final rawPrice = _parsePriceValue(offer.price);
+        if (rawPrice == null) return false;
+        final price = rawPrice * 1.1; // Apply 10% commission for filtering
         final meetsMin = filter.minPrice == null || price >= filter.minPrice!;
         final meetsMax = filter.maxPrice == null || price <= filter.maxPrice!;
         return meetsMin && meetsMax;
       }).toList();
     }
-    
+
     // Airlines filter
     if (filter.airlines != null && filter.airlines!.isNotEmpty) {
       filtered = filtered.where((offer) {
-        return offer.airline != null && filter.airlines!.contains(offer.airline);
+        return offer.airline != null &&
+            filter.airlines!.contains(offer.airline);
       }).toList();
     }
-    
+
     // Service class filter
     if (filter.serviceClasses != null && filter.serviceClasses!.isNotEmpty) {
       filtered = filtered.where((offer) {
         if (offer.segments == null) return false;
         return offer.segments!.any((segment) {
           final cabinClass = segment.cabinClass?.toLowerCase();
-          return cabinClass != null && filter.serviceClasses!.contains(cabinClass);
+          return cabinClass != null &&
+              filter.serviceClasses!.contains(cabinClass);
         });
       }).toList();
     }
-    
+
     // Transfers filter
     if (filter.maxTransfers != null) {
       filtered = filtered.where((offer) {
@@ -432,7 +518,7 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
         return transfers <= filter.maxTransfers!;
       }).toList();
     }
-    
+
     // Luggage filter
     if (filter.withLuggage == true) {
       filtered = filtered.where((offer) {
@@ -443,7 +529,7 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
         });
       }).toList();
     }
-    
+
     // Time filters
     if (filter.departureTimeStart != null || filter.departureTimeEnd != null) {
       filtered = filtered.where((offer) {
@@ -452,14 +538,14 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
         final departureTime = firstSegment.departureTime;
         if (departureTime == null) return false;
         final timeMinutes = _parseTimeToMinutes(departureTime);
-        final meetsStart = filter.departureTimeStart == null || 
+        final meetsStart = filter.departureTimeStart == null ||
             timeMinutes >= filter.departureTimeStart!;
-        final meetsEnd = filter.departureTimeEnd == null || 
+        final meetsEnd = filter.departureTimeEnd == null ||
             timeMinutes <= filter.departureTimeEnd!;
         return meetsStart && meetsEnd;
       }).toList();
     }
-    
+
     if (filter.arrivalTimeStart != null || filter.arrivalTimeEnd != null) {
       filtered = filtered.where((offer) {
         if (offer.segments == null || offer.segments!.isEmpty) return false;
@@ -467,23 +553,25 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
         final arrivalTime = lastSegment.arrivalTime;
         if (arrivalTime == null) return false;
         final timeMinutes = _parseTimeToMinutes(arrivalTime);
-        final meetsStart = filter.arrivalTimeStart == null || 
+        final meetsStart = filter.arrivalTimeStart == null ||
             timeMinutes >= filter.arrivalTimeStart!;
-        final meetsEnd = filter.arrivalTimeEnd == null || 
+        final meetsEnd = filter.arrivalTimeEnd == null ||
             timeMinutes <= filter.arrivalTimeEnd!;
         return meetsStart && meetsEnd;
       }).toList();
     }
-    
+
     // Sorting
     filtered = _applySorting(filtered, filter.sortBy);
-    
+
     return filtered;
   }
   
+  // Helpers wrapping static Utils
+  double? _parsePriceValue(String? raw) => _FlightUtils.parsePriceValue(raw);
+  
   int _parseTimeToMinutes(String timeStr) {
-    // Parse time string like "17:10" or "2025-12-20T17:10:00"
-    final timeMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(timeStr);
+     final timeMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(timeStr);
     if (timeMatch != null) {
       final hours = int.tryParse(timeMatch.group(1) ?? '0') ?? 0;
       final minutes = int.tryParse(timeMatch.group(2) ?? '0') ?? 0;
@@ -491,28 +579,26 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
     }
     return 0;
   }
-  
+
   int _countTransfers(OfferModel offer) {
     if (offer.segments == null) return 0;
     return offer.segments!.length - 1;
   }
-  
+
   List<OfferModel> _applySorting(List<OfferModel> offers, String? sortBy) {
     final sorted = List<OfferModel>.from(offers);
-    
+
     switch (sortBy) {
       case 'optimal':
-        // Sort by price (ascending)
         sorted.sort((a, b) {
-          final priceA = double.tryParse(a.price?.replaceAll(RegExp(r'[^\d.]'), '') ?? '0') ?? 0;
-          final priceB = double.tryParse(b.price?.replaceAll(RegExp(r'[^\d.]'), '') ?? '0') ?? 0;
-          return priceA.compareTo(priceB);
+           final priceA = _parsePriceValue(a.price) ?? 0;
+           final priceB = _parsePriceValue(b.price) ?? 0;
+           return priceA.compareTo(priceB);
         });
         break;
       case 'earlier':
-        // Sort by departure time (ascending)
         sorted.sort((a, b) {
-          final timeA = a.segments?.isNotEmpty == true 
+          final timeA = a.segments?.isNotEmpty == true
               ? _parseTimeToMinutes(a.segments!.first.departureTime ?? '')
               : 0;
           final timeB = b.segments?.isNotEmpty == true
@@ -522,7 +608,6 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
         });
         break;
       case 'fastest':
-        // Sort by duration (ascending)
         sorted.sort((a, b) {
           final durationA = _parseDuration(a.duration ?? '');
           final durationB = _parseDuration(b.duration ?? '');
@@ -531,20 +616,17 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
         break;
       case 'most_useful':
       default:
-        // Sort by price (ascending) as default
         sorted.sort((a, b) {
-          final priceA = double.tryParse(a.price?.replaceAll(RegExp(r'[^\d.]'), '') ?? '0') ?? 0;
-          final priceB = double.tryParse(b.price?.replaceAll(RegExp(r'[^\d.]'), '') ?? '0') ?? 0;
+          final priceA = _parsePriceValue(a.price) ?? 0;
+           final priceB = _parsePriceValue(b.price) ?? 0;
           return priceA.compareTo(priceB);
         });
         break;
     }
-    
     return sorted;
   }
-  
+
   int _parseDuration(String durationStr) {
-    // Parse duration like "3h" or "4h 30m"
     int totalMinutes = 0;
     final hourMatch = RegExp(r'(\d+)\s*h').firstMatch(durationStr);
     if (hourMatch != null) {
@@ -561,35 +643,13 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Borish-kelish uchun offers ni guruhlash
-    final groupedOffers =
-        _groupOffers(_filteredOffers, widget.isRoundTrip, widget.searchRequest);
+    // Using pre-grouped offers
+    final groupedOffers = _groupedOffers;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor:
-            theme.appBarTheme.backgroundColor ?? theme.scaffoldBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: theme.iconTheme.color,
-            size: 20.sp,
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-        ),
-        title: Text(
-          'avia.results.title'.tr(),
-          style: TextStyle(
-            color: theme.textTheme.titleLarge?.color,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
+      appBar: _FlightAppBar(
+        searchRequest: widget.searchRequest,
         actions: [
           IconButton(
             icon: Icon(
@@ -607,11 +667,12 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
                   ),
                 ),
               );
-              
+
               if (result != null) {
                 setState(() {
                   _currentFilter = result;
                   _filteredOffers = _applyFilter(widget.offers, result);
+                  _updateGroupedOffers();
                 });
               }
             },
@@ -635,7 +696,6 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
                     offer: groupedOffer['outbound'] as OfferModel,
                     returnOffer: groupedOffer['inbound'] as OfferModel?,
                     isRoundTrip: widget.isRoundTrip,
-                    // Prefetch tariffs for every card so tariff info always comes from API.
                     prefetchTariffs: true,
                     onTap: (outbound, inbound) =>
                         widget.onOfferTap(outbound, inbound),
@@ -645,21 +705,49 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
             ),
     );
   }
+}
 
-  // Offers ni guruhlash funksiyasi
-  List<Map<String, dynamic>> _groupOffers(
+// Utility class to keep logic clean and reusable
+class _FlightUtils {
+  static double? parsePriceValue(String? raw) {
+    final s0 = (raw ?? '').trim();
+    if (s0.isEmpty) return null;
+    var s = s0.replaceAll('\u00A0', '').replaceAll(' ', '').replaceAll(',', '.');
+    s = s.replaceAll(RegExp(r'[^0-9.]'), '');
+    if (s.isEmpty) return null;
+    final parts = s.split('.');
+    if (parts.length > 2) {
+      final dec = parts.removeLast();
+      final intPart = parts.join();
+      s = dec.isEmpty ? intPart : '$intPart.$dec';
+    }
+    return double.tryParse(s);
+  }
+  
+  static String apiOfferIdForApi(String? id) {
+    final s = (id ?? '').trim();
+    final m = RegExp(r'-(\d+)$').firstMatch(s);
+    if (m == null) return s;
+    // logic preserved from original
+    final suffix = m.group(1);
+    if ((suffix == '0' || suffix == '1') && s.length > 25) {
+      return s.substring(0, m.start);
+    }
+    return s;
+  }
+
+  static List<Map<String, dynamic>> groupOffers(
     List<OfferModel> offers,
     bool isRoundTrip,
     SearchOffersRequestModel? searchRequest,
   ) {
     if (!isRoundTrip || searchRequest == null) {
-      // Bir tomonlama - oddiy ko'rsatish
+      // Single direction - simple map
       return offers
           .map((offer) => {'id': offer.id, 'outbound': offer, 'inbound': null})
           .toList();
     }
 
-    // Borish-kelish - guruhlash kerak
     final directions = searchRequest.directions;
     if (directions.length < 2) {
       return offers
@@ -674,6 +762,7 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
     final usedIndices = <int>{};
 
     for (var i = 0; i < offers.length; i++) {
+        // ... (preserving logic but optimizing where possible in future)
       if (usedIndices.contains(i)) continue;
 
       final outboundOffer = offers[i];
@@ -681,17 +770,14 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
 
       if (outboundSegments.isEmpty) continue;
 
-      // Birinchi segmentning ketish va yetib borish aeroportlari
       final firstDeparture = outboundSegments.first.departureAirport;
       final lastArrival = outboundSegments.last.arrivalAirport;
 
-      // Qidiruv parametrlariga mos keladimi tekshirish
       final matchesOutbound =
           firstDeparture == outboundDirection.departureAirport &&
               lastArrival == outboundDirection.arrivalAirport;
 
       if (!matchesOutbound) {
-        // Agar borish reysiga mos kelmasa, uni alohida qo'shamiz
         grouped.add({
           'id': outboundOffer.id,
           'outbound': outboundOffer,
@@ -701,7 +787,6 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
         continue;
       }
 
-      // Qaytish reysini topish
       OfferModel? inboundOffer;
       int? inboundIndex;
 
@@ -713,8 +798,6 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
 
         if (candidateSegments.isEmpty) continue;
 
-        // Qaytish reysi: ketish aeroporti = birinchi reysning yetib borish aeroporti
-        // va yetib borish aeroporti = birinchi reysning ketish aeroporti
         final candidateDeparture = candidateSegments.first.departureAirport;
         final candidateArrival = candidateSegments.last.arrivalAirport;
 
@@ -729,7 +812,6 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
         }
       }
 
-      // Guruh yaratish
       grouped.add({
         'id': '${outboundOffer.id}_${inboundOffer?.id ?? 'single'}',
         'outbound': outboundOffer,
@@ -742,7 +824,6 @@ class _FlightSearchResultsPageState extends State<FlightSearchResultsPage> {
       }
     }
 
-    // Qo'shilmagan offers ni qo'shish (agar bor bo'lsa)
     for (var i = 0; i < offers.length; i++) {
       if (!usedIndices.contains(i)) {
         grouped.add({
@@ -1981,305 +2062,6 @@ class _TicketCardContentState extends State<_TicketCardContent> {
     );
   }
 
-  // Функция для получения IATA кода из flight number
-  String? _extractIataCodeFromFlightNumber(String? flightNumber) {
-    if (flightNumber == null || flightNumber.isEmpty) return null;
-
-    // Flight number format: "FZ123", "EK456", "HY789" va hokazo
-    // IATA kod odatda 2-3 harfdan iborat
-    final match = RegExp(
-      r'^([A-Z]{2,3})',
-    ).firstMatch(flightNumber.toUpperCase());
-    if (match != null) {
-      return match.group(1);
-    }
-    return null;
-  }
-
-  // Функция для получения IATA кода из различных источников
-  String? _getIataCode(List<SegmentModel>? segments, String? airlineName) {
-    String? iataCode;
-
-    // 1. Flight number dan IATA kodini ajratib olish
-    if (segments != null && segments.isNotEmpty) {
-      final firstSegment = segments.first;
-      if (firstSegment.flightNumber != null) {
-        iataCode = _extractIataCodeFromFlightNumber(firstSegment.flightNumber);
-        if (iataCode != null) {
-          AppLogger.debug(
-            'IATA kod flight number dan: $iataCode (${firstSegment.flightNumber})',
-          );
-          return iataCode;
-        }
-      }
-
-      // 2. Segment dan airline kodini olish
-      if (firstSegment.airline != null) {
-        final segmentAirline = firstSegment.airline!.toUpperCase().trim();
-        // Agar airline kod 2-3 harfdan iborat bo'lsa, uni IATA kod deb qabul qilamiz
-        if (segmentAirline.length >= 2 && segmentAirline.length <= 3) {
-          AppLogger.debug('IATA kod segment airline dan: $segmentAirline');
-          return segmentAirline;
-        }
-      }
-    }
-
-    // 3. Airline nomidan IATA kodini topish
-    if (airlineName != null && airlineName.isNotEmpty) {
-      // Kirill yozuvini transliteratsiya qilish
-      final transliteratedName = _transliterateCyrillic(airlineName);
-      final normalizedName = transliteratedName.toUpperCase().trim();
-
-      AppLogger.debug('Airline nomi: "$airlineName" -> "$normalizedName"');
-
-      // Маппинг популярных авиакомпаний к IATA кодам
-      final airlineMap = {
-        // Uzbekistan Airways
-        'UZBEKISTAN AIRWAYS': 'HY',
-        'UZBEKISTAN': 'HY',
-        'HY': 'HY',
-        'УЗБЕКИСТАН': 'HY',
-        'УЗБЕКИСТАН ЭЙРВЕЙЗ': 'HY',
-        // Emirates
-        'EMIRATES': 'EK',
-        'EK': 'EK',
-        'ЭМИРЕЙТС': 'EK',
-        // FlyDubai
-        'FLYDUBAI': 'FZ',
-        'FLY DUBAI': 'FZ',
-        'FZ': 'FZ',
-        'ФЛАЙДУБАЙ': 'FZ',
-        'ФЛАЙ ДУБАЙ': 'FZ',
-        'FLYDUBAI AIRLINES': 'FZ',
-        // Turkish Airlines
-        'TURKISH AIRLINES': 'TK',
-        'TURKISH': 'TK',
-        'TK': 'TK',
-        'ТУРКИШ ЭЙРЛАЙНС': 'TK',
-        // Qatar Airways
-        'QATAR AIRWAYS': 'QR',
-        'QATAR': 'QR',
-        'QR': 'QR',
-        'КАТАР ЭЙРВЕЙЗ': 'QR',
-        // Lufthansa
-        'LUFTHANSA': 'LH',
-        'LH': 'LH',
-        'ЛЮФТХАНЗА': 'LH',
-        // British Airways
-        'BRITISH AIRWAYS': 'BA',
-        'BA': 'BA',
-        'БРИТИШ ЭЙРВЕЙЗ': 'BA',
-        // Air France
-        'AIR FRANCE': 'AF',
-        'AF': 'AF',
-        'ЭЙР ФРАНС': 'AF',
-        // Aeroflot
-        'AEROFLOT': 'SU',
-        'SU': 'SU',
-        'АЭРОФЛОТ': 'SU',
-        // Etihad Airways
-        'ETIHAD': 'EY',
-        'EY': 'EY',
-        'ЭТИХАД': 'EY',
-        // Air Astana
-        'AIR ASTANA': 'KC',
-        'KC': 'KC',
-        'ЭЙР АСТАНА': 'KC',
-        // Somon Air
-        'SOMON AIR': 'SZ',
-        'SZ': 'SZ',
-        'СОМОН ЭЙР': 'SZ',
-      };
-
-      // Проверка точного совпадения
-      if (airlineMap.containsKey(normalizedName)) {
-        AppLogger.debug(
-          'IATA kod mapping dan (to\'liq mos): ${airlineMap[normalizedName]}',
-        );
-        return airlineMap[normalizedName]!;
-      }
-
-      // Проверка частичного совпадения
-      for (final entry in airlineMap.entries) {
-        if (normalizedName.contains(entry.key) ||
-            entry.key.contains(normalizedName)) {
-          AppLogger.debug('IATA kod mapping dan (qisman mos): ${entry.value}');
-          return entry.value;
-        }
-      }
-
-      // Если airline уже является IATA кодом (2-3 символа)
-      if (normalizedName.length >= 2 && normalizedName.length <= 3) {
-        AppLogger.debug('IATA kod to\'g\'ridan-to\'g\'ri: $normalizedName');
-        return normalizedName;
-      }
-    }
-
-    AppLogger.warning(
-      'IATA kod topilmadi. Segments: ${segments?.length ?? 0}, Airline: $airlineName',
-    );
-    return null;
-  }
-
-  // Kirill yozuvini transliteratsiya qilish funksiyasi
-  String _transliterateCyrillic(String text) {
-    final cyrillicToLatin = {
-      'А': 'A',
-      'Б': 'B',
-      'В': 'V',
-      'Г': 'G',
-      'Д': 'D',
-      'Е': 'E',
-      'Ё': 'YO',
-      'Ж': 'ZH',
-      'З': 'Z',
-      'И': 'I',
-      'Й': 'Y',
-      'К': 'K',
-      'Л': 'L',
-      'М': 'M',
-      'Н': 'N',
-      'О': 'O',
-      'П': 'P',
-      'Р': 'R',
-      'С': 'S',
-      'Т': 'T',
-      'У': 'U',
-      'Ф': 'F',
-      'Х': 'H',
-      'Ц': 'TS',
-      'Ч': 'CH',
-      'Ш': 'SH',
-      'Щ': 'SCH',
-      'Ъ': '',
-      'Ы': 'Y',
-      'Ь': '',
-      'Э': 'E',
-      'Ю': 'YU',
-      'Я': 'YA',
-      'а': 'a',
-      'б': 'b',
-      'в': 'v',
-      'г': 'g',
-      'д': 'd',
-      'е': 'e',
-      'ё': 'yo',
-      'ж': 'zh',
-      'з': 'z',
-      'и': 'i',
-      'й': 'y',
-      'к': 'k',
-      'л': 'l',
-      'м': 'm',
-      'н': 'n',
-      'о': 'o',
-      'п': 'p',
-      'р': 'r',
-      'с': 's',
-      'т': 't',
-      'у': 'u',
-      'ф': 'f',
-      'х': 'h',
-      'ц': 'ts',
-      'ч': 'ch',
-      'ш': 'sh',
-      'щ': 'sch',
-      'ъ': '',
-      'ы': 'y',
-      'ь': '',
-      'э': 'e',
-      'ю': 'yu',
-      'я': 'ya',
-    };
-
-    String result = '';
-    for (int i = 0; i < text.length; i++) {
-      final char = text[i];
-      if (cyrillicToLatin.containsKey(char)) {
-        result += cyrillicToLatin[char]!;
-      } else {
-        result += char;
-      }
-    }
-    return result;
-  }
-
-  // Функция для получения пути к логотипу авиакомпании
-  String? _getAirlineLogoPath(
-    List<SegmentModel>? segments,
-    String? airlineName,
-  ) {
-    final iataCode = _getIataCode(segments, airlineName);
-
-    if (iataCode != null) {
-      final logoPath = 'assets/logos/airline_logos/airline_logos/$iataCode.svg';
-      AppLogger.debug('Logo path: $logoPath');
-      return logoPath;
-    }
-
-    AppLogger.warning('Logo path topilmadi');
-    return null;
-  }
-
-  // Виджет логотипа авиакомпании с fallback
-  Widget _buildAirlineLogo(List<SegmentModel>? segments, String? airlineName) {
-    final logoPath = _getAirlineLogoPath(segments, airlineName);
-
-    if (logoPath != null) {
-      return Container(
-        width: 40.w,
-        height: 40.w,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: Offset(0, 2.h),
-            ),
-          ],
-        ),
-        padding: EdgeInsets.all(6.w),
-        child: SvgPicture.asset(
-          logoPath,
-          fit: BoxFit.contain,
-          placeholderBuilder: (context) => _buildDefaultLogo(),
-          errorBuilder: (context, error, stackTrace) {
-            AppLogger.warning('Logo not found: $logoPath');
-            return _buildDefaultLogo();
-          },
-        ),
-      );
-    }
-
-    return _buildDefaultLogo();
-  }
-
-  // Виджет логотипа по умолчанию
-  Widget _buildDefaultLogo() {
-    return Container(
-      width: 40.w,
-      height: 40.w,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.primaryBlue, AppColors.lightBlue],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryBlue.withValues(alpha: 0.3),
-            blurRadius: 8,
-            offset: Offset(0, 2.h),
-          ),
-        ],
-      ),
-      child: Icon(Icons.flight_rounded, color: Colors.white, size: 20.sp),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -2453,15 +2235,18 @@ class _TicketCardContentState extends State<_TicketCardContent> {
     final apiOfferId = _apiOfferId(offer.id);
     final selectedFare =
         apiOfferId.isEmpty ? null : _selectedFareForOfferId(apiOfferId);
-    final displayPrice = selectedFare?.price ?? offer.price;
+    final rawDisplayPrice = selectedFare?.price ?? offer.price;
+    final rawParsedPrice = _FlightUtils.parsePriceValue(rawDisplayPrice) ?? 0;
+    final parsedPrice = rawParsedPrice * 1.1; // Apply 10% commission
+    final displayPrice = parsedPrice.toStringAsFixed(0);
     final displayCurrency = selectedFare?.currency ?? offer.currency;
     // Tarif nomini _selectedTariffNameForOffer funksiyasidan olish (fallback bilan)
     final selectedFareName = _selectedTariffNameForOffer(offer);
     final routeText = '$fromCode - $toCode';
 
     final metaParts = <String>[];
-    final fn = (segments.isNotEmpty ? (segments.first.flightNumber ?? '') : '')
-        .trim();
+    final fn =
+        (segments.isNotEmpty ? (segments.first.flightNumber ?? '') : '').trim();
     if (fn.isNotEmpty) metaParts.add('Рейс $fn');
     final aircraft =
         (segments.isNotEmpty ? (segments.first.aircraft ?? '') : '').trim();
@@ -2504,19 +2289,16 @@ class _TicketCardContentState extends State<_TicketCardContent> {
                     children: [
                       Row(
                         children: [
-                          _buildAirlineLogo(segments, offer.airline),
-                          SizedBox(width: 10.w),
                           Expanded(
-                            child: Text(
-                              offer.airline ??
-                                  'avia.results.unknown_airline'.tr(),
+                            child: _buildAirlineNameOrLogo(
+                              logoPath: _airlineLogoPath(segments),
+                              fallback:
+                                  offer.airline ?? 'avia.results.unknown_airline'.tr(),
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 15.sp,
                                 color: textColor,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           // For the second (return) mini-card there is no price column,
@@ -2536,7 +2318,8 @@ class _TicketCardContentState extends State<_TicketCardContent> {
                                       : Colors.black.withValues(alpha: 0.04),
                                   borderRadius: BorderRadius.circular(10.r),
                                   border: Border.all(
-                                    color: subtitleColor.withValues(alpha: 0.22),
+                                    color:
+                                        subtitleColor.withValues(alpha: 0.22),
                                   ),
                                 ),
                                 child: Text(
@@ -2569,7 +2352,7 @@ class _TicketCardContentState extends State<_TicketCardContent> {
                         children: [
                           Text(
                             displayPrice != null
-                                ? _formatPrice(displayPrice)
+                                ? _formatPriceHuman(displayPrice)
                                 : 'avia.results.price'.tr(),
                             style: TextStyle(
                               color: AppColors.primaryBlue,
@@ -2807,7 +2590,7 @@ class _TicketCardContentState extends State<_TicketCardContent> {
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
-                              isDirect ? "Қайта учишсиз" : (stops ?? ""),
+                              isDirect ? "Тўғридан тўғри" : (stops ?? ""),
                               style: TextStyle(
                                 color: subtitleColor,
                                 fontSize: 11.sp,
@@ -2919,7 +2702,8 @@ class _TicketCardContentState extends State<_TicketCardContent> {
     Color? textColor,
     Color? labelColor,
   }) {
-    final iconColor = textColor ?? (isDark ? Colors.white70 : AppColors.gray500);
+    final iconColor =
+        textColor ?? (isDark ? Colors.white70 : AppColors.gray500);
     final badgeColor = labelColor ?? AppColors.primaryBlue;
     final labelStr = (label ?? '').trim();
 
@@ -3032,18 +2816,15 @@ class _TicketCardContentState extends State<_TicketCardContent> {
         children: [
           Row(
             children: [
-              _buildAirlineLogo(segments, offer.airline),
-              SizedBox(width: 10.w),
               Expanded(
-                child: Text(
-                  offer.airline ?? 'avia.results.unknown_airline'.tr(),
+                child: _buildAirlineNameOrLogo(
+                  logoPath: _airlineLogoPath(segments),
+                  fallback: offer.airline ?? 'avia.results.unknown_airline'.tr(),
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w700,
                     color: textColor,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               SizedBox(width: 8.w),
@@ -3229,187 +3010,192 @@ class _TicketCardContentState extends State<_TicketCardContent> {
               scrollDirection: Axis.horizontal,
               physics: const ClampingScrollPhysics(),
               padding: EdgeInsets.symmetric(horizontal: 2.w),
-            itemCount: families.length,
+              itemCount: families.length,
               separatorBuilder: (_, __) => SizedBox(width: 10.w),
-            itemBuilder: (context, idx) {
-              final f = families[idx];
-              final isSelected = (selectedId != null && f.id == selectedId);
-              final fareOfferId = f.id ?? '';
-              final name = _displayTariffName(
-                offerId: offerId,
-                fare: f,
-                fallbackIndex: idx,
-              );
+              itemBuilder: (context, idx) {
+                final f = families[idx];
+                final isSelected = (selectedId != null && f.id == selectedId);
+                final fareOfferId = f.id ?? '';
+                final name = _displayTariffName(
+                  offerId: offerId,
+                  fare: f,
+                  fallbackIndex: idx,
+                );
 
-              // 1) Try /rules per-fare-id
-              final rulesHand = fareOfferId.isNotEmpty
-                  ? _extractKgFromRules(fareOfferId, isHand: true)
-                  : null;
-              final rulesBag = fareOfferId.isNotEmpty
-                  ? _extractKgFromRules(fareOfferId, isHand: false)
-                  : null;
+                // 1) Try /rules per-fare-id
+                final rulesHand = fareOfferId.isNotEmpty
+                    ? _extractKgFromRules(fareOfferId, isHand: true)
+                    : null;
+                final rulesBag = fareOfferId.isNotEmpty
+                    ? _extractKgFromRules(fareOfferId, isHand: false)
+                    : null;
 
-              // 2) Then /fare-family fields
-              final fareHand = _handKgFromFare(f);
-              final fareBag = _bagKgFromFare(f);
+                // 2) Then /fare-family fields
+                final fareHand = _handKgFromFare(f);
+                final fareBag = _bagKgFromFare(f);
 
-              final int? hand = rulesHand ?? fareHand;
-              final int? bag = rulesBag ?? fareBag;
+                final int? hand = rulesHand ?? fareHand;
+                final int? bag = rulesBag ?? fareBag;
 
-              final ex = fareOfferId.isNotEmpty
-                  ? _exchangeTextFromRules(fareOfferId)
-                  : _exchangeTextFromFare(f);
-              final rf = fareOfferId.isNotEmpty
-                  ? _refundTextFromRules(fareOfferId)
-                  : _refundTextFromFare(f);
+                final ex = fareOfferId.isNotEmpty
+                    ? _exchangeTextFromRules(fareOfferId)
+                    : _exchangeTextFromFare(f);
+                final rf = fareOfferId.isNotEmpty
+                    ? _refundTextFromRules(fareOfferId)
+                    : _refundTextFromFare(f);
 
-              final price = (f.price ?? '').toString();
-              final currency = (f.currency ?? '').toString().trim();
+                final rawPrice = (f.price ?? '0').toString();
+                final pVal = _FlightUtils.parsePriceValue(rawPrice) ?? 0;
+                final commissionPrice = pVal * 1.1;
+                final price = commissionPrice.toStringAsFixed(0);
+                final currency = (f.currency ?? '').toString().trim();
 
-              final isRulesLoading = fareOfferId.isNotEmpty &&
-                  _fareRulesLoading.contains(fareOfferId) &&
-                  isSelected;
+                final isRulesLoading = fareOfferId.isNotEmpty &&
+                    _fareRulesLoading.contains(fareOfferId) &&
+                    isSelected;
 
-              return SizedBox(
-                width: 260.w,
-                child: InkWell(
-                  onTap: () {
-                    final fid = (f.id ?? '').trim();
-                    if (fid.isEmpty) return;
+                return SizedBox(
+                  width: 260.w,
+                  child: InkWell(
+                    onTap: () {
+                      final fid = (f.id ?? '').trim();
+                      if (fid.isEmpty) return;
 
-                    _safeSetState(() {
-                      _selectedFareIdByOfferId[offerId] = fid;
-                    });
-                    _ensureFareRulesLoaded(fid);
+                      _safeSetState(() {
+                        _selectedFareIdByOfferId[offerId] = fid;
+                      });
+                      _ensureFareRulesLoaded(fid);
 
-                    if (returnOfferId != null && returnOfferId.isNotEmpty) {
-                      _syncReturnFareSelection(
-                        outboundOfferId: offerId,
-                        selectedFare: f,
-                        returnOfferId: returnOfferId,
+                      if (returnOfferId != null && returnOfferId.isNotEmpty) {
+                        _syncReturnFareSelection(
+                          outboundOfferId: offerId,
+                          selectedFare: f,
+                          returnOfferId: returnOfferId,
+                        );
+                      }
+                    },
+                    onLongPress: () {
+                      final details = (f.description ?? '').trim();
+                      _showTariffDetailsSheet(
+                        context: context,
+                        isDark: isDark,
+                        subtitleColor: subtitleColor,
+                        title: name,
+                        priceText: price.trim().isEmpty
+                            ? ''
+                            : '${_formatPrice(price)} ${currency.isEmpty ? "сум" : currency}',
+                        handText: hand == null
+                            ? 'Қўл юки: — кг'
+                            : 'Қўл юки: $hand кг',
+                        bagText: bag == null ? 'Багаж: — кг' : 'Багаж: $bag кг',
+                        exchangeText: 'Билет алмаштириш: $ex',
+                        refundText: 'Билет қайтариш: $rf',
+                        details: details,
                       );
-                    }
-                  },
-                  onLongPress: () {
-                    final details = (f.description ?? '').trim();
-                    _showTariffDetailsSheet(
-                      context: context,
-                      isDark: isDark,
-                      subtitleColor: subtitleColor,
-                      title: name,
-                      priceText: price.trim().isEmpty
-                          ? ''
-                          : '${_formatPrice(price)} ${currency.isEmpty ? "сум" : currency}',
-                      handText: hand == null ? 'Қўл юки: — кг' : 'Қўл юки: $hand кг',
-                      bagText: bag == null ? 'Багаж: — кг' : 'Багаж: $bag кг',
-                      exchangeText: 'Билет алмаштириш: $ex',
-                      refundText: 'Билет қайтариш: $rf',
-                      details: details,
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(12.r),
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(12.w),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF1E1E1E)
-                            : theme.cardColor,
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppColors.primaryBlue
-                              : subtitleColor.withValues(alpha: 0.25),
-                          width: isSelected ? 1.5 : 1,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  name,
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: textColor,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (isRulesLoading)
-                                SizedBox(
-                                  width: 16.w,
-                                  height: 16.w,
-                                  child: const CircularProgressIndicator(
-                                      strokeWidth: 2),
-                                )
-                              else if (isSelected)
-                                Icon(
-                                  Icons.check_circle_rounded,
-                                  size: 18.sp,
-                                  color: AppColors.primaryBlue,
-                                ),
-                            ],
+                    },
+                    borderRadius: BorderRadius.circular(12.r),
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(12.w),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF1E1E1E)
+                              : theme.cardColor,
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.primaryBlue
+                                : subtitleColor.withValues(alpha: 0.25),
+                            width: isSelected ? 1.5 : 1,
                           ),
-                          SizedBox(height: 6.h),
-                          if (price.trim().isNotEmpty)
-                            Text(
-                              '${_formatPrice(price)} ${currency.isEmpty ? "сум" : currency}',
-                              style: TextStyle(
-                                fontSize: 22.sp,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.primaryBlue,
-                                height: 1.05,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    name,
+                                    style: TextStyle(
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.w800,
+                                      color: textColor,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (isRulesLoading)
+                                  SizedBox(
+                                    width: 16.w,
+                                    height: 16.w,
+                                    child: const CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                else if (isSelected)
+                                  Icon(
+                                    Icons.check_circle_rounded,
+                                    size: 18.sp,
+                                    color: AppColors.primaryBlue,
+                                  ),
+                              ],
                             ),
-                          SizedBox(height: 8.h),
-                          if (hand != null)
+                            SizedBox(height: 6.h),
+                            if (price.trim().isNotEmpty)
+                              Text(
+                                '${_formatPrice(price)} ${currency.isEmpty ? "сум" : currency}',
+                                style: TextStyle(
+                                  fontSize: 22.sp,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.primaryBlue,
+                                  height: 1.05,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            SizedBox(height: 8.h),
+                            if (hand != null)
+                              _tariffLine(
+                                icon: Icons.lock_outline_rounded,
+                                text: 'Қўл юки: $hand кг',
+                                color: subtitleColor,
+                                maxLines: 1,
+                              ),
+                            if (bag != null) ...[
+                              SizedBox(height: 3.h),
+                              _tariffLine(
+                                icon: Icons.luggage_outlined,
+                                text: 'Багаж: $bag кг',
+                                color: subtitleColor,
+                                maxLines: 1,
+                              ),
+                            ],
+                            SizedBox(height: 3.h),
                             _tariffLine(
-                              icon: Icons.lock_outline_rounded,
-                              text: 'Қўл юки: $hand кг',
+                              icon: Icons.swap_horiz_rounded,
+                              text: 'Билет алмаштириш: $ex',
                               color: subtitleColor,
                               maxLines: 1,
                             ),
-                          if (bag != null) ...[
                             SizedBox(height: 3.h),
                             _tariffLine(
-                              icon: Icons.luggage_outlined,
-                              text: 'Багаж: $bag кг',
+                              icon: Icons.close_rounded,
+                              text: 'Билет қайтариш: $rf',
                               color: subtitleColor,
                               maxLines: 1,
                             ),
                           ],
-                          SizedBox(height: 3.h),
-                          _tariffLine(
-                            icon: Icons.swap_horiz_rounded,
-                            text: 'Билет алмаштириш: $ex',
-                            color: subtitleColor,
-                            maxLines: 1,
-                          ),
-                          SizedBox(height: 3.h),
-                          _tariffLine(
-                            icon: Icons.close_rounded,
-                            text: 'Билет қайтариш: $rf',
-                            color: subtitleColor,
-                            maxLines: 1,
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
             ),
           ),
       ],
@@ -3823,9 +3609,111 @@ class _TicketCardContentState extends State<_TicketCardContent> {
     }
   }
 
-  // Narxni formatlash funksiyasi (milyonlar uchun bo'shliq qo'shish)
+  String? _normalizeIataCode(String? raw) {
+    final c = (raw ?? '').trim().toUpperCase();
+    if (c.isEmpty) return null;
+
+    final candidates = <String>{
+      c,
+      if (c.length >= 2) c.substring(0, 2),
+      if (c.length > 2) c.substring(c.length - 2),
+    };
+
+    for (final cand in candidates) {
+      if (cand.length == 2 && airlineLogoAssetCodes.contains(cand)) {
+        return cand;
+      }
+    }
+    return null;
+  }
+
+  String? _mapAirlineNameToIata(String? name) {
+    final n = (name ?? '').trim().toUpperCase();
+    if (n.isEmpty) return null;
+    // Uzbekistan Airways (common variants)
+    if (n.contains('UZBEK') ||
+        n.contains('OZBEK') ||
+        n.contains('O‘ZBEK') ||
+        n.contains('OZBEKISTON') ||
+        n.contains('UZBEKISTON') ||
+        n.contains('УЗБЕК')) return 'HY';
+
+    // flydubai (en/ru/uz variants)
+    if (n.contains('FLYDUBAI') ||
+        n.contains('FLY DUBAI') ||
+        n.contains('ФЛАЙДУБАЙ') ||
+        n.contains('ФЛАЙ ДУБАЙ')) return 'FZ';
+    return null;
+  }
+
+  String? _resolveAirlineLogoCode(List<SegmentModel> segments) {
+    // 1) Try flight number / airline code from segment
+    final fromSegment = _normalizeIataCode(_extractIataFromSegments(segments));
+    if (fromSegment != null) return fromSegment;
+
+    // 2) Try mapping by airline name (common provider formats)
+    if (segments.isNotEmpty) {
+      final mapped = _mapAirlineNameToIata(segments.first.airline);
+      final normalized = _normalizeIataCode(mapped);
+      if (normalized != null) return normalized;
+    }
+
+    return null;
+  }
+
+  String? _airlineLogoPath(List<SegmentModel> segments) {
+    final code = _resolveAirlineLogoCode(segments);
+    return code == null ? null : 'assets/svgs/$code.svg';
+  }
+
+  // Airline logo (local asset) uchun: faqat segmentlardan IATA code olish.
+  // API'dan rasm olmaydi, mapping ham qilmaydi.
+  String? _extractIataFromSegments(List<SegmentModel> segments) {
+    if (segments.isEmpty) return null;
+    final first = segments.first;
+    final fn = (first.flightNumber ?? '').trim();
+    if (fn.isNotEmpty) {
+      final m = RegExp(r'^([A-Za-z]{2,3})').firstMatch(fn);
+      if (m != null) return m.group(1)!.toUpperCase();
+    }
+    final a = (first.airline ?? '').trim();
+    if (a.length >= 2 && a.length <= 3) return a.toUpperCase();
+    return null;
+  }
+
+  Widget _buildAirlineNameOrLogo({
+    required String? logoPath,
+    required String fallback,
+    required TextStyle style,
+  }) {
+    if (logoPath != null) {
+      final double fontSize = style.fontSize ?? 16;
+      final double h = fontSize + 10;
+      return SizedBox(
+        height: h,
+        child: SvgPicture.asset(
+          logoPath,
+          fit: BoxFit.contain,
+          alignment: Alignment.centerLeft,
+        ),
+      );
+    }
+    return Text(
+      fallback,
+      style: style,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+    // Narxni formatlash funksiyasi (milyonlar uchun bo'shliq qo'shish) + 10% komissiya
   String _formatPrice(String price) {
-    return _formatPriceHuman(price);
+    // Return formatted price with 10% markup
+    final v = _FlightUtils.parsePriceValue(price);
+    if (v == null) return _formatPriceHuman(price);
+    // Add 10% commission
+    final withCommission = v * 1.10;
+    return _formatPriceHuman(withCommission.toString());
   }
 }
 

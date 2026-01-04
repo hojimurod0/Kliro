@@ -8,8 +8,13 @@ import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
 import '../../../../core/services/auth/auth_service.dart';
 import '../../../../core/services/theme/theme_controller.dart';
+import '../../../../core/utils/logger.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../register/domain/usecases/get_profile.dart';
+import '../../../register/presentation/bloc/register_bloc.dart';
+import '../../../register/presentation/bloc/register_event.dart';
+import '../../../register/presentation/bloc/register_state.dart';
 import '../widgets/appearance_modal.dart';
 import '../widgets/language_modal.dart';
 import '../widgets/logout_dialog.dart';
@@ -31,6 +36,23 @@ class _ProfilePageState extends State<ProfilePage> {
     _userFuture = _loadUser();
     // ThemeController o'zgarishlarini kuzatish
     ThemeController.instance.addListener(_onThemeChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Page'ga kirganda yoki app ochilganda profile'ni yangilash
+    // Doimiy ravishda serverdan yuklash (email va boshqa ma'lumotlar yangilanishi uchun)
+    _userFuture.then((user) {
+      if (user != null) {
+        // Email bo'sh bo'lsa yoki page birinchi marta ochilganda yangilash
+        if (user.email == null || user.email!.isEmpty) {
+          AppLogger.debug(
+              '📱 PROFILE_PAGE: didChangeDependencies - Email is empty, reloading...');
+          _reloadUser();
+        }
+      }
+    });
   }
 
   @override
@@ -77,29 +99,70 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<AuthUser?> _loadUser() async {
     final storedUser = await AuthService.instance.getStoredUser();
+    AppLogger.debug(
+        '📱 PROFILE_PAGE: _loadUser - storedUser exists: ${storedUser != null}');
     if (storedUser != null) {
-      // Agar ism bo'sh bo'lsa, serverdan yuklashga harakat qilish
-      if (storedUser.firstName.isEmpty || storedUser.lastName.isEmpty) {
-        try {
-          final getProfile = ServiceLocator.resolve<GetProfile>();
-          final profile = await getProfile();
-          final updatedUser = AuthUser(
-            firstName: profile.firstName,
-            lastName: profile.lastName,
-            contact: profile.email ?? profile.phone ?? storedUser.contact,
-            password: storedUser.password,
-            region: profile.regionName ?? storedUser.region,
-          );
-          await AuthService.instance.saveProfile(updatedUser);
-          return updatedUser;
-        } catch (e) {
-          // Xatolik bo'lsa, mavjud ma'lumotlarni qaytarish
-          return storedUser;
-        }
+      AppLogger.debug(
+          '📱 PROFILE_PAGE: _loadUser - storedUser.email: ${storedUser.email ?? "null"}');
+      AppLogger.debug(
+          '📱 PROFILE_PAGE: _loadUser - storedUser.phone: ${storedUser.phone ?? "null"}');
+
+      // Doimiy ravishda serverdan yuklash (email va boshqa ma'lumotlar yangilanishi uchun)
+      // Agar ism yoki email bo'sh bo'lsa, serverdan yuklashga harakat qilish
+      final needsRefresh = storedUser.firstName.isEmpty ||
+          storedUser.lastName.isEmpty ||
+          (storedUser.email == null || storedUser.email!.isEmpty);
+
+      AppLogger.debug(
+          '📱 PROFILE_PAGE: _loadUser - needsRefresh: $needsRefresh');
+
+      // Doimiy ravishda API'dan profile yuklash (email va boshqa ma'lumotlar yangilanishi uchun)
+      try {
+        AppLogger.debug(
+            '📱 PROFILE_PAGE: _loadUser - Loading profile from API...');
+        final getProfile = ServiceLocator.resolve<GetProfile>();
+        final profile = await getProfile();
+        AppLogger.debug('📱 PROFILE_PAGE: _loadUser - Profile loaded from API');
+        AppLogger.debug(
+            '📱 PROFILE_PAGE: _loadUser - Profile.email: ${profile.email ?? "null"}');
+        AppLogger.debug(
+            '📱 PROFILE_PAGE: _loadUser - Profile.phone: ${profile.phone ?? "null"}');
+        AppLogger.debug(
+            '📱 PROFILE_PAGE: _loadUser - Profile.regionName: ${profile.regionName ?? "null"}');
+
+        final updatedUser = AuthUser(
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          contact: profile.email ?? profile.phone ?? storedUser.contact,
+          password: storedUser.password,
+          region: profile.regionName ?? storedUser.region,
+          email: profile.email,
+          phone: profile.phone != null && profile.phone!.isNotEmpty
+              ? AuthService.normalizeContact(profile.phone!)
+              : null,
+        );
+
+        AppLogger.debug(
+            '📱 PROFILE_PAGE: _loadUser - UpdatedUser.email: ${updatedUser.email ?? "null"}');
+        AppLogger.debug(
+            '📱 PROFILE_PAGE: _loadUser - UpdatedUser.phone: ${updatedUser.phone ?? "null"}');
+        AppLogger.debug(
+            '📱 PROFILE_PAGE: _loadUser - UpdatedUser.region: ${updatedUser.region ?? "null"}');
+
+        await AuthService.instance.saveProfile(updatedUser);
+        AppLogger.debug(
+            '📱 PROFILE_PAGE: _loadUser - Profile saved successfully');
+        return updatedUser;
+      } catch (e) {
+        AppLogger.warning(
+            '📱 PROFILE_PAGE: _loadUser - Failed to load profile: $e');
+        // Xatolik bo'lsa, mavjud ma'lumotlarni qaytarish
+        return storedUser;
       }
-      return storedUser;
     }
 
+    AppLogger.debug(
+        '📱 PROFILE_PAGE: _loadUser - No storedUser, fetching activeUser');
     final activeUser = await AuthService.instance.fetchActiveUser();
     return activeUser;
   }
@@ -111,7 +174,18 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _handleLogout() async {
+    // API orqali logout qilish
+    try {
+      final registerBloc = ServiceLocator.resolve<RegisterBloc>();
+      registerBloc.add(const LogoutRequested());
+    } catch (e) {
+      // Bloc topilmasa, faqat local logout qilish
+      // Ignore error - local logout will still work
+    }
+
+    // Local logout ham qilish
     await AuthService.instance.logout();
+
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -124,39 +198,50 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        toolbarHeight: 50.h,
-        backgroundColor:
-            Theme.of(context).appBarTheme.backgroundColor ??
-            Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        centerTitle: true,
-        scrolledUnderElevation: 0,
-        title: Text(
-          tr('profile.title'),
-          style: TextStyle(
-            color:
-                Theme.of(context).textTheme.titleLarge?.color ?? Colors.black,
-            fontWeight: FontWeight.bold,
+    return BlocProvider(
+      create: (context) => ServiceLocator.resolve<RegisterBloc>(),
+      child: BlocListener<RegisterBloc, RegisterState>(
+        listener: (context, state) {
+          if (state.status == RegisterStatus.failure &&
+              state.flow == RegisterFlow.logout) {
+            // Logout xatolik bo'lsa ham local logout qilish
+            AuthService.instance.logout();
+          }
+        },
+        child: Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          appBar: AppBar(
+            toolbarHeight: 50.h,
+            backgroundColor: Theme.of(context).appBarTheme.backgroundColor ??
+                Theme.of(context).scaffoldBackgroundColor,
+            elevation: 0,
+            centerTitle: true,
+            scrolledUnderElevation: 0,
+            title: Text(
+              tr('profile.title'),
+              style: TextStyle(
+                color: Theme.of(context).textTheme.titleLarge?.color ??
+                    Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          body: FutureBuilder<AuthUser?>(
+            future: _userFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return _buildErrorState(snapshot.error);
+              }
+
+              final user = snapshot.data;
+              return _buildProfileContent(context, user);
+            },
           ),
         ),
-      ),
-      body: FutureBuilder<AuthUser?>(
-        future: _userFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return _buildErrorState(snapshot.error);
-          }
-
-          final user = snapshot.data;
-          return _buildProfileContent(context, user);
-        },
       ),
     );
   }
@@ -364,12 +449,13 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildLoginButton(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.primaryBlue.withOpacity(0.1) : AppColors.white,
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(
-          color: AppColors.primaryBlue.withOpacity(0.5),
+          color: AppColors.primaryBlue,
           width: 1.5,
         ),
       ),
@@ -478,8 +564,8 @@ class _ProfilePageState extends State<ProfilePage> {
     final displayName = user.fullName.isNotEmpty
         ? user.fullName
         : user.contact.isNotEmpty
-        ? user.contact
-        : tr('profile.user');
+            ? user.contact
+            : tr('profile.user');
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -489,19 +575,17 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       child: Row(
         children: <Widget>[
-          Container(
+          SizedBox(
             width: 50.w,
             height: 50.w,
-            decoration: BoxDecoration(
-              color: AppColors.primaryBlue,
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              user.initials,
-              style: AppTypography.headingL.copyWith(
-                color: Theme.of(context).colorScheme.onPrimary,
-                fontSize: 18.sp,
+            child: CircleAvatar(
+              backgroundColor: AppColors.primaryBlue,
+              child: Text(
+                user.initials,
+                style: AppTypography.headingL.copyWith(
+                  color: Theme.of(context).colorScheme.onPrimary,
+                  fontSize: 18.sp,
+                ),
               ),
             ),
           ),
@@ -516,11 +600,63 @@ class _ProfilePageState extends State<ProfilePage> {
                     color: Theme.of(context).textTheme.titleLarge?.color,
                   ),
                 ),
-                if (user.fullName.isNotEmpty && user.contact.isNotEmpty)
-                  Text(
-                    user.contact,
-                    style: AppTypography.bodyPrimary.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
+                if (user.email != null && user.email!.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(top: 4.h),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.email_outlined,
+                          size: 14.sp,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        SizedBox(width: 6.w),
+                        Expanded(
+                          child: Text(
+                            user.email!,
+                            style: AppTypography.bodyPrimary.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontSize: 12.sp,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (user.phone != null && user.phone!.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(top: 4.h),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.phone_outlined,
+                          size: 14.sp,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        SizedBox(width: 6.w),
+                        Expanded(
+                          child: Text(
+                            user.phone!,
+                            style: AppTypography.bodyPrimary.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontSize: 12.sp,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if ((user.email == null || user.email!.isEmpty) &&
+                    (user.phone == null || user.phone!.isEmpty) &&
+                    user.contact.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(top: 4.h),
+                    child: Text(
+                      user.contact,
+                      style: AppTypography.bodyPrimary.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontSize: 12.sp,
+                      ),
                     ),
                   ),
               ],
@@ -537,8 +673,7 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Text(
         title,
         style: AppTypography.bodyPrimary.copyWith(
-          color:
-              Theme.of(context).textTheme.bodySmall?.color ??
+          color: Theme.of(context).textTheme.bodySmall?.color ??
               Colors.grey.shade600,
           fontSize: 12.sp,
           fontWeight: FontWeight.bold,
@@ -580,8 +715,7 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Text(
                 title,
                 style: AppTypography.bodyPrimary.copyWith(
-                  color:
-                      Theme.of(context).textTheme.bodyLarge?.color ??
+                  color: Theme.of(context).textTheme.bodyLarge?.color ??
                       Colors.black87,
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w600,
@@ -592,8 +726,7 @@ class _ProfilePageState extends State<ProfilePage> {
               Text(
                 trailingText,
                 style: AppTypography.bodyPrimary.copyWith(
-                  color:
-                      Theme.of(context).textTheme.bodyMedium?.color ??
+                  color: Theme.of(context).textTheme.bodyMedium?.color ??
                       Colors.grey.shade500,
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w500,

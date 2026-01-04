@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/constants/app_colors.dart'; // AppColors manzili to'g'ri ekanligini tekshiring
 import '../widgets/common_back_button.dart';
 
@@ -154,8 +155,8 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
     final responsiveSize = boxSize.clamp(40.0, 50.0); // Minimum 40, Maximum 50
 
     return Scaffold(
-      // 1. Asosiy fonni OQ rangda qotiramiz
-      backgroundColor: AppColors.white,
+      // 1. Asosiy fonni Dynamic qilamiz
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -167,12 +168,12 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
               const SizedBox(height: 30),
 
               // Sarlavha
-              const Text(
+              Text(
                 "Kodni tasdiqlash",
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.black, // Matn doim qora
+                  color: Theme.of(context).brightness == Brightness.dark ? AppColors.white : AppColors.black,
                 ),
               ),
               const SizedBox(height: 10),
@@ -188,9 +189,9 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
                   children: [
                     TextSpan(
                       text: widget.contactInfo,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w600,
-                        color: AppColors.black,
+                        color: Theme.of(context).brightness == Brightness.dark ? AppColors.white : AppColors.black,
                       ),
                     ),
                     const TextSpan(
@@ -296,6 +297,8 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
   // --- CUSTOM OTP BOX WIDGET ---
   // Dark Modeda ham chiroyli turishi uchun maxsus widget
   Widget _buildSingleOtpBox(int index) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return RawKeyboardListener(
       focusNode: FocusNode(), // Dummy focus node for listener
       onKey: (event) {
@@ -307,51 +310,53 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
           _focusNodes[index - 1].requestFocus();
         }
       },
-      child: TextFormField(
-        controller: _controllers[index],
-        focusNode: _focusNodes[index],
-        // 1. Klaviaturada faqat raqam
-        keyboardType: TextInputType.number,
-        // 2. Formatlash (faqat 1 ta raqam)
-        inputFormatters: [
-          LengthLimitingTextInputFormatter(1),
-          FilteringTextInputFormatter.digitsOnly,
-        ],
-        // 3. Matnni o'rtaga joylash
-        textAlign: TextAlign.center,
-        // 4. Cursor rangi
-        cursorColor: AppColors.primaryBlue,
-
-        // --- DARK MODE FIX (ENG MUHIM QISM) ---
-        style: const TextStyle(
-          color: Colors.black, // Input ichidagi raqam doim qora
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
-
-        onChanged: (value) => _onCodeChanged(index, value),
-
-        // Dizayn
-        decoration: InputDecoration(
-          // Input orqa foni (Dark modeda ham och rangda bo'ladi)
-          filled: true,
-          fillColor: AppColors.grayBackground, // Yoki Color(0xFFF5F6F8)
-
-          contentPadding: EdgeInsets.zero,
-
-          // Borderlar
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: AppColors.grayLight, // Kulrang hoshiya
-              width: 1,
-            ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkCardBg : AppColors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.grayBorder.withOpacity(0.5),
+            width: 1.w,
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(
-              color: AppColors.primaryBlue, // Aktiv holatda ko'k
-              width: 1.5,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withOpacity(0.08),
+              spreadRadius: 1.r,
+              blurRadius: 10.r,
+              offset: Offset(0, 3.h),
+            ),
+          ],
+        ),
+        child: Center(
+          child: TextFormField(
+            controller: _controllers[index],
+            focusNode: _focusNodes[index],
+            // 1. Klaviaturada faqat raqam
+            keyboardType: TextInputType.number,
+            // 2. Formatlash (faqat 1 ta raqam)
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(1),
+              FilteringTextInputFormatter.digitsOnly,
+            ],
+            // 3. Matnni o'rtaga joylash
+            textAlign: TextAlign.center,
+            // 4. Cursor rangi
+            cursorColor: isDark ? AppColors.white : AppColors.black,
+
+            // --- DARK MODE FIX ---
+            style: TextStyle(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.bold,
+              color: isDark ? AppColors.white : AppColors.black,
+            ),
+
+            onChanged: (value) => _onCodeChanged(index, value),
+
+            // Dizayn
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+              counterText: "",
             ),
           ),
         ),

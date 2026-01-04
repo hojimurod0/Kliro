@@ -84,19 +84,36 @@ import '../../services/auth/auth_service.dart';
 import '../../constants/constants.dart';
 import '../client/dio_client.dart';
 import '../../network/avia/avia_dio_client.dart';
+import '../../network/hotel/hotel_dio_client.dart';
+import '../../../features/hotel/data/datasources/hotel_remote_data_source.dart';
+import '../../../features/hotel/data/repositories/hotel_repository_impl.dart';
+import '../../../features/hotel/domain/repositories/hotel_repository.dart';
+import '../../../features/hotel/presentation/bloc/hotel_bloc.dart';
 
 class ServiceLocator {
   ServiceLocator._();
 
   static final GetIt _getIt = GetIt.instance;
 
+  static Future<void> _yieldToUi() async {
+    // Register'lar katta bo'lsa debug'da frame skip bo'lishi mumkin.
+    // Bitta micro-yield UI'ga nafas beradi.
+    await Future<void>.delayed(Duration.zero);
+  }
+
   static Future<void> init() async {
+    final sharedPreferences = await SharedPreferences.getInstance();
+    return initWithPrefs(sharedPreferences);
+  }
+
+  /// SharedPreferences ni tashqaridan olish - performance optimizatsiyasi uchun
+  /// Bu metod SharedPreferences ni bir marta yuklab, ikkala service'ga pass qilish uchun ishlatiladi
+  static Future<void> initWithPrefs(SharedPreferences sharedPreferences) async {
     try {
       ServiceLocatorStateController.instance.setInitializing();
       AppLogger.info('ServiceLocator initialization started');
 
       final authService = AuthService.instance;
-      final sharedPreferences = await SharedPreferences.getInstance();
 
       if (!_getIt.isRegistered<AuthService>()) {
         _getIt.registerSingleton<AuthService>(authService);
@@ -111,13 +128,17 @@ class ServiceLocator {
       if (!_getIt.isRegistered<Dio>()) {
         _getIt.registerLazySingleton<Dio>(() => _getIt<DioClient>().client);
       }
+      
       if (!_getIt.isRegistered<SharedPreferences>()) {
         _getIt.registerSingleton<SharedPreferences>(sharedPreferences);
       }
 
       _registerDataSources();
+      await _yieldToUi();
       _registerRepositories();
+      await _yieldToUi();
       _registerUseCases();
+      await _yieldToUi();
       _registerBlocs(authService);
 
       ServiceLocatorStateController.instance.setReady();
@@ -225,6 +246,17 @@ class ServiceLocator {
     if (!_getIt.isRegistered<AviaDioClient>()) {
       _getIt.registerLazySingleton<AviaDioClient>(
         () => AviaDioClient(authService: _getIt<AuthService>()),
+      );
+    }
+    // Hotel Data Sources
+    if (!_getIt.isRegistered<HotelDioClient>()) {
+      _getIt.registerLazySingleton<HotelDioClient>(
+        () => HotelDioClient(authService: _getIt<AuthService>()),
+      );
+    }
+    if (!_getIt.isRegistered<HotelRemoteDataSource>()) {
+      _getIt.registerLazySingleton<HotelRemoteDataSource>(
+        () => HotelRemoteDataSourceImpl(dioClient: _getIt<HotelDioClient>()),
       );
     }
     // Trust Insurance Data Sources
@@ -339,6 +371,14 @@ class ServiceLocator {
       _getIt.registerLazySingleton<AvichiptalarRepository>(
         () => AvichiptalarRepositoryImpl(
           dioClient: _getIt<AviaDioClient>(),
+        ),
+      );
+    }
+    // Hotel Repository
+    if (!_getIt.isRegistered<HotelRepository>()) {
+      _getIt.registerLazySingleton<HotelRepository>(
+        () => HotelRepositoryImpl(
+          remoteDataSource: _getIt<HotelRemoteDataSource>(),
         ),
       );
     }
@@ -508,6 +548,10 @@ class ServiceLocator {
         repository: _getIt<AvichiptalarRepository>(),
         dioClient: _getIt<AviaDioClient>(),
       ),
+    );
+    // Hotel BLoC
+    _getIt.registerFactory<HotelBloc>(
+      () => HotelBloc(repository: _getIt<HotelRepository>()),
     );
   }
 }

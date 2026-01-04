@@ -7,8 +7,13 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/services/auth/auth_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../register/domain/params/auth_params.dart';
-import '../../../register/domain/usecases/update_profile.dart';
+import '../../../register/domain/usecases/get_profile.dart';
+import '../../../register/domain/entities/user_profile.dart';
+import '../../../register/presentation/bloc/register_bloc.dart';
+import '../../../register/presentation/bloc/register_event.dart';
+import '../../../register/presentation/bloc/register_state.dart';
 
 @RoutePage()
 class ProfileEditPage extends StatefulWidget {
@@ -46,19 +51,38 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       final user = await AuthService.instance.fetchActiveUser();
       if (!mounted || user == null) return;
 
+      // Profile'ni yuklab, email va telefon alohida olish
+      UserProfile? profile;
+      try {
+        final getProfile = ServiceLocator.resolve<GetProfile>();
+        profile = await getProfile();
+      } catch (_) {
+        // Profile yuklanmasa, faqat user.contact ishlatish
+      }
+
       setState(() {
         _firstNameController.text = user.firstName;
         _lastNameController.text = user.lastName;
 
-        final contact = user.contact.trim();
-        if (contact.contains('@')) {
-          _emailController.text = contact;
-        } else {
-          _phoneController.text = contact;
+        // Email va telefon alohida olish (user.email va user.phone birinchi o'ringa)
+        if (user.email != null && user.email!.isNotEmpty) {
+          _emailController.text = user.email!;
+        } else if (profile?.email != null && profile!.email!.isNotEmpty) {
+          _emailController.text = profile.email!;
+        } else if (user.contact.contains('@')) {
+          _emailController.text = user.contact;
         }
 
-        // Phone default prefix if empty
-        if (_phoneController.text.trim().isEmpty) {
+        if (user.phone != null && user.phone!.isNotEmpty) {
+          final normalizedPhone = AuthService.normalizeContact(user.phone!);
+          _phoneController.text = normalizedPhone;
+        } else if (profile?.phone != null && profile!.phone!.isNotEmpty) {
+          final normalizedPhone = AuthService.normalizeContact(profile.phone!);
+          _phoneController.text = normalizedPhone;
+        } else if (!user.contact.contains('@')) {
+          final normalizedPhone = AuthService.normalizeContact(user.contact);
+          _phoneController.text = normalizedPhone;
+        } else {
           _phoneController.text = '+998';
         }
       });
@@ -95,25 +119,52 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     });
     
     try {
-      final updateProfile = ServiceLocator.resolve<UpdateProfile>();
-      await updateProfile(
-        UpdateProfileParams(
-          firstName: _firstNameController.text.trim(),
-          lastName: _lastNameController.text.trim(),
-        ),
-      );
+      final user = await AuthService.instance.fetchActiveUser();
+      final getProfile = ServiceLocator.resolve<GetProfile>();
+      final profile = await getProfile();
       
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(tr('profile_edit.saved_successfully')),
-            backgroundColor: Colors.green,
+      final email = _emailController.text.trim();
+      final phone = _phoneController.text.trim();
+      
+      // Email yoki telefon o'zgarganda UpdateContact API'ni chaqirish
+      final emailChanged = email.isNotEmpty && 
+                          profile.email != email && 
+                          email != user?.contact;
+      final phoneChanged = phone.isNotEmpty && 
+                          phone != '+998' && 
+                          profile.phone != phone && 
+                          phone != user?.contact;
+      
+      if (emailChanged || phoneChanged) {
+        // OTP yuborish
+        context.read<RegisterBloc>().add(
+          ContactUpdateRequested(
+            UpdateContactParams(
+              email: email.isNotEmpty && email.contains('@') ? email : null,
+              phone: phone.isNotEmpty && phone != '+998' ? phone : null,
+            ),
           ),
         );
-        Navigator.pop(context);
+        setState(() {
+          _isLoading = false;
+        });
+        return;
       }
+      
+      // Faqat ism o'zgarganda UpdateProfile API'ni chaqirish
+      context.read<RegisterBloc>().add(
+        ProfileUpdated(
+          UpdateProfileParams(
+            firstName: _firstNameController.text.trim(),
+            lastName: _lastNameController.text.trim(),
+          ),
+        ),
+      );
     } catch (e) {
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Xatolik: ${e.toString()}'),
@@ -121,17 +172,103 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           ),
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
+  }
+
+  void _showOtpVerificationDialog() {
+    final otpController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(tr('profile_edit.verify_otp')),
+        content: TextField(
+          controller: otpController,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            hintText: tr('profile_edit.otp_hint'),
+            border: const OutlineInputBorder(),
+          ),
+          maxLength: 6,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              otpController.dispose();
+              Navigator.pop(context);
+            },
+            child: Text(tr('profile_edit.cancel')),
+          ),
+          TextButton(
+            onPressed: () {
+              if (otpController.text.trim().length == 6) {
+                context.read<RegisterBloc>().add(
+                  ContactUpdateConfirmed(
+                    ConfirmUpdateContactParams(
+                      otp: otpController.text.trim(),
+                    ),
+                  ),
+                );
+                otpController.dispose();
+                Navigator.pop(context);
+              }
+            },
+            child: Text(tr('profile_edit.confirm')),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => ServiceLocator.resolve<RegisterBloc>(),
+      child: BlocListener<RegisterBloc, RegisterState>(
+        listener: (context, state) {
+          if (state.status == RegisterStatus.success) {
+            if (state.flow == RegisterFlow.contactUpdate) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(tr('profile_edit.otp_sent')),
+                  backgroundColor: Colors.blue,
+                ),
+              );
+              // OTP verification dialog ochish
+              _showOtpVerificationDialog();
+            } else if (state.flow == RegisterFlow.contactConfirm) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(tr('profile_edit.contact_updated')),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              Navigator.pop(context);
+            } else if (state.flow == RegisterFlow.profileUpdate) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(tr('profile_edit.saved_successfully')),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              Navigator.pop(context);
+            }
+          } else if (state.status == RegisterStatus.failure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.error ?? tr('profile_edit.update_failed')),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+        child: _buildContent(context),
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? AppColors.getCardBg(true) : Theme.of(context).cardColor;
     final borderColor = AppColors.getBorderColor(isDark);

@@ -1,9 +1,13 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:dartz/dartz.dart';
+import 'package:dio/dio.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/constants/avia_endpoints.dart';
 import '../../../../core/network/avia/avia_dio_client.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../core/utils/retry_helper.dart';
+import '../../../../core/services/auth/auth_service.dart';
 import '../../domain/entities/avichipta.dart';
 import '../../domain/entities/avichipta_filter.dart';
 import '../../domain/entities/avichipta_search_result.dart';
@@ -818,21 +822,80 @@ class AvichiptalarRepositoryImpl implements AvichiptalarRepository {
         );
       }
 
-      final response = await _dioClient.get(
+      // Avval JSON sifatida olishga harakat qilish
+      try {
+        final jsonResponse = await _dioClient.get(
+          AviaEndpoints.pdfReceipt(bookingId),
+        );
+
+        final data = jsonResponse.data;
+        
+        // 1. Agar response Map bo'lsa (JSON format)
+        if (data is Map<String, dynamic>) {
+          final url = data['url'] ?? 
+                      data['pdf_url'] ?? 
+                      data['receipt_url'] ??
+                      data['data']?['url'] ??
+                      data['data']?['pdf_url'] ??
+                      data['data']?['receipt_url'];
+          if (url != null && url.toString().isNotEmpty) {
+            return Right(url.toString());
+          }
+          
+          // Base64 field tekshirish
+          final base64 = data['base64'] ?? 
+                         data['pdf_base64'] ?? 
+                         data['data']?['base64'];
+          if (base64 != null && base64.toString().isNotEmpty) {
+            return Right('data:application/pdf;base64,${base64.toString()}');
+          }
+        }
+        
+        // 2. Agar response String bo'lsa
+        if (data is String) {
+          // Base64 data URI format tekshirish
+          if (data.startsWith('data:application/pdf') || 
+              data.startsWith('data:application/octet-stream')) {
+            return Right(data);
+          }
+          // Oddiy base64 string bo'lsa
+          if (!data.startsWith('http://') && !data.startsWith('https://')) {
+            try {
+              // Base64 ekanligini tekshirish
+              base64Decode(data);
+              return Right('data:application/pdf;base64,$data');
+            } catch (_) {
+              // Base64 emas, oddiy string
+            }
+          }
+          // URL bo'lsa
+          if (data.startsWith('http://') || data.startsWith('https://')) {
+            return Right(data);
+          }
+        }
+      } catch (e) {
+        // JSON parse qilishda xatolik bo'lsa, bytes sifatida olishga harakat qilish
+        AppLogger.debug('JSON parse qilishda xatolik, bytes sifatida olishga harakat: $e');
+      }
+
+      // Agar JSON ishlamasa, bytes sifatida olish
+      final bytesResponse = await _dioClient.get(
         AviaEndpoints.pdfReceipt(bookingId),
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {'Accept': 'application/pdf'},
+        ),
       );
 
-      // PDF receipt usually returns a URL or base64 string
-      final data = response.data;
-      if (data is Map<String, dynamic>) {
-        final url = data['url'] ?? data['pdf_url'] ?? data['receipt_url'];
-        if (url != null) {
-          return Right(url.toString());
-        }
-        // If no URL, try to get the raw response as string
-        return Right(data.toString());
+      final bytesData = bytesResponse.data;
+      
+      // 3. Agar response bytes bo'lsa (to'g'ridan-to'g'ri PDF)
+      if (bytesData is List<int> || bytesData is Uint8List) {
+        final base64 = base64Encode(bytesData);
+        return Right('data:application/pdf;base64,$base64');
       }
-      return Right(data.toString());
+      
+      return Left(ParsingException('PDF formatini aniqlab bo\'lmadi. Response type: ${bytesData.runtimeType}'));
     } on AppException catch (e) {
       return Left(e);
     } catch (e) {
@@ -1024,11 +1087,54 @@ class AvichiptalarRepositoryImpl implements AvichiptalarRepository {
   @override
   Future<Either<AppException, List<HumanModel>>> getHumans() async {
     try {
+      AppLogger.debug('getHumans: Requesting ${AviaEndpoints.userHumans}');
+      
+      // Token'ni tekshirish va log qilish
+      try {
+        final authService = AuthService.instance;
+        final token = await authService.getAccessToken();
+        if (token != null && token.isNotEmpty) {
+          AppLogger.debug('getHumans: Token available: YES (${token.substring(0, 30)}...)');
+          
+          // Token ichidagi user_id'ni decode qilish
+          try {
+            final parts = token.split('.');
+            if (parts.length == 3) {
+              final payload = parts[1];
+              String normalizedPayload = payload;
+              switch (payload.length % 4) {
+                case 1:
+                  normalizedPayload += '===';
+                  break;
+                case 2:
+                  normalizedPayload += '==';
+                  break;
+                case 3:
+                  normalizedPayload += '=';
+                  break;
+              }
+              final decoded = utf8.decode(base64.decode(normalizedPayload));
+              final payloadMap = json.decode(decoded) as Map<String, dynamic>;
+              final userId = payloadMap['user_id'] ?? payloadMap['userId'] ?? payloadMap['sub'];
+              AppLogger.debug('getHumans: Token user_id: $userId');
+              AppLogger.debug('getHumans: Token payload: $payloadMap');
+            }
+          } catch (e) {
+            AppLogger.warning('getHumans: Could not decode token: $e');
+          }
+        } else {
+          AppLogger.warning('getHumans: Token is NULL or EMPTY!');
+        }
+      } catch (e) {
+        AppLogger.warning('getHumans: Could not check token: $e');
+      }
+      
       final response = await _dioClient.get(AviaEndpoints.userHumans);
       final data = response.data;
       
       AppLogger.debug('getHumans API response type: ${data.runtimeType}');
       AppLogger.debug('getHumans API response data: $data');
+      AppLogger.debug('getHumans: Response status code: ${response.statusCode}');
       
       if (data is List) {
         AppLogger.debug('Data is List, length: ${data.length}');

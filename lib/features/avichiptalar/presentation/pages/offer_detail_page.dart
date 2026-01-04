@@ -55,9 +55,22 @@ class _OfferDetailPageState extends State<OfferDetailPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '${'avia.details.price'.tr()} ${offer.price ?? 'avia.common.na'.tr()} ${offer.currency ?? ''}',
-                            style: Theme.of(context).textTheme.headlineSmall,
+                          Builder(
+                            builder: (context) {
+                              final rawPrice = offer.price;
+                              final s0 = (rawPrice ?? '').trim();
+                              // Remove spaces and replace comma with dot
+                              var s = s0.replaceAll(RegExp(r'\s+'), '').replaceAll(',', '.');
+                              // Keep only digits and dots
+                              s = s.replaceAll(RegExp(r'[^0-9.]'), '');
+                              final priceVal = double.tryParse(s) ?? 0;
+                              final displayPrice = (priceVal * 1.10).toStringAsFixed(0);
+                              
+                              return Text(
+                                '${'avia.details.price'.tr()} $displayPrice ${offer.currency ?? ''}',
+                                style: Theme.of(context).textTheme.headlineSmall,
+                              );
+                            }
                           ),
                           const SizedBox(height: 16),
                           Text('${'avia.details.airline'.tr()} ${offer.airline ?? 'avia.common.na'.tr()}'),

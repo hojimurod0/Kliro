@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../domain/entities/payment_urls_entity.dart';
 import '../bloc/accident_bloc.dart';
 import '../bloc/accident_state.dart';
@@ -34,14 +35,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Future<void> _launchUrl(String? url, BuildContext context) async {
     if (url == null || url.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'insurance.accident.payment_screen.errors.url_not_found'.tr(),
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
+        SnackbarHelper.showError(
+          context,
+          'insurance.accident.payment_screen.errors.url_not_found'.tr(),
+          duration: const Duration(seconds: 3),
         );
       }
       return;
@@ -62,31 +59,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
           await launchUrl(uri, mode: LaunchMode.platformDefault);
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'insurance.accident.payment_screen.errors.url_open_error'
-                      .tr(),
-                ),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-              ),
+            SnackbarHelper.showError(
+              context,
+              'insurance.accident.payment_screen.errors.url_open_error'
+                  .tr(),
+              duration: const Duration(seconds: 3),
             );
           }
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'insurance.accident.payment_screen.errors.error_occurred'.tr(
-                namedArgs: {'error': e.toString()},
-              ),
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
+        SnackbarHelper.showError(
+          context,
+          'insurance.accident.payment_screen.errors.error_occurred'.tr(
+            namedArgs: {'error': e.toString()},
           ),
+          duration: const Duration(seconds: 3),
         );
       }
     }
@@ -97,14 +86,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
       // Payme
       final paymeUrl = widget.paymentUrls.payme;
       if (paymeUrl.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'insurance.accident.payment_screen.errors.url_not_found'.tr(),
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
+        SnackbarHelper.showError(
+          context,
+          'insurance.accident.payment_screen.errors.url_not_found'.tr(),
+          duration: const Duration(seconds: 3),
         );
         return;
       }
@@ -113,14 +98,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
       // Click
       final clickUrl = widget.paymentUrls.click;
       if (clickUrl.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'insurance.accident.payment_screen.errors.url_not_found'.tr(),
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
+        SnackbarHelper.showError(
+          context,
+          'insurance.accident.payment_screen.errors.url_not_found'.tr(),
+          duration: const Duration(seconds: 3),
         );
         return;
       }

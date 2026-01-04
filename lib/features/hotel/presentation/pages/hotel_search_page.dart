@@ -2,8 +2,14 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../domain/entities/hotel_filter.dart';
+import '../../domain/entities/city.dart';
 import '../bloc/hotel_bloc.dart';
+import '../widgets/city_input.dart';
+import 'hotel_results_page.dart'; // Import Results page
+import 'hotel_loading_page.dart'; // Import Loading page
+import '../widgets/guest_selector_dialog.dart';
 
 class HotelSearchPage extends StatefulWidget {
   const HotelSearchPage({Key? key}) : super(key: key);
@@ -18,6 +24,16 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
   DateTime? _checkOutDate;
   int _adults = 1;
   int _children = 0;
+  int _rooms = 1;
+  int? _selectedCityId;
+  int? _selectedHotelId;
+  List<City> _citiesList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // No need to preload cities; HotelInput will fetch hotels list on focus
+  }
 
   @override
   void dispose() {
@@ -26,145 +42,242 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
   }
 
   void _onSearch() {
+    // Validation
+    if (_selectedHotelId == null &&
+        _selectedCityId == null &&
+        _cityController.text.trim().isEmpty) {
+      SnackbarHelper.showError(
+        context,
+        'hotel.search.select_city'.tr(),
+      );
+      return;
+    }
+
+    if (_checkInDate == null || _checkOutDate == null) {
+      SnackbarHelper.showError(
+        context,
+        'hotel.search.select_dates'.tr(),
+      );
+      return;
+    }
+
+    if (_checkOutDate!.isBefore(_checkInDate!) ||
+        _checkOutDate!.isAtSameMomentAs(_checkInDate!)) {
+      SnackbarHelper.showError(
+        context,
+        'hotel.search.invalid_dates'.tr(),
+      );
+      return;
+    }
+
+    // Agar hotel tanlangan bo'lsa, to'g'ridan-to'g'ri hotelIds bilan ishlaymiz
+    if (_selectedHotelId != null) {
+      if (_checkInDate == null || _checkOutDate == null) {
+        SnackbarHelper.showError(
+          context,
+          'hotel.search.select_dates'.tr(),
+        );
+        return;
+      }
+
+      final occupancies = [
+        Occupancy(
+          adults: _adults,
+          childrenAges: List.generate(_children, (index) => 10),
+        ),
+      ];
+
+      final filter = HotelFilter(
+        hotelIds: [_selectedHotelId!],
+        checkInDate: _checkInDate,
+        checkOutDate: _checkOutDate,
+        occupancies: occupancies,
+        currency: 'uzs',
+        nationality: 'uz',
+        residence: 'uz',
+        isResident: false,
+        city: _cityController.text,
+        guests: _adults + _children,
+      );
+      context.read<HotelBloc>().add(SearchHotelsRequested(filter));
+      return;
+    }
+
+    // City ID ni aniqlash
+    int? cityId = _selectedCityId;
+
+    // Agar city_id yo'q bo'lsa, city name dan topishga harakat qilamiz
+    if (cityId == null && _cityController.text.trim().isNotEmpty) {
+      final cityName = _cityController.text.trim().toLowerCase();
+      // Cities list'dan qidirish
+      final foundCity = _citiesList.firstWhere(
+        (city) {
+          final cityNameLower = city.name.toLowerCase();
+          final namesLower =
+              city.names?.values.map((v) => v.toLowerCase()).toList() ?? [];
+          return cityNameLower.contains(cityName) ||
+              cityName.contains(cityNameLower) ||
+              namesLower
+                  .any((n) => n.contains(cityName) || cityName.contains(n));
+        },
+        orElse: () => const City(id: 0, name: ''),
+      );
+
+      if (foundCity.id != 0) {
+        cityId = foundCity.id;
+      }
+    }
+
+    if (cityId == null) {
+      SnackbarHelper.showError(
+        context,
+        'hotel.search.city_not_found'.tr(),
+      );
+      return;
+    }
+
+    // Occupancies yaratish (simple logic: divide adults among rooms if needed, or 1 room per occupancy?)
+    // API logic suggests occupancies list. For now, creating 1 occupancy per room or 1 unified occupancy.
+    // If multiple rooms, usually we list multiple occupancies.
+    // Assuming 1 search param for simple view.
+    final occupancies = List.generate(
+        _rooms,
+        (index) => Occupancy(
+              adults: (_adults / _rooms)
+                  .ceil(), // Distribute adults roughly? Or just 1 per room?
+              // Simple logic: Put all adults/children in first room or duplicate?
+              // Let's stick to 1 occupancy with total adults/children for now unless API requires distinct rooms.
+              // Actually, HotelFilter has 'rooms' and 'guests' legacy fields, and 'occupancies'.
+              // Let's create `_rooms` number of occupancies.
+              childrenAges:
+                  index == 0 ? List.generate(_children, (_) => 10) : [],
+            ));
+
+    // Better Logic: Just 1 occupancy with all people, as UI doesn't split them.
+    // BUT we must pass 'rooms' count if API supports it separate from occupancies length.
+    // HotelFilter has 'rooms'. Let's use that.
+
     final filter = HotelFilter(
-      city: _cityController.text,
+      cityId: cityId,
       checkInDate: _checkInDate,
       checkOutDate: _checkOutDate,
+      occupancies: occupancies,
+      currency: 'uzs',
+      nationality: 'uz',
+      residence: 'uz',
+      isResident: false,
+      // Legacy support
+      city: _cityController.text,
       guests: _adults + _children,
+      rooms: _rooms,
     );
     context.read<HotelBloc>().add(SearchHotelsRequested(filter));
+    // Note: The BlocListener in build() will handle navigation to loading/results page
   }
 
-  void _showGuestSelector() {
-    showModalBottomSheet(
+  void _showGuestSelector() async {
+    final result = await showDialog<Map<String, int>>(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20.r),
-            topRight: Radius.circular(20.r),
-          ),
-        ),
-        padding: EdgeInsets.all(20.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'hotel.search.guests_title'.tr(),
-              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 20.h),
-            _buildCounterRow(
-              'hotel.search.adults'.tr(),
-              '18+',
-              _adults,
-              (val) => setState(() => _adults = val),
-              min: 1,
-            ),
-            SizedBox(height: 20.h),
-            _buildCounterRow(
-              'hotel.search.children'.tr(),
-              '0-17',
-              _children,
-              (val) => setState(() => _children = val),
-            ),
-            SizedBox(height: 30.h),
-            SizedBox(
-              width: double.infinity,
-              height: 50.h,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                ),
-                child: Text(
-                  'hotel.common.apply'.tr(),
-                  style: TextStyle(color: Colors.white, fontSize: 16.sp),
-                ),
-              ),
-            ),
-          ],
-        ),
+      builder: (context) => GuestSelectorDialog(
+        initialAdults: _adults,
+        initialChildren: _children,
+        initialRooms: _rooms,
       ),
     );
+
+    if (result != null) {
+      setState(() {
+        _adults = result['adults'] ?? 1;
+        _children = result['children'] ?? 0;
+        _rooms = result['rooms'] ?? 1;
+      });
+    }
   }
 
-  Widget _buildCounterRow(
-      String title, String subtitle, int value, Function(int) onChanged,
-      {int min = 0}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title,
-                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
-            Text(subtitle,
-                style: TextStyle(color: Colors.grey, fontSize: 12.sp)),
-          ],
-        ),
-        Row(
-          children: [
-            IconButton(
-              onPressed:
-                  value > min ? () => onChanged(value - 1) : null,
-              icon: Container(
-                padding: EdgeInsets.all(4.w),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.remove, size: 16.sp),
-              ),
-            ),
-            Text('$value',
-                style:
-                    TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
-            IconButton(
-              onPressed: () => onChanged(value + 1),
-              icon: Container(
-                padding: EdgeInsets.all(4.w),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.add, size: 16.sp),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
+  Future<void> _selectCheckInDate() async {
+    final now = DateTime.now();
+    final initialDate = _checkInDate ?? now;
 
-  Future<void> _selectDateRange() async {
-    final picked = await showDateRangePicker(
+    final picked = await showDatePicker(
       context: context,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      initialDateRange: _checkInDate != null && _checkOutDate != null
-          ? DateTimeRange(start: _checkInDate!, end: _checkOutDate!)
-          : null,
+      initialDate: initialDate,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
       builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: Colors.blue),
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: Colors.blue,
+                    onPrimary: Colors.white,
+                    onSurface: Colors.white,
+                  )
+                : const ColorScheme.light(
+                    primary: Colors.blue,
+                    onPrimary: Colors.white,
+                    onSurface: Colors.black,
+                  ),
+            dialogBackgroundColor:
+                isDark ? const Color(0xFF252525) : Colors.white,
           ),
           child: child!,
         );
       },
     );
+
     if (picked != null) {
       setState(() {
-        _checkInDate = picked.start;
-        _checkOutDate = picked.end;
+        _checkInDate = picked;
+        // If checkout is before checkin, automatically adjust it
+        if (_checkOutDate != null && _checkOutDate!.isBefore(_checkInDate!)) {
+          _checkOutDate = _checkInDate!.add(const Duration(days: 1));
+        }
+      });
+      // Automatically open check-out picker if it wasn't set or was reset
+      if (_checkOutDate == null) {
+        _selectCheckOutDate();
+      }
+    }
+  }
+
+  Future<void> _selectCheckOutDate() async {
+    final now = DateTime.now();
+    // Start date for checkout must be checkin date or today
+    final firstDate = _checkInDate ?? now;
+    final initialDate = _checkOutDate ?? firstDate.add(const Duration(days: 1));
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate.isBefore(firstDate) ? firstDate : initialDate,
+      firstDate: firstDate,
+      lastDate: now.add(const Duration(days: 365)),
+      builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: Colors.blue,
+                    onPrimary: Colors.white,
+                    onSurface: Colors.white,
+                  )
+                : const ColorScheme.light(
+                    primary: Colors.blue,
+                    onPrimary: Colors.white,
+                    onSurface: Colors.black,
+                  ),
+            dialogBackgroundColor:
+                isDark ? const Color(0xFF252525) : Colors.white,
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _checkOutDate = picked;
       });
     }
   }
@@ -172,136 +285,331 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'hotel.search.title'.tr(),
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.sp),
+        appBar: AppBar(
+          title: Text(
+            'hotel.search.title'.tr(),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.sp),
+          ),
+          elevation: 0,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
         ),
-        elevation: 0,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Search Form Card
-            Container(
-              padding: EdgeInsets.all(16.w),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(16.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+        body: BlocListener<HotelBloc, HotelState>(
+          listener: (context, state) {
+            // Получаем список городов из блока
+            if (state is HotelCitiesWithIdsSuccess) {
+              setState(() {
+                _citiesList = state.cities;
+              });
+            }
+
+            if (state is HotelSearchLoading) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => HotelLoadingPage(
+                    filter: state.filter, // Ensure loading state has filter
                   ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  // City Input
-                  _buildInputLabel('hotel.search.city'.tr()),
-                  SizedBox(height: 8.h),
-                  TextField(
-                    controller: _cityController,
-                    decoration: InputDecoration(
-                      hintText: 'hotel.search.city_hint'.tr(),
-                      prefixIcon: const Icon(Icons.search, color: Colors.blue),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Theme.of(context).scaffoldBackgroundColor,
-                      contentPadding: EdgeInsets.symmetric(vertical: 14.h),
+                ),
+              );
+            } else if (state is HotelSearchSuccess) {
+              // Close Loading Page (if it was open)
+              Navigator.of(context).pop();
+
+              final hotelBloc = context.read<HotelBloc>();
+
+              // Proceed to Results Page
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => BlocProvider.value(
+                    value: hotelBloc,
+                    child: HotelResultsPage(
+                      result: state.result,
+                      city: _cityController.text,
+                      checkInDate: _checkInDate,
+                      checkOutDate: _checkOutDate,
+                      guests: _adults + _children,
+                      filter: null,
                     ),
                   ),
-                  SizedBox(height: 16.h),
-
-                  // Dates
-                  Row(
+                ),
+              );
+            } else if (state is HotelSearchFailure) {
+              // Close Loading Page
+              Navigator.of(context).pop();
+              SnackbarHelper.showError(context, state.message);
+            }
+          },
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(16.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Search Form Card
+                Container(
+                  padding: EdgeInsets.all(16.w),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(16.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
                     children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: _selectDateRange,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildInputLabel('hotel.search.check_in'.tr()),
-                              SizedBox(height: 8.h),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                    vertical: 14.h, horizontal: 12.w),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .scaffoldBackgroundColor,
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.calendar_today,
-                                        size: 18.sp, color: Colors.blue),
-                                    SizedBox(width: 8.w),
-                                    Text(
-                                      _checkInDate != null
-                                          ? DateFormat('dd/MM/yyyy')
-                                              .format(_checkInDate!)
-                                          : 'dd/mm/yyyy',
-                                      style: TextStyle(
-                                          color: _checkInDate != null
-                                              ? Theme.of(context)
-                                                  .textTheme
-                                                  .bodyLarge
-                                                  ?.color
-                                              : Colors.grey),
+                      // City Input with list of cities
+                      CityInput(
+                        label: 'hotel.search.city'.tr(),
+                        hint: 'hotel.search.city_hint'.tr(),
+                        icon: Icons.location_on,
+                        controller: _cityController,
+                        onCitySelected: (city) {
+                          setState(() {
+                            _selectedCityId = city.id;
+                            _selectedHotelId = null;
+                          });
+                          // Auto search when dates selected
+                          if (_checkInDate != null && _checkOutDate != null) {
+                            _onSearch();
+                          } else {
+                            SnackbarHelper.showError(
+                              context,
+                              'hotel.search.select_dates'.tr(),
+                            );
+                          }
+                        },
+                        onHotelSelected: (hotel) {
+                          setState(() {
+                            _selectedCityId = null;
+                            _selectedHotelId = hotel.hotelId;
+                          });
+                          // Auto search when dates selected
+                          if (_checkInDate != null && _checkOutDate != null) {
+                            _onSearch();
+                          } else {
+                            SnackbarHelper.showError(
+                              context,
+                              'hotel.search.select_dates'.tr(),
+                            );
+                          }
+                        },
+                        onClear: () {
+                          setState(() {
+                            _selectedCityId = null;
+                            _selectedHotelId = null;
+                          });
+                        },
+                      ),
+                      SizedBox(height: 16.h),
+
+                      // Dates
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: _selectCheckInDate,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildInputLabel(
+                                      'hotel.search.check_in'.tr()),
+                                  SizedBox(height: 8.h),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: EdgeInsets.symmetric(
+                                        vertical: 14.h, horizontal: 12.w),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).cardColor,
+                                      borderRadius: BorderRadius.circular(12.r),
+                                      border: Border.all(
+                                        color: Theme.of(context)
+                                            .dividerColor
+                                            .withOpacity(0.5),
+                                      ),
                                     ),
-                                  ],
-                                ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.calendar_today,
+                                          size: 20.sp,
+                                          color: Colors.blue,
+                                        ),
+                                        SizedBox(width: 8.w),
+                                        Text(
+                                          _checkInDate != null
+                                              ? DateFormat('dd.MM.yyyy')
+                                                  .format(_checkInDate!)
+                                              : 'dd.MM.yyyy',
+                                          style: TextStyle(
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.w400,
+                                              color: _checkInDate != null
+                                                  ? Theme.of(context)
+                                                      .textTheme
+                                                      .bodyLarge
+                                                      ?.color
+                                                  : Colors.grey),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
+                          SizedBox(width: 12.w),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: _selectCheckOutDate,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildInputLabel(
+                                      'hotel.search.check_out'.tr()),
+                                  SizedBox(height: 8.h),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: EdgeInsets.symmetric(
+                                        vertical: 14.h, horizontal: 12.w),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).cardColor,
+                                      borderRadius: BorderRadius.circular(12.r),
+                                      border: Border.all(
+                                        color: Theme.of(context)
+                                            .dividerColor
+                                            .withOpacity(0.5),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.calendar_today,
+                                          size: 20.sp,
+                                          color: Colors.blue,
+                                        ),
+                                        SizedBox(width: 8.w),
+                                        Text(
+                                          _checkOutDate != null
+                                              ? DateFormat('dd.MM.yyyy')
+                                                  .format(_checkOutDate!)
+                                              : 'dd.MM.yyyy',
+                                          style: TextStyle(
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.w400,
+                                              color: _checkOutDate != null
+                                                  ? Theme.of(context)
+                                                      .textTheme
+                                                      .bodyLarge
+                                                      ?.color
+                                                  : Colors.grey),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16.h),
+
+                      // Guests & Rooms
+                      GestureDetector(
+                        onTap: _showGuestSelector,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildInputLabel('hotel.search.guests_rooms'
+                                .tr()), // "Mehmonlar va xonalar"
+                            SizedBox(height: 8.h),
+                            Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.symmetric(
+                                  vertical: 14.h, horizontal: 12.w),
+                              decoration: BoxDecoration(
+                                color:
+                                    Theme.of(context).scaffoldBackgroundColor,
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.person_outline,
+                                      color: Colors.blue),
+                                  SizedBox(width: 8.w),
+                                  Flexible(
+                                    child: Text(
+                                      '${_adults + _children} ${"hotel.search.person".tr()}',
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge
+                                            ?.color,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  SizedBox(width: 12.w),
+                                  Container(
+                                      width: 1,
+                                      height: 16.h,
+                                      color: Colors.grey.withOpacity(0.3)),
+                                  SizedBox(width: 12.w),
+                                  const Icon(Icons.bed_outlined,
+                                      color: Colors.blue),
+                                  SizedBox(width: 8.w),
+                                  Flexible(
+                                    child: Text(
+                                      '$_rooms ${"hotel.search.room".tr()}',
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge
+                                            ?.color,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  const Icon(Icons.keyboard_arrow_down,
+                                      color: Colors.grey),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: _selectDateRange,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                      SizedBox(height: 24.h),
+
+                      // Search Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50.h,
+                        child: ElevatedButton(
+                          onPressed: _onSearch,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _buildInputLabel('hotel.search.check_out'.tr()),
-                              SizedBox(height: 8.h),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                    vertical: 14.h, horizontal: 12.w),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .scaffoldBackgroundColor,
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.calendar_today,
-                                        size: 18.sp, color: Colors.blue),
-                                    SizedBox(width: 8.w),
-                                    Text(
-                                      _checkOutDate != null
-                                          ? DateFormat('dd/MM/yyyy')
-                                              .format(_checkOutDate!)
-                                          : 'dd/mm/yyyy',
-                                      style: TextStyle(
-                                          color: _checkOutDate != null
-                                              ? Theme.of(context)
-                                                  .textTheme
-                                                  .bodyLarge
-                                                  ?.color
-                                              : Colors.grey),
-                                    ),
-                                  ],
-                                ),
+                              const Icon(Icons.search, color: Colors.white),
+                              SizedBox(width: 8.w),
+                              Text(
+                                'hotel.common.search'.tr(),
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
@@ -309,93 +617,20 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 16.h),
+                ),
 
-                  // Guests
-                  GestureDetector(
-                    onTap: _showGuestSelector,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildInputLabel('hotel.search.guests'.tr()),
-                        SizedBox(height: 8.h),
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.symmetric(
-                              vertical: 14.h, horizontal: 12.w),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).scaffoldBackgroundColor,
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.person_outline,
-                                  color: Colors.blue),
-                              SizedBox(width: 8.w),
-                              Text(
-                                '${_adults + _children} ${"hotel.search.person".tr()}',
-                                style: TextStyle(
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodyLarge
-                                      ?.color,
-                                ),
-                              ),
-                              const Spacer(),
-                              const Icon(Icons.keyboard_arrow_down,
-                                  color: Colors.grey),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 24.h),
-
-                  // Search Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50.h,
-                    child: ElevatedButton(
-                      onPressed: _onSearch,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.search, color: Colors.white),
-                          SizedBox(width: 8.w),
-                          Text(
-                            'hotel.common.search'.tr(),
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                SizedBox(height: 24.h),
+                Text(
+                  'hotel.search.recommended'.tr(),
+                  style:
+                      TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 16.h),
+                _buildRecommendedList(),
+              ],
             ),
-
-            SizedBox(height: 24.h),
-            Text(
-              'hotel.search.recommended'.tr(),
-              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16.h),
-            _buildRecommendedList(),
-          ],
-        ),
-      ),
-    );
+          ),
+        ));
   }
 
   Widget _buildInputLabel(String label) {
@@ -410,30 +645,30 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
   }
 
   Widget _buildRecommendedList() {
-    // Placeholder list
-    return SizedBox(
+    return Container(
       height: 200.h,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: 3,
-        itemBuilder: (context, index) {
-          return Container(
-            width: 250.w,
-            margin: EdgeInsets.only(right: 16.w),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16.r),
-              image: const DecorationImage(
-                image: NetworkImage('https://via.placeholder.com/250x200'),
-                fit: BoxFit.cover,
-              ),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16.r),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'assets/images/hotel_recommended_placeholder.jpg',
+              fit: BoxFit.cover,
             ),
-            child: Container(
+            Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16.r),
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.7),
+                  ],
                 ),
               ),
               padding: EdgeInsets.all(12.w),
@@ -454,15 +689,16 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                           color: Colors.white70, size: 14),
                       Text(
                         'Tashkent, Uzbekistan',
-                        style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+                        style:
+                            TextStyle(color: Colors.white70, fontSize: 12.sp),
                       ),
                     ],
                   ),
                 ],
               ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }

@@ -10,6 +10,7 @@ import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../domain/params/auth_params.dart';
 import '../bloc/register_bloc.dart';
 import '../bloc/register_event.dart';
@@ -155,30 +156,27 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return BlocConsumer<RegisterBloc, RegisterState>(
       listener: (context, state) {
         if (state.flow == RegisterFlow.forgotPasswordOtp) {
           if (state.status == RegisterStatus.success) {
             _startTimer();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message ?? 'auth.verification.snack_resent'.tr()),
-                backgroundColor: Colors.blue,
-              ),
+            SnackbarHelper.showInfo(
+              context,
+              state.message ?? 'auth.verification.snack_resent'.tr(),
             );
           } else if (state.status == RegisterStatus.failure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.error ?? tr('common.error_occurred_simple')),
-                backgroundColor: Colors.red,
-              ),
+            SnackbarHelper.showError(
+              context,
+              state.error ?? tr('common.error_occurred_simple'),
             );
           }
         }
       },
       builder: (context, state) {
         return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: AppSpacing.screenPadding,
@@ -193,7 +191,9 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
               // Sarlavha
               Text(
                 'auth.verification.title_reset'.tr(),
-                style: AppTypography.headingXL,
+                style: AppTypography.headingXL.copyWith(
+                  color: isDark ? AppColors.white : AppColors.black,
+                ),
               ),
               SizedBox(height: AppSpacing.xs),
 
@@ -215,7 +215,7 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
                           text: contact,
                           style: AppTypography.bodyPrimary.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: AppColors.black,
+                            color: isDark ? AppColors.white : AppColors.black,
                           ),
                         ),
                         if (after.isNotEmpty)

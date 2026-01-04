@@ -1251,8 +1251,12 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                     debugPrint('🚀🚀🚀 Navigating to KaskoDocumentDataPage...');
                     debugPrint('✅ BLoC found: ${bloc.hashCode}');
 
-                    // Avval SelectRate event yuborish (agar hali yuborilmagan bo'lsa)
+                    // Avval tarifni to'g'ridan-to'g'ri cache'ga saqlash (navigatsiya paytida ishlatish uchun)
+                    // Bu muhim, chunki SelectRate event yuborilganda, u darhol ishlanmaydi
                     if (_selectedRateEntity != null) {
+                      bloc.setSelectedRateDirectly(_selectedRateEntity!);
+                      debugPrint('💾💾💾 Rate saved directly to cache: ${_selectedRateEntity!.name}');
+                      // Keyin SelectRate event'ini ham yuborish (state'ni yangilash uchun)
                       bloc.add(SelectRate(_selectedRateEntity!));
                     }
 

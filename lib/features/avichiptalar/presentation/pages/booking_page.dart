@@ -53,6 +53,7 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
   PriceCheckModel? _priceCheck;
   PaymentPermissionModel? _permission;
   BookingModel? _booking;
+  Timer? _priceCheckTimeout;
 
   @override
   void initState() {
@@ -73,6 +74,8 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
     _passengerTelController.dispose();
     _passengerDocNumberController.dispose();
     _passengerDocExpireController.dispose();
+    // Timeout timer'ni to'xtatish
+    _priceCheckTimeout?.cancel();
     // BLoC'lar registerFactory bilan ro'yxatdan o'tkazilgan,
     // har safar yangi instance yaratiladi, shuning uchun close() qilish xavfsiz
     try {
@@ -188,16 +191,23 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
     }
   }
 
-  Future<void> _createInvoiceAndLaunch(
-      String bookingId, PriceCheckModel priceCheck) async {
-    // Narxni parse qilish va eng kichik birlikka o'tkazish
-    // Avval priceCheck dan, keyin booking model'dan olish
-    String? priceString = priceCheck.price;
-
-    // Agar priceCheck da price yo'q bo'lsa, booking model'dan olish
+  Future<void> _createInvoiceAndLaunch(String bookingId) async {
+    // Narxni booking model'dan olish
+    String? priceString = _booking?.price;
+    
+    // Agar price yo'q bo'lsa, booking ma'lumotlarini qayta yuklash
     if (priceString == null || priceString.isEmpty || priceString == '0') {
-      if (_booking?.price != null && _booking!.price!.isNotEmpty) {
-        priceString = _booking!.price;
+      // Booking ma'lumotlarini qayta yuklash
+      if (mounted && !context.read<AviaBloc>().isClosed) {
+        context.read<AviaBloc>().add(BookingInfoRequested(bookingId));
+        // Bir oz kutish va qayta urinish
+        await Future.delayed(const Duration(seconds: 2));
+        // State'dan yangi booking ma'lumotlarini olish
+        final state = context.read<AviaBloc>().state;
+        if (state is AviaBookingInfoSuccess) {
+          _booking = state.booking;
+          priceString = _booking?.price;
+        }
       }
     }
 
@@ -205,15 +215,11 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
     if (priceString == null || priceString.isEmpty || priceString == '0') {
       if (mounted) {
         final errorMessage = 'avia.payment.price_not_available'.tr();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              errorMessage.contains('avia.payment.price_not_available')
-                  ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
-                  : errorMessage,
-            ),
-            backgroundColor: Colors.red,
-          ),
+        SnackbarHelper.showError(
+          context,
+          errorMessage.contains('avia.payment.price_not_available')
+              ? 'Narx mavjud emas. Iltimos, qayta urinib ko\'ring.'
+              : errorMessage,
         );
       }
       return;
@@ -227,24 +233,31 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
     // Double ga o'tkazish
     final priceValue = double.tryParse(cleanPrice) ?? 0.0;
 
+    // Debug log
+    print('💰 BOOKING_PAGE: Original price: $priceString');
+    print('💰 BOOKING_PAGE: Clean price: $cleanPrice');
+    print('💰 BOOKING_PAGE: Price value: $priceValue');
+
     // API eng kichik birlikda amount kutadi (masalan, 500000)
     // UZS uchun: 5000 UZS = 500000 (100 ga ko'paytiriladi)
     // Boshqa valyutalar uchun ham 100 ga ko'paytiriladi (cents uchun)
-    final amount = (priceValue * 100).toInt();
+    // 10% komissiya qo'shish: price * 1.10 * 100
+    final amountWithoutCommission = (priceValue * 100).toInt();
+    final amount = (priceValue * 1.10 * 100).toInt();
+    
+    // Debug log
+    print('💰 BOOKING_PAGE: Amount without commission: $amountWithoutCommission');
+    print('💰 BOOKING_PAGE: Amount with 10% commission: $amount');
 
     // Amount musbat bo'lishi kerak (backend talabi)
     if (amount <= 0) {
       if (mounted) {
         final errorMessage = 'avia.payment.price_not_available'.tr();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              errorMessage.contains('avia.payment.price_not_available')
-                  ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
-                  : errorMessage,
-            ),
-            backgroundColor: Colors.red,
-          ),
+        SnackbarHelper.showError(
+          context,
+          errorMessage.contains('avia.payment.price_not_available')
+              ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
+              : errorMessage,
         );
       }
       return;
@@ -286,23 +299,35 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
               _booking = state.booking;
               _priceCheck = null;
               _permission = null;
+              
+              // Oldingi timeout'ni bekor qilish
+              _priceCheckTimeout?.cancel();
+              
               // Price check va payment permission olish
               context.read<AviaBloc>()
                 ..add(PaymentPermissionRequested(bookingId))
                 ..add(CheckPriceRequested(bookingId));
-            } else if (state is AviaCheckPriceSuccess &&
+              
+              // Timeout qo'shish - agar 10 soniyadan keyin ham kelmasa, error ko'rsatish
+              _priceCheckTimeout = Timer(const Duration(seconds: 10), () {
+                if (mounted && (_priceCheck == null || _permission == null)) {
+                  SnackbarHelper.showError(
+                    context,
+                    'Ma\'lumotlarni yuklashda xatolik. Iltimos, qayta urinib ko\'ring.',
+                  );
+                }
+              });
+              } else if (state is AviaCheckPriceSuccess &&
                 _currentBookingId != null) {
               _priceCheck = state.priceCheck;
+              // Timeout'ni bekor qilish
+              _priceCheckTimeout?.cancel();
               // Ikkalasi ham kelganda invoice yaratish
               if (_priceCheck != null && _permission != null) {
-                // canPay null bo'lsa ham, booking mavjud bo'lsa to'lovni davom ettirish
-                // allowed ni ham tekshirish, agar ikkalasi ham null bo'lsa default true
-                final canPay = _permission!.canPay ??
-                    _permission!.allowed ??
-                    _permission!.paymentAllowed ??
-                    true; // Default: invoice yaratishga ruxsat berish
-                if (canPay == true) {
-                  _createInvoiceAndLaunch(_currentBookingId!, _priceCheck!);
+                // paymentAllowed ni tekshirish, agar null bo'lsa default true
+                final canPay = _permission!.paymentAllowed ?? true; 
+                if (canPay) {
+                  _createInvoiceAndLaunch(_currentBookingId!);
                 } else {
                   if (mounted) {
                     SnackbarHelper.showError(
@@ -315,16 +340,14 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
             } else if (state is AviaPaymentPermissionSuccess &&
                 _currentBookingId != null) {
               _permission = state.permission;
+              // Timeout'ni bekor qilish
+              _priceCheckTimeout?.cancel();
               // Ikkalasi ham kelganda invoice yaratish
               if (_priceCheck != null && _permission != null) {
-                // canPay null bo'lsa ham, booking mavjud bo'lsa to'lovni davom ettirish
-                // allowed ni ham tekshirish, agar ikkalasi ham null bo'lsa default true
-                final canPay = _permission!.canPay ??
-                    _permission!.allowed ??
-                    _permission!.paymentAllowed ??
-                    true; // Default: invoice yaratishga ruxsat berish
-                if (canPay == true) {
-                  _createInvoiceAndLaunch(_currentBookingId!, _priceCheck!);
+                // paymentAllowed ni tekshirish, agar null bo'lsa default true
+                final canPay = _permission!.paymentAllowed ?? true; 
+                if (canPay) {
+                  _createInvoiceAndLaunch(_currentBookingId!);
                 } else {
                   if (mounted) {
                     SnackbarHelper.showError(
@@ -334,6 +357,9 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
                   }
                 }
               }
+            } else if (state is AviaBookingInfoSuccess) {
+              // Booking ma'lumotlari yangilandi
+              _booking = state.booking;
             } else if (state is AviaCreateBookingFailure) {
               // Check if there's an existing booking ID (duplicate booking)
               if (state.existingBookingId != null) {
@@ -345,22 +371,15 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
                   ),
                 );
                 // Show info message
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                        'Bu buyurtma allaqachon mavjud. Mavjud buyurtmaga o\'tildi.'),
-                    backgroundColor: Colors.blue,
-                  ),
+                SnackbarHelper.showInfo(
+                  context,
+                  'Bu buyurtma allaqachon mavjud. Mavjud buyurtmaga o\'tildi.',
                 );
               } else {
                 // Regular error - show error message
-                ScaffoldMessenger.of(
+                SnackbarHelper.showError(
                   context,
-                ).showSnackBar(
-                  SnackBar(
-                    content:
-                        Text('${'avia.common.error'.tr()}: ${state.message}'),
-                  ),
+                  '${'avia.common.error'.tr()}: ${state.message}',
                 );
               }
             } else if (state is AviaPaymentSuccess) {

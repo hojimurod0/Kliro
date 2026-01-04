@@ -368,12 +368,32 @@ List<MicrocreditEntity> _sortMicrocreditItems(
   final direction = filter.direction ?? 'asc';
   final sorted = [...items];
   sorted.sort((a, b) {
+    // Проверяем, есть ли у банков процент (rate)
+    final aHasRate = _hasValidRate(a.rate);
+    final bHasRate = _hasValidRate(b.rate);
+    
+    // Если у одного есть процент, а у другого нет - банк с процентом идет первым
+    if (aHasRate && !bHasRate) return -1;
+    if (!aHasRate && bHasRate) return 1;
+    
+    // Если оба имеют или не имеют процента - сортируем по выбранному полю
     final aVal = _microcreditSortValue(a, sortField);
     final bVal = _microcreditSortValue(b, sortField);
     final comparison = aVal.compareTo(bVal);
     return direction == 'asc' ? comparison : -comparison;
   });
   return sorted;
+}
+
+bool _hasValidRate(String rate) {
+  // Проверяем, пустая ли строка или содержит только пробелы
+  if (rate.trim().isEmpty) return false;
+  
+  // Извлекаем число из строки
+  final extracted = _microcreditExtractNumber(rate);
+  
+  // Процент считается валидным, если извлеченное число больше 0
+  return extracted > 0;
 }
 
 double _microcreditSortValue(MicrocreditEntity item, String field) {

@@ -1,6 +1,46 @@
 {
   "app_title": "Klero",
-  "home": "Home",
+  "home": {
+    "welcome": "Welcome",
+    "bank": "Bank",
+    "bank_services_count": "8 services",
+    "insurance": "Insurance",
+    "insurance_types": "4 types",
+    "flights": "Flights",
+    "flights_subtitle": "Best prices",
+    "hotels": "Hotels",
+    "hotels_subtitle": "1000+ hotels",
+    "news": "News",
+    "view_all": "View all >",
+    "news_items": {
+      "item1": {
+        "title": "Digital payment systems are expanding",
+        "tag": "Finance",
+        "date": "October 25, 2024"
+      },
+      "item2": {
+        "title": "Artificial intelligence in banking services",
+        "tag": "Technology",
+        "date": "October 24, 2024"
+      },
+      "item3": {
+        "title": "New packages introduced in the insurance market",
+        "tag": "Insurance",
+        "date": "October 22, 2024"
+      }
+    },
+    "home": "Home",
+    "services": "Services",
+    "favorites": "Favorites",
+    "favorites_empty": "Favorites is empty",
+    "favorites_empty_subtitle": "Add favorite services",
+    "banner": {
+      "travel": "TRAVEL",
+      "title": "Discover the world",
+      "subtitle": "Flights and hotels at affordable prices",
+      "book": "Book now"
+    }
+  },
   "settings": "Settings",
   "language": "Language",
   "theme": "Theme",
@@ -51,12 +91,35 @@
       "snack_contact_invalid": "Please enter correct contact information.",
       "snack_contact_required": "Please enter contact information",
       "error_credentials": "Login or password is incorrect",
-      "error_credentials_detail": "Phone number or password is incorrect.\n\nCheck:\n• That you entered the phone number correctly\n• That you entered the password correctly (case sensitive)\n• If you forgot your password, use the 'Forgot password?' button",
-      "login_with_otp": "Login with OTP",
-      "snack_contact_invalid": "Please enter correct contact information.",
-      "snack_contact_required": "Please enter contact information",
-      "error_credentials": "Login or password is incorrect",
-      "error_credentials_detail": "Phone number or password is incorrect.\n\nCheck:\n• That you entered the phone number correctly\n• That you entered the password correctly (case sensitive)\n• If you forgot your password, use the 'Forgot password?' button"
+      "error_credentials_detail": "Invalid credentials",
+      "error_password_incorrect": "Password incorrect",
+      "error_phone_format": "Invalid phone format",
+      "error_password_complexity": "Password must contain both letters and numbers",
+      "agree_to_terms_required": "Please agree to the terms of use and privacy policy",
+      "agree_to_terms_prefix": "I have read and agree to the ",
+      "agree_to_terms_link": "terms of use",
+      "agree_to_terms_suffix": "",
+      "agree_to_privacy_prefix": "I have read and agree to the ",
+      "agree_to_privacy_link": "privacy policy",
+      "agree_to_privacy_suffix": " and consent to the processing of my personal data",
+      "agree_to_terms_and_privacy_prefix": "I have read and agree to the ",
+      "agree_to_terms_and_privacy_link": "terms of use and privacy policy"
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "description": "Read our privacy policy. This document provides detailed information about how we collect, store and use personal data.",
+      "open_document": "Open Document",
+      "note": "Note: The document will open in an external browser",
+      "cannot_open": "Could not open document",
+      "error": "An error occurred"
+    },
+    "terms": {
+      "title": "Terms of Use",
+      "description": "Read the terms of use before using the app. This document details the rules and conditions for using our services.",
+      "open_document": "Open Document",
+      "note": "Note: The document will open in an external browser",
+      "cannot_open": "Could not open document",
+      "error": "An error occurred"
     },
     "register": {
       "title": "Create account",
@@ -121,47 +184,6 @@
     "logout_success": "Logged out",
     "error_loading": "Error loading data",
     "retry": "Retry"
-  },
-  "home": {
-    "welcome": "Welcome",
-    "bank": "Bank",
-    "bank_services_count": "8 services",
-    "insurance": "Insurance",
-    "insurance_types": "4 types",
-    "flights": "Flights",
-    "flights_subtitle": "Best prices",
-    "hotels": "Hotels",
-    "hotels_subtitle": "1000+ hotels",
-    "news": "News",
-    "view_all": "View all >",
-    "news_items": {
-      "item1": {
-        "title": "Digital payment systems are expanding",
-        "tag": "Finance",
-        "date": "October 25, 2024"
-      },
-      "item2": {
-        "title": "Artificial intelligence in banking services",
-        "tag": "Technology",
-        "date": "October 24, 2024"
-      },
-      "item3": {
-        "title": "New packages introduced in the insurance market",
-        "tag": "Insurance",
-        "date": "October 22, 2024"
-      }
-    },
-    "home": "Home",
-    "services": "Services",
-    "favorites": "Favorites",
-    "favorites_empty": "Favorites is empty",
-    "favorites_empty_subtitle": "Add favorite services",
-    "banner": {
-      "travel": "TRAVEL",
-      "title": "Discover the world",
-      "subtitle": "Flights and hotels at affordable prices",
-      "book": "Book now"
-    }
   },
   "bank": {
     "services": "Bank services",
@@ -287,9 +309,15 @@
     "best_buy": "Best buy",
     "best_sell": "Best sell",
     "bank_rates": "Currency rates in banks",
+    "bank_rates_description": "Compare currency rates in banks and find the best offer",
+    "best_rates": "Best rates",
+    "best": "Best",
     "best_offer": "Best offer",
+    "select_operation": "Select operation",
     "som": "som",
     "per_day": "per day",
+    "per_unit": "per unit",
+    "empty_description": "No data available at the moment",
     "bank_name_hamkorbank": "Hamkorbank",
     "bank_name_universal": "Universal bank"
   },
@@ -799,7 +827,10 @@
         "not_found": "Cars not found",
         "marka": "Brand",
         "model": "Model",
-        "yil": "Year"
+        "yil": "Year",
+        "retry": "Retry",
+        "brand": "Brand",
+        "year": "Year"
       },
       "payment": {
         "title": "KASKO - Payment",
@@ -982,14 +1013,6 @@
         "download_policy": "Download policy",
         "share": "Share",
         "close": "Close"
-      },
-      "cars_list": {
-        "title": "KASKO - Cars",
-        "not_found": "Cars not found",
-        "retry": "Retry",
-        "brand": "Brand",
-        "model": "Model",
-        "year": "Year"
       },
       "personal_data_page": {
         "birth_date_label": "Date of birth",
@@ -1301,10 +1324,6 @@
       "traveler": "Traveler"
     }
   },
-  "splash": {
-    "loading": "Loading...",
-    "video_error": "Video loading error"
-  },
   "avia": {
     "title": "Flight tickets",
     "search": {
@@ -1436,6 +1455,7 @@
       "my_passengers": "My Passengers",
       "no_passengers_found": "No saved passengers found",
       "select_passenger": "Select a passenger",
+      "save_passenger_info": "Save passenger info",
       "fill_all_fields": "Please fill in all fields",
       "fill_passenger_fields": "Please complete passenger {index} information"
     },
@@ -1488,7 +1508,8 @@
       "back": "Back",
       "pay_now": "Pay now",
       "currency_sum": "sum",
-      "na": "—"
+      "na": "—",
+      "view_rules": "View rules"
     },
     "login_required": {
       "title": "Login Required",
@@ -1618,30 +1639,48 @@
   },
   "hotel": {
     "search": {
-      "title": "Search hotels",
+      "title": "Hotel Search",
       "city": "City",
-      "city_hint": "Where are you going?",
+      "city_hint": "Enter city",
       "check_in_date": "Check-in date",
       "check_out_date": "Check-out date",
       "check_in": "Check-in",
       "check_out": "Check-out",
       "guests": "Guests",
       "guests_title": "Number of guests",
+      "guests_rooms": "Guests & Rooms",
       "rooms": "Number of rooms",
       "search_button": "Search",
       "adults": "Adults",
       "children": "Children",
-      "person": "Guest",
-      "recommended": "Recommended"
+      "person": "person",
+      "room": "room",
+      "recommended": "Recommended",
+      "select_city": "Select or enter city",
+      "select_dates": "Select check-in and check-out dates",
+      "invalid_dates": "Check-out date must be after check-in date",
+      "city_not_found": "City not found. Please select from the list",
+      "failed": "Search failed",
+      "age_restrictions_adults": "18+ years",
+      "age_restrictions_children": "0-17 years"
     },
     "results": {
       "title": "Hotels",
+      "options_available": "options available",
+      "empty_title": "No hotels found",
+      "empty_subtitle": "Try different search parameters",
       "not_found": "No hotels found",
       "select": "Select",
-      "person": "guest",
-      "people": "guests",
+      "person": "pers.",
+      "people": "pers.",
       "night": "night",
-      "nights": "nights"
+      "nights": "nights",
+      "for_price": "for",
+      "breakfast": "Breakfast",
+      "details": "Details",
+      "loading": "Finding best options...",
+      "please_wait": "Please wait.",
+      "may_take_time": "This may take up to 60 seconds"
     },
     "guest_details": {
       "title": "Enter information",
@@ -1674,13 +1713,49 @@
       "booking_success": "Booking completed!"
     },
     "details": {
-      "price": "Price:",
+      "title": "Hotel Details",
+      "price": "Price",
       "description": "Description",
+      "read_more": "Read more",
       "amenities": "Amenities",
+      "photos": "Photos",
       "book": "Book",
       "book_now": "Book Now",
-      "rooms": "Select Room",
-      "coming_soon": "Booking function will be added soon"
+      "rooms": "Rooms",
+      "coming_soon": "Booking function will be added soon",
+      "tab_description": "Description",
+      "tab_availability": "Availability",
+      "tab_services": "Services",
+      "tab_conditions": "Conditions",
+      "open_map": "Open Map",
+      "important_notes": "Important Notes",
+      "condition_arrival_time": "Arrival Time",
+      "condition_visa": "Visa Requirements",
+      "condition_marriage": "Marriage Certificate may be required",
+      "check_in_time": "Check-in",
+      "check_out_time": "Check-out",
+      "age_policy": "Age Policy",
+      "age_policy_content": "Children of all ages are welcome",
+      "facilities": "Facilities",
+      "room_types": "Room Types",
+      "max_guests": "Max guests: {count}",
+      "all_data": "All Data",
+      "id": "ID",
+      "hotel_id": "Hotel ID",
+      "name": "Name",
+      "city": "City",
+      "address": "Address",
+      "image_url": "Image URL",
+      "rating": "Rating",
+      "stars": "Stars",
+      "check_in_date": "Check-in Date",
+      "check_out_date": "Check-out Date",
+      "guests_count": "Guests Count",
+      "options_count": "Options Count",
+      "options": "Options",
+      "read_less": "Show less",
+      "services": "Services",
+      "open_map_error": "Could not open map"
     },
     "common": {
       "error": "Error",
@@ -1692,7 +1767,20 @@
       "search": "Search",
       "anywhere": "Anywhere?",
       "select": "Select",
-      "close": "Close"
+      "close": "Close",
+      "unknown_error": "Unknown error occurred",
+      "parsing_error": "Error processing data",
+      "network_error": "No internet connection",
+      "server_error": "Server error",
+      "timeout_error": "Request timeout",
+      "invalid_hotel_id": "Invalid hotel ID",
+      "hotel_not_found": "Hotel not found",
+      "invalid_response_format": "Invalid response format from server",
+      "data": {
+        "not": {
+          "found": "Data not found"
+        }
+      }
     },
     "booking": {
       "title": "Booking",
@@ -1707,8 +1795,50 @@
       "title": "Booked Successfully",
       "subtitle": "Details have been sent to your email",
       "download": "Download Policy",
-      "share": "Share"
+      "share": "Share",
+      "downloading": "Downloading...",
+      "sharing": "Sharing...",
+      "downloaded": "Successfully downloaded",
+      "download_error": "Error downloading",
+      "share_error": "Error sharing",
+      "voucher_not_available": "Voucher not available",
+      "open": "Open",
+      "booking_id": "Booking ID",
+      "confirmation": "Confirmation Number",
+      "share_title": "Hotel Booking"
     },
-    "from": "from"
+    "from": "from",
+    "filter": {
+      "title": "Filter",
+      "price_range": "Price Range",
+      "stars": "Stars",
+      "cancellation": "Cancellation",
+      "refundable": "Refundable",
+      "non_refundable": "Non-refundable",
+      "all": "All",
+      "reset": "Reset",
+      "apply": "Apply"
+    },
+    "booking_details": {
+      "total_amount": "Total Amount"
+    },
+    "error": {
+      "network_timeout": "Request timed out. Check your internet connection and try again.",
+      "no_internet": "No internet connection. Check your internet connection.",
+      "connection_problem": "Internet connection problem. Try again.",
+      "bad_request": "Bad request. Check your data.",
+      "unauthorized": "Access denied. Please log in again.",
+      "forbidden": "Permission denied.",
+      "not_found": "Data not found.",
+      "server_error": "Server problem. Please try again later.",
+      "server_error_generic": "A server error occurred.",
+      "processing": "Request is processing. Please wait...",
+      "validation": "Data incorrect. Please check.",
+      "parsing": "Error processing data. Try again.",
+      "unknown": "An error occurred. Please try again.",
+      "retry_network": "Check your internet connection and try again.",
+      "retry_server": "Server problem. Try again in a few seconds.",
+      "retry_generic": "Try again."
+    }
   }
 }

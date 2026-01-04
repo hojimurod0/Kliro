@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_text_size.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/widgets/primary_back_button.dart';
 import '../../../../core/widgets/primary_search_filter_bar.dart';
@@ -108,7 +109,7 @@ class _MortgagePageState extends State<MortgagePage> {
             style: TextStyle(
               color:
                   Theme.of(context).textTheme.titleLarge?.color ?? Colors.black,
-              fontSize: 17.sp,
+              fontSize: AppTextSize.appBarTitle,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -401,7 +402,7 @@ class _MortgageHeader extends StatelessWidget {
               Text(
                 item.bankName,
                 style: TextStyle(
-                  fontSize: 16.sp,
+                  fontSize: AppTextSize.headingS,
                   fontWeight: FontWeight.bold,
                   color:
                       Theme.of(context).textTheme.titleLarge?.color ??
@@ -414,7 +415,7 @@ class _MortgageHeader extends StatelessWidget {
               Text(
                 item.currency ?? 'UZS',
                 style: TextStyle(
-                  fontSize: 12.sp,
+                  fontSize: AppTextSize.labelMedium,
                   color:
                       Theme.of(context).textTheme.bodySmall?.color ??
                       AppColors.grayText,
@@ -461,7 +462,7 @@ class _MortgagePropertyBadge extends StatelessWidget {
                   child: Text(
                     tr('mortgage.property_type'),
                     style: TextStyle(
-                      fontSize: 12.sp,
+                      fontSize: AppTextSize.labelMedium,
                       color:
                           Theme.of(context).textTheme.bodySmall?.color ??
                           AppColors.grayText,
@@ -480,7 +481,7 @@ class _MortgagePropertyBadge extends StatelessWidget {
                   ? tr('mortgage.property_type_value')
                   : propertyType!,
               style: TextStyle(
-                fontSize: 12.sp,
+                fontSize: AppTextSize.labelMedium,
                 fontWeight: FontWeight.w600,
                 color: Theme.of(context).colorScheme.primary,
               ),
@@ -594,7 +595,7 @@ class _MortgageInfoItem extends StatelessWidget {
                 child: Text(
                   label,
                   style: TextStyle(
-                    fontSize: 12.sp,
+                    fontSize: AppTextSize.infoLabel,
                     color:
                         Theme.of(context).textTheme.bodySmall?.color ??
                         AppColors.grayText,
@@ -609,7 +610,7 @@ class _MortgageInfoItem extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontSize: 16.sp,
+              fontSize: AppTextSize.infoValue,
               fontWeight: FontWeight.w700,
               color:
                   valueColor ??
@@ -693,7 +694,7 @@ class _MortgageBenefitsSectionState extends State<_MortgageBenefitsSection> {
                     tr('mortgage.advantages_count', namedArgs: {'count': advantages.length.toString()}),
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      fontSize: 14.sp,
+                      fontSize: AppTextSize.advantagesCount,
                       color:
                           Theme.of(context).textTheme.titleLarge?.color ??
                           AppColors.charcoal,
@@ -729,7 +730,7 @@ class _MortgageBenefitsSectionState extends State<_MortgageBenefitsSection> {
                       child: Text(
                         advantage,
                         style: TextStyle(
-                          fontSize: 13.sp,
+                          fontSize: AppTextSize.advantagesItem,
                           color:
                               Theme.of(context).textTheme.bodyMedium?.color ??
                               AppColors.gray500,
@@ -781,7 +782,7 @@ class _MortgageApplyButton extends StatelessWidget {
         child: Text(
           tr('mortgage.apply'),
           style: TextStyle(
-            fontSize: 16.sp,
+            fontSize: AppTextSize.buttonPrimary,
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
@@ -823,14 +824,14 @@ class _StateMessage extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: AppTextSize.bodyLarge, fontWeight: FontWeight.w700),
             ),
             SizedBox(height: 8.h),
             Text(
               subtitle,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 13.sp,
+                fontSize: AppTextSize.bodySmall,
                 color:
                     Theme.of(context).textTheme.bodyMedium?.color ??
                     Colors.grey,
@@ -1102,7 +1103,7 @@ class _MortgageFilterSheetState extends State<_MortgageFilterSheet> {
             Text(
               tr('mortgage.filters'),
               style: TextStyle(
-                fontSize: 18.sp,
+                fontSize: AppTextSize.filterTitle,
                 fontWeight: FontWeight.w700,
                 color:
                     Theme.of(context).textTheme.titleLarge?.color ??
@@ -1193,7 +1194,7 @@ class _MortgageFilterSheetState extends State<_MortgageFilterSheet> {
                         child: Text(
                           tr('common.reset'),
                           style: TextStyle(
-                            fontSize: 16.sp,
+                            fontSize: AppTextSize.buttonPrimary,
                             fontWeight: FontWeight.w600,
                             color:
                                 Theme.of(context).textTheme.titleLarge?.color ??
@@ -1220,7 +1221,7 @@ class _MortgageFilterSheetState extends State<_MortgageFilterSheet> {
                           tr('common.apply'),
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 16.sp,
+                            fontSize: AppTextSize.buttonPrimary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -1250,7 +1251,7 @@ class _MortgageFilterSheetState extends State<_MortgageFilterSheet> {
           child: Text(
             title,
             style: TextStyle(
-              fontSize: 15.sp,
+              fontSize: AppTextSize.sectionHeader,
               fontWeight: FontWeight.w700,
               color: Theme.of(context).textTheme.titleLarge?.color ??
                   AppColors.charcoal,
@@ -1298,7 +1299,7 @@ class _MortgageFilterSheetState extends State<_MortgageFilterSheet> {
                     ? AppColors.primaryBlue
                     : (Theme.of(context).textTheme.bodyMedium?.color ??
                         AppColors.gray500),
-                fontSize: 14.sp,
+                fontSize: AppTextSize.chip,
                 fontWeight: FontWeight.w600,
               ),
               overflow: TextOverflow.ellipsis,
@@ -1363,7 +1364,7 @@ class _PaginationErrorBanner extends StatelessWidget {
             child: Text(
               message,
               style: TextStyle(
-                fontSize: 12.sp,
+                fontSize: AppTextSize.labelMedium,
                 color: Theme.of(context).colorScheme.error,
               ),
             ),

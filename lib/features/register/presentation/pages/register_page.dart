@@ -11,6 +11,7 @@ import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/services/auth/auth_service.dart';
 import '../../../../core/services/google/google_sign_in_service.dart';
@@ -58,12 +59,11 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void _showSnackBar(String message, {Color background = Colors.red}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: background,
-      ),
-    );
+    if (background == Colors.green) {
+      SnackbarHelper.showSuccess(context, message);
+    } else {
+      SnackbarHelper.showError(context, message);
+    }
   }
 
   void _submit() {
@@ -106,7 +106,10 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> _handleGoogleSignIn() async {
     try {
       final googleAccount = await GoogleSignInService.instance.signIn();
-      if (googleAccount == null) return;
+      if (googleAccount == null) {
+        _showSnackBar('Google login bekor qilindi yoki sozlama xato');
+        return;
+      }
 
       final email = googleAccount.email;
       if (email.isEmpty) {
@@ -195,8 +198,9 @@ class _RegisterPageState extends State<RegisterPage> {
       builder: (context, state) {
         final isLoading = state.isLoading &&
             state.flow == RegisterFlow.registerSendOtp;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: AppSpacing.screenPadding,
@@ -206,7 +210,7 @@ class _RegisterPageState extends State<RegisterPage> {
               SizedBox(height: AppSpacing.sm),
               const CommonBackButton(),
               SizedBox(height: AppSpacing.lg),
-              Text('auth.register.title'.tr(), style: AppTypography.headingXL),
+              Text('auth.register.title'.tr(), style: AppTypography.headingXL.copyWith(color: isDark ? AppColors.white : AppColors.black)),
               SizedBox(height: AppSpacing.xs),
               Text(
                 'auth.register.subtitle'.tr(),
@@ -256,9 +260,13 @@ class _RegisterPageState extends State<RegisterPage> {
                     : null,
                 style: TextStyle(
                   fontSize: 16.sp,
-                  color: AppColors.black,
+                  color: isDark ? AppColors.white : AppColors.black,
                 ),
                 decoration: AppInputDecoration.outline(
+                  fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
+                  borderColor: isDark ? AppColors.darkBorder : null,
+                  hintColor: isDark ? AppColors.grayText : null,
+                  prefixIconColor: isDark ? AppColors.grayText : null,
                   hint: isPhoneMode
                       ? '_____'
                       : 'auth.field.email_hint'.tr(),
@@ -276,11 +284,11 @@ class _RegisterPageState extends State<RegisterPage> {
                               SizedBox(width: 8.w),
                               Text(
                                 '+998',
-                                style: TextStyle(
-                                  color: AppColors.grayText,
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w400,
-                                ),
+                                  style: TextStyle(
+                                    color: isDark ? AppColors.grayText : AppColors.grayText,
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.w400,
+                                  ),
                               ),
                             ],
                           ),

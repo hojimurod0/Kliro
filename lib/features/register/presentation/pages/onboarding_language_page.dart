@@ -68,11 +68,14 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
     super.didChangeDependencies();
     // Kontekstdagi locale'ni boshlang'ich qiymat sifatida tanlab qo'yamiz
     // Locale o'zgarganda yangilash
+    // User request: Default to English always on this screen, do not sync with current locale
+    /*
     final currentLocale = context.locale;
     if (_selected == null || !_isLocaleEqual(_selected, currentLocale)) {
       _selected = currentLocale;
       debugPrint('OnboardingLanguagePage: Locale updated: ${currentLocale.languageCode}_${currentLocale.countryCode ?? 'null'}');
     }
+    */
   }
 
   Future<void> _apply() async {

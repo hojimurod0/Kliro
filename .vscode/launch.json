@@ -2,6 +2,22 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Flutter: Run",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "Flutter: Debug",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "args": ["--dart-define-file", "assets/videos/build/Debug/outDebug"]
+    },
+
+
+
+    {
       "name": "C/C++ Runner: Debug Session",
       "type": "cppdbg",
       "request": "launch",

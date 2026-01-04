@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/widgets/safe_network_image.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
@@ -18,13 +19,17 @@ class AuthSocialButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       height: 50.h,
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: isDark ? AppColors.darkCardBg : AppColors.white,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.grayBorder, width: 1.w),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.grayBorder,
+          width: 1.w,
+        ),
       ),
       child: MaterialButton(
         onPressed: onPressed,
@@ -34,17 +39,18 @@ class AuthSocialButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.network(
-              iconUrl,
+            SafeNetworkImage(
+              imageUrl: iconUrl,
               height: 20.h,
               width: 20.w,
-              errorBuilder: (context, error, stackTrace) =>
-                  Icon(Icons.g_mobiledata, size: 24.sp),
+              fit: BoxFit.contain,
             ),
             SizedBox(width: 10.w),
             Text(
               label,
-              style: AppTypography.googleButton,
+              style: AppTypography.googleButton.copyWith(
+                color: isDark ? AppColors.white : AppColors.black,
+              ),
             ),
           ],
         ),

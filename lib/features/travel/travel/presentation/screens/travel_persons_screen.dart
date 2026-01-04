@@ -7,6 +7,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/utils/snackbar_helper.dart';
 import '../logic/bloc/travel_bloc.dart';
 import '../logic/bloc/travel_state.dart';
 import '../logic/bloc/travel_event.dart';
@@ -112,11 +113,9 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
           setState(() {
             _sessionId = state.sessionId;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Maqsad yaratildi'),
-              backgroundColor: Colors.green,
-            ),
+          SnackbarHelper.showSuccess(
+            context,
+            'Maqsad yaratildi',
           );
           // Переходим на следующую страницу после создания сессии
           final firstCountry = _selectedCountries.isNotEmpty
@@ -136,11 +135,9 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
             ),
           );
         } else if (state is TravelFailure) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.errorMessage ?? 'Xatolik yuz berdi'),
-              backgroundColor: Colors.red,
-            ),
+          SnackbarHelper.showError(
+            context,
+            state.errorMessage ?? 'Xatolik yuz berdi',
           );
         }
       },
@@ -710,51 +707,39 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                 onPressed: () {
                   // Валидация перед переходом
                   if (_selectedPurposeId == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Sayohat maqsadini tanlang'),
-                        backgroundColor: Colors.red,
-                      ),
+                    SnackbarHelper.showError(
+                      context,
+                      'Sayohat maqsadini tanlang',
                     );
                     return;
                   }
                   if (_selectedCountries.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Kamida bitta mamlakatni tanlang'),
-                        backgroundColor: Colors.red,
-                      ),
+                    SnackbarHelper.showError(
+                      context,
+                      'Kamida bitta mamlakatni tanlang',
                     );
                     return;
                   }
                   if (_startDate == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Boshlanish sanasini tanlang'),
-                        backgroundColor: Colors.red,
-                      ),
+                    SnackbarHelper.showError(
+                      context,
+                      'Boshlanish sanasini tanlang',
                     );
                     return;
                   }
                   if (_endDate == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Tugash sanasini tanlang'),
-                        backgroundColor: Colors.red,
-                      ),
+                    SnackbarHelper.showError(
+                      context,
+                      'Tugash sanasini tanlang',
                     );
                     return;
                   }
                   // Проверяем, что все путешественники имеют дату рождения
                   for (int i = 0; i < _travelers.length; i++) {
                     if (_travelers[i]['birthDate'] == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Sayohatchi ${i + 1} uchun tug\'ilgan sanani tanlang',
-                          ),
-                          backgroundColor: Colors.red,
-                        ),
+                      SnackbarHelper.showError(
+                        context,
+                        'Sayohatchi ${i + 1} uchun tug\'ilgan sanani tanlang',
                       );
                       return;
                     }
@@ -1309,13 +1294,9 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
               picked.isAtSameMomentAs(_startDate!)) {
             _endDate = picked;
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Tugash sanasi boshlanish sanasidan keyin bo\'lishi kerak',
-                ),
-                backgroundColor: Colors.red,
-              ),
+            SnackbarHelper.showError(
+              context,
+              'Tugash sanasi boshlanish sanasidan keyin bo\'lishi kerak',
             );
           }
         }

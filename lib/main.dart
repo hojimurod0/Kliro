@@ -1,135 +1,96 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:intl/date_symbol_data_local.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import 'app.dart';
-import 'core/dio/singletons/service_locator.dart';
-import 'core/dio/singletons/service_locator_state.dart';
-import 'core/services/auth/auth_service.dart';
-import 'core/services/config/api_config_service.dart';
-import 'core/services/locale/root_service.dart';
-import 'core/services/theme/theme_controller.dart';
-import 'core/utils/logger.dart';
-import 'core/utils/global_error_handler.dart';
-import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter/foundation.dart';
-
+import 'core/init/app_initializer.dart';
 import 'core/utils/sentry_stub.dart'
     if (dart.library.io) 'package:sentry_flutter/sentry_flutter.dart' as sentry;
 
 Future<void> main() async {
+  final stopwatch = Stopwatch()..start();
+
   if (kReleaseMode) {
     try {
-      await sentry.SentryFlutter.init(
-        (options) {
-          options.tracesSampleRate = 0.2;
-          options.environment = kReleaseMode ? 'production' : 'development';
-          options.beforeSend = (event, hint) {
-            if (event.request?.data != null) {
-              final data =
-                  Map<String, dynamic>.from(event.request!.data as Map);
-              data.removeWhere((key, value) =>
+      await sentry.SentryFlutter.init((options) {
+        options.tracesSampleRate = 0.2;
+        options.environment = kReleaseMode ? 'production' : 'development';
+        options.beforeSend = (event, hint) {
+          if (event.request?.data != null) {
+            final data = Map<String, dynamic>.from(event.request!.data as Map);
+            // Sensitive data filtering
+            data.removeWhere(
+              (key, value) =>
                   key.toLowerCase().contains('password') ||
                   key.toLowerCase().contains('token') ||
-                  key.toLowerCase().contains('pin'));
-              event.request = event.request!.copyWith(data: data);
-            }
-            return event;
-          };
-        },
-        appRunner: () => _runApp(),
-      );
+                  key.toLowerCase().contains('pin'),
+            );
+            event.request = event.request!.copyWith(data: data);
+          }
+          return event;
+        };
+      }, appRunner: () => _runApp(stopwatch));
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('⚠️ Sentry initialization failed: $e');
-      }
-      await _runApp();
+      debugPrint('⚠️ Sentry initialization failed: $e');
+      await _runApp(stopwatch);
     }
   } else {
-    await _runApp();
+    await _runApp(stopwatch);
   }
 }
+    
+Future<void> _runApp(Stopwatch stopwatch) async {
+  await AppInitializer.initialize(stopwatch);
 
-Future<void> _runApp() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      statusBarBrightness: Brightness.light,
-    ),
-  );
-
-  GlobalErrorHandler.initialize();
-
-  await EasyLocalization.ensureInitialized();
-
-  runApp(
-    EasyLocalization(
-      supportedLocales: const [
-        Locale('uz'),
-        Locale('uz', 'CYR'),
-        Locale('ru'),
-        Locale('en'),
-      ],
-      path: 'assets/translations',
-      fallbackLocale: const Locale('en'),
-      saveLocale: true,
-      startLocale: const Locale('en'),
-      useOnlyLangCode: false,
-      useFallbackTranslations: true,
-      child: const App(),
-    ),
-  );
-
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    Future.microtask(() => _initializeInBackground());
-  });
-}
-
-Future<void> _initializeInBackground() async {
   try {
-    AppLogger.info('Background initialization started');
-
-    ApiConfigService.configureBaseUrl();
-    AppLogger.debug('API base URL configured');
-
-    final nonCriticalFutures = _initializeNonCriticalServices();
-
-    AppLogger.debug('Initializing AuthService...');
-    await AuthService.instance.init();
-    AppLogger.success('AuthService initialized');
-
-    AppLogger.debug('Initializing ServiceLocator...');
-    await ServiceLocator.init();
-    AppLogger.success('ServiceLocator initialized');
-
-    await nonCriticalFutures;
-    AppLogger.success('Background initialization completed');
-  } catch (e, stackTrace) {
-    AppLogger.error(
-      'Background initialization failed',
-      e,
-      stackTrace,
+    runApp(
+      EasyLocalization(
+        supportedLocales: const [
+          Locale('uz'),
+          Locale('uz', 'CYR'),
+          Locale('ru'),
+          Locale('en'),
+        ],
+        path: 'assets/translations',
+        fallbackLocale: const Locale('en'),
+        saveLocale: true,
+        startLocale: const Locale('en'),
+        useOnlyLangCode: false,
+        useFallbackTranslations: true,
+        child: const App(),
+      ),
     );
-    ServiceLocatorStateController.instance.setError(e);
+  } catch (e) {
+    // If EasyLocalization fails (e.g. Channel Error), run a fallback app
+    // so the user sees an error instead of a white screen freeze.
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Critical Initialization Error',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Failed to initialize app settings: $e\n\nPlease try reinstalling the app.',
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
-}
-
-Future<void> _initializeNonCriticalServices() async {
-  await Future.wait([
-    RootService().init().catchError((e) {
-      AppLogger.warning('RootService init error', e);
-    }),
-    ThemeController.instance.init().catchError((e) {
-      AppLogger.warning('ThemeController init error', e);
-    }),
-    initializeDateFormatting().catchError((e) {
-      AppLogger.warning('Date formatting init error', e);
-    }),
-  ]);
-  AppLogger.debug('Non-critical services initialized');
-}
-
-
+} 
+  

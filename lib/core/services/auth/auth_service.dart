@@ -1,4 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
+import '../../constants/constants.dart';
+import '../../utils/logger.dart';
 
 class AuthUser {
   const AuthUser({
@@ -7,6 +10,8 @@ class AuthUser {
     required this.contact,
     required this.password,
     this.region,
+    this.email,
+    this.phone,
   });
 
   final String firstName;
@@ -14,6 +19,8 @@ class AuthUser {
   final String contact;
   final String password;
   final String? region;
+  final String? email;
+  final String? phone;
 
   String get fullName => '$firstName $lastName'.trim();
 
@@ -37,6 +44,8 @@ class AuthService {
   static const _keyContact = 'auth_contact';
   static const _keyPassword = 'auth_password';
   static const _keyRegion = 'auth_region';
+  static const _keyEmail = 'auth_email';
+  static const _keyPhone = 'auth_phone';
   static const _keyAccessToken = 'auth_access_token';
   static const _keyRefreshToken = 'auth_refresh_token';
 
@@ -44,6 +53,12 @@ class AuthService {
 
   Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
+  }
+
+  /// SharedPreferences ni tashqaridan olish - performance optimizatsiyasi uchun
+  /// Bu metod SharedPreferences ni bir marta yuklab, ikkala service'ga pass qilish uchun ishlatiladi
+  Future<void> initWithPrefs(SharedPreferences prefs) async {
+    _prefs = prefs;
   }
 
   SharedPreferences get _preferences {
@@ -87,16 +102,42 @@ class AuthService {
   Future<void> saveProfile(AuthUser user) async {
     final prefs = _preferences;
 
+    AppLogger.debug('💾 AUTH_SERVICE: Saving profile to SharedPreferences');
+    AppLogger.debug('💾 AUTH_SERVICE: user.email: ${user.email ?? "null"}');
+    AppLogger.debug('💾 AUTH_SERVICE: user.phone: ${user.phone ?? "null"}');
+    AppLogger.debug('💾 AUTH_SERVICE: user.contact: ${user.contact}');
+    AppLogger.debug('💾 AUTH_SERVICE: user.firstName: ${user.firstName}');
+    AppLogger.debug('💾 AUTH_SERVICE: user.lastName: ${user.lastName}');
+
     await prefs.setString(_keyFirstName, user.firstName);
     await prefs.setString(_keyLastName, user.lastName);
     await prefs.setString(_keyContact, user.contact);
     await prefs.setString(_keyPassword, user.password);
+
+    // Email va telefon alohida saqlash
+    if (user.email != null && user.email!.isNotEmpty) {
+      await prefs.setString(_keyEmail, user.email!);
+      AppLogger.debug('💾 AUTH_SERVICE: Email saved to SharedPreferences: ${user.email}');
+    } else {
+      await prefs.remove(_keyEmail);
+      AppLogger.debug('💾 AUTH_SERVICE: Email removed from SharedPreferences (was null or empty)');
+    }
+    
+    if (user.phone != null && user.phone!.isNotEmpty) {
+      await prefs.setString(_keyPhone, user.phone!);
+      AppLogger.debug('💾 AUTH_SERVICE: Phone saved to SharedPreferences: ${user.phone}');
+    } else {
+      await prefs.remove(_keyPhone);
+      AppLogger.debug('💾 AUTH_SERVICE: Phone removed from SharedPreferences (was null or empty)');
+    }
+    
     if (user.region != null) {
       await prefs.setString(_keyRegion, user.region!);
     } else {
       await prefs.remove(_keyRegion);
     }
     await prefs.setBool(_keyLoggedIn, true);
+    AppLogger.debug('💾 AUTH_SERVICE: Profile saved successfully');
   }
 
   Future<void> saveTokens({
@@ -146,6 +187,8 @@ class AuthService {
     await prefs.remove(_keyContact);
     await prefs.remove(_keyPassword);
     await prefs.remove(_keyRegion);
+    await prefs.remove(_keyEmail);
+    await prefs.remove(_keyPhone);
   }
 
   Future<void> clearSession() => logout();
@@ -153,13 +196,32 @@ class AuthService {
   Future<AuthUser?> fetchActiveUser() async {
     final prefs = _preferences;
     final isLoggedIn = prefs.getBool(_keyLoggedIn) ?? false;
-    if (!isLoggedIn) return null;
-    return _readUserFromPrefs(prefs);
+    if (!isLoggedIn) {
+      AppLogger.debug('👤 AUTH_SERVICE: fetchActiveUser - User not logged in');
+      return null;
+    }
+    final user = _readUserFromPrefs(prefs);
+    AppLogger.debug('👤 AUTH_SERVICE: fetchActiveUser - User loaded');
+    if (user != null) {
+      AppLogger.debug('👤 AUTH_SERVICE: fetchActiveUser - user.email: ${user.email ?? "null"}');
+      AppLogger.debug('👤 AUTH_SERVICE: fetchActiveUser - user.phone: ${user.phone ?? "null"}');
+      AppLogger.debug('👤 AUTH_SERVICE: fetchActiveUser - user.contact: ${user.contact}');
+    }
+    return user;
   }
 
   Future<AuthUser?> getStoredUser() async {
     final prefs = _preferences;
-    return _readUserFromPrefs(prefs);
+    final user = _readUserFromPrefs(prefs);
+    AppLogger.debug('👤 AUTH_SERVICE: getStoredUser - User loaded');
+    if (user != null) {
+      AppLogger.debug('👤 AUTH_SERVICE: getStoredUser - user.email: ${user.email ?? "null"}');
+      AppLogger.debug('👤 AUTH_SERVICE: getStoredUser - user.phone: ${user.phone ?? "null"}');
+      AppLogger.debug('👤 AUTH_SERVICE: getStoredUser - user.contact: ${user.contact}');
+    } else {
+      AppLogger.debug('👤 AUTH_SERVICE: getStoredUser - No user found in SharedPreferences');
+    }
+    return user;
   }
 
   AuthUser? _readUserFromPrefs(SharedPreferences prefs) {
@@ -172,10 +234,18 @@ class AuthService {
         lastName == null ||
         contact == null ||
         password == null) {
+      AppLogger.debug('👤 AUTH_SERVICE: _readUserFromPrefs - Missing required fields');
       return null;
     }
 
     final region = prefs.getString(_keyRegion);
+    final email = prefs.getString(_keyEmail);
+    final phone = prefs.getString(_keyPhone);
+
+    AppLogger.debug('👤 AUTH_SERVICE: _readUserFromPrefs - Reading from SharedPreferences');
+    AppLogger.debug('👤 AUTH_SERVICE: _readUserFromPrefs - email from prefs: ${email ?? "null"}');
+    AppLogger.debug('👤 AUTH_SERVICE: _readUserFromPrefs - phone from prefs: ${phone ?? "null"}');
+    AppLogger.debug('👤 AUTH_SERVICE: _readUserFromPrefs - contact from prefs: $contact');
 
     return AuthUser(
       firstName: firstName,
@@ -183,6 +253,107 @@ class AuthService {
       contact: contact,
       password: password,
       region: region,
+      email: email,
+      phone: phone,
     );
+  }
+  Future<String?> refreshToken() async {
+    final prefs = _preferences;
+    final refreshToken = prefs.getString(_keyRefreshToken);
+
+    if (refreshToken == null) {
+      AppLogger.debug('🔄 AUTH_SERVICE: No refresh token found');
+      return null;
+    }
+
+    try {
+      AppLogger.debug('🔄 AUTH_SERVICE: Attempting to refresh token via Body...');
+      
+      // Independent Dio instance to avoid interceptor loops
+      final dio = Dio(BaseOptions(
+        baseUrl: ApiConstants.effectiveBaseUrl,
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          // Headerda token YUBORILMAYDI (Body'da ketadi)
+        },
+      ));
+
+      // 1-URINISH: Refresh Token Endpoint (Body orqali)
+      try {
+        final response = await dio.post(
+          ApiPaths.refreshToken,
+          data: {
+            'refresh_token': refreshToken,
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = response.data;
+          if (data is Map<String, dynamic> && data['data'] != null) {
+             final result = data['data'];
+             final newAccessToken = result['access_token'] as String?;
+             final newRefreshToken = result['refresh_token'] as String?;
+             
+             if (newAccessToken != null) {
+               await saveTokens(
+                 accessToken: newAccessToken,
+                 refreshToken: newRefreshToken ?? refreshToken,
+               );
+               AppLogger.debug('✅ AUTH_SERVICE: Token refreshed successfully (via Endpoint)');
+               return newAccessToken;
+             }
+          }
+        }
+      } catch (e) {
+        AppLogger.warning('⚠️ AUTH_SERVICE: Refresh endpoint failed: $e');
+        // Kuting, pastda Silent Login bor
+      }
+
+      // 2-URINISH: Silent Login (Agar endpoint 404/401 bersa)
+      AppLogger.debug('🔄 AUTH_SERVICE: Attempting Silent Login fallback...');
+      final contact = prefs.getString(_keyContact);
+      final password = prefs.getString(_keyPassword);
+
+      if (contact != null && password != null) {
+        final loginResponse = await dio.post(
+          ApiPaths.login,
+          data: {
+            'phone': contact, // Yoki email, normalize qilingan bo'lsa
+            'password': password,
+            // access_type "avia" uchun kerak bo'lsa qo'shamiz, lekin bu global auth
+          },
+        );
+
+        if (loginResponse.statusCode == 200) {
+           final data = loginResponse.data;
+           // Login response strukturasi: ApiResponse -> result -> AuthTokensModel
+           // Lekin bu yerda raw dio, shuning uchun qo'lda pars qilamiz
+           // Odatda: { success: true, data: { ...tokens... } }
+           if (data is Map<String, dynamic> && data['data'] != null) {
+             final result = data['data'];
+             final newAccessToken = result['access_token'] as String?;
+             final newRefreshToken = result['refresh_token'] as String?;
+
+             if (newAccessToken != null) {
+               await saveTokens(
+                 accessToken: newAccessToken,
+                 refreshToken: newRefreshToken ?? refreshToken,
+               );
+               AppLogger.debug('✅ AUTH_SERVICE: Token refreshed successfully (via Silent Login)');
+               return newAccessToken;
+             }
+           }
+        }
+      }
+
+      AppLogger.error('❌ AUTH_SERVICE: All refresh attempts failed');
+      return null;
+    } catch (e) {
+      AppLogger.error('❌ AUTH_SERVICE: Refresh logic error', e); 
+      return null;
+    }
   }
 }

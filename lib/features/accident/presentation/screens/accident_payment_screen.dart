@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 
 class AccidentPaymentScreen extends StatefulWidget {
   final Map<String, dynamic> formData;
@@ -550,11 +551,9 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
 
   Future<void> _onPayPressed() async {
     if (_selectedPaymentMethod == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('insurance.accident.payment.select_payment_method'.tr()),
-          backgroundColor: Colors.red,
-        ),
+      SnackbarHelper.showError(
+        context,
+        'insurance.accident.payment.select_payment_method'.tr(),
       );
       return;
     }
@@ -589,22 +588,18 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
           await launchUrlString(appUrl, mode: LaunchMode.externalApplication);
         } else {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('insurance.accident.payment.payment_link_error'.tr()),
-                backgroundColor: Colors.red,
-              ),
+            SnackbarHelper.showError(
+              context,
+              'insurance.accident.payment.payment_link_error'.tr(),
             );
           }
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('insurance.accident.payment.payment_link_error'.tr()),
-            backgroundColor: Colors.red,
-          ),
+        SnackbarHelper.showError(
+          context,
+          'insurance.accident.payment.payment_link_error'.tr(),
         );
       }
     }

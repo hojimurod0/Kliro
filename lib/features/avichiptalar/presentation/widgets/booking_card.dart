@@ -100,7 +100,14 @@ class BookingCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '${booking.price ?? 0} ${booking.currency ?? ''}',
+                    () {
+                      if (booking.price == null) return '0 ${booking.currency ?? ''}';
+                      // Parse price and add 10% commission
+                      final rawPrice = booking.price!.replaceAll(RegExp(r'[^\d.]'), '');
+                      final priceValue = double.tryParse(rawPrice) ?? 0.0;
+                      final priceWithCommission = (priceValue * 1.10).toStringAsFixed(0);
+                      return '$priceWithCommission ${booking.currency ?? ''}';
+                    }(),
                     style: TextStyle(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.bold,

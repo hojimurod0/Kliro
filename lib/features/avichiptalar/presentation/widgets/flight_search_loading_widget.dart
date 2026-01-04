@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../data/models/search_offers_request_model.dart';
 
@@ -70,7 +71,35 @@ class FlightSearchLoadingWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // KLIRO Logo
-            _buildKliroLogo(context, textColor),
+            // KLIRO Logo
+            SizedBox(
+              height: 48.h, // Adjusted height for visibility
+              child: SvgPicture.asset(
+                'assets/images/klero_logo.svg',
+                fit: BoxFit.contain,
+                placeholderBuilder: (context) => RichText(
+                  text: TextSpan(
+                    style: TextStyle(
+                      fontSize: 48.sp,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: "K",
+                        style: TextStyle(
+                          color: AppColors.primaryBlue,
+                        ),
+                      ),
+                      TextSpan(
+                        text: "LiRO",
+                        style: TextStyle(color: isDark ? AppColors.white : AppColors.black),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
             SizedBox(height: 48.h),
             
             // Route
@@ -161,74 +190,5 @@ class FlightSearchLoadingWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildKliroLogo(BuildContext context, Color textColor) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          'K',
-          style: TextStyle(
-            fontSize: 48.sp,
-            fontWeight: FontWeight.w800,
-            color: textColor,
-            letterSpacing: -1,
-          ),
-        ),
-        Text(
-          'L',
-          style: TextStyle(
-            fontSize: 48.sp,
-            fontWeight: FontWeight.w800,
-            color: textColor,
-            letterSpacing: -1,
-          ),
-        ),
-        Stack(
-          alignment: Alignment.topCenter,
-          children: [
-            Text(
-              'I',
-              style: TextStyle(
-                fontSize: 48.sp,
-                fontWeight: FontWeight.w800,
-                color: textColor,
-                letterSpacing: -1,
-              ),
-            ),
-            Positioned(
-              top: 8.h,
-              child: Container(
-                width: 8.w,
-                height: 8.w,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBlue,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-          ],
-        ),
-        Text(
-          'R',
-          style: TextStyle(
-            fontSize: 48.sp,
-            fontWeight: FontWeight.w800,
-            color: textColor,
-            letterSpacing: -1,
-          ),
-        ),
-        Text(
-          'O',
-          style: TextStyle(
-            fontSize: 48.sp,
-            fontWeight: FontWeight.w800,
-            color: textColor,
-            letterSpacing: -1,
-          ),
-        ),
-      ],
-    );
-  }
 }
 

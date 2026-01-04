@@ -9,6 +9,7 @@ import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../../../core/services/auth/auth_service.dart';
 import '../../domain/params/auth_params.dart';
 import '../bloc/register_bloc.dart';
@@ -58,20 +59,11 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
   }
 
   void _showSnack(String message, {Color background = Colors.red}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: background,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    if (background == Colors.green) {
+      SnackbarHelper.showSuccess(context, message);
+    } else {
+      SnackbarHelper.showError(context, message);
+    }
   }
 
   void _submit() {
@@ -110,20 +102,21 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
 
     // So'rov yuborish
     context.read<RegisterBloc>().add(
-      ResetPasswordRequested(
-        ResetPasswordParams(
-          email: isEmail ? normalizedContact : null,
-          phone: isEmail ? null : normalizedContact,
-          otp: widget.otp,
-          password: password,
-          confirmPassword: confirmPassword,
-        ),
-      ),
-    );
+          ResetPasswordRequested(
+            ResetPasswordParams(
+              email: isEmail ? normalizedContact : null,
+              phone: isEmail ? null : normalizedContact,
+              otp: widget.otp,
+              password: password,
+              confirmPassword: confirmPassword,
+            ),
+          ),
+        );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return BlocConsumer<RegisterBloc, RegisterState>(
       listener: (context, state) {
         if (state.flow != RegisterFlow.resetPassword) return;
@@ -147,8 +140,8 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
             state.isLoading && state.flow == RegisterFlow.resetPassword;
 
         return Scaffold(
-          // Dark Mode fix: Fonni oq rangda qotiramiz
-          backgroundColor: AppColors.white,
+          // Dark Mode fix: Dynamic background
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: SafeArea(
             child: SingleChildScrollView(
               padding: AppSpacing.screenPadding,
@@ -163,7 +156,7 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
                   Text(
                     'auth.reset_password.title'.tr(),
                     style: AppTypography.headingXL.copyWith(
-                      color: AppColors.black, // Matn rangi qora
+                      color: isDark ? AppColors.white : AppColors.black,
                     ),
                   ),
                   SizedBox(height: AppSpacing.xs),
@@ -242,12 +235,13 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
     required VoidCallback onVisibilityChanged,
     bool isConfirm = false,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return TextField(
       controller: controller,
       obscureText: !isVisible,
       // --- DARK MODE FIX START ---
       style: TextStyle(
-        color: Colors.black, // Input ichidagi yozuv doim qora
+        color: isDark ? AppColors.white : Colors.black,
         fontSize: 16.sp,
         fontWeight: FontWeight.w500,
       ),
@@ -263,8 +257,7 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
 
         // Orqa fon (Kulrang)
         filled: true,
-        fillColor: AppColors
-            .grayBackground, // AppColors.grayBackground borligiga ishonch hosil qiling
+        fillColor: isDark ? AppColors.darkCardBg : AppColors.grayBackground,
 
         prefixIcon: Icon(
           Icons.lock_outline_rounded,
@@ -287,7 +280,7 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
         // Borderlar
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: AppColors.grayLight, width: 1),
+          borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.grayLight, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),

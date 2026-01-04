@@ -1,9 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:dio/dio.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:open_file/open_file.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/navigation/app_router.dart';
@@ -14,9 +21,11 @@ import '../../data/models/booking_model.dart';
 import '../../data/models/price_check_model.dart';
 import '../../data/models/payment_permission_model.dart';
 import '../../data/models/invoice_request_model.dart';
+import '../../data/models/fare_rules_model.dart';
 import '../bloc/avia_bloc.dart';
 import '../bloc/payment_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/services/auth/auth_service.dart';
 
 @RoutePage(name: 'BookingSuccessRoute')
 class BookingSuccessPage extends StatefulWidget implements AutoRouteWrapper {
@@ -57,6 +66,8 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
   BookingModel? _booking;
   int?
       _expandedCardIndex; // Track which card is expanded (0: payer, 1: flight, 2: ticket, 3: passenger, 4: booking)
+  FareRulesModel? _bookingRules;
+  bool _isLoadingRules = false;
 
   // Timer for payment countdown
   Timer? _countdownTimer;
@@ -217,18 +228,11 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
       ..add(PaymentPermissionRequested(widget.bookingId));
   }
 
-  Future<void> _createInvoiceAndLaunch(
-      String bookingId, PriceCheckModel priceCheck) async {
-    // Narxni parse qilish va eng kichik birlikka o'tkazish
-    // Avval priceCheck dan, keyin booking model'dan olish
-    String? priceString = priceCheck.price;
-
-    // Agar priceCheck da price yo'q bo'lsa, booking model'dan olish
+  Future<void> _createInvoiceAndLaunch(String bookingId) async {
+    // Narxni booking model'dan olish
+    String? priceString = _booking?.price;
     if (priceString == null || priceString.isEmpty || priceString == '0') {
-      final bookingPrice = _booking?.price;
-      if (bookingPrice != null && bookingPrice.isNotEmpty) {
-        priceString = bookingPrice;
-      }
+      // Retry or error
     }
 
     // Agar hali ham price yo'q bo'lsa, xatolik
@@ -248,9 +252,26 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
       return;
     }
 
+    // Raqam va nuqtani saqlab qolish (decimal uchun)
     final cleanPrice = priceString.replaceAll(RegExp(r'[^0-9.]'), '');
+    // Double ga o'tkazish
     final priceValue = double.tryParse(cleanPrice) ?? 0.0;
-    final amount = (priceValue * 100).toInt();
+
+    // Debug log
+    print('💰 BOOKING_SUCCESS_PAGE: Original price: $priceString');
+    print('💰 BOOKING_SUCCESS_PAGE: Clean price: $cleanPrice');
+    print('💰 BOOKING_SUCCESS_PAGE: Price value: $priceValue');
+
+    // API eng kichik birlikda amount kutadi (masalan, 500000)
+    // UZS uchun: 5000 UZS = 500000 (100 ga ko'paytiriladi)
+    // Boshqa valyutalar uchun ham 100 ga ko'paytiriladi (cents uchun)
+    // 10% komissiya qo'shish: price * 1.10 * 100
+    final amountWithoutCommission = (priceValue * 100).toInt();
+    final amount = (priceValue * 1.10 * 100).toInt();
+    
+    // Debug log
+    print('💰 BOOKING_SUCCESS_PAGE: Amount without commission: $amountWithoutCommission');
+    print('💰 BOOKING_SUCCESS_PAGE: Amount with 10% commission: $amount');
 
     // Amount musbat bo'lishi kerak (backend talabi)
     if (amount <= 0) {
@@ -259,15 +280,11 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
           _isLoadingPayment = false;
         });
         final errorMessage = 'avia.payment.price_not_available'.tr();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              errorMessage.contains('avia.payment.price_not_available')
-                  ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
-                  : errorMessage,
-            ),
-            backgroundColor: Colors.red,
-          ),
+        SnackbarHelper.showError(
+          context,
+          errorMessage.contains('avia.payment.price_not_available')
+              ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
+              : errorMessage,
         );
       }
       return;
@@ -290,6 +307,263 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
     );
 
     paymentBloc.add(CreateInvoiceRequested(request));
+  }
+
+  Future<void> _launchPdfUrl(String pdfUrl) async {
+    // Loading dialog ko'rsatish
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    try {
+      Uint8List? pdfBytes;
+
+      // 1. Base64 format tekshirish
+      if (pdfUrl.startsWith('data:application/pdf;base64,')) {
+        final base64String = pdfUrl.split(',').last;
+        try {
+          pdfBytes = base64Decode(base64String);
+        } catch (e) {
+          throw Exception('Base64 decode xatolik: $e');
+        }
+      }
+      // 2. HTTP/HTTPS URL bo'lsa
+      else if (pdfUrl.startsWith('http://') || pdfUrl.startsWith('https://')) {
+        // Token qo'shish
+        final authService = AuthService.instance;
+        final token = await authService.getAccessToken();
+        
+        final dio = Dio();
+        if (token != null && token.isNotEmpty) {
+          dio.options.headers['Authorization'] = 'Bearer $token';
+        }
+        
+        final response = await dio.get(
+          pdfUrl,
+          options: Options(
+            responseType: ResponseType.bytes,
+            followRedirects: true,
+            validateStatus: (status) => status! < 500,
+          ),
+        );
+
+        if (response.statusCode == 200 && response.data != null) {
+          pdfBytes = response.data;
+        } else if (response.statusCode == 401) {
+          // Token eskirgan - refresh qilish va qayta urinish
+          final authService = AuthService.instance;
+          final newToken = await authService.refreshToken();
+          if (newToken != null && newToken.isNotEmpty) {
+            // Yangi token bilan qayta urinish
+            final retryDio = Dio();
+            retryDio.options.headers['Authorization'] = 'Bearer $newToken';
+            final retryResponse = await retryDio.get(
+              pdfUrl,
+              options: Options(
+                responseType: ResponseType.bytes,
+                followRedirects: true,
+                validateStatus: (status) => status! < 500,
+              ),
+            );
+            if (retryResponse.statusCode == 200 && retryResponse.data != null) {
+              pdfBytes = retryResponse.data;
+            } else {
+              throw Exception('PDF yuklab olishda xatolik: ${retryResponse.statusCode}');
+            }
+          } else {
+            throw Exception('PDF yuklab olishda autentifikatsiya xatolik');
+          }
+        } else {
+          throw Exception('PDF yuklab olishda xatolik: ${response.statusCode}');
+        }
+      }
+      // 3. Oddiy base64 string bo'lsa
+      else {
+        try {
+          pdfBytes = base64Decode(pdfUrl);
+        } catch (e) {
+          // URL deb hisoblash
+          final authService = AuthService.instance;
+          final token = await authService.getAccessToken();
+          
+          final dio = Dio();
+          if (token != null && token.isNotEmpty) {
+            dio.options.headers['Authorization'] = 'Bearer $token';
+          }
+          
+          final response = await dio.get(
+            pdfUrl,
+            options: Options(responseType: ResponseType.bytes),
+          );
+          pdfBytes = response.data;
+        }
+      }
+
+      if (pdfBytes == null || pdfBytes.isEmpty) {
+        throw Exception('PDF ma\'lumotlari bo\'sh');
+      }
+
+      // Fayl nomini yaratish
+      final bookingId = widget.bookingId;
+      final fileName = 'booking_${bookingId}_receipt.pdf';
+
+      // Platform bo'yicha directory tanlash
+      Directory? directory;
+      String? filePath;
+
+      if (Platform.isAndroid) {
+        // Android uchun - app documents directory ishlatish (Scoped Storage)
+        try {
+          directory = await getExternalStorageDirectory();
+          if (directory != null) {
+            // Downloads papkasiga saqlash
+            final downloadsDir = Directory('${directory.path}/Download');
+            if (!await downloadsDir.exists()) {
+              await downloadsDir.create(recursive: true);
+            }
+            filePath = '${downloadsDir.path}/$fileName';
+          }
+        } catch (e) {
+          // Fallback: application documents
+          directory = await getApplicationDocumentsDirectory();
+          filePath = '${directory.path}/$fileName';
+        }
+      } else if (Platform.isIOS) {
+        // iOS uchun Documents papkasi
+        directory = await getApplicationDocumentsDirectory();
+        filePath = '${directory.path}/$fileName';
+      } else {
+        directory = await getExternalStorageDirectory();
+        if (directory != null) {
+          filePath = '${directory.path}/$fileName';
+        }
+      }
+
+      if (filePath == null || directory == null) {
+        // Fallback: temp file yaratish va ochish
+        final tempDir = await getTemporaryDirectory();
+        final tempFile = File('${tempDir.path}/$fileName');
+        await tempFile.writeAsBytes(pdfBytes);
+
+        if (mounted) {
+          Navigator.pop(context); // Loading dialog yopish
+          await OpenFile.open(tempFile.path);
+          SnackbarHelper.showInfo(
+            context,
+            'PDF ochildi',
+          );
+        }
+        return;
+      }
+
+      // PDF faylni saqlash
+      final file = File(filePath);
+      await file.writeAsBytes(pdfBytes);
+
+      if (mounted) {
+        Navigator.pop(context); // Loading dialog yopish
+
+        SnackbarHelper.showSuccess(
+          context,
+          'PDF muvaffaqiyatli saqlandi',
+        );
+
+        // PDF ni ochish va ulashish dialog'ini ko'rsatish
+        try {
+          await OpenFile.open(filePath);
+        } catch (e) {
+          // Agar ochib bo'lmasa, faqat dialog ko'rsatish
+        }
+
+        _showPdfShareDialog(filePath);
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Loading dialog yopish
+
+        // Xatolik bo'lsa, browser'da ochishga harakat qilish
+        try {
+          String urlToOpen = pdfUrl;
+
+          // Base64 bo'lsa, temp file yaratish
+          if (pdfUrl.startsWith('data:application/pdf;base64,')) {
+            final tempDir = await getTemporaryDirectory();
+            final tempFile = File('${tempDir.path}/temp_receipt.pdf');
+            final base64String = pdfUrl.split(',').last;
+            await tempFile.writeAsBytes(base64Decode(base64String));
+            urlToOpen = tempFile.path;
+          }
+
+          // URL bo'lsa, browser'da ochish
+          if (urlToOpen.startsWith('http://') ||
+              urlToOpen.startsWith('https://')) {
+            final uri = Uri.parse(urlToOpen);
+            final launched = await launchUrl(
+              uri,
+              mode: LaunchMode.externalApplication,
+            );
+            if (!launched) {
+              SnackbarHelper.showError(context, 'PDF faylini ochib bo\'lmadi');
+            }
+          } else {
+            // File path bo'lsa
+            await OpenFile.open(urlToOpen);
+          }
+        } catch (launchError) {
+          SnackbarHelper.showError(
+            context,
+            'PDF yuklab olishda xatolik: ${e.toString()}',
+          );
+        }
+      }
+    }
+  }
+
+  void _showPdfShareDialog(String filePath) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('PDF saqlandi'),
+        content:
+            Text('PDF fayl muvaffaqiyatli saqlandi. Ulashishni xohlaysizmi?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Yopish'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await Share.shareXFiles([XFile(filePath)]);
+              } catch (e) {
+                if (mounted) {
+                  SnackbarHelper.showError(context, 'Ulashishda xatolik');
+                }
+              }
+            },
+            child: Text('Ulashish'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handlePdfDownload() {
+    if (_isPaid && widget.bookingId.isNotEmpty) {
+      context.read<AviaBloc>().add(PdfReceiptRequested(widget.bookingId));
+    } else {
+      SnackbarHelper.showError(
+        context,
+        'PDF faqat to\'langan bronlar uchun mavjud',
+      );
+    }
   }
 
   Future<void> _launchPaymentUrl(String checkoutUrl) async {
@@ -382,7 +656,11 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
     final cleaned =
         raw.replaceAll(RegExp(r'[^0-9.,]'), '').replaceAll(',', '.');
     if (cleaned.isEmpty) return 'avia.booking_details.na'.tr();
-    final parts = cleaned.split('.');
+    // Parse price and add 10% commission
+    final priceValue = double.tryParse(cleaned) ?? 0.0;
+    final priceWithCommission = (priceValue * 1.10).toStringAsFixed(0);
+    // Format with spaces
+    final parts = priceWithCommission.split('.');
     final intPart = parts[0].replaceAll(RegExp(r'^0+'), '');
     final digits = intPart.isEmpty ? '0' : intPart;
     final buf = StringBuffer();
@@ -392,10 +670,6 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
       if (idxFromEnd > 1 && idxFromEnd % 3 == 1) {
         buf.write(' ');
       }
-    }
-    // Preserve one decimal if exists
-    if (parts.length > 1 && parts[1].isNotEmpty) {
-      return '${buf.toString().trim()},${parts[1].substring(0, parts[1].length > 1 ? 1 : parts[1].length)}';
     }
     return buf.toString().trim();
   }
@@ -657,18 +931,40 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
                   _startCountdownTimer();
                 }
               });
+            } else if (state is AviaPaymentSuccess) {
+              // To'lov muvaffaqiyatli bo'lganda booking info ni yangilash
+              // Bu PDF card'ini ko'rsatish uchun kerak
+              context
+                  .read<AviaBloc>()
+                  .add(BookingInfoRequested(widget.bookingId));
+            } else if (state is AviaPdfReceiptSuccess) {
+              // PDF URL olinganda, uni ochish
+              final pdfUrl = state.pdfUrl;
+              if (pdfUrl.isNotEmpty) {
+                _launchPdfUrl(pdfUrl);
+              } else {
+                SnackbarHelper.showError(context, 'PDF topilmadi');
+              }
+            } else if (state is AviaPdfReceiptFailure) {
+              SnackbarHelper.showError(context, state.message);
+            } else if (state is AviaBookingRulesSuccess) {
+              setState(() {
+                _bookingRules = state.rules;
+                _isLoadingRules = false;
+              });
+            } else if (state is AviaBookingRulesFailure) {
+              setState(() {
+                _isLoadingRules = false;
+              });
+              SnackbarHelper.showError(context, state.message);
             } else if (state is AviaCheckPriceSuccess && _isLoadingPayment) {
               _priceCheck = state.priceCheck;
               // Ikkalasi ham kelganda invoice yaratish
               if (_priceCheck != null && _permission != null) {
-                // canPay null bo'lsa ham, booking mavjud bo'lsa to'lovni davom ettirish
-                // allowed ni ham tekshirish, agar ikkalasi ham null bo'lsa default true
-                final canPay = _permission!.canPay ??
-                    _permission!.allowed ??
-                    _permission!.paymentAllowed ??
-                    true; // Default: invoice yaratishga ruxsat berish
-                if (canPay == true) {
-                  _createInvoiceAndLaunch(widget.bookingId, _priceCheck!);
+                // paymentAllowed ni tekshirish, agar null bo'lsa default true
+                final canPay = _permission!.paymentAllowed ?? true;
+                if (canPay) {
+                  _createInvoiceAndLaunch(widget.bookingId);
                 } else {
                   setState(() {
                     _isLoadingPayment = false;
@@ -682,14 +978,10 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
               _permission = state.permission;
               // Ikkalasi ham kelganda invoice yaratish
               if (_priceCheck != null && _permission != null) {
-                // canPay null bo'lsa ham, booking mavjud bo'lsa to'lovni davom ettirish
-                // allowed ni ham tekshirish, agar ikkalasi ham null bo'lsa default true
-                final canPay = _permission!.canPay ??
-                    _permission!.allowed ??
-                    _permission!.paymentAllowed ??
-                    true; // Default: invoice yaratishga ruxsat berish
-                if (canPay == true) {
-                  _createInvoiceAndLaunch(widget.bookingId, _priceCheck!);
+                // paymentAllowed ni tekshirish, agar null bo'lsa default true
+                final canPay = _permission!.paymentAllowed ?? true;
+                if (canPay) {
+                  _createInvoiceAndLaunch(widget.bookingId);
                 } else {
                   setState(() {
                     _isLoadingPayment = false;
@@ -1478,6 +1770,143 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
                                                 .tr(),
                                             value: _routeFromBookingOrOffers(),
                                           ),
+                                          SizedBox(height: 12.h),
+                                          OutlinedButton.icon(
+                                            onPressed: _isLoadingRules
+                                                ? null
+                                                : () {
+                                                    setState(() {
+                                                      _isLoadingRules = true;
+                                                    });
+                                                    context
+                                                        .read<AviaBloc>()
+                                                        .add(
+                                                          BookingRulesRequested(
+                                                              widget.bookingId),
+                                                        );
+                                                  },
+                                            icon: _isLoadingRules
+                                                ? SizedBox(
+                                                    width: 16.w,
+                                                    height: 16.h,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                    ),
+                                                  )
+                                                : Icon(
+                                                    Icons.description_outlined,
+                                                    size: 18.sp,
+                                                  ),
+                                            label: Text(
+                                              'avia.booking_details.view_rules'
+                                                  .tr(),
+                                              style: TextStyle(
+                                                fontSize: 14.sp,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            style: OutlinedButton.styleFrom(
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 16.w,
+                                                vertical: 12.h,
+                                              ),
+                                              side: BorderSide(
+                                                color: AppColors.primaryBlue,
+                                              ),
+                                            ),
+                                          ),
+                                          if (_bookingRules != null) ...[
+                                            SizedBox(height: 16.h),
+                                            if (_bookingRules!.title != null &&
+                                                _bookingRules!.title!
+                                                    .trim()
+                                                    .isNotEmpty)
+                                              Text(
+                                                _bookingRules!.title!.trim(),
+                                                style: TextStyle(
+                                                  fontSize: 16.sp,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: AppColors.getTextColor(
+                                                      isDark),
+                                                ),
+                                              ),
+                                            if (_bookingRules!.description !=
+                                                    null &&
+                                                _bookingRules!.description!
+                                                    .trim()
+                                                    .isNotEmpty) ...[
+                                              SizedBox(height: 8.h),
+                                              Text(
+                                                _bookingRules!.description!
+                                                    .trim(),
+                                                style: TextStyle(
+                                                  fontSize: 14.sp,
+                                                  color: AppColors
+                                                      .getSubtitleColor(isDark),
+                                                ),
+                                              ),
+                                            ],
+                                            if (_bookingRules!.rules != null &&
+                                                _bookingRules!
+                                                    .rules!.isNotEmpty) ...[
+                                              SizedBox(height: 16.h),
+                                              ..._bookingRules!.rules!
+                                                  .map((rule) => Padding(
+                                                        padding:
+                                                            EdgeInsets.only(
+                                                                bottom: 12.h),
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            if (rule.type !=
+                                                                    null &&
+                                                                rule.type!
+                                                                    .trim()
+                                                                    .isNotEmpty)
+                                                              Text(
+                                                                rule.type!
+                                                                    .trim(),
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontSize:
+                                                                      14.sp,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w700,
+                                                                  color: AppColors
+                                                                      .getTextColor(
+                                                                          isDark),
+                                                                ),
+                                                              ),
+                                                            if (rule.description !=
+                                                                    null &&
+                                                                rule.description!
+                                                                    .trim()
+                                                                    .isNotEmpty) ...[
+                                                              SizedBox(
+                                                                  height: 4.h),
+                                                              Text(
+                                                                rule.description!
+                                                                    .trim(),
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontSize:
+                                                                      13.sp,
+                                                                  color: AppColors
+                                                                      .getSubtitleColor(
+                                                                          isDark),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ],
+                                                        ),
+                                                      ))
+                                                  .toList(),
+                                            ],
+                                          ],
                                         ],
                                       ),
                                     ),
@@ -1565,6 +1994,35 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
                             ),
                           ),
                           SizedBox(width: AppSpacing.md),
+                          if (_isPaid) ...[
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _handlePdfDownload,
+                                icon: Icon(
+                                  Icons.picture_as_pdf,
+                                  size: 18.sp,
+                                  color: AppColors.primaryBlue,
+                                ),
+                                label: Text(
+                                  'PDF',
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primaryBlue,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                                  side:
+                                      BorderSide(color: AppColors.primaryBlue),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.r),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: AppSpacing.md),
+                          ],
                           Expanded(
                             flex: 2,
                             child: ElevatedButton(

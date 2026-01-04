@@ -10,6 +10,7 @@ import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../../../core/services/auth/auth_service.dart';
 import '../../domain/params/auth_params.dart';
 import '../bloc/register_bloc.dart';
@@ -87,16 +88,15 @@ class _LoginForgotPasswordPageState extends State<LoginForgotPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return BlocConsumer<RegisterBloc, RegisterState>(
       listener: (context, state) {
         if (state.flow != RegisterFlow.forgotPasswordOtp) return;
 
         if (state.status == RegisterStatus.failure) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.error ?? tr('common.error_occurred_simple')),
-              backgroundColor: Colors.red,
-            ),
+          SnackbarHelper.showError(
+            context,
+            state.error ?? tr('common.error_occurred_simple'),
           );
         } else if (state.status == RegisterStatus.success) {
           // Muvaffaqiyatli bo'lsa keyingi sahifaga o'tish
@@ -119,8 +119,8 @@ class _LoginForgotPasswordPageState extends State<LoginForgotPasswordPage> {
             state.isLoading && state.flow == RegisterFlow.forgotPasswordOtp;
 
         return Scaffold(
-          // Dark Mode uchun fix: Fonni oq rangda qotiramiz
-          backgroundColor: AppColors.white,
+          // Dark Mode uchun fix: Dynamic background color
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: SafeArea(
             child: SingleChildScrollView(
               padding: AppSpacing.screenPadding,
@@ -138,7 +138,7 @@ class _LoginForgotPasswordPageState extends State<LoginForgotPasswordPage> {
                     Text(
                       'auth.forgot.title'.tr(),
                       style: AppTypography.headingXL.copyWith(
-                        color: AppColors.black, // Matn rangi aniq qora
+                        color: isDark ? AppColors.white : AppColors.black,
                       ),
                     ),
                     SizedBox(height: AppSpacing.xs),
@@ -193,7 +193,7 @@ class _LoginForgotPasswordPageState extends State<LoginForgotPasswordPage> {
                       // --- DARK MODE FIX START ---
                       // Input ichidagi yozuv doim qora bo'lishi kerak
                       style: TextStyle(
-                        color: Colors.black,
+                        color: isDark ? AppColors.white : Colors.black,
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w500,
                       ),
@@ -247,6 +247,10 @@ class _LoginForgotPasswordPageState extends State<LoginForgotPasswordPage> {
                       },
 
                       decoration: AppInputDecoration.outline(
+                        fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
+                        borderColor: isDark ? AppColors.darkBorder : null,
+                        hintColor: isDark ? AppColors.grayText : null,
+                        prefixIconColor: isDark ? AppColors.grayText : null,
                         hint: isEmailMode
                             ? 'auth.field.email_hint'.tr()
                             : '90 123 45 67', // Aniq misol
@@ -264,7 +268,7 @@ class _LoginForgotPasswordPageState extends State<LoginForgotPasswordPage> {
                                   style: TextStyle(
                                     fontSize: 16.sp,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.black, // Prefix ham qora
+                                    color: isDark ? AppColors.white : Colors.black, // Prefix ham moslashadi
                                   ),
                                 ),
                               ),

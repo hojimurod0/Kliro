@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/constants/constants.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/network/api_response.dart';
+import '../../../../core/utils/logger.dart';
 import '../../domain/params/auth_params.dart';
 import '../models/user_profile_model.dart';
 
@@ -25,7 +26,24 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   Future<UserProfileModel> getProfile() {
     return _getData<UserProfileModel>(
       ApiPaths.getProfile,
-      parser: (json) => UserProfileModel.fromJson(json as Map<String, dynamic>),
+      parser: (json) {
+        if (json is! Map<String, dynamic>) {
+          AppLogger.warning('📥 PROFILE_DS: JSON is not a Map');
+          return UserProfileModel.fromJson({} as Map<String, dynamic>);
+        }
+        
+        AppLogger.debug('📥 PROFILE_DS: Parsing profile JSON');
+        AppLogger.debug('📥 PROFILE_DS: JSON keys: ${json.keys.toList()}');
+        AppLogger.debug('📥 PROFILE_DS: JSON email value: ${json['email']}');
+        AppLogger.debug('📥 PROFILE_DS: JSON phone value: ${json['phone']}');
+        AppLogger.debug('📥 PROFILE_DS: JSON first_name value: ${json['first_name']}');
+        AppLogger.debug('📥 PROFILE_DS: JSON last_name value: ${json['last_name']}');
+        
+        final profile = UserProfileModel.fromJson(json);
+        AppLogger.debug('📥 PROFILE_DS: Parsed profile.email: ${profile.email ?? "null"}');
+        AppLogger.debug('📥 PROFILE_DS: Parsed profile.phone: ${profile.phone ?? "null"}');
+        return profile;
+      },
     );
   }
 

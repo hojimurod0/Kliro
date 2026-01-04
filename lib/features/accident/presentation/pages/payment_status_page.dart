@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../../../core/widgets/loading_state_widget.dart';
 import '../../../../core/widgets/error_state_widget.dart';
 import '../bloc/accident_bloc.dart';
@@ -119,29 +120,21 @@ class _PaymentStatusPageState extends State<PaymentStatusPage> {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'insurance.accident.payment_status.url_open_error'.tr(),
-              ),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 3),
-            ),
+          SnackbarHelper.showError(
+            context,
+            'insurance.accident.payment_status.url_open_error'.tr(),
+            duration: const Duration(seconds: 3),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'insurance.accident.payment_status.error_occurred'.tr(
-                namedArgs: {'error': e.toString()},
-              ),
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
+        SnackbarHelper.showError(
+          context,
+          'insurance.accident.payment_status.error_occurred'.tr(
+            namedArgs: {'error': e.toString()},
           ),
+          duration: const Duration(seconds: 3),
         );
       }
     }

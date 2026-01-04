@@ -39,6 +39,18 @@ const Map<String, BankData> _bankData = {
     androidUrl: 'https://play.google.com/store/apps/details?id=com.ipakyulibank.mobile&hl=ru',
     iosUrl: 'https://apps.apple.com/uz/app/ipak-yoli-mobile/id1436677359',
   ),
+  "Ipak Yuli Banki": BankData( // Alias
+    name: "Ipak Yo'li Banki",
+    url: 'https://ipakyulibank.uz',
+    androidUrl: 'https://play.google.com/store/apps/details?id=com.ipakyulibank.mobile&hl=ru',
+    iosUrl: 'https://apps.apple.com/uz/app/ipak-yoli-mobile/id1436677359',
+  ),
+  "Ipak Yuli": BankData( // Alias
+    name: "Ipak Yo'li Banki",
+    url: 'https://ipakyulibank.uz',
+    androidUrl: 'https://play.google.com/store/apps/details?id=com.ipakyulibank.mobile&hl=ru',
+    iosUrl: 'https://apps.apple.com/uz/app/ipak-yoli-mobile/id1436677359',
+  ),
   'Asaka Bank': BankData(
     name: 'Asaka Bank',
     url: 'https://asakabank.uz',
@@ -46,6 +58,18 @@ const Map<String, BankData> _bankData = {
     iosUrl: 'https://apps.apple.com/uz/app/asakabank/id1574165416',
   ),
   "O'zbekiston Milliy Banki": BankData(
+    name: "O'zbekiston Milliy Banki",
+    url: 'https://nbu.uz',
+  ),
+  'NBU': BankData( // Alias
+    name: "O'zbekiston Milliy Banki",
+    url: 'https://nbu.uz',
+  ),
+  "O‘zbekiston Milliy Banki": BankData( // Alias with different quote
+    name: "O'zbekiston Milliy Banki",
+    url: 'https://nbu.uz',
+  ),
+  'Milliy Bank': BankData( // Alias
     name: "O'zbekiston Milliy Banki",
     url: 'https://nbu.uz',
   ),
@@ -69,15 +93,15 @@ const Map<String, BankData> _bankData = {
   ),
   "O'zsanoatqurilish Bank": BankData(
     name: "O'zsanoatqurilish Bank",
-    url: 'https://ofb.uz',
+    url: 'https://sqb.uz',
   ),
   'MK Bank': BankData(
     name: 'MK Bank',
-    url: 'https://mkbank.uz',
+    url: 'https://mikrokreditbank.uz',
   ),
   'Infin Bank': BankData(
     name: 'Infin Bank',
-    url: 'https://www.infinbank.com/ru/',
+    url: 'https://infinbank.com',
     androidUrl: 'https://play.google.com/store/apps/details?id=uz.xsoft.myinfin&hl=ru',
     iosUrl: 'https://apps.apple.com/ru/app/infinbank/id1454367354',
   ),
@@ -127,7 +151,7 @@ const Map<String, BankData> _bankData = {
   ),
   'Hamkor Bank': BankData(
     name: 'Hamkor Bank',
-    url: 'https://hamkorbank.uz/',
+    url: 'https://hamkorbank.uz',
     androidUrl: 'https://play.google.com/store/apps/details?id=uz.hamkorbank.mobile&hl=ru',
     iosUrl: 'https://apps.apple.com/us/app/hamkor-%D0%BE%D0%BD%D0%BB%D0%B0%D0%B9%D0%BD-%D0%B1%D0%B0%D0%BD%D0%BA-%D1%83%D0%B7%D0%B1%D0%B5%D0%BA%D0%B8%D1%81%D1%82%D0%B0%D0%BD%D0%B0/id1602323485',
   ),
@@ -155,7 +179,7 @@ const Map<String, BankData> _bankData = {
   ),
   'Kapital Bank': BankData(
     name: 'Kapital Bank',
-    url: 'https://kapitalbank.uz/uz/welcome.php',
+    url: 'https://kapitalbank.uz',
   ),
   'TBC Bank': BankData(
     name: 'TBC Bank',
@@ -187,13 +211,13 @@ const Map<String, BankData> _bankData = {
   ),
   'AVO Bank': BankData(
     name: 'AVO Bank',
-    url: 'https://avobank.uz',
+    url: 'https://avo.uz',
     androidUrl: 'https://play.google.com/store/apps/details?id=uz.avo.app&hl=ru',
     iosUrl: 'https://apps.apple.com/ru/app/avo-%D0%BE%D0%BD%D0%BB%D0%B0%D0%B9%D0%BD-%D0%B1%D0%B0%D0%BD%D0%BA-%D1%83%D0%B7%D0%B1%D0%B5%D0%BA%D0%B8%D1%81%D1%82%D0%B0%D0%BD%D0%B0/id6463799850',
   ),
   'My Bank': BankData(
     name: 'My Bank',
-    url: 'https://my-bank.uz/en',
+    url: 'https://my-bank.uz',
   ),
   'APEX Bank': BankData(
     name: 'APEX Bank',
@@ -207,7 +231,117 @@ const Map<String, BankData> _bankData = {
   ),
   'Yangi Bank': BankData(
     name: 'Yangi Bank',
-    url: 'https://yangi.uz/',
+    url: 'https://yangi.uz',
+  ),
+  // Aliases and Additional Banks
+  'SQB': BankData(
+    name: "O'zsanoatqurilish Bank",
+    url: 'https://sqb.uz',
+  ),
+  "O‘zsanoatqurilish Bank": BankData(
+    name: "O'zsanoatqurilish Bank",
+    url: 'https://sqb.uz',
+  ),
+  'Uzbekistan Industrial and Construction Bank': BankData(
+    name: "O'zsanoatqurilish Bank",
+    url: 'https://sqb.uz',
+  ),
+  'Sanoat Qurilish Bank': BankData(
+    name: "O'zsanoatqurilish Bank",
+    url: 'https://sqb.uz',
+  ),
+
+  'Mikrokreditbank': BankData(
+    name: 'MK Bank',
+    url: 'https://mikrokreditbank.uz',
+  ),
+  'MKB': BankData(
+    name: 'MK Bank',
+    url: 'https://mikrokreditbank.uz',
+  ),
+  'Aloqabank': BankData(
+    name: 'Aloqa Bank',
+    url: 'https://aloqabank.uz',
+    androidUrl: 'https://play.google.com/store/apps/details?id=uz.aloqabank.zoomrad&hl=ru',
+    iosUrl: 'https://apps.apple.com/uz/app/zoomrad/id1522419775',
+  ),
+  'Agrobank': BankData(
+    name: 'Agro Bank',
+    url: 'https://agrobank.uz',
+    androidUrl: 'https://play.google.com/store/apps/details?id=uz.agrobank.mobile&hl=ru',
+    iosUrl: 'https://apps.apple.com/ru/app/agrobank-mobile/id1638716474',
+  ),
+  'Hamkorbank': BankData(
+    name: 'Hamkor Bank',
+    url: 'https://hamkorbank.uz',
+    androidUrl: 'https://play.google.com/store/apps/details?id=uz.hamkorbank.mobile&hl=ru',
+    iosUrl: 'https://apps.apple.com/us/app/hamkor-%D0%BE%D0%BD%D0%BB%D0%B0%D0%B9%D0%BD-%D0%B1%D0%B0%D0%BD%D0%BA-%D1%83%D0%B7%D0%B1%D0%B5%D0%BA%D0%B8%D1%81%D1%82%D0%B0%D0%BD%D0%B0/id1602323485',
+  ),
+  'Turonbank': BankData(
+    name: 'Turon Bank',
+    url: 'https://turonbank.uz',
+  ),
+  'Asakabank': BankData(
+    name: 'Asaka Bank',
+    url: 'https://asakabank.uz',
+    androidUrl: 'https://play.google.com/store/apps/details?id=uz.asakabank.myasaka&hl=ru',
+    iosUrl: 'https://apps.apple.com/uz/app/asakabank/id1574165416',
+  ),
+  'Ipotekabank': BankData(
+    name: 'Ipoteka Bank',
+    url: 'https://ipotekabank.uz',
+    androidUrl: 'https://play.google.com/store/apps/details?id=com.bss.ipotekabank.retail.lite&hl=ru',
+    iosUrl: 'https://apps.apple.com/ru/app/ipoteka-retail/id1637057203',
+  ),
+  'Kapitalbank': BankData(
+    name: 'Kapital Bank',
+    url: 'https://kapitalbank.uz',
+  ),
+  'Davrbank': BankData(
+    name: 'Davr Bank',
+    url: 'https://davrbank.uz',
+    androidUrl: 'https://play.google.com/store/apps/details?id=uz.davrbank.mobile&hl=ru',
+    iosUrl: 'https://apps.apple.com/uz/app/davr-mobile-2-0/id6483247810',
+  ),
+  'Infinbank': BankData(
+    name: 'Infin Bank',
+    url: 'https://infinbank.com',
+    androidUrl: 'https://play.google.com/store/apps/details?id=uz.xsoft.myinfin&hl=ru',
+    iosUrl: 'https://apps.apple.com/ru/app/infinbank/id1454367354',
+  ),
+  'Poytaxtbank': BankData(
+    name: 'Poytaxt Bank',
+    url: 'https://poytaxtbank.uz',
+  ),
+  'Ziraat Bank Uzbekistan': BankData(
+    name: 'Ziraat Bank',
+    url: 'https://ziraatbank.uz',
+  ),
+  'KDB Bank': BankData(
+    name: 'KDB Bank Uzbekiston',
+    url: 'https://kdb.uz',
+  ),
+  'Madad Invest Bank': BankData(
+    name: 'Madad Invest Bank',
+    url: 'https://madadinvestbank.uz',
+  ),
+  'Biznesni Rivojlantirish Banki': BankData(
+    name: 'BRB',
+    url: 'https://brb.uz',
+    androidUrl: 'https://play.google.com/store/apps/details?id=com.qqb.quant&hl=ru',
+    iosUrl: 'https://apps.apple.com/uz/app/brb/id1524422825',
+  ),
+  'Ravnaq Bank': BankData(
+    name: 'Octo Bank',
+    url: 'https://octobank.uz',
+    androidUrl: 'https://play.google.com/store/apps/details?id=com.ravnaqbank.rbkmobile&hl=ru',
+    iosUrl: 'https://apps.apple.com/uz/app/octo-mobile/id1460141475',
+  ),
+  'Universalbank': BankData(
+    name: 'Universal Bank',
+    url: 'https://universalbank.uz',
+    androidUrl: 'https://play.google.com/store/apps/details?id=uz.fido.universaldigital',
+    iosUrl: 'https://apps.apple.com/uz/app/universalbank/id6453759395',
   ),
 };
 
@@ -496,6 +630,19 @@ const Map<String, PaymentServiceData> _paymentServices = {
     iosUrl: 'https://apps.apple.com/ru/app/tbc-uz-%D0%BC%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9-o%D0%BD%D0%BB%D0%B0%D0%B9%D0%BD-%D0%B1%D0%B0%D0%BD%D0%BA/id1450503714',
   ),
   'Uzum Bank': PaymentServiceData(
+    name: 'Uzum Bank',
+    url: 'https://uzumbank.uz',
+    androidUrl: 'https://play.google.com/store/apps/details?id=uz.kapitalbank.android&hl=uz',
+    iosUrl: 'https://apps.apple.com/uz/app/uzum-bank-onlayn-ozbekiston/id1492307726',
+  ),
+  // Aliases
+  'Click': PaymentServiceData(
+    name: 'Click Up',
+    url: 'https://click.uz',
+    androidUrl: 'https://play.google.com/store/apps/details?id=air.com.ssdsoftwaresolutions.clickuz',
+    iosUrl: 'https://apps.apple.com/uz/app/click-superapp/id768132591',
+  ),
+  'Apelsin': PaymentServiceData(
     name: 'Uzum Bank',
     url: 'https://uzumbank.uz',
     androidUrl: 'https://play.google.com/store/apps/details?id=uz.kapitalbank.android&hl=uz',

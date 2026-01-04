@@ -203,8 +203,7 @@ class ParsingConverter {
           } else if (priceValue is String) {
             price = priceValue;
           } else if (priceValue is Map<String, dynamic>) {
-            price =
-                priceValue['amount']?.toString() ??
+            price = priceValue['amount']?.toString() ??
                 priceValue['value']?.toString();
             currency = priceValue['currency']?.toString();
           }
@@ -278,8 +277,7 @@ class ParsingConverter {
         if (firstSeg.containsKey('airline')) {
           final airlineData = firstSeg['airline'];
           if (airlineData is Map<String, dynamic>) {
-            airline =
-                airlineData['title']?.toString() ??
+            airline = airlineData['title']?.toString() ??
                 airlineData['code']?.toString() ??
                 airlineData['name']?.toString();
           } else if (airlineData is String) {
@@ -353,15 +351,13 @@ class ParsingConverter {
           final airport = departure['airport'];
           if (airport is Map<String, dynamic>) {
             final code = airport['code']?.toString();
-            departureAirportName =
-                airport['title']?.toString() ??
+            departureAirportName = airport['title']?.toString() ??
                 airport['name']?.toString() ??
                 airport['fullname']?.toString();
             departureAirport = code ?? departureAirportName;
           }
         }
-        departureTerminal =
-            departure['terminal']?.toString() ??
+        departureTerminal = departure['terminal']?.toString() ??
             departure['terminal_name']?.toString() ??
             departure['terminalNumber']?.toString();
       }
@@ -373,15 +369,13 @@ class ParsingConverter {
           final airport = arrival['airport'];
           if (airport is Map<String, dynamic>) {
             final code = airport['code']?.toString();
-            arrivalAirportName =
-                airport['title']?.toString() ??
+            arrivalAirportName = airport['title']?.toString() ??
                 airport['name']?.toString() ??
                 airport['fullname']?.toString();
             arrivalAirport = code ?? arrivalAirportName;
           }
         }
-        arrivalTerminal =
-            arrival['terminal']?.toString() ??
+        arrivalTerminal = arrival['terminal']?.toString() ??
             arrival['terminal_name']?.toString() ??
             arrival['terminalNumber']?.toString();
       }
@@ -420,8 +414,7 @@ class ParsingConverter {
       if (apiSegment.containsKey('airline')) {
         final airlineData = apiSegment['airline'];
         if (airlineData is Map<String, dynamic>) {
-          airline =
-              airlineData['title']?.toString() ??
+          airline = airlineData['title']?.toString() ??
               airlineData['code']?.toString() ??
               airlineData['name']?.toString();
         } else if (airlineData is String) {
@@ -430,15 +423,13 @@ class ParsingConverter {
       }
 
       // Aircraft / cabin / baggage (best-effort; API may differ)
-      dynamic aircraftValue =
-          apiSegment['aircraft'] ??
+      dynamic aircraftValue = apiSegment['aircraft'] ??
           apiSegment['aircraft_name'] ??
           apiSegment['aircraft_model'] ??
           apiSegment['equipment'] ??
           apiSegment['plane'];
       if (aircraftValue is Map<String, dynamic>) {
-        aircraft =
-            aircraftValue['title']?.toString() ??
+        aircraft = aircraftValue['title']?.toString() ??
             aircraftValue['name']?.toString() ??
             aircraftValue['model']?.toString() ??
             aircraftValue['code']?.toString();
@@ -446,41 +437,35 @@ class ParsingConverter {
         aircraft = aircraftValue.toString();
       }
 
-      dynamic cabinValue =
-          apiSegment['cabin_class'] ??
+      dynamic cabinValue = apiSegment['cabin_class'] ??
           apiSegment['cabin'] ??
           apiSegment['service_class'] ??
           apiSegment['class'];
       if (cabinValue is Map<String, dynamic>) {
-        cabinClass =
-            cabinValue['title']?.toString() ??
+        cabinClass = cabinValue['title']?.toString() ??
             cabinValue['name']?.toString() ??
             cabinValue['code']?.toString();
       } else if (cabinValue != null) {
         cabinClass = cabinValue.toString();
       }
 
-      dynamic baggageValue =
-          apiSegment['baggage'] ??
+      dynamic baggageValue = apiSegment['baggage'] ??
           apiSegment['baggage_allowance'] ??
           apiSegment['checked_baggage'];
       if (baggageValue is Map<String, dynamic>) {
-        baggage =
-            baggageValue['title']?.toString() ??
+        baggage = baggageValue['title']?.toString() ??
             baggageValue['value']?.toString() ??
             baggageValue['weight']?.toString();
       } else if (baggageValue != null) {
         baggage = baggageValue.toString();
       }
 
-      dynamic handBaggageValue =
-          apiSegment['hand_baggage'] ??
+      dynamic handBaggageValue = apiSegment['hand_baggage'] ??
           apiSegment['handbags'] ??
           apiSegment['carry_on'] ??
           apiSegment['cabin_baggage'];
       if (handBaggageValue is Map<String, dynamic>) {
-        handBaggage =
-            handBaggageValue['title']?.toString() ??
+        handBaggage = handBaggageValue['title']?.toString() ??
             handBaggageValue['value']?.toString() ??
             handBaggageValue['weight']?.toString();
       } else if (handBaggageValue != null) {

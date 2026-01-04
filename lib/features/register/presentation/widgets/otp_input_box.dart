@@ -21,14 +21,15 @@ class OtpInputBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       height: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: isDark ? AppColors.darkCardBg : AppColors.white,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: AppColors.grayBorder.withOpacity(0.5),
+          color: isDark ? AppColors.darkBorder : AppColors.grayBorder.withOpacity(0.5),
           width: 1.w,
         ),
         boxShadow: [
@@ -50,7 +51,7 @@ class OtpInputBox extends StatelessWidget {
           style: TextStyle(
             fontSize: boxSize * 0.35,
             fontWeight: FontWeight.bold,
-            color: AppColors.black,
+            color: isDark ? AppColors.white : AppColors.black,
           ),
           decoration: const InputDecoration(
             border: InputBorder.none,

@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_text_size.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/widgets/primary_search_filter_bar.dart';
@@ -619,7 +620,7 @@ class _BankCardCardState extends State<_BankCardCard> {
             offer.cardName,
             style: TextStyle(
               color: Colors.white,
-              fontSize: 18.sp,
+              fontSize: AppTextSize.filterTitle,
               fontWeight: FontWeight.bold,
               letterSpacing: -0.5,
               height: 1.1,
@@ -801,7 +802,7 @@ class _BankCardCardState extends State<_BankCardCard> {
               ? Text(
                   value,
                   style: TextStyle(
-                    fontSize: 16.sp,
+                    fontSize: AppTextSize.bodyLarge,
                     color:
                         Theme.of(context).textTheme.titleLarge?.color ??
                         AppColors.darkTextAutoCredit,
@@ -815,7 +816,7 @@ class _BankCardCardState extends State<_BankCardCard> {
                     Text(
                       label,
                       style: TextStyle(
-                        fontSize: 12.sp,
+                        fontSize: AppTextSize.labelMedium,
                         color:
                             Theme.of(context).textTheme.bodySmall?.color ??
                             AppColors.grayText,
@@ -827,7 +828,7 @@ class _BankCardCardState extends State<_BankCardCard> {
                     Text(
                       value,
                       style: TextStyle(
-                        fontSize: 16.sp,
+                        fontSize: AppTextSize.bodyLarge,
                         color:
                             Theme.of(context).textTheme.titleLarge?.color ??
                             AppColors.darkTextAutoCredit,
@@ -1053,7 +1054,7 @@ class _StateMessage extends StatelessWidget {
             Text(
               title,
               style: AppTypography.headingL.copyWith(
-                fontSize: 18.sp,
+                fontSize: AppTextSize.filterTitle,
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
@@ -1238,7 +1239,7 @@ class _CardFilterSheetState extends State<_CardFilterSheet> {
             Text(
               tr('cards.filters'),
               style: TextStyle(
-                fontSize: 18.sp,
+                fontSize: AppTextSize.filterTitle,
                 fontWeight: FontWeight.w600,
                 color:
                     Theme.of(context).textTheme.titleLarge?.color ??
@@ -1293,7 +1294,7 @@ class _CardFilterSheetState extends State<_CardFilterSheet> {
                           color:
                               Theme.of(context).textTheme.titleLarge?.color ??
                               AppColors.charcoal,
-                          fontSize: 16.sp,
+                          fontSize: AppTextSize.bodyLarge,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1315,7 +1316,7 @@ class _CardFilterSheetState extends State<_CardFilterSheet> {
                         tr('common.sort'),
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 16.sp,
+                          fontSize: AppTextSize.bodyLarge,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

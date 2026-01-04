@@ -192,43 +192,47 @@ class OsagoBloc extends Bloc<OsagoEvent, OsagoState> {
       name: 'OSAGO',
     );
 
-    // Provider ga qarab mapping (ustunlik) - har doim tekshiramiz
-    final providerLower = provider.toLowerCase();
-    if (providerLower == 'neo') {
-      // NEO -> cheklanmagan (0) - nechta bo'lsa, hammasini qo'shadi
-      finalNumberDriversId = '0';
-      log(
-        '[OSAGO_BLOC] ✅ Provider=NEO, finalNumberDriversId=0 (Cheklanmagan)',
-        name: 'OSAGO',
-      );
-    } else if (providerLower == 'gusto') {
-      // GUSTO -> cheklangan (5) - 5 tagacha
-      finalNumberDriversId = '5';
-      log(
-        '[OSAGO_BLOC] ✅ Provider=GUSTO, finalNumberDriversId=5 (Cheklangan)',
-        name: 'OSAGO',
-      );
-    } else if (providerLower == 'gross') {
-      // GROSS -> cheklangan (5) - 5 tagacha
-      finalNumberDriversId = '5';
-      log(
-        '[OSAGO_BLOC] ✅ Provider=GROSS, finalNumberDriversId=5 (Cheklangan)',
-        name: 'OSAGO',
-      );
+    // OSAGO type ga qarab mapping (ustunlik)
+    // "Cheklangan" -> numberDriversId = '5' (arzonroq, faqat NEO)
+    // "Cheklanmagan" -> numberDriversId = '0' (qimmatroq, NEO yoki GROSS)
+    if (osagoType != null && osagoType.isNotEmpty) {
+      final osagoTypeLower = osagoType.toLowerCase();
+      
+      if (osagoTypeLower.contains('cheklangan') || osagoTypeLower.contains('limited')) {
+        // Cheklangan -> numberDriversId = '5' (arzonroq)
+        finalNumberDriversId = '5';
+        log(
+          '[OSAGO_BLOC] ✅ OSAGO type=Cheklangan, finalNumberDriversId=5 (Arzonroq)',
+          name: 'OSAGO',
+        );
+      } else if (osagoTypeLower.contains('cheklanmagan') || osagoTypeLower.contains('unlimited')) {
+        // Cheklanmagan -> numberDriversId = '0' (qimmatroq)
+        finalNumberDriversId = '0';
+        log(
+          '[OSAGO_BLOC] ✅ OSAGO type=Cheklanmagan, finalNumberDriversId=0 (Qimmatroq)',
+          name: 'OSAGO',
+        );
+      } else {
+        // Fallback: event.insurance.numberDriversId dan olish
+        final tempNumberDriversId = event.insurance.numberDriversId;
+        if (tempNumberDriversId == '0' || tempNumberDriversId == '5') {
+          finalNumberDriversId = tempNumberDriversId;
+          log(
+            '[OSAGO_BLOC] ✅ Event dan numberDriversId=$finalNumberDriversId',
+            name: 'OSAGO',
+          );
+        } else {
+          finalNumberDriversId = '5'; // Default: limited
+          log('[OSAGO_BLOC] Mapping: Default -> 5', name: 'OSAGO');
+        }
+      }
     } else {
-      // OSAGO type yoki event.insurance.numberDriversId dan map qilish
+      // OSAGO type yo'q bo'lsa, event.insurance.numberDriversId dan olish
       final tempNumberDriversId = event.insurance.numberDriversId;
       if (tempNumberDriversId == '0' || tempNumberDriversId == '5') {
         finalNumberDriversId = tempNumberDriversId;
         log(
           '[OSAGO_BLOC] ✅ Event dan numberDriversId=$finalNumberDriversId',
-          name: 'OSAGO',
-        );
-      } else if (osagoType != null &&
-          osagoType.toLowerCase().contains('cheklanmagan')) {
-        finalNumberDriversId = '0';
-        log(
-          '[OSAGO_BLOC] Mapping: OSAGO type (cheklanmagan) -> 0',
           name: 'OSAGO',
         );
       } else {

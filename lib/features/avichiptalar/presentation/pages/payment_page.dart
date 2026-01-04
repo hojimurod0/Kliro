@@ -11,6 +11,7 @@ import '../bloc/payment_bloc.dart';
 import '../../data/models/invoice_request_model.dart';
 import '../../data/models/price_check_model.dart';
 import '../../data/models/payment_permission_model.dart';
+import '../../data/models/booking_model.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/snackbar_helper.dart';
@@ -35,6 +36,7 @@ class _PaymentPageState extends BaseStatefulWidget<PaymentPage>
   // Local state to store responses from separate API calls
   PriceCheckModel? _priceCheck;
   PaymentPermissionModel? _permission;
+  BookingModel? _booking;
   bool _isLoadingAvia = false;
 
   // Payment tracking
@@ -62,7 +64,8 @@ class _PaymentPageState extends BaseStatefulWidget<PaymentPage>
     if (mounted && !_aviaBloc.isClosed) {
       _aviaBloc
         ..add(PaymentPermissionRequested(widget.bookingId))
-        ..add(CheckPriceRequested(widget.bookingId));
+        ..add(CheckPriceRequested(widget.bookingId))
+        ..add(BookingInfoRequested(widget.bookingId));
     }
   }
 
@@ -271,6 +274,10 @@ class _PaymentPageState extends BaseStatefulWidget<PaymentPage>
                 safeSetState(() {
                   _permission = state.permission;
                 });
+              } else if (state is AviaBookingInfoSuccess) {
+                 safeSetState(() {
+                   _booking = state.booking;
+                 });
               } else if (state is AviaPaymentSuccess) {
                 safeSetState(() => _isLoadingAvia = false);
                 if (mounted) {
@@ -319,8 +326,8 @@ class _PaymentPageState extends BaseStatefulWidget<PaymentPage>
               }
             },
             builder: (context, state) {
-              // Check if we have data
-              final hasData = _priceCheck != null && _permission != null;
+              // Check if we have data (include Booking)
+              final hasData = _priceCheck != null && _permission != null && _booking != null;
 
               if (_isLoadingAvia && !hasData) {
                 return const Center(child: CircularProgressIndicator());
@@ -344,15 +351,10 @@ class _PaymentPageState extends BaseStatefulWidget<PaymentPage>
               }
 
               final price =
-                  '${_priceCheck!.price ?? 'N/A'} ${_priceCheck!.currency ?? ''}';
+                  '${_booking!.price ?? 'N/A'} ${_booking!.currency ?? ''}';
 
-              // Postman collection'da ko'rsatilganidek, invoice yaratish mumkin bo'lishi kerak
-              // canPay null bo'lsa ham, booking mavjud bo'lsa to'lovni davom ettirish
-              // allowed ni ham tekshirish, agar ikkalasi ham null bo'lsa default true
-              final canPay = _permission!.canPay ??
-                  _permission!.allowed ??
-                  _permission!.paymentAllowed ??
-                  true; // Default: invoice yaratishga ruxsat berish
+              // canPay logic based on paymentAllowed
+              final canPay = _permission!.paymentAllowed ?? true; 
 
               return Padding(
                 padding: const EdgeInsets.all(16),
@@ -396,19 +398,6 @@ class _PaymentPageState extends BaseStatefulWidget<PaymentPage>
                                     color: AppColors.dangerRed,
                                     fontWeight: FontWeight.bold),
                               ),
-                              if (_permission!.reason != null &&
-                                  _permission!.reason!.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  child: Text(
-                                    _permission!.reason!,
-                                    style: TextStyle(
-                                      color: AppColors.dangerRed
-                                          .withValues(alpha: 0.8),
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
                             ],
                           ),
                         ),
@@ -426,8 +415,9 @@ class _PaymentPageState extends BaseStatefulWidget<PaymentPage>
                                 ? null
                                 : () {
                                     // Narxni parse qilish va eng kichik birlikka o'tkazish
+                                    // Use Booking price instead of PriceCheck price
                                     final priceString =
-                                        _priceCheck!.price ?? '0';
+                                        _booking!.price ?? '0';
                                     // Raqam va nuqtani saqlab qolish (decimal uchun)
                                     final cleanPrice = priceString.replaceAll(
                                       RegExp(r'[^0-9.]'),
@@ -437,10 +427,21 @@ class _PaymentPageState extends BaseStatefulWidget<PaymentPage>
                                     final priceValue =
                                         double.tryParse(cleanPrice) ?? 0.0;
 
+                                    // Debug log
+                                    print('💰 PAYMENT_PAGE: Original price: $priceString');
+                                    print('💰 PAYMENT_PAGE: Clean price: $cleanPrice');
+                                    print('💰 PAYMENT_PAGE: Price value: $priceValue');
+
                                     // API eng kichik birlikda amount kutadi (masalan, 500000)
                                     // UZS uchun: 5000 UZS = 500000 (100 ga ko'paytiriladi)
                                     // Boshqa valyutalar uchun ham 100 ga ko'paytiriladi (cents uchun)
-                                    final amount = (priceValue * 100).toInt();
+                                    // 10% komissiya qo'shish: price * 1.10 * 100
+                                    final amountWithoutCommission = (priceValue * 100).toInt();
+                                    final amount = (priceValue * 1.10 * 100).toInt();
+                                    
+                                    // Debug log
+                                    print('💰 PAYMENT_PAGE: Amount without commission: $amountWithoutCommission');
+                                    print('💰 PAYMENT_PAGE: Amount with 10% commission: $amount');
 
                                     // Amount musbat bo'lishi kerak (backend talabi)
                                     if (amount <= 0) {
@@ -448,17 +449,12 @@ class _PaymentPageState extends BaseStatefulWidget<PaymentPage>
                                         final errorMessage =
                                             'avia.payment.price_not_available'
                                                 .tr();
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              errorMessage.contains(
-                                                      'avia.payment.price_not_available')
-                                                  ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
-                                                  : errorMessage,
-                                            ),
-                                            backgroundColor: Colors.red,
-                                          ),
+                                        SnackbarHelper.showError(
+                                          context,
+                                          errorMessage.contains(
+                                                  'avia.payment.price_not_available')
+                                              ? 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'
+                                              : errorMessage,
                                         );
                                       }
                                       return;

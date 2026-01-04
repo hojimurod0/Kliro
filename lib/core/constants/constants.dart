@@ -106,6 +106,7 @@ class ApiPaths {
   static const String login = '/auth/login';
   static const String forgotPassword = '/auth/forgot-password';
   static const String resetPassword = '/auth/reset-password';
+  static const String refreshToken = '/auth/refresh';
 
   // Google OAuth
   static const String googleLogin = '/auth/google';

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/utils/snackbar_helper.dart';
 import '../pages/insurance_form_page.dart';
 import '../bloc/accident_bloc.dart';
 import '../bloc/accident_event.dart';
@@ -155,11 +156,9 @@ class _AccidentPersonalDataScreenState
       // Agar regionlar yuklanmagan bo'lsa, yuklash
       final bloc = context.read<AccidentBloc>();
       bloc.add(const FetchRegions(forceRefresh: true));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('insurance.accident.loading_regions'.tr()),
-          backgroundColor: Colors.orange,
-        ),
+      SnackbarHelper.showWarning(
+        context,
+        'insurance.accident.loading_regions'.tr(),
       );
       return;
     }
@@ -216,31 +215,25 @@ class _AccidentPersonalDataScreenState
 
   void _submit() {
     if (!_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('insurance.accident.errors.fill_all_fields'.tr()),
-          backgroundColor: Colors.red,
-        ),
+      SnackbarHelper.showError(
+        context,
+        'insurance.accident.errors.fill_all_fields'.tr(),
       );
       return;
     }
 
     if (!_agreedToTerms || !_agreedToPrivacy) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('insurance.accident.errors.agree_to_terms'.tr()),
-          backgroundColor: Colors.red,
-        ),
+      SnackbarHelper.showError(
+        context,
+        'insurance.accident.errors.agree_to_terms'.tr(),
       );
       return;
     }
 
     if (_selectedTariffIndex == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('insurance.accident.errors.select_tariff'.tr()),
-          backgroundColor: Colors.red,
-        ),
+      SnackbarHelper.showError(
+        context,
+        'insurance.accident.errors.select_tariff'.tr(),
       );
       return;
     }
@@ -293,11 +286,9 @@ class _AccidentPersonalDataScreenState
           });
         }
         if (state is AccidentError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.red,
-            ),
+          SnackbarHelper.showError(
+            context,
+            state.message,
           );
         }
       },

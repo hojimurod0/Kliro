@@ -33,11 +33,19 @@ class HotelResultsScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
+                  ElevatedButton.icon(
                     onPressed: () {
-                      context.read<HotelBloc>().add(const HotelStateReset());
+                      // Retry last search
+                      final bloc = context.read<HotelBloc>();
+                      final lastFilter = state.filter;
+                      if (lastFilter != null) {
+                        bloc.add(SearchHotelsRequested(lastFilter));
+                      } else {
+                        bloc.add(const HotelStateReset());
+                      }
                     },
-                    child: Text('hotel.common.retry'.tr()),
+                    icon: const Icon(Icons.refresh),
+                    label: Text('hotel.common.retry'.tr()),
                   ),
                 ],
               ),
@@ -47,12 +55,21 @@ class HotelResultsScreen extends StatelessWidget {
 
         if (state is HotelSearchSuccess) {
           final filter = state.filter ?? HotelFilter.empty;
+          // Debug log qo'shamiz
+          debugPrint('🔍 HotelResultsScreen: HotelSearchSuccess');
+          debugPrint('🔍 Hotels count in state: ${state.result.hotels.length}');
+          debugPrint('🔍 Hotels isEmpty: ${state.result.hotels.isEmpty}');
+          if (state.result.hotels.isNotEmpty) {
+            debugPrint('🔍 First hotel name: ${state.result.hotels.first.name}');
+          }
+          
           return HotelResultsPage(
             result: state.result,
             city: filter.city,
             checkInDate: filter.checkInDate,
             checkOutDate: filter.checkOutDate,
             guests: filter.guests,
+            filter: filter,
           );
         }
 

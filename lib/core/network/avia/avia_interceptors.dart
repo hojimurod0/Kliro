@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import '../../../core/services/auth/auth_service.dart';
 
@@ -30,16 +31,52 @@ class AviaAuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    // Сначала проверяем сохраненный токен
-    String? token = _accessToken;
-
-    // Если токена нет, пытаемся получить из AuthService
-    if ((token == null || token.isEmpty) && _authService != null) {
+    // Avval AuthService'dan token olish (source of truth - har doim yangi token)
+    String? token;
+    
+    if (_authService != null) {
       try {
         token = await _authService!.getAccessToken();
+        
+        // Debug: /user/humans so'rovi uchun token ichidagi user_id'ni ko'rsatish
+        if (options.path.contains('/user/humans') && token != null && token.isNotEmpty) {
+          try {
+            // JWT token'ni decode qilish (payload qismini olish)
+            final parts = token.split('.');
+            if (parts.length == 3) {
+              // Base64 decode qilish
+              final payload = parts[1];
+              // Padding qo'shish (agar kerak bo'lsa)
+              String normalizedPayload = payload;
+              switch (payload.length % 4) {
+                case 1:
+                  normalizedPayload += '===';
+                  break;
+                case 2:
+                  normalizedPayload += '==';
+                  break;
+                case 3:
+                  normalizedPayload += '=';
+                  break;
+              }
+              final decoded = utf8.decode(base64.decode(normalizedPayload));
+              final payloadMap = json.decode(decoded) as Map<String, dynamic>;
+              final userId = payloadMap['user_id'] ?? payloadMap['userId'] ?? payloadMap['sub'];
+              print('🔍 DEBUG: /user/humans request - Token user_id: $userId');
+              print('🔍 DEBUG: Token payload keys: ${payloadMap.keys.toList()}');
+            }
+          } catch (e) {
+            print('⚠️ DEBUG: Could not decode token: $e');
+          }
+        }
       } catch (e) {
         // Игнорируем ошибки получения токена
       }
+    }
+    
+    // Agar AuthService'dan token topilmasa, cached tokenni ishlatish
+    if ((token == null || token.isEmpty) && _accessToken != null && _accessToken!.isNotEmpty) {
+      token = _accessToken;
     }
 
     // Добавляем токен в заголовки если он есть
@@ -48,6 +85,61 @@ class AviaAuthInterceptor extends Interceptor {
     }
 
     handler.next(options);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    // 401: Token eskirgan -> avval refresh qilish, keyin retry
+    if (err.response?.statusCode == 401 && _authService != null) {
+      final requestOptions = err.requestOptions;
+      
+      // Agar bu refresh token yoki login request bo'lsa, loop'ga tushmaslik uchun
+      if (requestOptions.path.contains('/auth/refresh') || 
+          requestOptions.path.contains('/auth/login')) {
+        await _authService!.logout();
+        handler.next(err);
+        return;
+      }
+      
+      // Token refresh qilish
+      final newToken = await _authService!.refreshToken();
+      
+      if (newToken != null && newToken.isNotEmpty) {
+        // Yangi token bilan request'ni qayta yuborish
+        requestOptions.headers['Authorization'] = 'Bearer $newToken';
+        updateToken(newToken);
+        
+        try {
+          // Original request'ni yangi token bilan qayta yuborish
+          // RequestOptions'dan BaseOptions yaratish
+          final baseOptions = BaseOptions(
+            baseUrl: requestOptions.baseUrl,
+            connectTimeout: requestOptions.connectTimeout,
+            receiveTimeout: requestOptions.receiveTimeout,
+            sendTimeout: requestOptions.sendTimeout,
+            headers: requestOptions.headers,
+            responseType: requestOptions.responseType,
+            contentType: requestOptions.contentType,
+          );
+          final dio = Dio(baseOptions);
+          final response = await dio.fetch(requestOptions);
+          handler.resolve(response);
+          return;
+        } catch (e) {
+          // Retry ham muvaffaqiyatsiz bo'lsa, logout
+          await _authService!.logout();
+          handler.next(err);
+          return;
+        }
+      } else {
+        // Token refresh muvaffaqiyatsiz -> logout
+        await _authService!.logout();
+        handler.next(err);
+        return;
+      }
+    }
+    
+    handler.next(err);
   }
 }
 
