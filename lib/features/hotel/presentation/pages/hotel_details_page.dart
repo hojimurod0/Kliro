@@ -12,6 +12,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/utils/snackbar_helper.dart';
+import '../../../../core/services/auth/auth_service.dart';
+import '../../../../core/navigation/app_router.dart';
+import 'package:auto_route/auto_route.dart';
 import '../../domain/entities/hotel.dart';
 import '../../domain/entities/reference_data.dart';
 import '../bloc/hotel_bloc.dart';
@@ -2396,7 +2399,7 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
             SizedBox(width: 12.w),
             ElevatedButton(
               onPressed: hasSelectedRooms && totalAmount > 0
-                  ? () {
+                  ? () async {
                       // Get selected options
                       List<HotelOption> selectedOptions = [];
                       if (hotel.options != null) {
@@ -2418,20 +2421,82 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                         totalRoomCount = _selectedRoomCounts[_selectedOption!.optionRefId] ?? 1;
                       }
                       
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => BlocProvider.value(
-                            value: hotelBloc,
-                            child: HotelBookingPage(
-                              hotel: hotel,
-                              selectedOption: selectedOptions.isNotEmpty 
-                                  ? selectedOptions.first 
-                                  : _selectedOption,
-                              roomCount: totalRoomCount > 0 ? totalRoomCount : 1,
+                      // Login check qilish
+                      final authService = AuthService.instance;
+                      final user = await authService.fetchActiveUser();
+                      if (!context.mounted) return;
+                      
+                      if (user == null) {
+                        // Login qilmagan bo'lsa, dialog ko'rsatish
+                        final shouldLogin = await showDialog<bool>(
+                          context: context,
+                          builder: (dialogContext) => AlertDialog(
+                            title: Text('avia.login_required.title'.tr()),
+                            content: Text('avia.login_required.message'.tr()),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(dialogContext).pop(false),
+                                child: Text('avia.login_required.cancel'.tr()),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.of(dialogContext).pop(true),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryBlue,
+                                ),
+                                child: Text(
+                                  'avia.login_required.login'.tr(),
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (!context.mounted) return;
+                        
+                        if (shouldLogin == true) {
+                          // Login sahifasiga o'tish
+                          await context.router.push(const LoginRoute());
+                          if (!context.mounted) return;
+                          
+                          // Login qilingandan keyin tekshirish
+                          final userAfterLogin = await authService.fetchActiveUser();
+                          if (!context.mounted) return;
+                          
+                          if (userAfterLogin != null) {
+                            // Login qilingan bo'lsa, hotel booking page'ga o'tish
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => BlocProvider.value(
+                                  value: hotelBloc,
+                                  child: HotelBookingPage(
+                                    hotel: hotel,
+                                    selectedOption: selectedOptions.isNotEmpty 
+                                        ? selectedOptions.first 
+                                        : _selectedOption,
+                                    roomCount: totalRoomCount > 0 ? totalRoomCount : 1,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      } else {
+                        // Login qilingan bo'lsa, to'g'ridan-to'g'ri hotel booking page'ga o'tish
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => BlocProvider.value(
+                              value: hotelBloc,
+                              child: HotelBookingPage(
+                                hotel: hotel,
+                                selectedOption: selectedOptions.isNotEmpty 
+                                    ? selectedOptions.first 
+                                    : _selectedOption,
+                                roomCount: totalRoomCount > 0 ? totalRoomCount : 1,
+                              ),
                             ),
                           ),
-                        ),
-                      );
+                        );
+                      }
                     }
                   : null,
               style: ElevatedButton.styleFrom(

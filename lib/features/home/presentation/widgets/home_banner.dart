@@ -1,16 +1,33 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../../../core/navigation/app_router.dart';
 
-class HomeBanner extends StatelessWidget {
+enum BannerType { travel, bank, insurance }
+
+class HomeBanner extends StatefulWidget {
   const HomeBanner({super.key});
 
   @override
+  State<HomeBanner> createState() => _HomeBannerState();
+}
+
+class _HomeBannerState extends State<HomeBanner> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Locale o'zgarganda rebuild qilish uchun
     final locale = context.locale;
 
     return Container(
@@ -36,92 +53,36 @@ class HomeBanner extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Assets dan PNG rasm yuklash
-          ClipRRect(
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(24.r),
-              bottomRight: Radius.circular(24.r),
-            ),
-            child: ColorFiltered(
-              // Rasmni yoritish va rangini kuchaytirish uchun ColorFilter
-              colorFilter: ColorFilter.matrix([
-                1.7, 0, 0, 0, 0,    // Red channel - kuchaytirilgan
-                0, 1.7, 0, 0, 0,    // Green channel - kuchaytirilgan
-                0, 0, 1.7, 0, 0,    // Blue channel - kuchaytirilgan
-                0, 0, 0, 1, 0.7,    // Alpha va brightness yanada oshirilgan
-              ]),
-              child: Image.asset(
-                'assets/images/homebannerr.png',
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  // Agar rasm topilmasa, gradient fon ko'rsatadi
-                  return Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.primaryBlue.withOpacity(0.8),
-                          AppColors.primaryBlue.withOpacity(0.6),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
+          PageView.builder(
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() {
+                _currentPage = index;
+              });
+            },
+            itemCount: 3,
+            itemBuilder: (context, index) {
+              final bannerType = BannerType.values[index];
+              return _BannerPage(
+                key: ValueKey('${bannerType.toString()}_${locale.toString()}'),
+                bannerType: bannerType,
+              );
+            },
           ),
-          // Gradient overlay - yengilashtirilgan (qorong'iroq qilmaydi)
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(24.r),
-                bottomRight: Radius.circular(24.r),
-              ),
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.black.withOpacity(0.0),  // Yuqorida gradient yo'q
-                  AppColors.black.withOpacity(0.08),  // Pastda minimal gradient (qorong'iroq kamaytirildi)
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(20.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _BannerChip(key: ValueKey(locale.toString())),
-                const Spacer(),
-                Text(
-                  'home.banner.title'.tr(),
-                  style: AppTypography.headingXL(context).copyWith(
-                    color: AppColors.white,
-                  ),
-                  key: ValueKey('title_${locale.toString()}'),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  'home.banner.subtitle'.tr(),
-                  style: AppTypography.bodyPrimary(context).copyWith(
-                    color: AppColors.white.withOpacity(0.8),
-                    fontSize: 14.sp,
-                  ),
-                  key: ValueKey('subtitle_${locale.toString()}'),
-                ),
-                SizedBox(height: 16.h),
-                _BannerButton(key: ValueKey('button_${locale.toString()}')),
-              ],
-            ),
-          ),
+          // Page indicators
           Positioned(
-            top: 20.h,
-            right: 20.w,
-            child: Icon(Icons.more_horiz, color: AppColors.white, size: 24.sp),
+            bottom: 16.h,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                3,
+                (index) => _PageIndicator(
+                  isActive: index == _currentPage,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -129,13 +90,192 @@ class HomeBanner extends StatelessWidget {
   }
 }
 
-class _BannerChip extends StatelessWidget {
-  const _BannerChip({super.key});
+class _BannerPage extends StatelessWidget {
+  final BannerType bannerType;
+
+  const _BannerPage({super.key, required this.bannerType});
 
   @override
   Widget build(BuildContext context) {
-    // Locale o'zgarganda rebuild qilish uchun
     final locale = context.locale;
+
+    // Har bir banner turi uchun rang va ikon
+    Color primaryColor;
+    IconData icon;
+    String? imagePath;
+
+    switch (bannerType) {
+      case BannerType.travel:
+        primaryColor = AppColors.primaryBlue;
+        icon = Icons.flight_takeoff;
+        imagePath = 'assets/images/homebannerr.png';
+        break;
+      case BannerType.bank:
+        primaryColor = const Color(0xFF10B981); // Green
+        icon = Icons.account_balance;
+        imagePath = null; // Rasm yo'q, faqat kulrang fon
+        break;
+      case BannerType.insurance:
+        primaryColor = const Color(0xFFF59E0B); // Orange
+        icon = Icons.shield;
+        imagePath = null; // Rasm yo'q, faqat kulrang fon
+        break;
+    }
+
+    return Stack(
+      children: [
+        // Background image yoki kulrang fon
+        ClipRRect(
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(24.r),
+            bottomRight: Radius.circular(24.r),
+          ),
+          child: bannerType == BannerType.travel
+              ? ColorFiltered(
+                  colorFilter: ColorFilter.matrix([
+                    1.7, 0, 0, 0, 0,
+                    0, 1.7, 0, 0, 0,
+                    0, 0, 1.7, 0, 0,
+                    0, 0, 0, 1, 0.7,
+                  ]),
+                  child: Image.asset(
+                    imagePath!,
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      // Travel uchun gradient fallback
+                      return Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              primaryColor.withOpacity(0.8),
+                              primaryColor.withOpacity(0.6),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                )
+              : Container(
+                  // Bank va sug'urta uchun qoraroq fon (textlar ko'rinishi uchun)
+                  color: Colors.grey[800],
+                ),
+        ),
+        // Gradient overlay
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(24.r),
+              bottomRight: Radius.circular(24.r),
+            ),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppColors.black.withOpacity(0.0),
+                AppColors.black.withOpacity(0.08),
+              ],
+            ),
+          ),
+        ),
+        // Content
+        Padding(
+          padding: EdgeInsets.all(20.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _BannerChip(
+                key: ValueKey('chip_${bannerType.toString()}_${locale.toString()}'),
+                bannerType: bannerType,
+                icon: icon,
+              ),
+              const Spacer(),
+              Text(
+                _getTitle(bannerType),
+                style: AppTypography.headingXL(context).copyWith(
+                  color: AppColors.white,
+                ),
+                key: ValueKey('title_${bannerType.toString()}_${locale.toString()}'),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                _getSubtitle(bannerType),
+                style: AppTypography.bodyPrimary(context).copyWith(
+                  color: AppColors.white.withOpacity(0.8),
+                  fontSize: 14.sp,
+                ),
+                key: ValueKey('subtitle_${bannerType.toString()}_${locale.toString()}'),
+              ),
+              SizedBox(height: 16.h),
+              _BannerButton(
+                key: ValueKey('button_${bannerType.toString()}_${locale.toString()}'),
+                bannerType: bannerType,
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          top: 20.h,
+          right: 20.w,
+          child: Icon(Icons.more_horiz, color: AppColors.white, size: 24.sp),
+        ),
+      ],
+    );
+  }
+
+  String _getTitle(BannerType type) {
+    switch (type) {
+      case BannerType.travel:
+        return 'home.banner.travel.title'.tr();
+      case BannerType.bank:
+        return 'home.banner.bank.title'.tr();
+      case BannerType.insurance:
+        return 'home.banner.insurance.title'.tr();
+    }
+  }
+
+  String _getSubtitle(BannerType type) {
+    switch (type) {
+      case BannerType.travel:
+        return 'home.banner.travel.subtitle'.tr();
+      case BannerType.bank:
+        return 'home.banner.bank.subtitle'.tr();
+      case BannerType.insurance:
+        return 'home.banner.insurance.subtitle'.tr();
+    }
+  }
+}
+
+class _BannerChip extends StatelessWidget {
+  final BannerType bannerType;
+  final IconData icon;
+
+  const _BannerChip({
+    super.key,
+    required this.bannerType,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.locale;
+
+    String label;
+    switch (bannerType) {
+      case BannerType.travel:
+        label = 'home.banner.travel.label'.tr();
+        break;
+      case BannerType.bank:
+        label = 'home.banner.bank.label'.tr();
+        break;
+      case BannerType.insurance:
+        label = 'home.banner.insurance.label'.tr();
+        break;
+    }
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
@@ -147,11 +287,11 @@ class _BannerChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.flight_takeoff, color: AppColors.white, size: 14.sp),
+          Icon(icon, color: AppColors.white, size: 14.sp),
           SizedBox(width: 4.w),
           Text(
-            'home.banner.travel'.tr(),
-            key: ValueKey('travel_${locale.toString()}'),
+            label,
+            key: ValueKey('label_${bannerType.toString()}_${locale.toString()}'),
             style: AppTypography.labelSmall(context).copyWith(
               color: AppColors.white,
               fontSize: 10.sp,
@@ -166,58 +306,44 @@ class _BannerChip extends StatelessWidget {
 }
 
 class _BannerButton extends StatelessWidget {
-  const _BannerButton({super.key});
+  final BannerType bannerType;
 
-  void _showComingSoonDialog(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDark ? AppColors.darkCardBg : AppColors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        title: Text(
-          'common.coming_soon_title'.tr(),
-          style: AppTypography.headingL(context).copyWith(
-            fontSize: 20.sp,
-          ),
-        ),
-        content: Text(
-          'common.coming_soon_message'.tr(),
-          style: AppTypography.bodyPrimary(context).copyWith(
-            fontSize: 14.sp,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.primaryBlue,
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-            ),
-            child: Text(
-              'common.close'.tr(),
-              style: AppTypography.buttonPrimary(context).copyWith(
-                fontSize: 16.sp,
-                color: AppColors.primaryBlue,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  const _BannerButton({super.key, required this.bannerType});
+
+  void _navigateToRoute(BuildContext context) {
+    switch (bannerType) {
+      case BannerType.travel:
+        context.router.push(const AvichiptalarModuleRoute());
+        break;
+      case BannerType.bank:
+        context.router.push(BankServicesRoute());
+        break;
+      case BannerType.insurance:
+        context.router.push(InsuranceServicesRoute());
+        break;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Locale o'zgarganda rebuild qilish uchun
     final locale = context.locale;
+
+    String buttonText;
+    switch (bannerType) {
+      case BannerType.travel:
+        buttonText = 'home.banner.travel.book'.tr();
+        break;
+      case BannerType.bank:
+        buttonText = 'home.banner.bank.book'.tr();
+        break;
+      case BannerType.insurance:
+        buttonText = 'home.banner.insurance.book'.tr();
+        break;
+    }
 
     return GestureDetector(
       onTap: () {
-        _showComingSoonDialog(context);
+        _navigateToRoute(context);
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
@@ -230,8 +356,8 @@ class _BannerButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'home.banner.book'.tr(),
-              key: ValueKey('book_${locale.toString()}'),
+              buttonText,
+              key: ValueKey('book_${bannerType.toString()}_${locale.toString()}'),
               style: AppTypography.bodyPrimary(context).copyWith(
                 color: AppColors.white,
                 fontSize: 14.sp,
@@ -242,6 +368,27 @@ class _BannerButton extends StatelessWidget {
             Icon(Icons.arrow_forward, color: AppColors.white, size: 18.sp),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PageIndicator extends StatelessWidget {
+  final bool isActive;
+
+  const _PageIndicator({required this.isActive});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 4.w),
+      width: isActive ? 24.w : 8.w,
+      height: 8.h,
+      decoration: BoxDecoration(
+        color: isActive
+            ? AppColors.white
+            : AppColors.white.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(4.r),
       ),
     );
   }

@@ -42,20 +42,23 @@ class _HomeBankLogosCarouselState extends State<HomeBankLogosCarousel> {
 
   void _startAutoScroll() {
     _autoScrollTimer?.cancel();
-    _autoScrollTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+    // 60 FPS uchun 16ms interval - silliq scroll
+    _autoScrollTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
       if (!mounted) return;
       
       if (_scrollController.hasClients) {
         final maxScroll = _scrollController.position.maxScrollExtent;
         final currentScroll = _scrollController.position.pixels;
+        final singleListWidth = maxScroll / 2; // Har bir ro'yxatning kengligi
         
-        // Agar oxiriga yetgan bo'lsa, boshiga qaytish
-        if (currentScroll >= maxScroll) {
-          _scrollController.jumpTo(0);
+        // Agar birinchi ro'yxatning oxiriga yetgan bo'lsa, seamless qaytish
+        if (currentScroll >= singleListWidth - 1) {
+          // Seamless infinite scroll - birinchi ro'yxatning boshiga qaytish
+          _scrollController.jumpTo(currentScroll - singleListWidth);
         } else {
-          // O'ngdan chapga scroll (pixels oshadi)
+          // Silliq scroll - kichik qadam bilan harakat
           _scrollController.position.moveTo(
-            currentScroll + 1.5,
+            currentScroll + 0.8, // Silliq harakat uchun kichik qadam
           );
         }
       }
@@ -87,10 +90,25 @@ class _HomeBankLogosCarouselState extends State<HomeBankLogosCarousel> {
               final paymentLogo = _paymentLogos[logoIndex];
               final isSvg = paymentLogo.assetPath.endsWith('.svg');
 
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              
               return Container(
                 width: 80.w,
                 height: 80.h,
                 margin: EdgeInsets.only(right: 16.w),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey[300] : null, // Dark mode da kulrang fon, light mode da yo'q
+                  borderRadius: BorderRadius.circular(12.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+                padding: EdgeInsets.all(12.w),
                 alignment: Alignment.center,
                 child: isSvg
                     ? _buildSvgImage(paymentLogo.assetPath, paymentLogo.name)

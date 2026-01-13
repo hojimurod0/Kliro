@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/navigation/app_router.dart';
+import '../../../../core/services/onboarding/onboarding_prefs.dart';
 
 @RoutePage()
 class SplashPage extends StatefulWidget {
@@ -112,10 +113,22 @@ class _SplashPageState extends State<SplashPage> {
     }
   }
 
-  void _goNext() {
+  Future<void> _goNext() async {
     if (_navigated || !mounted) return;
     _navigated = true;
-    context.router.replace(const OnboardingRoute());
+    
+    // Onboarding o'tilgan bo'lsa, to'g'ridan-to'g'ri home page ga o't
+    final isCompleted = await OnboardingPrefs.isCompleted();
+    if (isCompleted) {
+      if (mounted) {
+        context.router.replace(HomeRoute());
+      }
+    } else {
+      // Onboarding o'tilmagan bo'lsa, onboarding page ga o't
+      if (mounted) {
+        context.router.replace(const OnboardingRoute());
+      }
+    }
   }
 
   @override

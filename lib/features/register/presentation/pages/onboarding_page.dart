@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 // Router va boshqa fayllar importi (o'zingnikiga moslab olasan)
 import '../../../../core/navigation/app_router.dart';
 import '../../../../core/services/locale/locale_prefs.dart';
+import '../../../../core/services/onboarding/onboarding_prefs.dart';
 import 'onboarding_language_page.dart';
 
 // ---------------- MODEL ----------------
@@ -59,12 +60,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
   void initState() {
     super.initState();
     _pageController = PageController();
-    // IMPORTANT: Saqlangan tilni tekshirib, agar til tanlangan bo'lsa onboarding sahifaga o'tish
-    _checkLanguageSelection();
+    // IMPORTANT: Onboarding completion va til tanlashni tekshirish
+    _checkOnboardingAndLanguage();
   }
 
-  // Saqlangan tilni tekshirish
-  Future<void> _checkLanguageSelection() async {
+  // Til tanlashni tekshirish (faqat birinchi marta)
+  Future<void> _checkOnboardingAndLanguage() async {
     // Agar allaqachon tekshirilayotgan bo'lsa, qayta tekshirish kerak emas
     if (_isCheckingLanguage) {
       return;
@@ -73,9 +74,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
     _isCheckingLanguage = true;
     
     try {
+      // Til tanlashni tekshirish (faqat birinchi marta so'raladi)
       final savedLocale = await LocalePrefs.load();
       if (savedLocale != null) {
-        // Til saqlangan - onboarding sahifaga o'tish
+        // Til saqlangan - onboarding sahifalarni ko'rsatish
         if (mounted && !_isLanguageSelected) {
           setState(() {
             _isLanguageSelected = true;
@@ -84,7 +86,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           debugPrint('Onboarding: Saved locale found: ${savedLocale.languageCode}_${savedLocale.countryCode ?? 'null'}, skipping language selection');
         }
       } else {
-        // Til saqlanmagan - til tanlash sahifasini ko'rsatish
+        // Til saqlanmagan - til tanlash sahifasini ko'rsatish (faqat birinchi marta)
         if (mounted && _isLanguageSelected) {
           setState(() {
             _isLanguageSelected = false;
@@ -93,7 +95,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         }
       }
     } catch (e) {
-      debugPrint('Onboarding: Error checking saved locale: $e');
+      debugPrint('Onboarding: Error checking locale: $e');
       // Xatolik bo'lsa, til tanlash sahifasini ko'rsatish
       if (mounted && _isLanguageSelected) {
         setState(() {
@@ -211,8 +213,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   // Tugatish
-  void _finishOnboarding() {
-    context.router.replace(HomeRoute());
+  Future<void> _finishOnboarding() async {
+    // Onboarding tugaganda completion flag ni saqlash
+    await OnboardingPrefs.markCompleted();
+    if (mounted) {
+      context.router.replace(HomeRoute());
+    }
   }
 
   @override

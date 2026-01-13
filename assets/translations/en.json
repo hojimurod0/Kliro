@@ -35,10 +35,24 @@
     "favorites_empty": "Favorites is empty",
     "favorites_empty_subtitle": "Add favorite services",
     "banner": {
-      "travel": "TRAVEL",
-      "title": "Discover the world",
-      "subtitle": "Flights and hotels at affordable prices",
-      "book": "Book now"
+      "travel": {
+        "label": "TRAVEL",
+        "title": "Discover the world",
+        "subtitle": "Flights and hotels at affordable prices",
+        "book": "Book now"
+      },
+      "bank": {
+        "label": "BANK",
+        "title": "Financial freedom",
+        "subtitle": "Loans, deposits and cards",
+        "book": "View"
+      },
+      "insurance": {
+        "label": "INSURANCE",
+        "title": "Protection and security",
+        "subtitle": "KASKO, OSAGO and travel insurance",
+        "book": "View"
+      }
     }
   },
   "settings": "Settings",

@@ -180,10 +180,24 @@
     "favorites_empty": "Sevimlilar bo'sh",
     "favorites_empty_subtitle": "Sevimli xizmatlarni qo'shing",
     "banner": {
-      "travel": "SAYOHAT",
-      "title": "Dunyoni kashf eting",
-      "subtitle": "Parvozlar va mehmonxonalar arzon narxda",
-      "book": "Bron qilish"
+      "travel": {
+        "label": "SAYOHAT",
+        "title": "Dunyoni kashf eting",
+        "subtitle": "Parvozlar va mehmonxonalar arzon narxda",
+        "book": "Bron qilish"
+      },
+      "bank": {
+        "label": "BANK",
+        "title": "Moliyaviy erkinlik",
+        "subtitle": "Kreditlar, depozitlar va kartalar",
+        "book": "Ko'rish"
+      },
+      "insurance": {
+        "label": "SUG'URTA",
+        "title": "Himoya va xavfsizlik",
+        "subtitle": "KASKO, OSAGO va sayohat sug'urtasi",
+        "book": "Ko'rish"
+      }
     }
   },
   "bank": {
