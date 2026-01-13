@@ -37,6 +37,7 @@ void showLogoutDialog(
   showDialog(
     context: context,
     barrierDismissible: true, // Tashqariga bosilganda yopilishi
+    barrierColor: Colors.black.withOpacity(0.5), // Orqa fonda yarim-shaffof qora overlay
     builder: (BuildContext context) {
       return AlertDialog(
         actionsOverflowButtonSpacing: 20,
@@ -103,13 +104,14 @@ void showLogoutDialog(
                           12.0.r,
                         ), // Yumaloq burchaklar
                       ),
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
+                      padding: EdgeInsets.symmetric(vertical: 10.h),
+                      minimumSize: Size(0, 40.h),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Cancel',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 14.sp,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -131,13 +133,14 @@ void showLogoutDialog(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.0.r),
                       ),
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
+                      padding: EdgeInsets.symmetric(vertical: 10.h),
+                      minimumSize: Size(0, 40.h),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Yes, Logout',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 14.sp,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

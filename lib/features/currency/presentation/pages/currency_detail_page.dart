@@ -10,6 +10,7 @@ import '../../../bank/presentation/bloc/currency_bloc.dart';
 import '../../../bank/presentation/bloc/currency_event.dart';
 import '../../../bank/presentation/bloc/currency_state.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/widgets/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -178,9 +179,7 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
                         // Sarlavha va tushuntirish
                         Text(
                           'currency.bank_rates'.tr(),
-                          style: TextStyle(
-                            color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal,
-                            fontSize: 20.sp,
+                          style: AppTypography.headingL(context).copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -199,7 +198,9 @@ class _CurrencyDetailPageState extends State<CurrencyDetailPage> {
                                 ),
                                 boxShadow: Theme.of(context).brightness == Brightness.dark ? null : [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
+                                    color: Theme.of(context).brightness == Brightness.dark 
+                                        ? AppColors.white.withOpacity(0.04)
+                                        : AppColors.black.withOpacity(0.04),
                                     blurRadius: 15,
                                     offset: const Offset(0, 5),
                                   ),
@@ -314,11 +315,11 @@ class SelectedBankCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final onlineBadgeBg = isDark ? const Color(0xFF1E3A5F) : AppColors.skySurface;
+    final onlineBadgeBg = isDark ? AppColors.onlineBadgeBgDark : AppColors.skySurface;
     final onlineBadgeText = AppColors.skyAccent;
-    final greenBg = isDark ? const Color(0xFF1A3A2E) : AppColors.greenBg;
+    final greenBg = isDark ? AppColors.greenBgDark : AppColors.greenBg;
     final greenText = AppColors.accentGreen;
-    final redBg = isDark ? const Color(0xFF3A1E1E) : const Color(0xFFFEF2F2);
+    final redBg = isDark ? AppColors.redBgDark : AppColors.redBgLight;
     final redText = AppColors.dangerRed;
     final titleColor = Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal;
 
@@ -385,9 +386,7 @@ class SelectedBankCard extends StatelessWidget {
                   children: [
                     Text(
                       currency.bankName,
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w700,
+                      style: AppTypography.headingM(context).copyWith(
                         color: titleColor,
                       ),
                     ),
@@ -396,9 +395,7 @@ class SelectedBankCard extends StatelessWidget {
                       currency.currencyName.isNotEmpty 
                           ? currency.currencyName 
                           : '${currency.currencyCode} ${tr('currency.title')}',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w500,
+                      style: AppTypography.bodySecondary(context).copyWith(
                         color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7) ?? AppColors.gray500,
                       ),
                     ),
@@ -435,10 +432,8 @@ class SelectedBankCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               tr('currency.buy'),
-                              style: TextStyle(
-                                fontSize: 12.sp,
+                              style: AppTypography.bodySecondary(context).copyWith(
                                 color: Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.midnight,
-                                fontWeight: FontWeight.w500,
                               ),
                               overflow: TextOverflow.ellipsis,
                               maxLines: 1,
@@ -454,9 +449,7 @@ class SelectedBankCard extends StatelessWidget {
                               RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
                               (Match m) => '${m[1]},',
                             ) + ' ${'currency.som'.tr()}',
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w700,
+                        style: AppTypography.headingM(context).copyWith(
                           color: greenText,
                         ),
                       ),
@@ -489,8 +482,7 @@ class SelectedBankCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               tr('currency.sell'),
-                              style: TextStyle(
-                                fontSize: 12.sp,
+                              style: AppTypography.bodySecondary(context).copyWith(
                                 color: Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.midnight,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -508,9 +500,7 @@ class SelectedBankCard extends StatelessWidget {
                               RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
                               (Match m) => '${m[1]},',
                             ) + ' ${'currency.som'.tr()}',
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w700,
+                        style: AppTypography.headingM(context).copyWith(
                           color: redText,
                         ),
                       ),
@@ -566,10 +556,9 @@ class CurrencySummaryCard extends StatelessWidget {
               SizedBox(width: 12.w),
               Text(
                 'currency.usd_name'.tr(),
-                style: TextStyle(
+                style: AppTypography.bodyLarge(context).copyWith(
                   fontSize: 17.sp,
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal,
                 ),
               ),
             ],
@@ -625,16 +614,14 @@ class CurrencySummaryCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: TextStyle(
-              color: Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.gray500,
+            style: AppTypography.bodyMedium(context).copyWith(
               fontSize: 12.sp,
             ),
           ),
           SizedBox(height: 6.h),
           Text(
             value,
-            style: TextStyle(
-              color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal,
+            style: AppTypography.bodyLarge(context).copyWith(
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
             ),
@@ -643,10 +630,8 @@ class CurrencySummaryCard extends StatelessWidget {
             SizedBox(height: 4.h),
             Text(
               subtitle,
-              style: TextStyle(
+              style: AppTypography.bodySecondary(context).copyWith(
                 color: subtitleColor,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -788,19 +773,16 @@ class BankListView extends StatelessWidget {
               SizedBox(height: 16.h),
               Text(
                 'currency.empty'.tr(),
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.gray500,
+                style: AppTypography.bodyMedium(context).copyWith(
                   fontSize: 15.sp,
-                  fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 8.h),
               Text(
                 'currency.empty_description'.tr(),
-                style: TextStyle(
+                style: AppTypography.bodyPrimary(context).copyWith(
                   color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6) ?? AppColors.gray500,
-                  fontSize: 13.sp,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -907,10 +889,9 @@ class BankListView extends StatelessWidget {
                 children: [
                   Text(
                     currency.bankName,
-                    style: TextStyle(
+                    style: AppTypography.bodyMedium(context).copyWith(
                       fontWeight: FontWeight.w600,
                       fontSize: 15.sp,
-                      color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.charcoal,
                     ),
                   ),
                   SizedBox(height: 4.h),
@@ -924,8 +905,7 @@ class BankListView extends StatelessWidget {
                       SizedBox(width: 4.w),
                       Text(
                         isSelling ? 'currency.sell'.tr() : 'currency.buy'.tr(),
-                        style: TextStyle(
-                          fontSize: 11.sp,
+                        style: AppTypography.caption(context).copyWith(
                           color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6) ?? AppColors.gray500,
                         ),
                       ),
@@ -937,14 +917,14 @@ class BankListView extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
+                  Text(
                   displayPrice
                       .toStringAsFixed(0)
                       .replaceAllMapped(
                         RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
                         (Match m) => '${m[1]},',
                       ) + ' ${'currency.som'.tr()}',
-                  style: TextStyle(
+                  style: AppTypography.bodyLarge(context).copyWith(
                     color: priceColor,
                     fontSize: 17.sp,
                     fontWeight: FontWeight.bold,
@@ -984,8 +964,8 @@ class _BestBankCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final greenText = AppColors.accentGreen;
     final redText = AppColors.dangerRed;
-    final greenBg = isDark ? const Color(0xFF1A3A2E) : AppColors.greenBg;
-    final redBg = isDark ? const Color(0xFF3A1E1E) : const Color(0xFFFEF2F2);
+    final greenBg = isDark ? AppColors.greenBgDark : AppColors.greenBg;
+    final redBg = isDark ? AppColors.redBgDark : AppColors.redBgLight;
     
     final price = isBuy ? currency.buyRate : currency.sellRate;
     final priceColor = isBuy ? greenText : redText;

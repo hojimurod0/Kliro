@@ -68,30 +68,6 @@ class HotelRemoteDataSourceImpl implements HotelRemoteDataSource {
     );
 
     final responseData = _ensureMap(response.data);
-    debugPrint('🔍 searchHotels: responseData keys = ${responseData.keys.toList()}');
-    if (responseData['data'] != null && responseData['data'] is Map) {
-      final data = responseData['data'] as Map<String, dynamic>;
-      debugPrint('🔍 searchHotels: data keys = ${data.keys.toList()}');
-      if (data['hotels'] != null && data['hotels'] is List) {
-        final hotels = data['hotels'] as List;
-        debugPrint('🔍 searchHotels: hotels count = ${hotels.length}');
-        if (hotels.isNotEmpty) {
-          final firstHotel = hotels[0];
-          debugPrint('🔍 COMPREHENSIVE DUMP searchHotels FIRST ITEM: $firstHotel'); // Added dump
-          if (firstHotel is Map) {
-            debugPrint('🔍 searchHotels: First hotel keys = ${firstHotel.keys.toList()}');
-            if (firstHotel['hotel_info'] != null) {
-              debugPrint('🔍 searchHotels: First hotel has hotel_info');
-              if (firstHotel['hotel_info'] is Map) {
-                debugPrint('🔍 searchHotels: hotel_info keys = ${(firstHotel['hotel_info'] as Map).keys.toList()}');
-              }
-            } else {
-              debugPrint('⚠️ searchHotels: First hotel has NO hotel_info');
-            }
-          }
-        }
-      }
-    }
     return SearchResponseModel.fromApiJson(responseData, filter: request.occupancies != null && request.occupancies!.isNotEmpty
         ? null // We'll need to reconstruct filter if needed
         : null);
@@ -122,50 +98,64 @@ class HotelRemoteDataSourceImpl implements HotelRemoteDataSource {
 
   @override
   Future<List<Map<String, dynamic>>> getCitiesWithIds({int? countryId}) async {
-    final response = await _dioClient.post(
-      HotelEndpoints.getCitiesWithIds,
-      queryParameters: countryId != null ? {'country_id': countryId} : null,
-    );
+    debugPrint('🔍 HotelRemoteDataSource: getCitiesWithIds called with countryId: $countryId');
+    debugPrint('🔍 HotelRemoteDataSource: Endpoint: ${HotelEndpoints.getCitiesWithIds}');
+    try {
+      final response = await _dioClient.post(
+        HotelEndpoints.getCitiesWithIds,
+        queryParameters: countryId != null ? {'country_id': countryId} : null,
+      );
+      debugPrint('✅ HotelRemoteDataSource: Response status: ${response.statusCode}');
+      debugPrint('🔍 HotelRemoteDataSource: Response data type: ${response.data.runtimeType}');
+      
+      if (response.data is List) {
+        final list = (response.data as List).map((e) => e as Map<String, dynamic>).toList();
+        debugPrint('✅ HotelRemoteDataSource: Response is List, returning ${list.length} items');
+        if (list.isNotEmpty) {
+          debugPrint('🔍 HotelRemoteDataSource: First item: ${list.first}');
+        }
+        return list;
+      }
 
-    debugPrint('🔍 getCitiesWithIds: response.data type = ${response.data.runtimeType}');
-    
-    if (response.data is List) {
-      debugPrint('🔍 getCitiesWithIds: response.data is List, length = ${(response.data as List).length}');
-      return (response.data as List).map((e) => e as Map<String, dynamic>).toList();
-    }
+      final responseData = _ensureMap(response.data);
+      debugPrint('🔍 HotelRemoteDataSource: Response data keys: ${responseData.keys.toList()}');
+      dynamic data = responseData['data'];
 
-    final responseData = _ensureMap(response.data);
-    debugPrint('🔍 getCitiesWithIds: responseData keys = ${responseData.keys}');
-    dynamic data = responseData['data'];
-    debugPrint('🔍 getCitiesWithIds: data type = ${data.runtimeType}');
-
-    // If data is a Map, try to find the list inside
-    if (data is Map) {
-      debugPrint('🔍 getCitiesWithIds: data is Map, keys = ${data.keys}');
-      if (data['result'] is List) {
-        data = data['result'];
-        debugPrint('🔍 getCitiesWithIds: Found data in "result" key, length = ${(data as List).length}');
-      } else if (data['cities'] is List) {
-        data = data['cities'];
-        debugPrint('🔍 getCitiesWithIds: Found data in "cities" key, length = ${(data as List).length}');
-      } else if (data['items'] is List) {
-        data = data['items'];
-        debugPrint('🔍 getCitiesWithIds: Found data in "items" key, length = ${(data as List).length}');
-      } else {
-        // Fallback: search for any list in values
-        for (final value in data.values) {
-          if (value is List) {
-            data = value;
-            debugPrint('🔍 getCitiesWithIds: Found list in data values, length = ${(data as List).length}');
-            break;
+      // If data is a Map, try to find the list inside
+      if (data is Map) {
+        debugPrint('🔍 HotelRemoteDataSource: Data is Map, keys: ${data.keys.toList()}');
+        if (data['result'] is List) {
+          data = data['result'];
+          debugPrint('✅ HotelRemoteDataSource: Found list in "result" key');
+        } else if (data['cities'] is List) {
+          data = data['cities'];
+          debugPrint('✅ HotelRemoteDataSource: Found list in "cities" key');
+        } else if (data['items'] is List) {
+          data = data['items'];
+          debugPrint('✅ HotelRemoteDataSource: Found list in "items" key');
+        } else {
+          // Fallback: search for any list in values
+          for (final value in data.values) {
+            if (value is List) {
+              data = value;
+              debugPrint('✅ HotelRemoteDataSource: Found list in Map values');
+              break;
+            }
           }
         }
       }
-    }
 
-    final listData = data as List<dynamic>? ?? [];
-    debugPrint('✅ getCitiesWithIds: Returning ${listData.length} cities');
-    return listData.map((e) => e as Map<String, dynamic>).toList();
+      final listData = data as List<dynamic>? ?? [];
+      debugPrint('✅ HotelRemoteDataSource: Returning ${listData.length} cities');
+      if (listData.isNotEmpty) {
+        debugPrint('🔍 HotelRemoteDataSource: First item: ${listData.first}');
+      }
+      return listData.map((e) => e as Map<String, dynamic>).toList();
+    } catch (e, stackTrace) {
+      debugPrint('❌ HotelRemoteDataSource: Exception - $e');
+      debugPrint('❌ Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   @override
@@ -186,69 +176,50 @@ class HotelRemoteDataSourceImpl implements HotelRemoteDataSource {
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     );
     
-    debugPrint('🔍 Hotels List Response Type: ${response.data.runtimeType}');
-    debugPrint('🔍 Hotels List Response Keys: ${response.data is Map ? (response.data as Map).keys.toList() : "Not a Map"}');
-    
     // If response is empty and we were doing a general search, try specific fallback for Tashkent
-    // This is a hack because 'mode=search' generic might not work
     final isEmpty = response.data == null || 
          (response.data is List && (response.data as List).isEmpty) ||
          (response.data is Map && (response.data as Map).isEmpty);
     
     if (isEmpty && cityId == null && countryId == null) {
-        debugPrint('⚠️ Empty response, trying Tashkent fallback');
         // Try getting Tashkent hotels directly as fallback content
         response = await _dioClient.post(
           HotelEndpoints.getHotelList,
           queryParameters: {'city_id': 1}, // Tashkent
         );
-        debugPrint('🔍 Tashkent Hotels Response Type: ${response.data.runtimeType}');
-        debugPrint('🔍 Tashkent Hotels Response Keys: ${response.data is Map ? (response.data as Map).keys.toList() : "Not a Map"}');
     }
 
     // Handle both { data: [...] } and [...] formats
     List<dynamic> data = [];
     if (response.data is List) {
       data = response.data as List<dynamic>;
-      debugPrint('✅ Response is List, found ${data.length} items');
     } else if (response.data is Map) {
       final responseData = response.data as Map<String, dynamic>;
-      debugPrint('🔍 Response is Map, keys: ${responseData.keys.toList()}');
       
       // Try different possible keys
       if (responseData['data'] is List) {
         data = responseData['data'] as List<dynamic>;
-        debugPrint('✅ Found data in "data" key, ${data.length} items');
       } else if (responseData['data'] is Map) {
         // If data is a Map, check for hotels inside
         final dataMap = responseData['data'] as Map<String, dynamic>;
-        debugPrint('🔍 Data is Map, keys: ${dataMap.keys.toList()}');
         if (dataMap['hotels'] is List) {
           data = dataMap['hotels'] as List<dynamic>;
-          debugPrint('✅ Found data in "data.hotels" key, ${data.length} items');
         } else if (dataMap['items'] is List) {
           data = dataMap['items'] as List<dynamic>;
-          debugPrint('✅ Found data in "data.items" key, ${data.length} items');
         } else if (dataMap['result'] is List) {
           data = dataMap['result'] as List<dynamic>;
-          debugPrint('✅ Found data in "data.result" key, ${data.length} items');
         }
       } else if (responseData['hotels'] is List) {
         data = responseData['hotels'] as List<dynamic>;
-        debugPrint('✅ Found data in "hotels" key, ${data.length} items');
       } else if (responseData['items'] is List) {
         data = responseData['items'] as List<dynamic>;
-        debugPrint('✅ Found data in "items" key, ${data.length} items');
       } else if (responseData['result'] is List) {
         data = responseData['result'] as List<dynamic>;
-        debugPrint('✅ Found data in "result" key, ${data.length} items');
       } else {
         // Fallback: search for any list in values
-        debugPrint('🔍 Searching for lists in response values...');
         for (final entry in responseData.entries) {
           if (entry.value is List) {
             data = entry.value as List<dynamic>;
-            debugPrint('✅ Found data in "${entry.key}" key, ${data.length} items');
             break;
           } else if (entry.value is Map) {
             // Check inside nested maps
@@ -256,7 +227,6 @@ class HotelRemoteDataSourceImpl implements HotelRemoteDataSource {
             for (final nestedEntry in nestedMap.entries) {
               if (nestedEntry.value is List) {
                 data = nestedEntry.value as List<dynamic>;
-                debugPrint('✅ Found data in "${entry.key}.${nestedEntry.key}" key, ${data.length} items');
                 break;
               }
             }
@@ -267,11 +237,8 @@ class HotelRemoteDataSourceImpl implements HotelRemoteDataSource {
     }
     
     if (data.isEmpty) {
-      debugPrint('⚠️ No hotels found in response');
       return [];
     }
-    
-    debugPrint('🔍 Parsing ${data.length} hotel items...');
     
     // Parse hotels with error handling
     final hotels = <HotelModel>[];
@@ -285,57 +252,177 @@ class HotelRemoteDataSourceImpl implements HotelRemoteDataSource {
           hotelMap = item;
         } else if (item is List && item.isNotEmpty) {
           // If item is a List, try to get the first element
-          debugPrint('⚠️ Item $i is a List, trying to extract Map from first element');
           final firstElement = item[0];
           if (firstElement is Map<String, dynamic>) {
             hotelMap = firstElement;
           } else {
-            debugPrint('⚠️ Item $i List first element is not a Map, skipping');
             continue;
           }
         } else {
-          debugPrint('⚠️ Item $i is not a Map or List, type: ${item.runtimeType}, skipping');
           continue;
         }
         
         final hotel = HotelModel.fromApiJson(hotelMap);
         hotels.add(hotel);
-      } catch (e, stackTrace) {
-        debugPrint('❌ Error parsing hotel item $i: $e');
-        debugPrint('Item type: ${data[i].runtimeType}');
-        debugPrint('Stack trace: $stackTrace');
+      } catch (e) {
         // Skip invalid hotel entries
         continue;
       }
     }
     
-    debugPrint('✅ Successfully parsed ${hotels.length} hotels out of ${data.length} items');
     return hotels;
   }
 
   @override
   Future<QuoteModel> getQuote(List<String> optionRefIds) async {
-    final response = await _dioClient.post(
-      HotelEndpoints.getQuote,
-      data: {'data': {'option_ref_ids': optionRefIds}},
-    );
+    try {
+      final options =
+          optionRefIds.map((id) => {'option_ref_id': id}).toList(growable: false);
+      
+      if (kDebugMode) {
+        debugPrint('📤 HotelQuote Request: optionRefIds=$optionRefIds');
+      }
+      
+      final response = await _dioClient.post(
+        HotelEndpoints.getQuote,
+        data: {'data': {'options': options}},
+      );
 
-    final responseData = _ensureMap(response.data);
-    return QuoteModel.fromJson(responseData);
+      if (kDebugMode) {
+        debugPrint('📥 HotelQuote Response: ${response.data.toString()}');
+      }
+
+      // Handle response data - it might be wrapped in 'data' or direct
+      Map<String, dynamic> responseData;
+      try {
+        responseData = _ensureMap(response.data);
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ HotelRemoteDataSourceImpl.getQuote: Failed to parse response.data: $e');
+          debugPrint('❌ Response.data type: ${response.data.runtimeType}');
+          debugPrint('❌ Response.data value: ${response.data}');
+        }
+        throw const ParsingException('Server javobi noto\'g\'ri formatda');
+      }
+      
+      // Check if response has 'data' wrapper
+      Map<String, dynamic> data;
+      if (responseData.containsKey('data') && responseData['data'] is Map) {
+        data = responseData['data'] as Map<String, dynamic>;
+      } else {
+        data = responseData;
+      }
+      
+      // Parse QuoteModel with error handling
+      try {
+        return QuoteModel.fromJson(data);
+      } catch (e, stackTrace) {
+        if (kDebugMode) {
+          debugPrint('❌ HotelRemoteDataSourceImpl.getQuote: Failed to parse QuoteModel: $e');
+          debugPrint('❌ Stack trace: $stackTrace');
+          debugPrint('❌ data keys: ${data.keys.toList()}');
+        }
+        throw ParsingException('Quote ma\'lumotlarini parse qilishda xatolik: ${e.toString()}');
+      }
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('❌ HotelQuote error: $e');
+        debugPrint('❌ Stack trace: $stackTrace');
+      }
+      // Re-throw to be handled by repository
+      rethrow;
+    }
   }
 
   @override
   Future<HotelBookingModel> createBooking(CreateBookingRequestModel request) async {
-    final requestBody = request.toJson();
+    try {
+      // API format: {"data": {...}} va snake_case
+      final requestBody = request.toApiJson();
 
-    final response = await _dioClient.post(
-      HotelEndpoints.createBooking,
-      data: requestBody,
-    );
+      if (kDebugMode) {
+        debugPrint('📤 HotelBookingCreate Request: ${requestBody.toString()}');
+      }
 
-    final responseData = _ensureMap(response.data);
-    final data = responseData['data'] as Map<String, dynamic>? ?? responseData;
-    return HotelBookingModel.fromJson(data);
+      final response = await _dioClient.post(
+        HotelEndpoints.createBooking,
+        data: requestBody,
+      );
+
+      if (kDebugMode) {
+        debugPrint('📥 HotelBookingCreate Response: ${response.data.toString()}');
+      }
+
+      // Handle response data - it might be wrapped in 'data' or direct
+      Map<String, dynamic> responseData;
+      try {
+        responseData = _ensureMap(response.data);
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ HotelRemoteDataSourceImpl.createBooking: Failed to parse response.data: $e');
+          debugPrint('❌ Response.data type: ${response.data.runtimeType}');
+          debugPrint('❌ Response.data value: ${response.data}');
+        }
+        throw const ParsingException('Server javobi noto\'g\'ri formatda');
+      }
+      
+      if (kDebugMode) {
+        debugPrint('🔍 HotelRemoteDataSourceImpl.createBooking raw responseData: $responseData');
+      }
+      
+      // Payment URL ni top-level va data ichida qidirish
+      String? paymentUrl;
+      
+      // Top-level dan olish
+      paymentUrl = responseData['payment_url'] as String? ?? 
+                   responseData['paymentUrl'] as String? ?? 
+                   responseData['payment_link'] as String? ??
+                   responseData['paymentLink'] as String?;
+      
+      // Agar top-level da bo'lmasa, data ichidan olish
+      Map<String, dynamic> data;
+      if (responseData.containsKey('data') && responseData['data'] is Map) {
+        data = responseData['data'] as Map<String, dynamic>;
+      } else {
+        data = responseData;
+      }
+      
+      if (paymentUrl == null || paymentUrl.isEmpty) {
+        paymentUrl = data['payment_url'] as String? ?? 
+                     data['paymentUrl'] as String? ?? 
+                     data['payment_link'] as String? ??
+                     data['paymentLink'] as String?;
+      }
+      
+      if (kDebugMode) {
+        debugPrint('✅ HotelRemoteDataSourceImpl.createBooking extracted paymentUrl: $paymentUrl');
+      }
+      
+      // Payment URL ni data'ga qo'shish (agar mavjud bo'lsa)
+      final dataWithPaymentUrl = Map<String, dynamic>.from(data);
+      if (paymentUrl != null && paymentUrl.isNotEmpty) {
+        dataWithPaymentUrl['payment_url'] = paymentUrl;
+      }
+      
+      // Parse booking model with error handling
+      try {
+        return HotelBookingModel.fromJson(dataWithPaymentUrl);
+      } catch (e, stackTrace) {
+        if (kDebugMode) {
+          debugPrint('❌ HotelRemoteDataSourceImpl.createBooking: Failed to parse HotelBookingModel: $e');
+          debugPrint('❌ Stack trace: $stackTrace');
+          debugPrint('❌ dataWithPaymentUrl keys: ${dataWithPaymentUrl.keys.toList()}');
+        }
+        throw ParsingException('Booking ma\'lumotlarini parse qilishda xatolik: ${e.toString()}');
+      }
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('❌ HotelBookingCreate error: $e');
+        debugPrint('❌ Stack trace: $stackTrace');
+      }
+      // Re-throw to be handled by repository
+      rethrow;
+    }
   }
 
   @override
@@ -353,8 +440,32 @@ class HotelRemoteDataSourceImpl implements HotelRemoteDataSource {
     );
 
     final responseData = _ensureMap(response.data);
+    
+    // Payment URL ni top-level va data ichida qidirish
+    String? paymentUrl;
+    
+    // Top-level dan olish
+    paymentUrl = responseData['payment_url'] as String? ?? 
+                 responseData['paymentUrl'] as String? ?? 
+                 responseData['payment_link'] as String? ??
+                 responseData['paymentLink'] as String?;
+    
+    // Agar top-level da bo'lmasa, data ichidan olish
     final data = responseData['data'] as Map<String, dynamic>? ?? responseData;
-    return HotelBookingModel.fromJson(data);
+    if (paymentUrl == null) {
+      paymentUrl = data['payment_url'] as String? ?? 
+                   data['paymentUrl'] as String? ?? 
+                   data['payment_link'] as String? ??
+                   data['paymentLink'] as String?;
+    }
+    
+    // Payment URL ni data'ga qo'shish
+    final dataWithPaymentUrl = Map<String, dynamic>.from(data);
+    if (paymentUrl != null && paymentUrl.isNotEmpty) {
+      dataWithPaymentUrl['payment_url'] = paymentUrl;
+    }
+    
+    return HotelBookingModel.fromJson(dataWithPaymentUrl);
   }
 
   @override
@@ -440,22 +551,41 @@ class HotelRemoteDataSourceImpl implements HotelRemoteDataSource {
     
     // Helper to find list in a map
     List<dynamic>? findListInMap(Map<dynamic, dynamic> map) {
-      if (map['data'] is List) return map['data'];
-      if (map['items'] is List) return map['items'];
-      if (map['result'] is List) return map['result'];
-      if (map['facilities'] is List) return map['facilities'];
-      if (map['services'] is List) return map['services'];
-      if (map['nearby_places'] is List) return map['nearby_places'];
-      if (map['equipment'] is List) return map['equipment'];
-      if (map['bed_types'] is List) return map['bed_types'];
-      if (map['room_types'] is List) return map['room_types'];
-      if (map['photos'] is List) return map['photos'];
-      
-      // Fallback: Check any value that is a list
-      for (final val in map.values) {
-        if (val is List) return val;
+      List<dynamic>? take(String key) {
+        if (map[key] is List) {
+          return map[key] as List<dynamic>;
+        }
+        return null;
       }
-      return null;
+
+      // Try common keys first
+      return take('data') ??
+          take('items') ??
+          take('result') ??
+          take('facilities') ??
+          take('hotel_facilities') ??
+          take('services') ??
+          take('hotel_services') ??
+          take('hotel_services_in_room') ??
+          take('services_in_room') ??
+          take('nearby_places') ??
+          take('equipment') ??
+          take('bed_types') ??
+          take('room_types') ??
+          take('photos') ??
+          // Fallback: Check any value that is a list
+          () {
+            for (final entry in map.entries) {
+              if (entry.value is List) {
+                return entry.value as List<dynamic>;
+              }
+            }
+            return null;
+          }();
+    }
+
+    if (responseData == null) {
+      return [];
     }
 
     if (responseData is List) {
@@ -466,21 +596,41 @@ class HotelRemoteDataSourceImpl implements HotelRemoteDataSource {
       
       // 2. If empty, check if 'data' is a Map and search inside it
       if (list.isEmpty && responseData['data'] is Map) {
-        list = findListInMap(responseData['data']) ?? [];
+        list = findListInMap(responseData['data'] as Map) ?? [];
       }
+
+      // Log keys and selection to trace API structure issues
     }
 
-    return list.map((e) {
-      if (e is String) return {'name': e};
+    final result = list.map((e) {
+      if (e is String) {
+        return {'name': e};
+      }
       if (e is Map) {
         try {
-          return Map<String, dynamic>.from(e);
-        } catch (_) {
-          return <String, dynamic>{};
+          final map = Map<String, dynamic>.from(e);
+          // Ensure map has at least a name field
+          if (!map.containsKey('name') && !map.containsKey('names')) {
+            // Try to extract name from common fields
+            final name = map['name_uz'] ?? 
+                        map['name_ru'] ?? 
+                        map['name_en'] ?? 
+                        map['title'] ?? 
+                        map['label'] ??
+                        map.values.firstWhere((v) => v is String, orElse: () => 'Unknown')?.toString();
+            if (name != null) {
+              map['name'] = name;
+            }
+          }
+          return map;
+        } catch (err) {
+          return <String, dynamic>{'name': e.toString()};
         }
       } 
       return {'name': e.toString()};
     }).toList();
+    
+    return result;
   }
 
   @override
@@ -493,10 +643,39 @@ class HotelRemoteDataSourceImpl implements HotelRemoteDataSource {
   Future<List<Map<String, dynamic>>> getHotelFacilities(int hotelId) async {
     final response = await _dioClient.post(
       HotelEndpoints.getHotelFacilities,
-      data: {'hotel_id': hotelId},
+      queryParameters: {'hotel_id': hotelId},
     );
-    debugPrint('🔧 getHotelFacilities raw: ${response.data}');
-    return _parseListResponse(response.data);
+    final responseData = _ensureMap(response.data);
+    
+    // Hotel facilities API returns: {data: {hotel_facilities: [{facility_id: X, hotel_id: Y, paid: bool}]}}
+    // We need to extract just the facility_ids
+    List<dynamic> hotelFacilitiesList = [];
+    
+    if (responseData['data'] is Map) {
+      final data = responseData['data'] as Map<String, dynamic>;
+      hotelFacilitiesList = data['hotel_facilities'] as List<dynamic>? ?? [];
+    } else {
+      // Fallback to _parseListResponse if structure is different
+      return _parseListResponse(response.data);
+    }
+    
+    // Return list with facility_id for matching
+    return hotelFacilitiesList.map((e) {
+      if (e is Map) {
+        final map = Map<String, dynamic>.from(e);
+        // Ensure facility_id is present
+        if (map.containsKey('facility_id')) {
+          return {
+            'facility_id': map['facility_id'],
+            'hotel_id': map['hotel_id'],
+            'paid': map['paid'] ?? false,
+            'accessibility_level': map['accessibility_level'],
+          };
+        }
+        return map;
+      }
+      return <String, dynamic>{'facility_id': e};
+    }).toList();
   }
 
   @override
@@ -514,7 +693,40 @@ class HotelRemoteDataSourceImpl implements HotelRemoteDataSource {
       HotelEndpoints.getRoomTypeEquipment,
       queryParameters: queryParams,
     );
-     return _parseListResponse(response.data);
+    final responseData = _ensureMap(response.data);
+    
+    // Room equipment API might return: {data: {room_equipment: [{equipment_id: X, room_type_id: Y}]}}
+    // We need to extract just the equipment_ids
+    List<dynamic> roomEquipmentList = [];
+    
+    if (responseData['data'] is Map) {
+      final data = responseData['data'] as Map<String, dynamic>;
+      // Try different possible keys
+      roomEquipmentList = data['room_equipment'] as List<dynamic>? ?? 
+                         data['equipment'] as List<dynamic>? ?? 
+                         data['room_type_equipment'] as List<dynamic>? ?? [];
+    }
+    
+    if (roomEquipmentList.isEmpty) {
+      // Fallback to _parseListResponse if structure is different
+      return _parseListResponse(response.data);
+    }
+    
+    // Return list with equipment_id for matching
+    return roomEquipmentList.map((e) {
+      if (e is Map) {
+        final map = Map<String, dynamic>.from(e);
+        // Ensure equipment_id is present
+        if (map.containsKey('equipment_id')) {
+          return {
+            'equipment_id': map['equipment_id'],
+            'room_type_id': map['room_type_id'],
+          };
+        }
+        return map;
+      }
+      return <String, dynamic>{'equipment_id': e};
+    }).toList();
   }
 
   @override
@@ -536,36 +748,24 @@ class HotelRemoteDataSourceImpl implements HotelRemoteDataSource {
       final response = await _dioClient.post(
         HotelEndpoints.getHotelPhotos,
         queryParameters: {'hotel_id': hotelId},
-        data: {}, // POST so'rov uchun bo'sh body
       );
       
-      debugPrint('📸 getHotelPhotos Response for hotel $hotelId: ${response.data.runtimeType}');
-      
       final responseData = _ensureMap(response.data);
-      debugPrint('📸 getHotelPhotos Response keys: ${responseData.keys.toList()}');
-      
-      // API javobida data.photos array bor
       final dataValue = responseData['data'];
       
       // Agar data Map bo'lsa
       if (dataValue is Map<String, dynamic>) {
         final dataMap = dataValue;
-        debugPrint('📸 getHotelPhotos data is Map, keys: ${dataMap.keys.toList()}');
         
         // data.photos array bo'lishi mumkin
         if (dataMap['photos'] is List) {
           final hotelPhotos = dataMap['photos'] as List<dynamic>;
-          debugPrint('✅ getHotelPhotos: Found ${hotelPhotos.length} photos in data.photos for hotel $hotelId');
-          if (hotelPhotos.isNotEmpty) {
-            debugPrint('📸 First photo keys: ${(hotelPhotos.first as Map).keys.toList()}');
-          }
           return hotelPhotos.map((e) => e as Map<String, dynamic>).toList();
         }
         
         // Agar data o'zi photos array bo'lsa (nested structure)
         if (dataMap['hotel_photos'] is List) {
           final hotelPhotos = dataMap['hotel_photos'] as List<dynamic>;
-          debugPrint('✅ getHotelPhotos: Found ${hotelPhotos.length} photos in data.hotel_photos for hotel $hotelId');
           return hotelPhotos.map((e) => e as Map<String, dynamic>).toList();
         }
       }
@@ -574,7 +774,6 @@ class HotelRemoteDataSourceImpl implements HotelRemoteDataSource {
       if (dataValue is List) {
         final data = dataValue;
         if (data.isNotEmpty) {
-          debugPrint('✅ getHotelPhotos: Found ${data.length} photos (direct array) for hotel $hotelId');
           return data.map((e) => e as Map<String, dynamic>).toList();
         }
       }
@@ -582,23 +781,22 @@ class HotelRemoteDataSourceImpl implements HotelRemoteDataSource {
       // Agar responseData to'g'ridan-to'g'ri array bo'lsa
       if (responseData['photos'] is List) {
         final photos = responseData['photos'] as List<dynamic>;
-        debugPrint('✅ getHotelPhotos: Found ${photos.length} photos in root photos for hotel $hotelId');
         return photos.map((e) => e as Map<String, dynamic>).toList();
       }
       
-      debugPrint('⚠️ getHotelPhotos: No photos found for hotel $hotelId. Response structure: ${responseData.keys.toList()}');
       return [];
-    } catch (e, stackTrace) {
-      debugPrint('❌ getHotelPhotos Error for hotel $hotelId: $e');
-      debugPrint('❌ StackTrace: $stackTrace');
+    } catch (e) {
       return [];
     }
   }
 
   @override
   Future<List<Map<String, dynamic>>> getHotelRoomTypes(int hotelId) async {
-    final response = await _dioClient.post(HotelEndpoints.getHotelRoomTypes(hotelId));
-     return _parseListResponse(response.data);
+    final response = await _dioClient.post(
+      HotelEndpoints.getHotelRoomTypes,
+      queryParameters: {'hotel_id': hotelId},
+    );
+    return _parseListResponse(response.data);
   }
 
   @override
@@ -631,7 +829,7 @@ class HotelRemoteDataSourceImpl implements HotelRemoteDataSource {
   Future<List<Map<String, dynamic>>> getHotelNearbyPlaces(int hotelId) async {
     final response = await _dioClient.post(
       HotelEndpoints.getHotelNearbyPlaces,
-      data: {'hotel_id': hotelId},
+      queryParameters: {'hotel_id': hotelId},
     );
      return _parseListResponse(response.data);
   }
@@ -639,17 +837,132 @@ class HotelRemoteDataSourceImpl implements HotelRemoteDataSource {
   @override
   Future<List<Map<String, dynamic>>> getServicesInRoom() async {
     final response = await _dioClient.post(HotelEndpoints.getServicesInRoom);
-     return _parseListResponse(response.data);
+    final responseData = _ensureMap(response.data);
+    
+    if (kDebugMode) {
+      debugPrint('🔍 getServicesInRoom: responseData keys=${responseData.keys}');
+    }
+    
+    // Services in room API returns: {data: {services_in_room: [{id: X, names: [...]}]}}
+    // We need to extract the services_in_room list
+    List<dynamic> servicesList = [];
+    
+    if (responseData['data'] is Map) {
+      final data = responseData['data'] as Map<String, dynamic>;
+      if (kDebugMode) {
+        debugPrint('🔍 getServicesInRoom: data keys=${data.keys}');
+      }
+      // Try different possible keys
+      servicesList = data['services_in_room'] as List<dynamic>? ?? 
+                    data['services'] as List<dynamic>? ?? [];
+    } else if (responseData['data'] is List) {
+      // If data is directly a list
+      servicesList = responseData['data'] as List<dynamic>;
+    }
+    
+    if (kDebugMode) {
+      debugPrint('🔍 getServicesInRoom: servicesList length=${servicesList.length}');
+      if (servicesList.isNotEmpty) {
+        debugPrint('🔍 getServicesInRoom: First service=${servicesList.first}');
+      }
+    }
+    
+    // If we found the list, return it directly (it has full details with id and names)
+    if (servicesList.isNotEmpty) {
+      return servicesList.map((e) {
+        if (e is Map) {
+          return Map<String, dynamic>.from(e);
+        }
+        return <String, dynamic>{'id': e};
+      }).toList();
+    }
+    
+    // Fallback to _parseListResponse if structure is different
+    return _parseListResponse(response.data);
   }
 
   @override
   Future<List<Map<String, dynamic>>> getHotelServicesInRoom(int hotelId) async {
     final response = await _dioClient.post(
       HotelEndpoints.getHotelServicesInRoom,
-      data: {'hotel_id': hotelId},
+      queryParameters: {'hotel_id': hotelId},
     );
-    debugPrint('🔧 getHotelServicesInRoom raw: ${response.data}');
-    return _parseListResponse(response.data);
+    final responseData = _ensureMap(response.data);
+    
+    if (kDebugMode) {
+      debugPrint('🔍 getHotelServicesInRoom: hotelId=$hotelId, responseData keys=${responseData.keys}');
+    }
+    
+    // Hotel services in room API returns: {data: {hotel_services_in_room: [{service_id: X, hotel_id: Y}]}}
+    // or {data: {services_in_room: [{service_id: X, hotel_id: Y}]}}
+    // We need to extract just the service_ids
+    List<dynamic> hotelServicesList = [];
+    
+    if (responseData['data'] is Map) {
+      final data = responseData['data'] as Map<String, dynamic>;
+      if (kDebugMode) {
+        debugPrint('🔍 getHotelServicesInRoom: data keys=${data.keys}');
+      }
+      // Try different possible keys (API might use different naming)
+      hotelServicesList = data['hotel_services_in_room'] as List<dynamic>? ?? 
+                         data['services_in_room'] as List<dynamic>? ?? 
+                         data['hotel_services'] as List<dynamic>? ??
+                         data['services'] as List<dynamic>? ?? [];
+    } else if (responseData['data'] is List) {
+      // If data is directly a list
+      hotelServicesList = responseData['data'] as List<dynamic>;
+    } else {
+      // Fallback to _parseListResponse if structure is different
+      if (kDebugMode) {
+        debugPrint('⚠️ getHotelServicesInRoom: Using fallback _parseListResponse');
+      }
+      return _parseListResponse(response.data);
+    }
+    
+    if (kDebugMode) {
+      debugPrint('🔍 getHotelServicesInRoom: hotelServicesList length=${hotelServicesList.length}');
+      if (hotelServicesList.isNotEmpty) {
+        debugPrint('🔍 getHotelServicesInRoom: First item=${hotelServicesList.first}');
+      }
+    }
+    
+    // If list is empty, return empty list
+    if (hotelServicesList.isEmpty) {
+      if (kDebugMode) {
+        debugPrint('⚠️ getHotelServicesInRoom: hotelServicesList is empty');
+      }
+      return [];
+    }
+    
+    // Return list with services_in_room_id for matching
+    // API returns: {hotel_id: X, services_in_room_id: Y}
+    return hotelServicesList.map((e) {
+      if (e is Map) {
+        final map = Map<String, dynamic>.from(e);
+        // API returns 'services_in_room_id' field (not 'service_id' or 'id')
+        final servicesInRoomId = map['services_in_room_id'] ?? map['service_id'] ?? map['id'] ?? map['serviceId'];
+        if (servicesInRoomId != null) {
+          if (kDebugMode) {
+            debugPrint('🔍 getHotelServicesInRoom: Found services_in_room_id=$servicesInRoomId');
+          }
+          return {
+            'services_in_room_id': servicesInRoomId,
+            'service_id': servicesInRoomId, // Also add as service_id for compatibility
+            'hotel_id': map['hotel_id'] ?? hotelId,
+          };
+        }
+        if (kDebugMode) {
+          debugPrint('⚠️ getHotelServicesInRoom: services_in_room_id not found in item=$map');
+        }
+        // If no services_in_room_id found, return the map as is (might have full details)
+        return map;
+      }
+      // If it's not a Map, assume it's the services_in_room_id directly
+      return <String, dynamic>{
+        'services_in_room_id': e,
+        'service_id': e, // Also add as service_id for compatibility
+      };
+    }).toList();
   }
 
   @override

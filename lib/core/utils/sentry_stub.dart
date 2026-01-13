@@ -32,6 +32,17 @@ class Hint {
   static dynamic withMap(Map<String, dynamic> map) => HintStub.withMap(map);
 }
 
+// Stub for SentryEvent
+class SentryEvent {
+  final dynamic request;
+  
+  SentryEvent({this.request});
+  
+  SentryEvent copyWith({dynamic request}) {
+    return SentryEvent(request: request ?? this.request);
+  }
+}
+
 // Stub for SentryFlutter
 class SentryFlutter {
   static Future<void> init(

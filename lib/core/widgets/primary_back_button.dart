@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../constants/app_colors.dart';
 
 class PrimaryBackButton extends StatelessWidget {
   const PrimaryBackButton({
@@ -13,10 +14,9 @@ class PrimaryBackButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final borderColor =
-        isDark ? const Color(0xFF333333) : const Color(0xFFE5E7EB);
-    final bgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final iconColor = isDark ? Colors.white : const Color(0xFF1F2937);
+    final borderColor = AppColors.getBorderColor(isDark);
+    final bgColor = AppColors.getCardBg(isDark);
+    final iconColor = AppColors.getTextColor(isDark);
 
     return InkWell(
       onTap: onTap ?? () => Navigator.of(context).maybePop(),
@@ -31,7 +31,7 @@ class PrimaryBackButton extends StatelessWidget {
           boxShadow: [
             if (!isDark)
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
+                color: AppColors.black.withOpacity(0.02),
                 blurRadius: 6,
                 offset: const Offset(0, 3),
               ),

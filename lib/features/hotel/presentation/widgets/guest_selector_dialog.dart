@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/constants/app_colors.dart';
 
 class GuestSelectorDialog extends StatefulWidget {
   final int initialAdults;
@@ -20,141 +21,85 @@ class GuestSelectorDialog extends StatefulWidget {
 
 class _GuestSelectorDialogState extends State<GuestSelectorDialog> {
   late int _adults;
-  late int _children;
   late int _rooms;
 
   @override
   void initState() {
     super.initState();
     _adults = widget.initialAdults;
-    _children = widget.initialChildren;
     _rooms = widget.initialRooms;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-      ),
       backgroundColor: theme.cardColor,
-      insetPadding: EdgeInsets.symmetric(horizontal: 24.w),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20.r),
+      ),
       child: Padding(
-        padding: EdgeInsets.all(16.w),
+        padding: EdgeInsets.all(24.w),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'hotel.search.guests_rooms'.tr(),
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
-                        color: theme.textTheme.titleLarge?.color,
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      '${_adults + _children} ${"hotel.search.person".tr()} • $_rooms ${"hotel.search.room".tr()}',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: theme.textTheme.bodyMedium?.color
-                            ?.withOpacity(0.7),
-                      ),
-                    ),
-                  ],
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(Icons.close, color: theme.iconTheme.color),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
+            Text(
+              'hotel.search.guests_rooms'.tr(),
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w700,
+                color: theme.textTheme.titleLarge?.color,
+              ),
             ),
             SizedBox(height: 24.h),
-
-            SizedBox(height: 24.h),
-
             // Adults
-            _buildGuestRow(
+            _buildCounter(
               context,
-              title: 'hotel.search.adults'.tr(),
-              subtitle: 'hotel.search.age_restrictions_adults'.tr(),
-              value: _adults,
-              onChanged: (val) => setState(() => _adults = val),
-              min: 1,
+              'hotel.search.adults'.tr(),
+              'hotel.search.age_restrictions_adults'.tr(),
+              _adults,
+              (value) => setState(() => _adults = value),
             ),
-            SizedBox(height: 24.h),
-
-            // Children
-            _buildGuestRow(
-              context,
-              title: 'hotel.search.children'.tr(),
-              subtitle: 'hotel.search.age_restrictions_children'.tr(),
-              value: _children,
-              onChanged: (val) => setState(() => _children = val),
-              min: 0,
-            ),
-            SizedBox(height: 24.h),
-
+            SizedBox(height: 16.h),
             // Rooms
-            _buildGuestRow(
+            _buildCounter(
               context,
-              title: 'hotel.search.rooms'.tr(),
-              subtitle: '',
-              value: _rooms,
-              onChanged: (val) => setState(() => _rooms = val),
-              min: 1,
+              'hotel.search.rooms'.tr(),
+              '',
+              _rooms,
+              (value) => setState(() => _rooms = value),
             ),
-
-            SizedBox(height: 32.h),
-
-            // Buttons Row (Cancel / Apply)
+            SizedBox(height: 24.h),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.of(context).pop(),
                     style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 16.h),
-                      side: BorderSide(color: Colors.grey.shade600),
+                      minimumSize: Size(0, 56.h),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                     ),
-                    child: Text(
-                      'hotel.common.close'.tr(), // "Bekor qilish" or "Yopish"
-                      style: TextStyle(
-                        color: theme.textTheme.bodyLarge?.color,
-                        fontSize: 16.sp,
-                      ),
-                    ),
+                    child: Text('hotel.common.close'.tr()),
                   ),
                 ),
                 SizedBox(width: 16.w),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context, {
+                      Navigator.of(context).pop({
                         'adults': _adults,
-                        'children': _children,
+                        'children': 0,
                         'rooms': _rooms,
                       });
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                      backgroundColor: AppColors.primaryBlue,
+                      foregroundColor: AppColors.white,
+                      minimumSize: Size(0, 56.h),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
                       ),
@@ -163,9 +108,8 @@ class _GuestSelectorDialogState extends State<GuestSelectorDialog> {
                     child: Text(
                       'hotel.common.apply'.tr(),
                       style: TextStyle(
-                        color: Colors.white,
                         fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -178,15 +122,15 @@ class _GuestSelectorDialogState extends State<GuestSelectorDialog> {
     );
   }
 
-  Widget _buildGuestRow(
-    BuildContext context, {
-    required String title,
-    required String subtitle,
-    required int value,
-    required Function(int) onChanged,
-    required int min,
-  }) {
+  Widget _buildCounter(
+    BuildContext context,
+    String title,
+    String subtitle,
+    int value,
+    ValueChanged<int> onChanged,
+  ) {
     final theme = Theme.of(context);
+    final min = title.contains('room') ? 1 : 1; // Rooms min is 1, adults min is 1
     
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -202,8 +146,6 @@ class _GuestSelectorDialogState extends State<GuestSelectorDialog> {
                   fontWeight: FontWeight.w600,
                   color: theme.textTheme.titleLarge?.color,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
               if (subtitle.isNotEmpty) ...[
                 SizedBox(height: 4.h),
@@ -211,107 +153,49 @@ class _GuestSelectorDialogState extends State<GuestSelectorDialog> {
                   subtitle,
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ?? Colors.grey,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ],
           ),
         ),
-        SizedBox(width: 16.w),
         Row(
           children: [
-            // Minus Button
-            _buildSquareButton(
-              icon: Icons.remove,
+            IconButton(
               onPressed: value > min ? () => onChanged(value - 1) : null,
-              isFilled: false,
-              theme: theme,
-            ),
-            SizedBox(width: 16.w),
-            // Value
-            SizedBox(
-              width: 24.w,
-              child: Text(
-                '$value',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: theme.textTheme.bodyLarge?.color,
+              icon: Icon(Icons.remove),
+              style: IconButton.styleFrom(
+                backgroundColor: theme.dividerColor.withValues(alpha: 0.1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
               ),
             ),
             SizedBox(width: 16.w),
-            // Plus Button
-            _buildSquareButton(
-              icon: Icons.add,
+            Text(
+              value.toString(),
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w600,
+                color: theme.textTheme.titleLarge?.color,
+              ),
+            ),
+            SizedBox(width: 16.w),
+            IconButton(
               onPressed: () => onChanged(value + 1),
-              isFilled: true,
-              theme: theme,
+              icon: Icon(Icons.add),
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+                foregroundColor: AppColors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
             ),
           ],
         ),
       ],
     );
-  }
-
-  Widget _buildSquareButton({
-    required IconData icon,
-    VoidCallback? onPressed,
-    required bool isFilled,
-    required ThemeData theme,
-  }) {
-    final isDark = theme.brightness == Brightness.dark;
-    
-    // Filled (Plus) Style
-    if (isFilled) {
-      return SizedBox(
-        width: 40.w,
-        height: 40.w,
-        child: ElevatedButton(
-          onPressed: onPressed,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue,
-            padding: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            elevation: 0,
-          ),
-          child: Icon(icon, color: Colors.white, size: 24.sp),
-        ),
-      );
-    } 
-    
-    // Outlined/Ghost (Minus) Style
-    else {
-      return SizedBox(
-        width: 40.w,
-        height: 40.w,
-        child: OutlinedButton(
-          onPressed: onPressed,
-          style: OutlinedButton.styleFrom(
-            padding: EdgeInsets.zero,
-            backgroundColor: isDark ? Colors.grey[800] : Colors.grey[100],
-            side: BorderSide(
-              color: Colors.transparent, // No border as per screenshot usually, or very subtle
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-          ),
-          child: Icon(
-            icon, 
-            color: onPressed == null 
-                ? theme.disabledColor 
-                : (isDark ? Colors.white : Colors.black), 
-            size: 24.sp
-          ),
-        ),
-      );
-    }
   }
 }

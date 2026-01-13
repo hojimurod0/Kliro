@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_colors.dart';
 
-enum TabItem { home, service, favorite, profile }
+enum TabItem { home, favorite, profile }
 
 class MainBottomNavigation extends StatelessWidget {
   final TabItem currentTab;
@@ -42,8 +42,8 @@ class MainBottomNavigation extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final totalWidth = constraints.maxWidth;
-          final partWidth = totalWidth / 6;
-          final activeWidth = partWidth * 3;
+          final partWidth = totalWidth / 4;
+          final activeWidth = partWidth * 2;
           final inactiveWidth = partWidth;
 
           return Stack(
@@ -110,10 +110,6 @@ class MainBottomNavigation extends StatelessWidget {
       case TabItem.home:
         icon = Icons.home_rounded;
         label = context.tr('home.home');
-        break;
-      case TabItem.service:
-        icon = Icons.grid_view_rounded;
-        label = context.tr('home.services');
         break;
       case TabItem.favorite:
         icon = Icons.favorite_rounded;

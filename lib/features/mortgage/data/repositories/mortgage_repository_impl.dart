@@ -1,5 +1,7 @@
 import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
+
 import '../../../../core/errors/app_exception.dart';
 import '../../domain/entities/mortgage_filter.dart';
 import '../../domain/entities/mortgage_page.dart';
@@ -24,9 +26,9 @@ class MortgageRepositoryImpl implements MortgageRepository {
     required int size,
     MortgageFilter filter = MortgageFilter.empty,
   }) async {
-    print('[MortgageRepository] Fetching mortgages:');
-    print('  - Page: $page, Size: $size');
-    print('  - Filter: ${filter.toQueryParameters()}');
+    debugPrint('[MortgageRepository] Fetching mortgages:');
+    debugPrint('  - Page: $page, Size: $size');
+    debugPrint('  - Filter: ${filter.toQueryParameters()}');
     
     developer.log(
       'Repository fetching page=$page size=$size filter=${filter.toQueryParameters()}',
@@ -39,14 +41,14 @@ class MortgageRepositoryImpl implements MortgageRepository {
         filter: filter,
       );
       
-      print('[MortgageRepository] API response received:');
-      print('  - Items count: ${result.content.length}');
-      print('  - Page number: ${result.number}');
-      print('  - Total pages: ${result.totalPages}');
-      print('  - Is last: ${result.last}');
+      debugPrint('[MortgageRepository] API response received:');
+      debugPrint('  - Items count: ${result.content.length}');
+      debugPrint('  - Page number: ${result.number}');
+      debugPrint('  - Total pages: ${result.totalPages}');
+      debugPrint('  - Is last: ${result.last}');
       
       if (result.content.isNotEmpty) {
-        print('[MortgageRepository] First item: ${result.content.first.bankName}');
+        debugPrint('[MortgageRepository] First item: ${result.content.first.bankName}');
       }
       
       developer.log(
@@ -57,7 +59,7 @@ class MortgageRepositoryImpl implements MortgageRepository {
       developer.log('Repository returning fresh data', name: 'MortgageRepository');
       
       final entity = result.toEntity();
-      print('[MortgageRepository] Converted to entity: ${entity.items.length} items');
+      debugPrint('[MortgageRepository] Converted to entity: ${entity.items.length} items');
       return entity;
     } on AppException catch (error) {
       developer.log(

@@ -155,7 +155,7 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
                   // Sarlavha
                   Text(
                     'auth.reset_password.title'.tr(),
-                    style: AppTypography.headingXL.copyWith(
+                    style: AppTypography.headingXL(context).copyWith(
                       color: isDark ? AppColors.white : AppColors.black,
                     ),
                   ),
@@ -164,7 +164,7 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
                   // Izoh
                   Text(
                     'auth.reset_password.subtitle'.tr(),
-                    style: AppTypography.bodyPrimary,
+                    style: AppTypography.bodyPrimary(context),
                   ),
 
                   SizedBox(height: AppSpacing.xxl),
@@ -172,7 +172,7 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
                   // 1. Parol Input Label
                   Text(
                     'auth.field.password_label'.tr(),
-                    style: AppTypography.labelSmall,
+                    style: AppTypography.labelSmall(context),
                   ),
                   SizedBox(height: AppSpacing.xs),
 
@@ -191,7 +191,7 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
                   // 2. Parolni tasdiqlash Input Label
                   Text(
                     'auth.field.confirm_password_label'.tr(),
-                    style: AppTypography.labelSmall,
+                    style: AppTypography.labelSmall(context),
                   ),
                   SizedBox(height: AppSpacing.xs),
 
@@ -280,7 +280,9 @@ class _LoginNewPasswordPageState extends State<LoginNewPasswordPage> {
         // Borderlar
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.grayLight, width: 1),
+          borderSide: BorderSide(
+              color: isDark ? AppColors.darkBorder : AppColors.grayLight,
+              width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),

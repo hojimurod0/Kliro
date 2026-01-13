@@ -276,19 +276,46 @@ class RoomType extends Equatable {
   final String? description;
 
   String getDisplayName(String locale) {
-    if (names != null) {
+    if (names != null && names!.isNotEmpty) {
       final variants = _getLocaleVariants(locale);
       for (final variant in variants) {
         if (names!.containsKey(variant)) {
-          return names![variant]!;
+          final displayName = names![variant]!;
+          // Clean HTML tags if present
+          return _stripHtmlTags(displayName);
         }
       }
-      return names!['uz'] ?? 
-             names!['ru'] ?? 
-             names!['en'] ?? 
-             name;
+      // Fallback to common locales
+      final fallback = names!['uz'] ?? 
+                       names!['ru'] ?? 
+                       names!['en'] ?? 
+                       names!.values.firstWhere((v) => v.isNotEmpty, orElse: () => name);
+      return _stripHtmlTags(fallback);
     }
-    return name;
+    return _stripHtmlTags(name);
+  }
+  
+  /// Strips HTML tags from text
+  String _stripHtmlTags(String html) {
+    if (html.isEmpty) return html;
+    
+    // Remove HTML tags using regex
+    String text = html.replaceAll(RegExp(r'<[^>]*>'), '');
+    
+    // Decode HTML entities
+    text = text
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&apos;', "'");
+    
+    // Trim and clean up multiple spaces
+    text = text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    
+    return text;
   }
 
   @override

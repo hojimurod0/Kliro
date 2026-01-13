@@ -11,6 +11,12 @@ class HotelResultsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<HotelBloc, HotelState>(
+      buildWhen: (previous, current) {
+        // Rebuild only on search states to avoid wiping UI when other hotel states emit (photos, room types, etc.)
+        return current is HotelSearchLoading ||
+            current is HotelSearchFailure ||
+            current is HotelSearchSuccess;
+      },
       builder: (context, state) {
         if (state is HotelSearchLoading) {
           return const Scaffold(

@@ -129,12 +129,13 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
       action: () async {
         final tokens = await _completeRegistration(event.params);
         await _persistTokens(tokens);
+        // SECURITY: Password is NOT stored in client
         await _authService.saveProfile(
           AuthUser(
             firstName: event.params.firstName,
             lastName: event.params.lastName,
             contact: event.params.email ?? event.params.phone ?? '',
-            password: event.params.password,
+            password: null, // Password is never stored in client
             email: event.params.email,
             phone: event.params.phone != null && event.params.phone!.isNotEmpty
                 ? AuthService.normalizeContact(event.params.phone!)
@@ -161,6 +162,11 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
       emit,
       flow: RegisterFlow.login,
       action: () async {
+        // ✅ AVVAL ESKI USER MA'LUMOTLARINI TOZALASH
+        AppLogger.debug('🔐 LOGIN: Clearing previous user data...');
+        await _authService.logout(); // Eski ma'lumotlarni tozalash
+        
+        // ✅ YANGI USER LOGIN QILISH
         final tokens = await _loginUser(event.params);
         await _persistTokens(tokens);
         
@@ -176,18 +182,16 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
           AppLogger.debug('🔐 LOGIN: Profile firstName: ${profile.firstName}');
           AppLogger.debug('🔐 LOGIN: Profile lastName: ${profile.lastName}');
           
-          await _cacheProfile(profile);
-          
-          // Password'ni saqlash (login qilganda)
+          // ✅ YANGI USER MA'LUMOTLARINI TO'LIQ SAQLASH (cachedUser'siz)
           final contact = event.params.email ?? event.params.phone ?? '';
-          final cachedUser = await _authService.getStoredUser();
           
+          // SECURITY: Password is NOT stored in client
           final authUser = AuthUser(
             firstName: profile.firstName,
             lastName: profile.lastName,
             contact: profile.email ?? profile.phone ?? contact,
-            password: event.params.password,
-            region: profile.regionName ?? cachedUser?.region,
+            password: null, // Password is never stored in client
+            region: profile.regionName, // cachedUser'siz, to'g'ridan-to'g'ri serverdan
             email: profile.email,
             phone: profile.phone != null && profile.phone!.isNotEmpty
                 ? AuthService.normalizeContact(profile.phone!)
@@ -204,79 +208,50 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
           AppLogger.debug('🔐 LOGIN: AuthUser saved successfully');
         } catch (e) {
           AppLogger.warning('🔐 LOGIN: Failed to load profile from API: $e');
-          // Profile yuklanmasa ham, mavjud ma'lumotlarni saqlash
+          // Profile yuklanmasa ham, minimal ma'lumotlarni saqlash
           final contact = event.params.email ?? event.params.phone ?? '';
-          final cachedUser = await _authService.getStoredUser();
           
-          AppLogger.debug('🔐 LOGIN: Fallback - using cached user or contact');
-          AppLogger.debug('🔐 LOGIN: Contact from login: $contact');
-          AppLogger.debug('🔐 LOGIN: CachedUser exists: ${cachedUser != null}');
-          if (cachedUser != null) {
-            AppLogger.debug('🔐 LOGIN: CachedUser.email: ${cachedUser.email ?? "null"}');
-            AppLogger.debug('🔐 LOGIN: CachedUser.phone: ${cachedUser.phone ?? "null"}');
-            AppLogger.debug('🔐 LOGIN: CachedUser.contact: ${cachedUser.contact}');
-          }
+          // SECURITY: Password is NOT stored in client
+          AppLogger.debug('🔐 LOGIN: Saving minimal AuthUser (contact only)');
+          await _authService.saveProfile(
+            AuthUser(
+              firstName: '',
+              lastName: '',
+              contact: contact,
+              password: null, // Password is never stored in client
+              region: null,
+              email: null,
+              phone: null,
+            ),
+          );
           
-          // Agar cachedUser mavjud bo'lsa va uning ismi bo'lsa, uni saqlash
-          if (cachedUser != null && 
-              cachedUser.firstName.isNotEmpty && 
-              cachedUser.lastName.isNotEmpty) {
+          // Profile'ni keyinroq yuklashga harakat qilish
+          try {
+            AppLogger.debug('🔐 LOGIN: Retrying profile load...');
+            final profile = await _getProfile();
+            AppLogger.debug('🔐 LOGIN: Profile loaded on retry');
+            AppLogger.debug('🔐 LOGIN: Profile email: ${profile.email ?? "null"}');
+            AppLogger.debug('🔐 LOGIN: Profile phone: ${profile.phone ?? "null"}');
+            
+            // SECURITY: Password is NOT stored in client
             final authUser = AuthUser(
-              firstName: cachedUser.firstName,
-              lastName: cachedUser.lastName,
-              contact: contact.isNotEmpty ? contact : cachedUser.contact,
-              password: event.params.password,
-              region: cachedUser.region,
-              email: cachedUser.email,
-              phone: cachedUser.phone,
+              firstName: profile.firstName,
+              lastName: profile.lastName,
+              contact: profile.email ?? profile.phone ?? contact,
+              password: null, // Password is never stored in client
+              region: profile.regionName,
+              email: profile.email,
+              phone: profile.phone != null && profile.phone!.isNotEmpty
+                  ? AuthService.normalizeContact(profile.phone!)
+                  : null,
             );
-            AppLogger.debug('🔐 LOGIN: Saving AuthUser from cached user');
+            AppLogger.debug('🔐 LOGIN: Saving AuthUser from retry');
             AppLogger.debug('🔐 LOGIN: AuthUser.email: ${authUser.email ?? "null"}');
             AppLogger.debug('🔐 LOGIN: AuthUser.phone: ${authUser.phone ?? "null"}');
             await _authService.saveProfile(authUser);
-          } else {
-            // Agar ism yo'q bo'lsa, faqat contact va password'ni saqlash
-            // Keyinroq profile yuklanganda ism qo'shiladi
-            AppLogger.debug('🔐 LOGIN: Saving minimal AuthUser (contact only)');
-            await _authService.saveProfile(
-              AuthUser(
-                firstName: '',
-                lastName: '',
-                contact: contact,
-                password: event.params.password,
-                region: cachedUser?.region,
-                email: null,
-                phone: null,
-              ),
-            );
-            
-            // Profile'ni keyinroq yuklashga harakat qilish
-            try {
-              AppLogger.debug('🔐 LOGIN: Retrying profile load...');
-              final profile = await _getProfile();
-              AppLogger.debug('🔐 LOGIN: Profile loaded on retry');
-              AppLogger.debug('🔐 LOGIN: Profile email: ${profile.email ?? "null"}');
-              AppLogger.debug('🔐 LOGIN: Profile phone: ${profile.phone ?? "null"}');
-              await _cacheProfile(profile);
-              final authUser = AuthUser(
-                firstName: profile.firstName,
-                lastName: profile.lastName,
-                contact: profile.email ?? profile.phone ?? contact,
-                password: event.params.password,
-                region: profile.regionName ?? cachedUser?.region,
-                email: profile.email,
-                phone: profile.phone != null && profile.phone!.isNotEmpty
-                    ? AuthService.normalizeContact(profile.phone!)
-                    : null,
-              );
-              AppLogger.debug('🔐 LOGIN: Saving AuthUser from retry');
-              AppLogger.debug('🔐 LOGIN: AuthUser.email: ${authUser.email ?? "null"}');
-              AppLogger.debug('🔐 LOGIN: AuthUser.phone: ${authUser.phone ?? "null"}');
-              await _authService.saveProfile(authUser);
-            } catch (_) {
-              AppLogger.warning('🔐 LOGIN: Retry also failed, ignoring');
-              // Ikkinchi marta ham yuklanmasa, xatolikni e'tiborsiz qoldirish
-            }
+          } catch (retryError) {
+            AppLogger.error('🔐 LOGIN: Retry also failed: $retryError');
+            // Ikkinchi marta ham yuklanmasa, xatolikni e'tiborsiz qoldirish
           }
         }
         
@@ -322,22 +297,8 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
       action: () async {
         await _resetPassword(event.params);
         
-        // Password o'zgargandan keyin, yangi password'ni saqlash
-        final contact = event.params.email ?? event.params.phone ?? '';
-        final cachedUser = await _authService.getStoredUser();
-        if (cachedUser != null) {
-          await _authService.saveProfile(
-            AuthUser(
-              firstName: cachedUser.firstName,
-              lastName: cachedUser.lastName,
-              contact: contact.isNotEmpty ? contact : cachedUser.contact,
-              password: event.params.password,
-              region: cachedUser.region,
-              email: cachedUser.email,
-              phone: cachedUser.phone,
-            ),
-          );
-        }
+        // SECURITY: Password is NOT stored in client after reset
+        // Profile remains unchanged, only server has the new password
         
         emit(
           state.copyWith(
@@ -393,7 +354,7 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
               firstName: profile.firstName,
               lastName: profile.lastName,
               contact: profile.email ?? profile.phone ?? '',
-              password: '', // Google login uchun password bo'lmaydi
+              password: null, // Google OAuth users don't have passwords
               region: profile.regionName,
               email: profile.email,
               phone: profile.phone != null && profile.phone!.isNotEmpty
@@ -408,7 +369,7 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
               firstName: event.params.firstName,
               lastName: event.params.lastName,
               contact: '',
-              password: '', // Google login uchun password bo'lmaydi
+              password: null, // Google OAuth users don't have passwords
               region: null,
               email: null,
               phone: null,
@@ -591,11 +552,12 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
 
   Future<void> _cacheProfile(UserProfile profile) async {
     final cachedUser = await _authService.getStoredUser();
+    // SECURITY: Password is NOT stored in client
     final authUser = AuthUser(
       firstName: profile.firstName,
       lastName: profile.lastName,
       contact: profile.email ?? profile.phone ?? cachedUser?.contact ?? '',
-      password: cachedUser?.password ?? '',
+      password: null, // Password is never stored in client
       region: profile.regionName ?? cachedUser?.region,
       email: profile.email,
       phone: profile.phone != null && profile.phone!.isNotEmpty

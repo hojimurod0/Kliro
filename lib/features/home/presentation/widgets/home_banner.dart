@@ -45,10 +45,10 @@ class HomeBanner extends StatelessWidget {
             child: ColorFiltered(
               // Rasmni yoritish va rangini kuchaytirish uchun ColorFilter
               colorFilter: ColorFilter.matrix([
-                1.6, 0, 0, 0, 0,    // Red channel - juda kuchaytirilgan
-                0, 1.6, 0, 0, 0,    // Green channel - juda kuchaytirilgan
-                0, 0, 1.6, 0, 0,    // Blue channel - juda kuchaytirilgan
-                0, 0, 0, 1, 0.4,    // Alpha va brightness juda oshirilgan
+                1.7, 0, 0, 0, 0,    // Red channel - kuchaytirilgan
+                0, 1.7, 0, 0, 0,    // Green channel - kuchaytirilgan
+                0, 0, 1.7, 0, 0,    // Blue channel - kuchaytirilgan
+                0, 0, 0, 1, 0.7,    // Alpha va brightness yanada oshirilgan
               ]),
               child: Image.asset(
                 'assets/images/homebannerr.png',
@@ -85,7 +85,7 @@ class HomeBanner extends StatelessWidget {
                 end: Alignment.bottomCenter,
                 colors: [
                   AppColors.black.withOpacity(0.0),  // Yuqorida gradient yo'q
-                  AppColors.black.withOpacity(0.15),  // Pastda minimal gradient
+                  AppColors.black.withOpacity(0.08),  // Pastda minimal gradient (qorong'iroq kamaytirildi)
                 ],
               ),
             ),
@@ -99,7 +99,7 @@ class HomeBanner extends StatelessWidget {
                 const Spacer(),
                 Text(
                   'home.banner.title'.tr(),
-                  style: AppTypography.headingXL.copyWith(
+                  style: AppTypography.headingXL(context).copyWith(
                     color: AppColors.white,
                   ),
                   key: ValueKey('title_${locale.toString()}'),
@@ -107,7 +107,7 @@ class HomeBanner extends StatelessWidget {
                 SizedBox(height: 4.h),
                 Text(
                   'home.banner.subtitle'.tr(),
-                  style: AppTypography.bodyPrimary.copyWith(
+                  style: AppTypography.bodyPrimary(context).copyWith(
                     color: AppColors.white.withOpacity(0.8),
                     fontSize: 14.sp,
                   ),
@@ -152,7 +152,7 @@ class _BannerChip extends StatelessWidget {
           Text(
             'home.banner.travel'.tr(),
             key: ValueKey('travel_${locale.toString()}'),
-            style: AppTypography.labelSmall.copyWith(
+            style: AppTypography.labelSmall(context).copyWith(
               color: AppColors.white,
               fontSize: 10.sp,
               fontWeight: FontWeight.bold,
@@ -168,33 +168,80 @@ class _BannerChip extends StatelessWidget {
 class _BannerButton extends StatelessWidget {
   const _BannerButton({super.key});
 
+  void _showComingSoonDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? AppColors.darkCardBg : AppColors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        title: Text(
+          'common.coming_soon_title'.tr(),
+          style: AppTypography.headingL(context).copyWith(
+            fontSize: 20.sp,
+          ),
+        ),
+        content: Text(
+          'common.coming_soon_message'.tr(),
+          style: AppTypography.bodyPrimary(context).copyWith(
+            fontSize: 14.sp,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primaryBlue,
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            ),
+            child: Text(
+              'common.close'.tr(),
+              style: AppTypography.buttonPrimary(context).copyWith(
+                fontSize: 16.sp,
+                color: AppColors.primaryBlue,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Locale o'zgarganda rebuild qilish uchun
     final locale = context.locale;
 
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
-      decoration: BoxDecoration(
-        color: AppColors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(30.r),
-        border: Border.all(color: AppColors.white.withOpacity(0.4)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'home.banner.book'.tr(),
-            key: ValueKey('book_${locale.toString()}'),
-            style: AppTypography.bodyPrimary.copyWith(
-              color: AppColors.white,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
+    return GestureDetector(
+      onTap: () {
+        _showComingSoonDialog(context);
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          color: AppColors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(30.r),
+          border: Border.all(color: AppColors.white.withOpacity(0.4)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'home.banner.book'.tr(),
+              key: ValueKey('book_${locale.toString()}'),
+              style: AppTypography.bodyPrimary(context).copyWith(
+                color: AppColors.white,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          SizedBox(width: 8.w),
-          Icon(Icons.arrow_forward, color: AppColors.white, size: 18.sp),
-        ],
+            SizedBox(width: 8.w),
+            Icon(Icons.arrow_forward, color: AppColors.white, size: 18.sp),
+          ],
+        ),
       ),
     );
   }

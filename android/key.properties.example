@@ -1,0 +1,9 @@
+# Release keystore ma'lumotlari
+# Bu faylni key.properties nomi bilan nusxalab, haqiqiy ma'lumotlarni kiriting
+# Eslatma: key.properties fayli .gitignore da, shuning uchun GitHub ga yuklanmaydi
+
+storePassword=your_store_password_here
+keyPassword=your_key_password_here
+keyAlias=kliro
+storeFile=app/kliro-release-key.jks
+

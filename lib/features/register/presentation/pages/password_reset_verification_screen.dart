@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -115,12 +116,12 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
         if (!mounted) return;
         setState(() => _isLoading = false);
 
-        print("Tasdiqlangan kod: $code");
+        debugPrint("Tasdiqlangan kod: $code");
         // Muvaffaqiyatli o'tish
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Kod to'g'ri!"),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: Text('auth.verification.snack_success'.tr()),
+            backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
         // Navigator.pushNamed(context, '/reset-password');
@@ -139,9 +140,9 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
     _focusNodes[0].requestFocus();
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Kod qayta yuborildi"),
-        backgroundColor: Colors.blue,
+      SnackBar(
+        content: Text('auth.verification.snack_resent'.tr()),
+        backgroundColor: Theme.of(context).colorScheme.primary,
       ),
     );
   }
@@ -169,11 +170,13 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
 
               // Sarlavha
               Text(
-                "Kodni tasdiqlash",
+                'auth.verification.title_reset'.tr(),
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).brightness == Brightness.dark ? AppColors.white : AppColors.black,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.white
+                      : AppColors.black,
                 ),
               ),
               const SizedBox(height: 10),
@@ -191,11 +194,13 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
                       text: widget.contactInfo,
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
-                        color: Theme.of(context).brightness == Brightness.dark ? AppColors.white : AppColors.black,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.white
+                            : AppColors.black,
                       ),
                     ),
-                    const TextSpan(
-                      text: " ga yuborilgan 6 xonali kodni kiriting.",
+                    TextSpan(
+                      text: 'auth.verification.subtitle_after'.tr(),
                     ),
                   ],
                 ),
@@ -223,7 +228,7 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
                     ? TextButton.icon(
                         onPressed: _resendCode,
                         icon: const Icon(Icons.refresh, size: 18),
-                        label: const Text("Kodni qayta yuborish"),
+                        label: Text('auth.verification.resend'.tr()),
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.primaryBlue,
                         ),
@@ -315,7 +320,9 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
           color: isDark ? AppColors.darkCardBg : AppColors.white,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
-            color: isDark ? AppColors.darkBorder : AppColors.grayBorder.withOpacity(0.5),
+            color: isDark
+                ? AppColors.darkBorder
+                : AppColors.grayBorder.withOpacity(0.5),
             width: 1.w,
           ),
           boxShadow: [

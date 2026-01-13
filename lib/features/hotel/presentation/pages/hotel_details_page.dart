@@ -1,20 +1,22 @@
 import 'dart:convert';
-import 'dart:ui' as ui;
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import '../../domain/entities/hotel.dart';
 import '../../domain/entities/reference_data.dart';
 import '../bloc/hotel_bloc.dart';
 import '../widgets/hotel_photos_gallery.dart';
+import '../widgets/hotel_map_widget.dart';
 import 'hotel_booking_page.dart';
 
 class HotelDetailsPage extends StatefulWidget {
@@ -31,17 +33,25 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
   HotelOption? _selectedOption;
   bool _isDescriptionExpanded = false; // Состояние для раскрытия описания
   late TabController _tabController; // Контроллер для табов
+  // Map to store selected room count for each option (optionRefId -> room count)
+  final Map<String, int> _selectedRoomCounts = {};
 
   // State cache - oldingi state'larni saqlash
   List<HotelPhoto> _cachedPhotos = [];
   List<Facility> _cachedFacilities = [];
   List<ServiceInRoom> _cachedServices = [];
   List<RoomType> _cachedRoomTypes = [];
+  List<NearbyPlace> _cachedNearbyPlaces = [];
+  List<HotelPhoto> _cachedRoomPhotos = [];
+  List<Equipment> _cachedEquipment = []; // Hotel'ning barcha room type'laridagi equipment'lar
 
   bool _isLoadingPhotos = false;
   bool _isLoadingFacilities = false;
   bool _isLoadingServices = false;
   bool _isLoadingRoomTypes = false;
+  bool _isLoadingNearbyPlaces = false;
+  bool _isLoadingRoomPhotos = false;
+  bool _isLoadingEquipment = false;
 
   @override
   void initState() {
@@ -64,6 +74,7 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
       context.read<HotelBloc>().add(GetHotelFacilitiesRequested(hotelId));
       context.read<HotelBloc>().add(GetHotelRoomTypesRequested(hotelId));
       context.read<HotelBloc>().add(GetHotelServicesInRoomRequested(hotelId));
+      context.read<HotelBloc>().add(GetHotelNearbyPlacesRequested(hotelId));
     });
   }
 
@@ -123,6 +134,10 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
             _cachedServices = state.services;
             _isLoadingServices = false;
             needsUpdate = true;
+            // Log success for debugging
+            if (kDebugMode) {
+              debugPrint('✅ Hotel Services In Room Success: Found ${state.services.length} services');
+            }
           }
         } else if (state is HotelHotelServicesInRoomLoading) {
           if (!_isLoadingServices) {
@@ -134,6 +149,10 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
             _isLoadingServices = false;
             needsUpdate = true;
           }
+          // Log error for debugging
+          if (kDebugMode) {
+            debugPrint('❌ Hotel Services In Room Error: ${state.message}');
+          }
         }
 
         if (state is HotelRoomTypesSuccess) {
@@ -141,6 +160,22 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
             _cachedRoomTypes = state.roomTypes;
             _isLoadingRoomTypes = false;
             needsUpdate = true;
+            // Load room photos and equipment for all room types
+            if (state.roomTypes.isNotEmpty) {
+              final hotelId = widget.hotel.hotelId;
+              for (final roomType in state.roomTypes) {
+                context.read<HotelBloc>().add(
+                  GetHotelRoomPhotosRequested(
+                    hotelId: hotelId,
+                    roomTypeId: roomType.id,
+                  ),
+                );
+                // Load equipment for each room type
+                context.read<HotelBloc>().add(
+                  GetRoomTypeEquipmentRequested(roomType.id),
+                );
+              }
+            }
           }
         } else if (state is HotelRoomTypesLoading) {
           if (!_isLoadingRoomTypes) {
@@ -150,6 +185,72 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
         } else if (state is HotelRoomTypesFailure) {
           if (_isLoadingRoomTypes) {
             _isLoadingRoomTypes = false;
+            needsUpdate = true;
+          }
+          // Show error message to user
+          if (mounted) {
+            SnackbarHelper.showError(context, state.message);
+          }
+        }
+
+        // Handle Room Type Equipment
+        if (state is HotelRoomTypeEquipmentSuccess) {
+          // Aggregate equipment from all room types (unique by id)
+          final existingIds = _cachedEquipment.map((e) => e.id).toSet();
+          final newEquipment = state.equipment
+              .where((e) => !existingIds.contains(e.id))
+              .toList();
+          if (newEquipment.isNotEmpty || _isLoadingEquipment) {
+            _cachedEquipment = [..._cachedEquipment, ...newEquipment];
+            _isLoadingEquipment = false;
+            needsUpdate = true;
+          }
+        } else if (state is HotelRoomTypeEquipmentLoading) {
+          if (!_isLoadingEquipment) {
+            _isLoadingEquipment = true;
+            needsUpdate = true;
+          }
+        } else if (state is HotelRoomTypeEquipmentFailure) {
+          if (_isLoadingEquipment) {
+            _isLoadingEquipment = false;
+            needsUpdate = true;
+          }
+        }
+
+        // Handle Nearby Places
+        if (state is HotelNearbyPlacesSuccess) {
+          if (_cachedNearbyPlaces != state.places || _isLoadingNearbyPlaces) {
+            _cachedNearbyPlaces = state.places;
+            _isLoadingNearbyPlaces = false;
+            needsUpdate = true;
+          }
+        } else if (state is HotelNearbyPlacesLoading) {
+          if (!_isLoadingNearbyPlaces) {
+            _isLoadingNearbyPlaces = true;
+            needsUpdate = true;
+          }
+        } else if (state is HotelNearbyPlacesFailure) {
+          if (_isLoadingNearbyPlaces) {
+            _isLoadingNearbyPlaces = false;
+            needsUpdate = true;
+          }
+        }
+
+        // Handle Room Photos
+        if (state is HotelRoomPhotosSuccess) {
+          if (_cachedRoomPhotos != state.photos || _isLoadingRoomPhotos) {
+            _cachedRoomPhotos = state.photos;
+            _isLoadingRoomPhotos = false;
+            needsUpdate = true;
+          }
+        } else if (state is HotelRoomPhotosLoading) {
+          if (!_isLoadingRoomPhotos) {
+            _isLoadingRoomPhotos = true;
+            needsUpdate = true;
+          }
+        } else if (state is HotelRoomPhotosFailure) {
+          if (_isLoadingRoomPhotos) {
+            _isLoadingRoomPhotos = false;
             needsUpdate = true;
           }
         }
@@ -166,11 +267,17 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
           final hotelFacilities = _cachedFacilities;
           final servicesInRoom = _cachedServices;
           final roomTypes = _cachedRoomTypes;
+          final nearbyPlaces = _cachedNearbyPlaces;
+          final roomPhotos = _cachedRoomPhotos;
+          final hotelEquipment = _cachedEquipment;
 
           final isLoadingPhotos = _isLoadingPhotos;
           final isLoadingFacilities = _isLoadingFacilities;
           final isLoadingServices = _isLoadingServices;
           final isLoadingRoomTypes = _isLoadingRoomTypes;
+          final isLoadingNearbyPlaces = _isLoadingNearbyPlaces;
+          final isLoadingRoomPhotos = _isLoadingRoomPhotos;
+          final isLoadingEquipment = _isLoadingEquipment;
 
           // Agar hotel.imageUrl bo'sh bo'lsa va rasmlar yuklangan bo'lsa, default rasmni ishlatamiz
           final displayImageUrl = hotel.imageUrl?.isNotEmpty == true
@@ -185,7 +292,7 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                 return [
                   SliverAppBar(
                     expandedHeight:
-                        280.h, // Compacted header height
+                        360.h, // Taller header so image is fully visible
                     floating: false,
                     pinned: true,
                     elevation: 0,
@@ -204,118 +311,136 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.vertical(
-                        bottom: Radius.circular(24.r),
+                        bottom: Radius.circular(32.r),
                       ),
                     ),
                     flexibleSpace: FlexibleSpaceBar(
                       collapseMode: CollapseMode.parallax,
-                      background: ClipRRect(
-                        borderRadius: BorderRadius.vertical(
-                          bottom: Radius.circular(24.r),
+                      background: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.vertical(
+                            bottom: Radius.circular(32.r),
+                          ),
+                          border: Border.all(
+                            color:
+                                Theme.of(context).dividerColor.withOpacity(0.3),
+                            width: 1,
+                          ),
                         ),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            CachedNetworkImage(
-                              imageUrl: displayImageUrl,
-                              fit: BoxFit.cover,
-                              memCacheWidth: 1200,
-                              memCacheHeight: 800,
-                              placeholder: (context, url) => Container(
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.grey[800]
-                                    : Colors.grey[300],
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.grey[600],
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.vertical(
+                            bottom: Radius.circular(32.r),
+                          ),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              CachedNetworkImage(
+                                imageUrl: displayImageUrl,
+                                fit: BoxFit.cover,
+                                memCacheWidth: 1200,
+                                memCacheHeight: 800,
+                                placeholder: (context, url) => Container(
+                                  color: Theme.of(context).cardColor,
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                                errorWidget: (context, url, error) => Container(
+                                  color: Theme.of(context).cardColor,
+                                  child: Icon(
+                                    Icons.image_not_supported,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.5),
                                   ),
                                 ),
                               ),
-                              errorWidget: (context, url, error) => Container(
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.grey[800]
-                                    : Colors.grey[300],
-                                child: Icon(
-                                  Icons.image_not_supported,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ),
-                            // Gradient overlay for better text visibility if needed
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.black.withOpacity(0.2),
-                                    Colors.transparent,
-                                    Colors.black.withOpacity(0.4),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            // Gallery button
-                            Positioned(
-                              bottom: 16.h,
-                              right: 16.w,
-                              child: GestureDetector(
-                                onTap: () {
-                                  final photos = hotelPhotos.isNotEmpty
-                                      ? hotelPhotos.map((p) => p.url).toList()
-                                      : [displayImageUrl];
-                                  if (photos.isNotEmpty) {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            HotelPhotosGallery(
-                                          photoUrls: photos,
-                                          initialIndex: 0,
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 12.w, vertical: 8.h),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.6),
-                                    borderRadius: BorderRadius.circular(20.r),
-                                    border: Border.all(
-                                        color: Colors.white.withOpacity(0.3)),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.photo_library_rounded,
-                                          color: Colors.white, size: 16.sp),
-                                      SizedBox(width: 6.w),
-                                      Text(
-                                        '${hotelPhotos.length}',
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold),
-                                      ),
+                              // Gradient overlay for better text visibility if needed
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.black.withOpacity(0.2),
+                                      Colors.transparent,
+                                      Colors.black.withOpacity(0.4),
                                     ],
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                              // Gallery button
+                              Positioned(
+                                bottom: 16.h,
+                                right: 16.w,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    final photos = hotelPhotos.isNotEmpty
+                                        ? hotelPhotos.map((p) => p.url).toList()
+                                        : [displayImageUrl];
+                                    if (photos.isNotEmpty) {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              HotelPhotosGallery(
+                                            photoUrls: photos,
+                                            initialIndex: 0,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 12.w, vertical: 8.h),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.black.withOpacity(0.7)
+                                          : Colors.black.withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(20.r),
+                                      border: Border.all(
+                                          color: Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.white.withOpacity(0.2)
+                                              : Colors.white.withOpacity(0.3)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.photo_library_rounded,
+                                            color: Colors.white, size: 16.sp),
+                                        SizedBox(width: 6.w),
+                                        Text(
+                                          '${hotelPhotos.length}',
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                    bottom: PreferredSize(
-                      preferredSize:
-                          Size.fromHeight(56.h), // Compact Title + TabBar
+                  ),
+                  SliverToBoxAdapter(
+                    child: SafeArea(
+                      top: false,
+                      bottom: false,
                       child: Container(
                         decoration: BoxDecoration(
                           color: Theme.of(context).scaffoldBackgroundColor,
                           borderRadius: BorderRadius.vertical(
-                            bottom: Radius.circular(24.r),
+                            bottom: Radius.circular(32.r),
                           ),
                         ),
                         child: Column(
@@ -324,7 +449,7 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                             // Hotel Title and Location
                             Padding(
                               padding:
-                                  EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 4.h),
+                                  EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 8.h),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -336,7 +461,7 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                                         child: Text(
                                           hotel.name,
                                           style:
-                                              AppTypography.headingL.copyWith(
+                                              AppTypography.headingL(context).copyWith(
                                             fontSize: 20.sp,
                                             color: Theme.of(context)
                                                 .textTheme
@@ -354,21 +479,27 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                                           padding: EdgeInsets.symmetric(
                                               horizontal: 8.w, vertical: 4.h),
                                           decoration: BoxDecoration(
-                                            color: Theme.of(context).colorScheme.tertiary,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .tertiary,
                                             borderRadius:
                                                 BorderRadius.circular(12.r),
                                           ),
                                           child: Row(
                                             children: [
                                               Icon(Icons.star_rounded,
-                                                  color: Theme.of(context).colorScheme.onTertiary,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onTertiary,
                                                   size: 14.sp),
                                               SizedBox(width: 4.w),
                                               Text(
                                                 hotel.rating!
                                                     .toStringAsFixed(1),
                                                 style: TextStyle(
-                                                    color: Theme.of(context).colorScheme.onTertiary,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onTertiary,
                                                     fontSize: 12.sp,
                                                     fontWeight:
                                                         FontWeight.bold),
@@ -382,8 +513,12 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                                   SizedBox(height: 6.h),
                                   Text(
                                     hotel.address,
-                                    style: AppTypography.bodySecondary.copyWith(
-                                        color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7)),
+                                    style: AppTypography.bodySecondary(context).copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withOpacity(0.7),
+                                    ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -391,24 +526,59 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                               ),
                             ),
                             // TabBar
-                            TabBar(
-                              controller: _tabController,
-                              isScrollable: true,
-                              labelColor: Theme.of(context).colorScheme.primary,
-                              unselectedLabelColor: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
-                              indicatorColor: Theme.of(context).colorScheme.primary,
-                              indicatorSize: TabBarIndicatorSize.label,
-                              dividerColor: Theme.of(context).dividerColor,
-                              labelStyle:
-                                  TextStyle(fontWeight: FontWeight.bold),
-                              tabs: [
-                                Tab(text: 'hotel.details.tab_description'.tr()),
-                                Tab(
-                                    text:
-                                        'hotel.details.tab_availability'.tr()),
-                                Tab(text: 'hotel.details.tab_services'.tr()),
-                                Tab(text: 'hotel.details.tab_conditions'.tr()),
-                              ],
+                            Container(
+                              margin: EdgeInsets.symmetric(horizontal: 16.w),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .cardColor
+                                    .withOpacity(0.95),
+                                borderRadius: BorderRadius.circular(16.r),
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.all(4.w),
+                                child: TabBar(
+                                  controller: _tabController,
+                                  isScrollable: false,
+                                  labelColor:
+                                      Theme.of(context).colorScheme.primary,
+                                  unselectedLabelColor: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.color
+                                      ?.withOpacity(0.6),
+                                  indicatorColor: Colors.transparent,
+                                  indicatorSize: TabBarIndicatorSize.tab,
+                                  dividerColor: Colors.transparent,
+                                  indicator: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12.r),
+                                  ),
+                                  labelStyle: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11.sp,
+                                  ),
+                                  unselectedLabelStyle: TextStyle(
+                                    fontSize: 11.sp,
+                                  ),
+                                  tabs: [
+                                    Tab(
+                                        text: 'hotel.details.tab_description'
+                                            .tr()),
+                                    Tab(
+                                        text: 'hotel.details.tab_availability'
+                                            .tr()),
+                                    Tab(
+                                        text:
+                                            'hotel.details.tab_services'.tr()),
+                                    Tab(
+                                        text: 'hotel.details.tab_conditions'
+                                            .tr()),
+                                  ],
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -417,96 +587,27 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                   ),
                 ];
               },
-
               body: TabBarView(
                 controller: _tabController,
                 children: [
                   // Таб 1: Описание (с картой)
                   _buildDescriptionTab(hotel, hotelPhotos, hotelFacilities,
-                      isLoadingFacilities, servicesInRoom, isLoadingServices),
+                      isLoadingFacilities, servicesInRoom, isLoadingServices,
+                      nearbyPlaces, isLoadingNearbyPlaces, hotelEquipment, isLoadingEquipment),
                   // Таб 2: Доступность (комнаты)
-                  _buildAvailabilityTab(hotel, roomTypes, isLoadingRoomTypes),
+                  _buildAvailabilityTab(hotel, roomTypes, isLoadingRoomTypes,
+                      roomPhotos, isLoadingRoomPhotos),
                   // Таб 3: Услуги (фотографии)
                   _buildServicesTab(hotelPhotos, isLoadingPhotos,
-                      hotelFacilities, isLoadingFacilities),
+                      hotelFacilities, isLoadingFacilities, hotelEquipment, isLoadingEquipment),
                   // Таб 4: Условия
                   _buildConditionsTab(hotel),
                 ],
               ),
             ),
 
-            // Bottom sheet для бронирования
-            bottomNavigationBar: _selectedOption != null ||
-                    (hotel.options != null && hotel.options!.isNotEmpty)
-                ? Container(
-                    padding: EdgeInsets.all(16.w),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      boxShadow: [
-                        BoxShadow(
-                          color:
-                              Theme.of(context).shadowColor.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, -4),
-                        ),
-                      ],
-                    ),
-                    child: SafeArea(
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'hotel.booking_details.total_amount'.tr(),
-                                  style: TextStyle(
-                                      color: Colors.grey, fontSize: 12.sp),
-                                ),
-                                Text(
-                                  () {
-                                    final code = (_selectedOption?.currency ?? 'UZS').toUpperCase();
-                                    return NumberFormat.simpleCurrency(name: code).format(_selectedOption?.price ?? hotel.price ?? 0);
-                                  }(),
-                                  style: TextStyle(
-                                      fontSize: 20.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.primary),
-                                ),
-                              ],
-                            ),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => HotelBookingPage(
-                                    hotel: hotel,
-                                    selectedOption: _selectedOption,
-                                  ),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(context).colorScheme.primary,
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 24.w, vertical: 12.h),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.r),
-                              ),
-                            ),
-                            child: Text(
-                              'hotel.details.book_now'.tr(),
-                              style: TextStyle(
-                                  fontSize: 16.sp, color: Theme.of(context).colorScheme.onPrimary),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : null,
+            // Bottom bar для бронирования с total amount
+            bottomNavigationBar: _buildBottomBar(hotel, roomTypes),
           );
         },
       ),
@@ -521,10 +622,16 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
     bool isLoadingFacilities,
     List<ServiceInRoom> servicesInRoom,
     bool isLoadingServices,
+    List<NearbyPlace> nearbyPlaces,
+    bool isLoadingNearbyPlaces,
+    List<Equipment> hotelEquipment,
+    bool isLoadingEquipment,
   ) {
     // Fallback to hotel.amenities if structured facilities are missing
     var displayFacilities = hotelFacilities.cast<dynamic>();
-    if (displayFacilities.isEmpty && hotel.amenities != null && hotel.amenities!.isNotEmpty) {
+    if (displayFacilities.isEmpty &&
+        hotel.amenities != null &&
+        hotel.amenities!.isNotEmpty) {
       displayFacilities = hotel.amenities!.cast<dynamic>();
     }
     return SingleChildScrollView(
@@ -542,7 +649,7 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
 
           // Hotel Services (Mehmonxonadagi xizmatlar)
           if (servicesInRoom.isNotEmpty || isLoadingServices) ...[
-            _buildServicesSection('Mehmonxonadagi xizmatlar',
+            _buildServicesSection('hotel.details.services_in_room'.tr(),
                 servicesInRoom.cast<dynamic>(), isLoadingServices),
             SizedBox(height: 24.h),
           ] else ...[
@@ -553,23 +660,33 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Theme.of(context).dividerColor
+                      : Colors.grey.shade300,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'hotel.details.no_services'.tr(),
-                    style: TextStyle(fontSize: 14.sp, color: Colors.grey[700]),
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.75),
+                    ),
                   ),
                   SizedBox(height: 8.h),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: OutlinedButton.icon(
                       onPressed: () {
-                        context
-                            .read<HotelBloc>()
-                            .add(GetHotelServicesInRoomRequested(widget.hotel.hotelId));
+                        context.read<HotelBloc>().add(
+                            GetHotelServicesInRoomRequested(
+                                widget.hotel.hotelId));
                       },
                       icon: Icon(Icons.refresh),
                       label: Text('hotel.common.retry'.tr()),
@@ -580,10 +697,11 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
             ),
           ],
 
-          // Hotel Facilities (Mehmonxona imkoniyatlari)
+          // Hotel Facilities (Mehmonxona imkoniyatlari - Xizmatlar)
           if (displayFacilities.isNotEmpty || isLoadingFacilities) ...[
-            _buildServicesSection('Mehmonxona imkoniyatlari',
-                displayFacilities, isLoadingFacilities),
+            _buildServicesSection('hotel.details.hotel_facilities'.tr(), displayFacilities,
+                isLoadingFacilities),
+            SizedBox(height: 24.h),
           ] else ...[
             Container(
               width: double.infinity,
@@ -591,23 +709,32 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Theme.of(context).dividerColor
+                      : Colors.grey.shade300,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'hotel.details.no_facilities'.tr(),
-                    style: TextStyle(fontSize: 14.sp, color: Colors.grey[700]),
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.75),
+                    ),
                   ),
                   SizedBox(height: 8.h),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: OutlinedButton.icon(
                       onPressed: () {
-                        context
-                            .read<HotelBloc>()
-                            .add(GetHotelFacilitiesRequested(widget.hotel.hotelId));
+                        context.read<HotelBloc>().add(
+                            GetHotelFacilitiesRequested(widget.hotel.hotelId));
                       },
                       icon: Icon(Icons.refresh),
                       label: Text('hotel.common.retry'.tr()),
@@ -616,6 +743,7 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                 ],
               ),
             ),
+            SizedBox(height: 24.h),
           ],
         ],
       ),
@@ -625,18 +753,350 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
   // Универсальный виджет для секции услуг/удобств
   Widget _buildServicesSection(
       String title, List<dynamic> items, bool isLoading) {
-    if (isLoading) return const Center(child: CircularProgressIndicator());
+    if (isLoading) return _buildSectionSkeleton(title);
     if (items.isEmpty) return SizedBox.shrink();
 
-    // Limit to 6 items if there are too many, or maybe all
+    // Limit to 8 items on the card; modal shows all
     final displayItems = items;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
+          '$title (${items.length})',
+          style: AppTypography.headingL(context).copyWith(
+            fontSize: 18.sp,
+            color: Theme.of(context).textTheme.titleLarge?.color ??
+                Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        SizedBox(height: 12.h),
+        Container(
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Theme.of(context).dividerColor
+                  : Colors.grey.shade300,
+            ),
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final maxWidth = constraints.maxWidth;
+              final itemWidth =
+                  (maxWidth - 12.w) / 2; // two items per row with spacing
+              final itemsToShow = displayItems.length > 8
+                  ? displayItems.take(8).toList()
+                  : displayItems;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 12.w,
+                    runSpacing: 12.h,
+                    children: itemsToShow.map((item) {
+                      String name = '';
+                      String? iconName;
+
+                      if (item is Facility) {
+                        final locale = _normalizeLocale(context.locale);
+                        name = item.getDisplayName(locale);
+                        // Fallback if name is empty
+                        if (name.isEmpty) {
+                          name = item.name.isNotEmpty 
+                              ? item.name 
+                              : 'Facility ${item.id}';
+                        }
+                        iconName = item.icon;
+                      } else if (item is Equipment) {
+                        final locale = _normalizeLocale(context.locale);
+                        name = item.getDisplayName(locale);
+                        // Fallback if name is empty
+                        if (name.isEmpty) {
+                          name = item.name.isNotEmpty 
+                              ? item.name 
+                              : 'Equipment ${item.id}';
+                        }
+                        iconName = item.icon;
+                      } else if (item is ServiceInRoom) {
+                        final locale = _normalizeLocale(context.locale);
+                        name = item.getDisplayName(locale);
+                        // Fallback if name is empty
+                        if (name.isEmpty) {
+                          name = item.name.isNotEmpty 
+                              ? item.name 
+                              : 'Service ${item.id}';
+                        }
+                        iconName = item.icon;
+                      } else if (item is String) {
+                        name = item.isNotEmpty ? item : 'Unknown';
+                      } else if (item is Map) {
+                        // Handle Map items (from API response)
+                        name = item['name']?.toString() ?? 
+                               item['name_uz']?.toString() ?? 
+                               item['name_ru']?.toString() ?? 
+                               item['name_en']?.toString() ?? 
+                               item['title']?.toString() ?? 
+                               item['label']?.toString() ?? 
+                               'Unknown';
+                        iconName = item['icon']?.toString();
+                      } else {
+                        name = item.toString();
+                      }
+
+                      final nameLower = name.toLowerCase();
+                      final icon = _mapAmenityIcon(iconName, nameLower);
+
+                      return ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: itemWidth),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              icon,
+                              size: 20.sp,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withOpacity(0.7),
+                            ),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: Text(
+                                name,
+                                style: TextStyle(
+                                  fontSize: 13.sp,
+                                  color: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.color ??
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  if (displayItems.length > 8) ...[
+                    SizedBox(height: 12.h),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: InkWell(
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(16.r)),
+                            ),
+                            builder: (ctx) {
+                              return SafeArea(
+                                child: Container(
+                                  constraints: BoxConstraints(
+                                    maxHeight: MediaQuery.of(context).size.height * 0.9,
+                                  ),
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16.w),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                title,
+                                                style: AppTypography.headingL(context)
+                                                    .copyWith(
+                                                  fontSize: 18.sp,
+                                                  color: Theme.of(context)
+                                                          .textTheme
+                                                          .titleLarge
+                                                          ?.color ??
+                                                      Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface,
+                                                ),
+                                              ),
+                                            ),
+                                            IconButton(
+                                              onPressed: () =>
+                                                  Navigator.of(ctx).pop(),
+                                              icon: Icon(Icons.close),
+                                            )
+                                          ],
+                                        ),
+                                        SizedBox(height: 12.h),
+                                        Flexible(
+                                          child: LayoutBuilder(
+                                            builder: (context, constraints) {
+                                              // Calculate number of columns based on screen width
+                                              // For mobile: 2 columns, for tablet: 3-5 columns
+                                              final screenWidth = constraints.maxWidth;
+                                              int crossAxisCount = 2;
+                                              if (screenWidth > 600) {
+                                                crossAxisCount = 3;
+                                              }
+                                              if (screenWidth > 900) {
+                                                crossAxisCount = 4;
+                                              }
+                                              if (screenWidth > 1200) {
+                                                crossAxisCount = 5;
+                                              }
+                                              
+                                              return GridView.builder(
+                                                shrinkWrap: true,
+                                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                                  crossAxisCount: crossAxisCount,
+                                                  crossAxisSpacing: 12.w,
+                                                  mainAxisSpacing: 12.h,
+                                                  childAspectRatio: 4.0, // Adjust based on content
+                                                ),
+                                                itemCount: displayItems.length,
+                                          itemBuilder: (context, index) {
+                                            final item = displayItems[index];
+                                            String name = '';
+                                            String? iconName;
+                                            if (item is Facility) {
+                                              final locale = _normalizeLocale(context.locale);
+                                              name = item.getDisplayName(locale);
+                                              // Fallback if name is empty
+                                              if (name.isEmpty) {
+                                                name = item.name.isNotEmpty 
+                                                    ? item.name 
+                                                    : 'Facility ${item.id}';
+                                              }
+                                              iconName = item.icon;
+                                            } else if (item is Equipment) {
+                                              final locale = _normalizeLocale(context.locale);
+                                              name = item.getDisplayName(locale);
+                                              // Fallback if name is empty
+                                              if (name.isEmpty) {
+                                                name = item.name.isNotEmpty 
+                                                    ? item.name 
+                                                    : 'Equipment ${item.id}';
+                                              }
+                                              iconName = item.icon;
+                                            } else if (item is ServiceInRoom) {
+                                              final locale = _normalizeLocale(context.locale);
+                                              name = item.getDisplayName(locale);
+                                              // Fallback if name is empty
+                                              if (name.isEmpty) {
+                                                name = item.name.isNotEmpty 
+                                                    ? item.name 
+                                                    : 'Service ${item.id}';
+                                              }
+                                              iconName = item.icon;
+                                            } else if (item is String) {
+                                              name = item.isNotEmpty ? item : 'Unknown';
+                                            } else if (item is Map) {
+                                              // Handle Map items (from API response)
+                                              name = item['name']?.toString() ?? 
+                                                     item['name_uz']?.toString() ?? 
+                                                     item['name_ru']?.toString() ?? 
+                                                     item['name_en']?.toString() ?? 
+                                                     item['title']?.toString() ?? 
+                                                     item['label']?.toString() ?? 
+                                                     'Unknown';
+                                              iconName = item['icon']?.toString();
+                                            } else {
+                                              name = item.toString();
+                                            }
+
+                                            final nameLower = name.toLowerCase();
+                                            final icon = _mapAmenityIcon(
+                                                iconName, nameLower);
+
+                                            return Row(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Icon(
+                                                  icon,
+                                                  size: 20.sp,
+                                                  color: Theme.of(context)
+                                                              .brightness ==
+                                                          Brightness.dark
+                                                      ? Theme.of(context)
+                                                          .colorScheme
+                                                          .primary
+                                                      : Theme.of(context).textTheme.bodyMedium?.color ??
+                                                          Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                                ),
+                                                SizedBox(width: 8.w),
+                                                Expanded(
+                                                  child: Text(
+                                                    name,
+                                                    style: TextStyle(
+                                                      fontSize: 13.sp,
+                                                      color: Theme.of(context)
+                                                              .textTheme
+                                                              .bodyMedium
+                                                              ?.color ??
+                                                          Theme.of(context)
+                                                              .colorScheme
+                                                              .onSurface,
+                                                    ),
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                )
+                                              ],
+                                            );
+                                          },
+                                        );
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        child: Text(
+                          'hotel.details.read_more'.tr(),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontSize: 12.sp,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    )
+                  ]
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionSkeleton(String title) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
           title,
-          style: AppTypography.headingL.copyWith(fontSize: 18.sp),
+          style: AppTypography.headingL(context).copyWith(
+            fontSize: 18.sp,
+            color: Theme.of(context).textTheme.titleLarge?.color ??
+                Theme.of(context).colorScheme.onSurface,
+          ),
         ),
         SizedBox(height: 12.h),
         Container(
@@ -647,269 +1107,10 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
             border: Border.all(color: Colors.grey.shade300),
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              GridView.builder(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 3.0, // Подобрано под высоту строки
-                  crossAxisSpacing: 16.w,
-                  mainAxisSpacing: 8.h,
-                ),
-                itemCount: displayItems.length > 8
-                    ? 8
-                    : displayItems.length, // Limit initial view
-                itemBuilder: (context, index) {
-                  final item = displayItems[index];
-                  String name = '';
-                  String? iconName;
-
-                  if (item is Facility) {
-                    name = item.getDisplayName(context.locale.toString());
-                    iconName = item.icon;
-                  } else if (item is ServiceInRoom) {
-                    name = item.getDisplayName(context.locale.toString());
-                    iconName = item.icon;
-                  } else if (item is String) {
-                    name = item;
-                  }
-
-                  // Fallback icon mapping
-                  IconData icon = Icons.check_circle_outline;
-                  final nameLower = name.toLowerCase();
-                  if (nameLower.contains('wifi') ||
-                      nameLower.contains('wi-fi') ||
-                      nameLower.contains('internet')) {
-                    icon = Icons.wifi;
-                  } else if (nameLower.contains('pool') ||
-                      nameLower.contains('basseyn') ||
-                      nameLower.contains('swimming')) {
-                    icon = Icons.pool;
-                  } else if (nameLower.contains('gym') ||
-                      nameLower.contains('fitness') ||
-                      nameLower.contains('sport')) {
-                    icon = Icons.fitness_center;
-                  } else if (nameLower.contains('restaurant') ||
-                      nameLower.contains('restoran') ||
-                      nameLower.contains('dining') ||
-                      nameLower.contains('cafe')) {
-                    icon = Icons.restaurant;
-                  } else if (nameLower.contains('parking') ||
-                      nameLower.contains('turargoh') ||
-                      nameLower.contains('parkovka')) {
-                    icon = Icons.local_parking;
-                  } else if (nameLower.contains('spa') ||
-                      nameLower.contains('wellness') ||
-                      nameLower.contains('sauna') ||
-                      nameLower.contains('massage')) {
-                    icon = Icons.spa;
-                  } else if (nameLower.contains('breakfast') ||
-                      nameLower.contains('nonushta')) {
-                    icon = Icons.breakfast_dining;
-                  } else if (nameLower.contains('bar') ||
-                      nameLower.contains('drink') ||
-                      nameLower.contains('coffee')) {
-                    icon = Icons.local_bar;
-                  } else if (nameLower.contains('air') ||
-                      nameLower.contains('conditioning') ||
-                      nameLower.contains('ac')) {
-                    icon = Icons.ac_unit;
-                  } else if (nameLower.contains('tv') ||
-                      nameLower.contains('televizor') ||
-                      nameLower.contains('satellite') ||
-                      nameLower.contains('cable')) {
-                    icon = Icons.tv;
-                  } else if (nameLower.contains('consierge') ||
-                      nameLower.contains('konsyerj') ||
-                      nameLower.contains('reception') ||
-                      nameLower.contains('desk')) {
-                    icon = Icons.room_service;
-                  } else if (nameLower.contains('meeting') ||
-                      nameLower.contains('conference') ||
-                      nameLower.contains('konferens') ||
-                      nameLower.contains('business')) {
-                    icon = Icons.meeting_room;
-                  } else if (nameLower.contains('luggage') ||
-                      nameLower.contains('baggage') ||
-                      nameLower.contains('storage')) {
-                    icon = Icons.luggage;
-                  } else if (nameLower.contains('laundry') ||
-                      nameLower.contains('ironing') ||
-                      nameLower.contains('cleaning') ||
-                      nameLower.contains('dry')) {
-                    icon = Icons.local_laundry_service;
-                  } else if (nameLower.contains('safe') ||
-                      nameLower.contains('security') ||
-                      nameLower.contains('locker')) {
-                    icon = Icons.security;
-                  } else if (nameLower.contains('family') ||
-                      nameLower.contains('kids') ||
-                      nameLower.contains('child')) {
-                    icon = Icons.family_restroom;
-                  } else if (nameLower.contains('terrace') ||
-                      nameLower.contains('garden') ||
-                      nameLower.contains('park')) {
-                    icon = Icons.deck;
-                  } else if (nameLower.contains('lift') ||
-                      nameLower.contains('elevator')) {
-                    icon = Icons.elevator;
-                  } else if (nameLower.contains('kitchen') ||
-                      nameLower.contains('fridge') ||
-                      nameLower.contains('microwave')) {
-                    icon = Icons.kitchen;
-                  } else if (nameLower.contains('smoke') ||
-                      nameLower.contains('smoking')) {
-                    icon = Icons.smoke_free; // Or smoking_rooms depending on context, but usually it's non-smoking
-                  } else if (nameLower.contains('pet') ||
-                      nameLower.contains('dog') ||
-                      nameLower.contains('cat')) {
-                    icon = Icons.pets;
-                  } else if (nameLower.contains('transfer') ||
-                      nameLower.contains('shuttle') ||
-                      nameLower.contains('airport')) {
-                    icon = Icons.airport_shuttle;
-                  } else if (nameLower.contains('card') ||
-                      nameLower.contains('payment') ||
-                      nameLower.contains('atm')) {
-                    icon = Icons.credit_card;
-                  } else if (nameLower.contains('view') ||
-                      nameLower.contains('balcony')) {
-                    icon = Icons.balcony;
-                  } else if (nameLower.contains('shower') ||
-                      nameLower.contains('bath') ||
-                      nameLower.contains('toilet')) {
-                    icon = Icons.bathtub;
-                  }
-
-                  return Row(
-                    children: [
-                      Icon(icon, size: 20.sp, color: Colors.grey[700]),
-                      SizedBox(width: 8.w),
-                      Expanded(
-                        child: Text(
-                          name,
-                          style: TextStyle(
-                            fontSize: 13.sp,
-                            color:
-                                Theme.of(context).textTheme.bodyMedium?.color,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              if (displayItems.length > 8) ...[
-                SizedBox(height: 8.h),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: InkWell(
-                    onTap: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
-                        ),
-                        builder: (ctx) {
-                          return SafeArea(
-                            child: Padding(
-                              padding: EdgeInsets.all(16.w),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          title,
-                                          style: AppTypography.headingL.copyWith(fontSize: 18.sp),
-                                        ),
-                                      ),
-                                      IconButton(
-                                        onPressed: () => Navigator.of(ctx).pop(),
-                                        icon: Icon(Icons.close),
-                                      )
-                                    ],
-                                  ),
-                                  SizedBox(height: 12.h),
-                                  ListView.separated(
-                                    shrinkWrap: true,
-                                    itemCount: displayItems.length,
-                                    separatorBuilder: (_, __) => Divider(),
-                                    itemBuilder: (context, index) {
-                                      final item = displayItems[index];
-                                      String name = '';
-                                      if (item is Facility) {
-                                        name = item.getDisplayName(context.locale.toString());
-                                      } else if (item is ServiceInRoom) {
-                                        name = item.getDisplayName(context.locale.toString());
-                                      } else if (item is String) {
-                                        name = item;
-                                      }
-
-                                      IconData icon = Icons.check_circle_outline;
-                                      final nameLower = name.toLowerCase();
-                                      if (nameLower.contains('wifi') ||
-                                          nameLower.contains('wi-fi') ||
-                                          nameLower.contains('internet')) {
-                                        icon = Icons.wifi;
-                                      } else if (nameLower.contains('pool') ||
-                                          nameLower.contains('basseyn') ||
-                                          nameLower.contains('swimming')) {
-                                        icon = Icons.pool;
-                                      } else if (nameLower.contains('gym') ||
-                                          nameLower.contains('fitness') ||
-                                          nameLower.contains('sport')) {
-                                        icon = Icons.fitness_center;
-                                      } else if (nameLower.contains('restaurant') ||
-                                          nameLower.contains('restoran') ||
-                                          nameLower.contains('dining') ||
-                                          nameLower.contains('cafe')) {
-                                        icon = Icons.restaurant;
-                                      } else if (nameLower.contains('parking') ||
-                                          nameLower.contains('turargoh') ||
-                                          nameLower.contains('parkovka')) {
-                                        icon = Icons.local_parking;
-                                      }
-
-                                      return Row(
-                                        children: [
-                                          Icon(icon, size: 20.sp, color: Colors.grey[700]),
-                                          SizedBox(width: 8.w),
-                                          Expanded(
-                                            child: Text(
-                                              name,
-                                              style: TextStyle(fontSize: 14.sp),
-                                            ),
-                                          )
-                                        ],
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    child: Text(
-                      'hotel.details.read_more'.tr(),
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12.sp,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ),
-                )
-              ]
+              _buildSkeletonRow(),
+              SizedBox(height: 12.h),
+              _buildSkeletonRow(),
             ],
           ),
         ),
@@ -917,45 +1118,340 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
     );
   }
 
-  Widget _buildAmenityItem(IconData icon, String label) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Column(
+  Widget _buildSkeletonRow() {
+    return Row(
       children: [
         Container(
-          padding: EdgeInsets.all(12.w),
+          width: 24.sp,
+          height: 24.sp,
           decoration: BoxDecoration(
-            color: isDark ? AppColors.darkCardBg : AppColors.secondaryBlue,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.getSubtitleColor(isDark).withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Theme.of(context).dividerColor.withOpacity(0.6)
+                : Colors.grey.shade300.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+        ),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSkeletonLine(0.75),
+              SizedBox(height: 6.h),
+              _buildSkeletonLine(0.5),
             ],
-            border: Border.all(
-              color: AppColors.getBorderColor(isDark).withOpacity(0.5),
-              width: 1,
-            ),
           ),
-          child: Icon(icon, color: AppColors.primaryBlue, size: 24.sp),
-        ),
-        SizedBox(height: 8.h),
-        SizedBox(
-          width: 80.w,
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: AppTypography.caption.copyWith(
-              color: AppColors.getTextColor(isDark),
-              fontWeight: FontWeight.w500,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
+        )
       ],
     );
+  }
+
+  Widget _buildSkeletonLine(double widthFactor) {
+    return FractionallySizedBox(
+      widthFactor: widthFactor,
+      child: Container(
+        height: 10.h,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade300.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(6.r),
+        ),
+      ),
+    );
+  }
+
+  IconData _mapAmenityIcon(String? iconName, String nameLower) {
+    final normalizedIcon =
+        iconName?.toLowerCase().replaceAll('_', '').replaceAll('-', '');
+
+    // Use icon name if API sends one
+    switch (normalizedIcon) {
+      case 'wifi':
+      case 'wi-fi':
+      case 'internet':
+        return Icons.wifi;
+      case 'pool':
+      case 'swimmingpool':
+      case 'swimming':
+        return Icons.pool;
+      case 'gym':
+      case 'fitness':
+      case 'sport':
+        return Icons.fitness_center;
+      case 'restaurant':
+      case 'dining':
+      case 'cafe':
+        return Icons.restaurant;
+      case 'parking':
+      case 'carpark':
+        return Icons.local_parking;
+      case 'spa':
+      case 'sauna':
+      case 'wellness':
+        return Icons.spa;
+      case 'breakfast':
+        return Icons.breakfast_dining;
+      case 'bar':
+      case 'coffee':
+        return Icons.local_bar;
+      case 'airconditioner':
+      case 'ac':
+      case 'airconditioning':
+        return Icons.ac_unit;
+      case 'tv':
+      case 'television':
+      case 'satellite':
+        return Icons.tv;
+      case 'elevator':
+      case 'lift':
+        return Icons.elevator;
+      case 'laundry':
+      case 'ironing':
+        return Icons.local_laundry_service;
+      case 'security':
+      case 'safe':
+      case 'locker':
+        return Icons.security;
+      case 'pet':
+      case 'pets':
+        return Icons.pets;
+      case 'shuttle':
+      case 'transfer':
+      case 'airport':
+        return Icons.airport_shuttle;
+      case 'kitchen':
+      case 'fridge':
+      case 'refrigerator':
+      case 'microwave':
+        return Icons.kitchen;
+      case 'bathtub':
+      case 'bath':
+      case 'shower':
+      case 'toilet':
+        return Icons.bathtub;
+      case 'balcony':
+      case 'terrace':
+      case 'view':
+        return Icons.balcony;
+      case 'bed':
+      case 'bedroom':
+        return Icons.bed;
+      case 'wardrobe':
+      case 'closet':
+        return Icons.checkroom;
+      case 'minibar':
+        return Icons.local_bar;
+      case 'phone':
+        return Icons.phone;
+      case 'desk':
+      case 'workdesk':
+        return Icons.desktop_mac;
+      case 'hairdryer':
+      case 'hair dryer':
+        return Icons.content_cut;
+      case 'towels':
+        return Icons.dry_cleaning;
+      case 'linen':
+        return Icons.hotel;
+      case 'roomservice':
+      case 'room service':
+      case 'concierge':
+        return Icons.room_service;
+      case 'business':
+      case 'meeting':
+      case 'conference':
+        return Icons.meeting_room;
+      case 'luggage':
+      case 'baggage':
+        return Icons.luggage;
+      case 'garden':
+      case 'park':
+        return Icons.park;
+      case 'family':
+      case 'kids':
+      case 'children':
+        return Icons.family_restroom;
+      case 'smoking':
+      case 'smoke':
+        return Icons.smoking_rooms;
+      case 'nonsmoking':
+      case 'no smoking':
+        return Icons.smoke_free;
+      case 'payment':
+      case 'card':
+      case 'atm':
+        return Icons.credit_card;
+    }
+
+    // Fallback based on name - kengaytirilgan mapping
+    if (nameLower.contains('wifi') ||
+        nameLower.contains('wi-fi') ||
+        nameLower.contains('internet') ||
+        nameLower.contains('интернет')) {
+      return Icons.wifi;
+    } else if (nameLower.contains('pool') ||
+        nameLower.contains('basseyn') ||
+        nameLower.contains('бассейн') ||
+        nameLower.contains('swimming')) {
+      return Icons.pool;
+    } else if (nameLower.contains('gym') ||
+        nameLower.contains('fitness') ||
+        nameLower.contains('sport') ||
+        nameLower.contains('спорт')) {
+      return Icons.fitness_center;
+    } else if (nameLower.contains('restaurant') ||
+        nameLower.contains('restoran') ||
+        nameLower.contains('ресторан') ||
+        nameLower.contains('dining') ||
+        nameLower.contains('cafe') ||
+        nameLower.contains('кафе')) {
+      return Icons.restaurant;
+    } else if (nameLower.contains('parking') ||
+        nameLower.contains('turargoh') ||
+        nameLower.contains('парковка') ||
+        nameLower.contains('parkovka')) {
+      return Icons.local_parking;
+    } else if (nameLower.contains('spa') ||
+        nameLower.contains('wellness') ||
+        nameLower.contains('sauna') ||
+        nameLower.contains('сауна') ||
+        nameLower.contains('massage') ||
+        nameLower.contains('массаж')) {
+      return Icons.spa;
+    } else if (nameLower.contains('breakfast') ||
+        nameLower.contains('nonushta') ||
+        nameLower.contains('завтрак')) {
+      return Icons.breakfast_dining;
+    } else if (nameLower.contains('bar') ||
+        nameLower.contains('drink') ||
+        nameLower.contains('coffee') ||
+        nameLower.contains('кофе')) {
+      return Icons.local_bar;
+    } else if (nameLower.contains('air') ||
+        nameLower.contains('conditioning') ||
+        nameLower.contains('кондиционер') ||
+        nameLower.contains('ac')) {
+      return Icons.ac_unit;
+    } else if (nameLower.contains('tv') ||
+        nameLower.contains('televizor') ||
+        nameLower.contains('телевизор') ||
+        nameLower.contains('satellite') ||
+        nameLower.contains('cable')) {
+      return Icons.tv;
+    } else if (nameLower.contains('concierge') ||
+        nameLower.contains('konsyerj') ||
+        nameLower.contains('консьерж') ||
+        nameLower.contains('reception') ||
+        nameLower.contains('reception') ||
+        nameLower.contains('стол') ||
+        nameLower.contains('desk')) {
+      return Icons.room_service;
+    } else if (nameLower.contains('meeting') ||
+        nameLower.contains('conference') ||
+        nameLower.contains('конференц') ||
+        nameLower.contains('konferens') ||
+        nameLower.contains('business') ||
+        nameLower.contains('бизнес')) {
+      return Icons.meeting_room;
+    } else if (nameLower.contains('luggage') ||
+        nameLower.contains('baggage') ||
+        nameLower.contains('багаж') ||
+        nameLower.contains('storage')) {
+      return Icons.luggage;
+    } else if (nameLower.contains('laundry') ||
+        nameLower.contains('ironing') ||
+        nameLower.contains('прачечная') ||
+        nameLower.contains('cleaning') ||
+        nameLower.contains('dry')) {
+      return Icons.local_laundry_service;
+    } else if (nameLower.contains('safe') ||
+        nameLower.contains('security') ||
+        nameLower.contains('сейф') ||
+        nameLower.contains('locker')) {
+      return Icons.security;
+    } else if (nameLower.contains('family') ||
+        nameLower.contains('kids') ||
+        nameLower.contains('дети') ||
+        nameLower.contains('child')) {
+      return Icons.family_restroom;
+    } else if (nameLower.contains('terrace') ||
+        nameLower.contains('garden') ||
+        nameLower.contains('сад') ||
+        nameLower.contains('park')) {
+      return Icons.park;
+    } else if (nameLower.contains('lift') ||
+        nameLower.contains('elevator') ||
+        nameLower.contains('лифт')) {
+      return Icons.elevator;
+    } else if (nameLower.contains('kitchen') ||
+        nameLower.contains('кухня') ||
+        nameLower.contains('fridge') ||
+        nameLower.contains('холодильник') ||
+        nameLower.contains('microwave') ||
+        nameLower.contains('микроволновка')) {
+      return Icons.kitchen;
+    } else if (nameLower.contains('smoke') ||
+        nameLower.contains('smoking') ||
+        nameLower.contains('курение')) {
+      return Icons.smoking_rooms;
+    } else if (nameLower.contains('no smoke') ||
+        nameLower.contains('non-smoking') ||
+        nameLower.contains('не курить')) {
+      return Icons.smoke_free;
+    } else if (nameLower.contains('pet') ||
+        nameLower.contains('dog') ||
+        nameLower.contains('cat') ||
+        nameLower.contains('животные')) {
+      return Icons.pets;
+    } else if (nameLower.contains('transfer') ||
+        nameLower.contains('shuttle') ||
+        nameLower.contains('трансфер') ||
+        nameLower.contains('airport')) {
+      return Icons.airport_shuttle;
+    } else if (nameLower.contains('card') ||
+        nameLower.contains('payment') ||
+        nameLower.contains('оплата') ||
+        nameLower.contains('atm')) {
+      return Icons.credit_card;
+    } else if (nameLower.contains('view') ||
+        nameLower.contains('balcony') ||
+        nameLower.contains('балкон')) {
+      return Icons.balcony;
+    } else if (nameLower.contains('shower') ||
+        nameLower.contains('bath') ||
+        nameLower.contains('ванна') ||
+        nameLower.contains('душ') ||
+        nameLower.contains('toilet') ||
+        nameLower.contains('туалет')) {
+      return Icons.bathtub;
+    } else if (nameLower.contains('bed') ||
+        nameLower.contains('кровать') ||
+        nameLower.contains('спальня')) {
+      return Icons.bed;
+    } else if (nameLower.contains('wardrobe') ||
+        nameLower.contains('closet') ||
+        nameLower.contains('шкаф')) {
+      return Icons.checkroom;
+    } else if (nameLower.contains('phone') ||
+        nameLower.contains('телефон')) {
+      return Icons.phone;
+    } else if (nameLower.contains('desk') ||
+        nameLower.contains('workdesk') ||
+        nameLower.contains('стол')) {
+      return Icons.desktop_mac;
+    } else if (nameLower.contains('hairdryer') ||
+        nameLower.contains('hair dryer') ||
+        nameLower.contains('фен')) {
+      return Icons.content_cut;
+    } else if (nameLower.contains('towels') ||
+        nameLower.contains('полотенца')) {
+      return Icons.dry_cleaning;
+    } else if (nameLower.contains('minibar') ||
+        nameLower.contains('минибар')) {
+      return Icons.local_bar;
+    }
+
+    // Default icon
+    return Icons.check_circle_outline;
   }
 
   Widget _buildOptionItem(
@@ -976,7 +1472,8 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
       try {
         final matching =
             roomTypes.firstWhere((rt) => rt.id == option.roomTypeId);
-        roomName = matching.getDisplayName(context.locale.toString());
+        final locale = _normalizeLocale(context.locale);
+        roomName = matching.getDisplayName(locale);
       } catch (_) {}
     }
 
@@ -1020,22 +1517,24 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                     children: [
                       Row(
                         children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 8.w, vertical: 4.h),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryBlue.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6.r),
-                            ),
-                            child: Text(
-                              roomName,
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primaryBlue,
+                          Expanded(
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 8.w, vertical: 4.h),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryBlue.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6.r),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              child: Text(
+                                roomName,
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryBlue,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ),
                           if (isSelected) ...[
@@ -1057,8 +1556,11 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                             Expanded(
                               child: Text(
                                 mealOptions,
-                                style: AppTypography.bodySecondary.copyWith(
-                                  color: AppColors.getSubtitleColor(isDark),
+                                style: AppTypography.bodySecondary(context).copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withOpacity(0.7),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1070,33 +1572,48 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                     ],
                   ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      NumberFormat.simpleCurrency(name: currencyCode).format(price),
-                      style: AppTypography.headingL.copyWith(
-                          fontSize: 18.sp, color: AppColors.primaryBlue),
-                    ),
-                    if (option.cancellationPolicy != null)
-                      Padding(
-                        padding: EdgeInsets.only(top: 4.h),
-                        child: Row(
-                          children: [
-                            Icon(Icons.check_circle_outline_rounded,
-                                size: 12.sp, color: AppColors.accentGreen),
-                            SizedBox(width: 2.w),
-                            Text(
-                              'Cancellable',
-                              style: TextStyle(
-                                  color: AppColors.accentGreen,
-                                  fontSize: 11.sp,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ],
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          NumberFormat.simpleCurrency(name: currencyCode)
+                              .format(price),
+                          style: AppTypography.headingL(context).copyWith(
+                            fontSize: 18.sp,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                         ),
                       ),
-                  ],
+                      if (option.cancellationPolicy != null)
+                        Padding(
+                          padding: EdgeInsets.only(top: 4.h),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check_circle_outline_rounded,
+                                  size: 12.sp, color: AppColors.accentGreen),
+                              SizedBox(width: 2.w),
+                              Flexible(
+                                child: Text(
+                                  'hotel.details.cancellable'.tr(),
+                                  style: TextStyle(
+                                      color: AppColors.accentGreen,
+                                      fontSize: 11.sp,
+                                      fontWeight: FontWeight.w600),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -1105,9 +1622,9 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
               Divider(color: AppColors.getBorderColor(isDark).withOpacity(0.5)),
               SizedBox(height: 8.h),
               Text(
-                'Price Breakdown:',
-                style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.getTextColor(isDark),
+                'hotel.details.price_breakdown'.tr(),
+                style: AppTypography.labelSmall(context).copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1120,12 +1637,12 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                     children: [
                       Text(
                         entry.key.toString(),
-                        style: AppTypography.caption
-                            .copyWith(color: AppColors.getSubtitleColor(isDark)),
+                        style: AppTypography.caption(context).copyWith(
+                            color: AppColors.getSubtitleColor(isDark)),
                       ),
                       Text(
                         entry.value.toString(),
-                        style: AppTypography.caption.copyWith(
+                        style: AppTypography.caption(context).copyWith(
                             color: AppColors.getTextColor(isDark),
                             fontWeight: FontWeight.w600),
                       ),
@@ -1157,7 +1674,11 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
       children: [
         Text(
           'hotel.details.description'.tr(),
-          style: AppTypography.headingL.copyWith(fontSize: 18.sp),
+          style: AppTypography.headingL(context).copyWith(
+            fontSize: 18.sp,
+            color: Theme.of(context).textTheme.titleLarge?.color ??
+                Theme.of(context).colorScheme.onSurface,
+          ),
         ),
         SizedBox(height: 12.h),
         Container(
@@ -1165,7 +1686,11 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Theme.of(context).dividerColor
+                  : Colors.grey.shade300,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1179,10 +1704,22 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                       padding: HtmlPaddings.zero,
                       fontSize: FontSize(14.sp),
                       color: Theme.of(context).textTheme.bodyMedium?.color ??
-                          (Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black87),
+                          Theme.of(context).colorScheme.onSurface,
                       lineHeight: LineHeight(1.6),
+                    ),
+                    "p": Style(
+                      color: Theme.of(context).textTheme.bodyMedium?.color ??
+                          Theme.of(context).colorScheme.onSurface,
+                      margin: Margins.zero,
+                      padding: HtmlPaddings.zero,
+                    ),
+                    "div": Style(
+                      color: Theme.of(context).textTheme.bodyMedium?.color ??
+                          Theme.of(context).colorScheme.onSurface,
+                    ),
+                    "span": Style(
+                      color: Theme.of(context).textTheme.bodyMedium?.color ??
+                          Theme.of(context).colorScheme.onSurface,
                     ),
                     "a": Style(
                       color: Theme.of(context).colorScheme.primary,
@@ -1194,13 +1731,11 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                   strippedText,
                   style: TextStyle(
                     color: Theme.of(context).textTheme.bodyMedium?.color ??
-                        (Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors.black87),
+                        Theme.of(context).colorScheme.onSurface,
                     height: 1.6,
                     fontSize: 14.sp,
                   ),
-                  maxLines: 6,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               SizedBox(height: 8.h),
@@ -1244,12 +1779,16 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
         final parsed = json.decode(description);
 
         if (parsed is Map) {
-          // Получаем текущую локаль
+          // Получаем текущую локаль и нормализуем её
+          final normalizedLocale = _normalizeLocale(context.locale);
           final locale = context.locale.toString();
 
           final variants = <String>[];
           final localeLower = locale.toLowerCase();
 
+          // Add normalized locale first (most important)
+          variants.add(normalizedLocale);
+          
           // Add exact match
           variants.add(locale);
 
@@ -1261,7 +1800,7 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
           // Добавляем базовый код языка
           if (locale.contains('-') || locale.contains('_')) {
             final base = locale.split(RegExp(r'[-_]')).first.toLowerCase();
-            if (base.isNotEmpty) variants.add(base);
+            if (base.isNotEmpty && base != normalizedLocale) variants.add(base);
           }
 
           // Пытаемся найти описание в предпочитаемой локали
@@ -1323,40 +1862,221 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
 
     return text;
   }
+  
+  /// Normalizes locale for API lookup
+  /// Converts en_US -> en, ru_RU -> ru, uz -> uz, uz_CYR -> uz_CYR
+  String _normalizeLocale(Locale locale) {
+    // Handle Cyrillic Uzbek specially
+    if (locale.languageCode == 'uz' && locale.countryCode == 'CYR') {
+      return 'uz_CYR'; // API format
+    }
+    
+    // For other locales, use just the language code
+    // en_US -> en, ru_RU -> ru, uz -> uz
+    return locale.languageCode;
+  }
+
+  /// Calculate total amount based on selected room counts
+  /// Returns a map with 'amount' and 'currencyCode'
+  /// Returns 0.0 if no rooms are selected
+  Map<String, dynamic> _calculateTotalAmount(Hotel hotel) {
+    double totalAmount = 0.0;
+    String? currencyCode;
+    int totalNights = hotel.checkOutDate.difference(hotel.checkInDate).inDays;
+    if (totalNights <= 0) totalNights = 1; // At least 1 night
+    
+    bool hasSelectedRooms = false;
+    
+    if (hotel.options != null) {
+      for (final option in hotel.options!) {
+        final roomCount = _selectedRoomCounts[option.optionRefId] ?? 0;
+        if (roomCount > 0 && option.price != null) {
+          hasSelectedRooms = true;
+          totalAmount += (option.price! * roomCount * totalNights);
+          if (currencyCode == null) {
+            currencyCode = (option.currency ?? 'UZS').toUpperCase();
+          }
+        }
+      }
+    }
+    
+    // If no rooms selected, return 0
+    if (!hasSelectedRooms) {
+      return {
+        'amount': 0.0,
+        'currencyCode': 'UZS',
+        'hasSelectedRooms': false,
+      };
+    }
+    
+    return {
+      'amount': totalAmount,
+      'currencyCode': currencyCode ?? 'UZS',
+      'hasSelectedRooms': true,
+    };
+  }
 
   Widget _buildAvailabilityTab(
-      Hotel hotel, List<RoomType> roomTypes, bool isLoadingRoomTypes) {
+      Hotel hotel, List<RoomType> roomTypes, bool isLoadingRoomTypes,
+      List<HotelPhoto> roomPhotos, bool isLoadingRoomPhotos) {
+    // Calculate total amount based on selected room counts
+    final totalData = _calculateTotalAmount(hotel);
+    final totalAmount = totalData['amount'] as double;
+    final currencyCode = totalData['currencyCode'] as String;
+    int totalNights = hotel.checkOutDate.difference(hotel.checkInDate).inDays;
+    if (totalNights <= 0) totalNights = 1; // At least 1 night
+    
     return SingleChildScrollView(
       padding: EdgeInsets.all(16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Комнаты из options
+          // Комнаты из options - Responsive layout
           if (hotel.options != null && hotel.options!.isNotEmpty) ...[
             Text(
-              'hotel.details.rooms'.tr(),
-              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+              'hotel.details.available_rooms'.tr(),
+              style: AppTypography.headingL(context).copyWith(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.titleLarge?.color ??
+                    Theme.of(context).colorScheme.onSurface,
+              ),
             ),
             SizedBox(height: 16.h),
-            ...hotel.options!.asMap().entries.map((entry) {
-              final option = entry.value;
-              final isSelected =
-                  _selectedOption?.optionRefId == option.optionRefId;
-              return Padding(
-                padding: EdgeInsets.only(bottom: 12.h),
-                child: _buildOptionItem(
-                  context,
-                  option,
-                  isSelected,
-                  roomTypes: roomTypes, // Pass cached room types
-                  onTap: () {
-                    setState(() {
-                      _selectedOption = option;
-                    });
-                  },
+            // Responsive layout: mobile = card, desktop = table
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Sort options by price (cheapest first)
+                final sortedOptions = List.from(hotel.options!);
+                sortedOptions.sort((a, b) {
+                  final priceA = a.price ?? double.infinity;
+                  final priceB = b.price ?? double.infinity;
+                  return priceA.compareTo(priceB);
+                });
+                
+                final isMobile = constraints.maxWidth < 600;
+                if (isMobile) {
+                  // Mobile: Card-based layout
+                  return Column(
+                    children: sortedOptions.map((option) {
+                      return _buildRoomCard(
+                        option,
+                        hotel,
+                        roomTypes,
+                      );
+                    }).toList(),
+                  );
+                } else {
+                  // Desktop: Table layout
+                  return Column(
+                    children: [
+                      _buildTableHeader(),
+                      SizedBox(height: 12.h),
+                      ...sortedOptions.map((option) {
+                        return _buildRoomRow(
+                          option,
+                          hotel,
+                          roomTypes,
+                        );
+                      }).toList(),
+                    ],
+                  );
+                }
+              },
+            ),
+            // Total Amount Section - always show, even if 0
+            ...[
+              SizedBox(height: 24.h),
+              Container(
+                padding: EdgeInsets.all(16.w),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                    width: 2,
+                  ),
                 ),
-              );
-            }).toList(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'hotel.details.total_amount'.tr(),
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).textTheme.titleLarge?.color ??
+                                Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          NumberFormat.simpleCurrency(name: currencyCode).format(totalAmount),
+                          style: TextStyle(
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8.h),
+                    // Breakdown
+                    if (hotel.options != null) ...[
+                      ...hotel.options!.where((option) {
+                        final roomCount = _selectedRoomCounts[option.optionRefId] ?? 0;
+                        return roomCount > 0 && option.price != null;
+                      }).map((option) {
+                        final roomCount = _selectedRoomCounts[option.optionRefId] ?? 0;
+                        final optionTotal = (option.price! * roomCount * totalNights);
+                        final optionCurrency = (option.currency ?? 'UZS').toUpperCase();
+                        
+                        // Find room name
+                        String roomName = 'Xona #${option.roomTypeId ?? ''}';
+                        if (roomTypes.isNotEmpty && option.roomTypeId != null) {
+                          try {
+                            final matching = roomTypes.firstWhere((rt) => rt.id == option.roomTypeId);
+                            final locale = _normalizeLocale(context.locale);
+                            roomName = matching.getDisplayName(locale);
+                          } catch (_) {}
+                        }
+                        
+                        return Padding(
+                          padding: EdgeInsets.only(top: 4.h),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '$roomName × $roomCount ${'hotel.details.room'.tr()} × $totalNights ${'hotel.details.nights'.tr()}',
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              SizedBox(width: 8.w),
+                              Text(
+                                NumberFormat.simpleCurrency(name: optionCurrency).format(optionTotal),
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ],
 
           // Room Types из API
@@ -1364,7 +2084,12 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
             SizedBox(height: 24.h),
             Text(
               'hotel.details.room_types'.tr(),
-              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+              style: AppTypography.headingL(context).copyWith(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.titleLarge?.color ??
+                    Theme.of(context).colorScheme.onSurface,
+              ),
             ),
             SizedBox(height: 16.h),
             if (isLoadingRoomTypes)
@@ -1386,8 +2111,13 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                     children: [
                       Text(
                         displayName,
-                        style: TextStyle(
-                            fontSize: 16.sp, fontWeight: FontWeight.bold),
+                        style: AppTypography.headingL(context).copyWith(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                          color:
+                              Theme.of(context).textTheme.titleMedium?.color ??
+                                  Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
                       if (roomType.maxOccupancy != null) ...[
                         SizedBox(height: 4.h),
@@ -1396,16 +2126,14 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                               '{count}', roomType.maxOccupancy.toString()),
                           style: TextStyle(
                               fontSize: 12.sp,
-                              color: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.color),
+                              color:
+                                  Theme.of(context).textTheme.bodySmall?.color),
                         ),
                       ],
                       if (roomType.description != null) ...[
                         SizedBox(height: 8.h),
                         Text(
-                          roomType.description!,
+                          _stripHtmlTags(roomType.description!),
                           style: TextStyle(
                               fontSize: 12.sp,
                               color: Theme.of(context)
@@ -1419,13 +2147,109 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                 );
               }).toList(),
           ],
+
+          // Room Photos
+          if (roomPhotos.isNotEmpty || isLoadingRoomPhotos) ...[
+            SizedBox(height: 24.h),
+            _buildRoomPhotosSection(roomPhotos, isLoadingRoomPhotos),
+          ],
         ],
       ),
     );
   }
 
+  Widget _buildRoomPhotosSection(
+      List<HotelPhoto> photos, bool isLoading) {
+    if (isLoading) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'hotel.details.room_photos'.tr(),
+            style: AppTypography.headingL(context).copyWith(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).textTheme.titleLarge?.color ??
+                  Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          SizedBox(height: 16.h),
+          Center(child: CircularProgressIndicator()),
+        ],
+      );
+    }
+
+    if (photos.isEmpty) {
+      return SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'hotel.details.room_photos'.tr() + ' (${photos.length})',
+          style: AppTypography.headingL(context).copyWith(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).textTheme.titleLarge?.color ??
+                Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        SizedBox(height: 16.h),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 8.w,
+            mainAxisSpacing: 8.h,
+            childAspectRatio: 1.0,
+          ),
+          itemCount: photos.length,
+          itemBuilder: (context, index) {
+            final photo = photos[index];
+            return GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => HotelPhotosGallery(
+                      photoUrls: photos.map((p) => p.url).toList(),
+                      initialIndex: index,
+                    ),
+                  ),
+                );
+              },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8.r),
+                child: CachedNetworkImage(
+                  imageUrl: photo.url,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[800]
+                        : Colors.grey[300],
+                    child: Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[800]
+                        : Colors.grey[300],
+                    child: Icon(Icons.image_not_supported),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
   Widget _buildServicesTab(List<HotelPhoto> hotelPhotos, bool isLoadingPhotos,
-      List<Facility> hotelFacilities, bool isLoadingFacilities) {
+      List<Facility> hotelFacilities, bool isLoadingFacilities,
+      List<Equipment> hotelEquipment, bool isLoadingEquipment) {
     return SingleChildScrollView(
       padding: EdgeInsets.all(16.w),
       child: Column(
@@ -1435,7 +2259,12 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
           if (hotelPhotos.isNotEmpty || isLoadingPhotos) ...[
             Text(
               'hotel.details.photos'.tr(),
-              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+              style: AppTypography.headingL(context).copyWith(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.titleLarge?.color ??
+                    Theme.of(context).colorScheme.onSurface,
+              ),
             ),
             SizedBox(height: 16.h),
             if (isLoadingPhotos)
@@ -1471,12 +2300,23 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                         fit: BoxFit.cover,
                         memCacheWidth: 600,
                         placeholder: (context, url) => Container(
-                          color: Colors.grey[300],
-                          child: Center(child: CircularProgressIndicator()),
+                          color: Theme.of(context).cardColor,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
                         ),
                         errorWidget: (context, url, error) => Container(
-                          color: Colors.grey[300],
-                          child: Icon(Icons.image),
+                          color: Theme.of(context).cardColor,
+                          child: Icon(
+                            Icons.image,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.5),
+                          ),
                         ),
                       ),
                     ),
@@ -1486,14 +2326,230 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
             SizedBox(height: 24.h),
           ],
 
-          // Удобства (для таба Services оставим как есть или используем новый виджет)
-          // Uses the new helper or old one? User asked for specifics in Description tab.
-          // Let's keep this tab simple or reuse the new section style.
-          if (hotelFacilities.isNotEmpty || isLoadingFacilities)
-            _buildServicesSection('hotel.details.facilities'.tr(),
-                hotelFacilities.cast<dynamic>(), isLoadingFacilities),
+          // Hotel Equipment (Mehmonxona jihozlari - Imkoniyatlar)
+          if (hotelEquipment.isNotEmpty || isLoadingEquipment) ...[
+            _buildServicesSection('hotel.details.hotel_equipment'.tr(), hotelEquipment.cast<dynamic>(),
+                isLoadingEquipment),
+          ],
         ],
       ),
+    );
+  }
+
+  /// Build bottom bar with total amount and Book Now button
+  Widget? _buildBottomBar(Hotel hotel, List<RoomType> roomTypes) {
+    // Calculate total amount based on selected room counts
+    final totalData = _calculateTotalAmount(hotel);
+    final totalAmount = totalData['amount'] as double;
+    final currencyCode = totalData['currencyCode'] as String;
+    final hasSelectedRooms = totalData['hasSelectedRooms'] as bool;
+    
+    // Always show bottom bar, even if amount is 0
+    
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).shadowColor.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'hotel.details.total_amount'.tr(),
+                    style: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.7),
+                      fontSize: 12.sp,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    NumberFormat.simpleCurrency(name: currencyCode).format(totalAmount),
+                    style: TextStyle(
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: 12.w),
+            ElevatedButton(
+              onPressed: hasSelectedRooms && totalAmount > 0
+                  ? () {
+                      // Get selected options
+                      List<HotelOption> selectedOptions = [];
+                      if (hotel.options != null) {
+                        for (final option in hotel.options!) {
+                          final roomCount = _selectedRoomCounts[option.optionRefId] ?? 0;
+                          if (roomCount > 0) {
+                            selectedOptions.add(option);
+                          }
+                        }
+                      }
+                      
+                      final hotelBloc = context.read<HotelBloc>();
+                      // Tanlangan xona sonini topish
+                      int totalRoomCount = 0;
+                      if (selectedOptions.isNotEmpty) {
+                        final selectedOption = selectedOptions.first;
+                        totalRoomCount = _selectedRoomCounts[selectedOption.optionRefId] ?? 1;
+                      } else if (_selectedOption != null) {
+                        totalRoomCount = _selectedRoomCounts[_selectedOption!.optionRefId] ?? 1;
+                      }
+                      
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => BlocProvider.value(
+                            value: hotelBloc,
+                            child: HotelBookingPage(
+                              hotel: hotel,
+                              selectedOption: selectedOptions.isNotEmpty 
+                                  ? selectedOptions.first 
+                                  : _selectedOption,
+                              roomCount: totalRoomCount > 0 ? totalRoomCount : 1,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
+              child: Text(
+                'hotel.details.book_now'.tr(),
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNearbyPlacesSection(
+      List<NearbyPlace> places, bool isLoading) {
+    if (isLoading) {
+      return Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Theme.of(context).dividerColor
+                : Colors.grey.shade300,
+          ),
+        ),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (places.isEmpty) {
+      return SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'hotel.details.nearby_places'.tr() + ' (${places.length})',
+          style: AppTypography.headingL(context).copyWith(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).textTheme.titleLarge?.color ??
+                Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        SizedBox(height: 12.h),
+        Container(
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Theme.of(context).dividerColor
+                  : Colors.grey.shade300,
+            ),
+          ),
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            itemCount: places.length,
+            separatorBuilder: (context, index) => Divider(height: 16.h),
+            itemBuilder: (context, index) {
+              final place = places[index];
+              final locale = _normalizeLocale(context.locale);
+              final displayName = place.getDisplayName(locale);
+              final distance = place.distance;
+              
+              return Row(
+                children: [
+                  Icon(
+                    Icons.location_on,
+                    color: Colors.blue,
+                    size: 20.sp,
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayName,
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (distance != null) ...[
+                          SizedBox(height: 4.h),
+                          Text(
+                            '${distance.toStringAsFixed(0)} m',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -1507,17 +2563,25 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
           Container(
             padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondaryContainer,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+              border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Theme.of(context).dividerColor
+                    : Colors.grey.shade300,
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'hotel.details.important_notes'.tr(),
-                  style:
-                      TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSecondaryContainer),
+                  style: AppTypography.headingL(context).copyWith(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.titleMedium?.color ??
+                        Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 SizedBox(height: 12.h),
                 _buildConditionItem('hotel.details.condition_arrival_time'.tr(),
@@ -1562,13 +2626,20 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
               children: [
                 Text(
                   'hotel.details.age_policy'.tr(),
-                  style:
-                      TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+                  style: AppTypography.headingL(context).copyWith(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.titleMedium?.color ??
+                        Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 SizedBox(height: 8.h),
                 Text(
                   'hotel.details.age_policy_content'.tr(),
-                  style: TextStyle(fontSize: 14.sp, color: Colors.blue),
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ],
             ),
@@ -1579,218 +2650,110 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
   }
 
   Widget _buildMapSection(Hotel hotel) {
-    // Realistic Map View using a static image placeholder that looks like a real map
-    // Ideally we would use a real static map API, but here we use a high quality placeholder
+    // Default coordinates for Tashkent, Uzbekistan
+    final defaultLatitude = 41.2995; // Tashkent latitude
+    final defaultLongitude = 69.2401; // Tashkent longitude
+
+    // Get coordinates from hotel model if available
+    double hotelLatitude = hotel.latitude ?? defaultLatitude;
+    double hotelLongitude = hotel.longitude ?? defaultLongitude;
+    
+    // If coordinates are not available, use default (Tashkent)
+    if (hotel.latitude == null || hotel.longitude == null) {
+      debugPrint('⚠️ HotelDetailsPage: Using default coordinates for hotel ${hotel.name}');
+    } else {
+      debugPrint('✅ HotelDetailsPage: Using coordinates from API: lat=${hotel.latitude}, lng=${hotel.longitude}');
+    }
+
+    Future<void> openMap() async {
+      try {
+        final query = '${hotel.name}, ${hotel.address}';
+        final encodedQuery = Uri.encodeComponent(query);
+        final url = Uri.parse(
+            'https://www.google.com/maps/search/?api=1&query=$encodedQuery');
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+        } else {
+          SnackbarHelper.showError(
+              context, 'hotel.details.open_map_error'.tr());
+        }
+      } catch (_) {
+        SnackbarHelper.showError(context, 'hotel.details.open_map_error'.tr());
+      }
+    }
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12.r),
-          child: Container(
-            height: 220.h,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Color(0xFFE5E3DF),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
+        Text(
+          'hotel.details.location'.tr(),
+          style: AppTypography.headingL(context).copyWith(
+            fontSize: 18.sp,
+            color: Theme.of(context).textTheme.titleLarge?.color ??
+                Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        SizedBox(height: 12.h),
+        // Google Map Widget with user location - tappable to open in external map
+        Container(
+          height: 300.h, // Increased height for better visibility
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12.r),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12.r),
             child: Stack(
-              fit: StackFit.expand,
+              fit: StackFit.expand, // Ensure stack fills container
               children: [
-                // Static Map Background with Custom Painting
-                Container(
-                  color: Color(0xFFE3E4E6), // Standard Google Maps background
-                  child: Stack(
-                    children: [
-                      // Background blocks
-                      Positioned.fill(
-                          child: CustomPaint(
-                        painter: MapPlaceholderPainter(),
-                      )),
-                    ],
-                  ),
+                // Map widget - to'g'ridan-to'g'ri ko'rinadi va interaktiv
+                HotelMapWidget(
+                  hotelLatitude: hotelLatitude,
+                  hotelLongitude: hotelLongitude,
+                  hotelName: hotel.name,
+                  hotelAddress: hotel.address,
                 ),
-
-                // Interactive InkWell - MOVED TO BACKGROUND to avoid blocking buttons
-                Positioned.fill(
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () async {
-                        try {
-                          final query = Uri.encodeComponent(
-                              '${hotel.name}, ${hotel.address}');
-                          final url = Uri.parse(
-                              'https://www.google.com/maps/search/?api=1&query=$query');
-                          if (await canLaunchUrl(url)) {
-                            await launchUrl(url,
-                                mode: LaunchMode.externalApplication);
-                          }
-                        } catch (e) {}
-                      },
-                    ),
-                  ),
-                ),
-
-                // Overlay Gradient at bottom for text
+                // Tap indicator badge va button - map'ga bosilish mumkinligini ko'rsatadi
                 Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: 60.h,
-                  child: Container(
-                    decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.1)
-                      ],
-                    )),
-                  ),
-                ),
-
-                // Map Marker - Central and Realistic
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 8,
-                                  offset: Offset(0, 4))
-                            ]),
-                        child: Icon(Icons.location_on,
-                            size: 32.sp, color: Colors.blue),
+                  top: 8.h,
+                  right: 8.w,
+                  child: GestureDetector(
+                    onTap: openMap,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(8.r),
                       ),
-                      SizedBox(height: 4.h),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 10.w, vertical: 6.h),
-                        decoration: BoxDecoration(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.open_in_new,
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(8.r),
-                            boxShadow: [
-                              BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 6,
-                                  offset: Offset(0, 3))
-                            ]),
-                        child: Column(
-                          children: [
-                            Text(
-                              hotel.name,
-                              style: TextStyle(
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            size: 14.sp,
+                          ),
+                          SizedBox(width: 4.w),
+                          Text(
+                            'hotel.details.open_map'.tr(),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.w500,
                             ),
-                            if (hotel.rating != null)
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.star,
-                                      size: 10.sp, color: Colors.amber),
-                                  Text('${hotel.rating}',
-                                      style: TextStyle(
-                                          fontSize: 10.sp,
-                                          color: Colors.black54)),
-                                ],
-                              )
-                          ],
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-
-                // Zoom controls
-                Positioned(
-                  bottom: 16.h,
-                  right: 16.w,
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 44.w,
-                        height: 44.h,
-                        decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(8.r),
-                            boxShadow: [
-                              BoxShadow(
-                                  color: Colors.black12, blurRadius: 4)
-                            ]),
-                        child: Icon(Icons.add,
-                            size: 22.sp, color: Theme.of(context).colorScheme.onSurface),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 8.h),
-                      Container(
-                        width: 44.w,
-                        height: 44.h,
-                        decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(8.r),
-                            boxShadow: [
-                              BoxShadow(
-                                  color: Colors.black12, blurRadius: 4)
-                            ]),
-                        child: Icon(Icons.remove,
-                            size: 22.sp, color: Theme.of(context).colorScheme.onSurface),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // "Open Map" button (Floating)
-                Positioned(
-                  bottom: 16.h,
-                  left: 16.w,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      try {
-                        final query = Uri.encodeComponent(
-                            '${hotel.name}, ${hotel.address}');
-                        final url = Uri.parse(
-                            'https://www.google.com/maps/search/?api=1&query=$query');
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(url,
-                              mode: LaunchMode.externalApplication);
-                        } else {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text(
-                                      'hotel.details.open_map_error'.tr())), // Add key if missing or use default
-                            );
-                          }
-                        }
-                      } catch (e) {
-                        // ignore
-                      }
-                    },
-                    icon: Icon(Icons.map_outlined,
-                        size: 16.sp, color: Theme.of(context).colorScheme.onPrimary),
-                    label: Text('hotel.details.open_map'.tr(),
-                        style: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontSize: 12.sp)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20.r)),
-                      elevation: 4,
                     ),
                   ),
                 ),
-
-                // Removed overlapping InkWell to avoid blocking other controls
               ],
             ),
           ),
@@ -1800,18 +2763,27 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
   }
 
   Widget _buildConditionItem(String text, {IconData? icon}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: EdgeInsets.only(bottom: 8.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon ?? Icons.info_outline,
-              size: 16.sp, color: Colors.orange[700]),
+          Icon(
+            icon ?? Icons.info_outline,
+            size: 16.sp,
+            color: isDark
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.primary,
+          ),
           SizedBox(width: 8.w),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: 14.sp, color: Colors.orange[900]),
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
           ),
         ],
@@ -1825,19 +2797,562 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Theme.of(context).dividerColor
+              : Colors.grey.shade300,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
           SizedBox(height: 4.h),
           Text(
             time,
-            style: TextStyle(fontSize: 12.sp, color: Colors.grey[600]),
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTableHeader() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: AppColors.getCardBg(
+            Theme.of(context).brightness == Brightness.dark),
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(
+          color: AppColors.getBorderColor(
+                  Theme.of(context).brightness == Brightness.dark)
+              .withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              'hotel.details.room_type'.tr(),
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.titleMedium?.color,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Text(
+              'hotel.details.guests'.tr(),
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.titleMedium?.color,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Text(
+              'hotel.details.price'.tr(),
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.titleMedium?.color,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              'hotel.details.cancellation_policy'.tr(),
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.titleMedium?.color,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Text(
+              'hotel.details.room'.tr(),
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.titleMedium?.color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRoomRow(
+    HotelOption option,
+    Hotel hotel,
+    List<RoomType> roomTypes,
+  ) {
+    final price = option.price ?? 0.0;
+    final currencyCode = (option.currency ?? 'UZS').toUpperCase();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Find actual room name
+    String roomName = 'Xona #${option.roomTypeId ?? ''}';
+    String? mealPlan;
+    int? maxGuests;
+    
+    if (roomTypes.isNotEmpty && option.roomTypeId != null) {
+      try {
+        final matching =
+            roomTypes.firstWhere((rt) => rt.id == option.roomTypeId);
+        // Normalize locale: en_US -> en, ru_RU -> ru, uz -> uz, uz_CYR -> uz_CYR
+        final locale = _normalizeLocale(context.locale);
+        roomName = matching.getDisplayName(locale);
+        maxGuests = matching.maxOccupancy;
+        
+        // Debug: log room type info
+        debugPrint('🔍 RoomType: id=${matching.id}, name=${matching.name}, names=${matching.names}, locale=$locale, displayName=$roomName');
+      } catch (e) {
+        debugPrint('⚠️ RoomType not found for roomTypeId=${option.roomTypeId}, error=$e');
+        debugPrint('🔍 Available roomTypes: ${roomTypes.map((rt) => 'id=${rt.id}, name=${rt.name}').join(', ')}');
+      }
+    } else {
+      debugPrint('⚠️ RoomTypes empty or roomTypeId is null: roomTypes.length=${roomTypes.length}, roomTypeId=${option.roomTypeId}');
+    }
+    
+    // Get meal plan
+    if (option.includedMealOptions != null && option.includedMealOptions!.isNotEmpty) {
+      mealPlan = option.includedMealOptions!.join(', ');
+    }
+    
+    // Get guests count from hotel or room type
+    final guestsCount = maxGuests ?? (hotel.guests > 0 ? hotel.guests : 1);
+    
+    // Get cancellation policy text
+    String cancellationText = '';
+    if (option.cancellationPolicy != null) {
+      final policy = option.cancellationPolicy!;
+      // Try to get localized cancellation policy
+      final locale = _normalizeLocale(context.locale);
+      
+      // cancellationPolicy is Map<String, dynamic>?
+      // Handle Map format: {uz: '...', ru: '...', en: '...'}
+      try {
+        // Try normalized locale first, then fallback to common locales
+        cancellationText = policy[locale]?.toString() ?? 
+            policy['uz']?.toString() ?? 
+            policy['ru']?.toString() ?? 
+            policy['en']?.toString() ?? 
+            '';
+        cancellationText = _stripHtmlTags(cancellationText);
+      } catch (_) {
+        cancellationText = _stripHtmlTags(policy.toString());
+      }
+      
+      if (cancellationText.isEmpty) {
+        cancellationText = 'hotel.details.free_cancellation_2_days'.tr();
+      }
+    } else {
+      cancellationText = 'hotel.details.free_cancellation_2_days'.tr();
+    }
+    
+    final selectedRoomCount = _selectedRoomCounts[option.optionRefId] ?? 0;
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: AppColors.getCardBg(isDark),
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(
+          color: AppColors.getBorderColor(isDark).withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Room Type
+          Expanded(
+            flex: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  roomName,
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.titleMedium?.color,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (mealPlan != null) ...[
+                  SizedBox(height: 2.h),
+                  Text(
+                    mealPlan,
+                    style: TextStyle(
+                      fontSize: 10.sp,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // Guests
+          Expanded(
+            flex: 1,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.person, size: 14.sp, color: Colors.blue),
+                SizedBox(width: 2.w),
+                Flexible(
+                  child: Text(
+                    '$guestsCount ${'hotel.results.person'.tr()}',
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Price - shows total price based on selected room count
+          Expanded(
+            flex: 1,
+            child: Builder(
+              builder: (context) {
+                int totalNights = hotel.checkOutDate.difference(hotel.checkInDate).inDays;
+                if (totalNights <= 0) totalNights = 1;
+                
+                // Calculate price based on selected room count
+                final totalPrice = selectedRoomCount > 0 
+                    ? (price * selectedRoomCount * totalNights)
+                    : price; // Show single room price if no selection
+                
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        NumberFormat.simpleCurrency(name: currencyCode).format(totalPrice),
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      selectedRoomCount > 0
+                          ? 'hotel.details.total_amount'.tr()
+                          : 'hotel.results.price_for_night'.tr(),
+                      style: TextStyle(
+                        fontSize: 9.sp,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          // Cancellation Policy
+          Expanded(
+            flex: 2,
+            child: Text(
+              cancellationText,
+              style: TextStyle(
+                fontSize: 11.sp,
+                color: Theme.of(context).textTheme.bodySmall?.color,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          // Room Count Dropdown
+          Expanded(
+            flex: 1,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 4.w),
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: BorderRadius.circular(8.r),
+                border: Border.all(
+                  color: AppColors.getBorderColor(isDark).withOpacity(0.5),
+                ),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: selectedRoomCount,
+                  isExpanded: true,
+                  isDense: true,
+                  items: List.generate(8, (index) {
+                    return DropdownMenuItem<int>(
+                      value: index,
+                      child: Text(
+                        '$index ${'hotel.details.room'.tr()}',
+                        style: TextStyle(fontSize: 10.sp),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedRoomCounts[option.optionRefId] = value;
+                      });
+                    }
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// Mobile card-based layout for room selection
+  Widget _buildRoomCard(
+    HotelOption option,
+    Hotel hotel,
+    List<RoomType> roomTypes,
+  ) {
+    final price = option.price ?? 0.0;
+    final currencyCode = (option.currency ?? 'UZS').toUpperCase();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Find actual room name
+    String roomName = 'Xona #${option.roomTypeId ?? ''}';
+    String? mealPlan;
+    int? maxGuests;
+    
+    if (roomTypes.isNotEmpty && option.roomTypeId != null) {
+      try {
+        final matching =
+            roomTypes.firstWhere((rt) => rt.id == option.roomTypeId);
+        final locale = _normalizeLocale(context.locale);
+        roomName = matching.getDisplayName(locale);
+        maxGuests = matching.maxOccupancy;
+      } catch (e) {
+        debugPrint('⚠️ RoomType not found: $e');
+      }
+    }
+    
+    // Get meal plan
+    if (option.includedMealOptions != null && option.includedMealOptions!.isNotEmpty) {
+      mealPlan = option.includedMealOptions!.join(', ');
+    }
+    
+    // Get guests count
+    final guestsCount = maxGuests ?? (hotel.guests > 0 ? hotel.guests : 1);
+    
+    // Get cancellation policy text
+    String cancellationText = '';
+    if (option.cancellationPolicy != null) {
+      final policy = option.cancellationPolicy!;
+      final locale = _normalizeLocale(context.locale);
+      try {
+        cancellationText = policy[locale]?.toString() ?? 
+            policy['uz']?.toString() ?? 
+            policy['ru']?.toString() ?? 
+            policy['en']?.toString() ?? 
+            '';
+        cancellationText = _stripHtmlTags(cancellationText);
+      } catch (_) {
+        cancellationText = _stripHtmlTags(policy.toString());
+      }
+      
+      if (cancellationText.isEmpty) {
+        cancellationText = 'hotel.details.free_cancellation_2_days'.tr();
+      }
+    } else {
+      cancellationText = 'hotel.details.free_cancellation_2_days'.tr();
+    }
+    
+    final selectedRoomCount = _selectedRoomCounts[option.optionRefId] ?? 0;
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 16.h),
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: AppColors.getCardBg(isDark),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: AppColors.getBorderColor(isDark).withOpacity(0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Room Type
+          Text(
+            roomName,
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).textTheme.titleMedium?.color,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (mealPlan != null) ...[
+            SizedBox(height: 4.h),
+            Text(
+              mealPlan,
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: Theme.of(context).textTheme.bodySmall?.color,
+              ),
+            ),
+          ],
+          SizedBox(height: 12.h),
+          // Guests and Price Row
+          Row(
+            children: [
+              // Guests
+              Row(
+                children: [
+                  Icon(Icons.person, size: 16.sp, color: Colors.blue),
+                  SizedBox(width: 4.w),
+                  Text(
+                    '$guestsCount ${'hotel.results.person'.tr()}',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
+                  ),
+                ],
+              ),
+              Spacer(),
+              // Price - shows total price based on selected room count
+              Builder(
+                builder: (context) {
+                  int totalNights = hotel.checkOutDate.difference(hotel.checkInDate).inDays;
+                  if (totalNights <= 0) totalNights = 1;
+                  
+                  // Calculate price based on selected room count
+                  final totalPrice = selectedRoomCount > 0 
+                      ? (price * selectedRoomCount * totalNights)
+                      : price; // Show single room price if no selection
+                  
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        NumberFormat.simpleCurrency(name: currencyCode).format(totalPrice),
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      SizedBox(height: 2.h),
+                      Text(
+                        selectedRoomCount > 0
+                            ? 'hotel.details.total_amount'.tr()
+                            : 'hotel.results.price_for_night'.tr(),
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          // Cancellation Policy
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 14.sp, color: Colors.grey),
+              SizedBox(width: 4.w),
+              Expanded(
+                child: Text(
+                  cancellationText,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16.h),
+          // Room Count and Select Button Row
+          Row(
+            children: [
+              // Room Count Dropdown
+              Expanded(
+                flex: 2,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    borderRadius: BorderRadius.circular(8.r),
+                    border: Border.all(
+                      color: AppColors.getBorderColor(isDark).withOpacity(0.5),
+                    ),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: selectedRoomCount,
+                      isExpanded: true,
+                      items: List.generate(8, (index) {
+                        return DropdownMenuItem<int>(
+                          value: index,
+                          child: Text(
+                            '$index ${'hotel.details.room'.tr()}',
+                            style: TextStyle(fontSize: 14.sp),
+                          ),
+                        );
+                      }),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            _selectedRoomCounts[option.optionRefId] = value;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1858,12 +3373,12 @@ class MapPlaceholderPainter extends CustomPainter {
     // Green Areas (Parks)
     paint.color = Color(0xFFC8E6C9).withOpacity(0.5);
     canvas.drawRect(
-        Rect.fromLTWH(
-            size.width * 0.1, size.height * 0.1, size.width * 0.3, size.height * 0.4),
+        Rect.fromLTWH(size.width * 0.1, size.height * 0.1, size.width * 0.3,
+            size.height * 0.4),
         paint);
     canvas.drawRect(
-        Rect.fromLTWH(
-            size.width * 0.6, size.height * 0.5, size.width * 0.25, size.height * 0.3),
+        Rect.fromLTWH(size.width * 0.6, size.height * 0.5, size.width * 0.25,
+            size.height * 0.3),
         paint);
 
     // Water (River)
@@ -1900,7 +3415,8 @@ class MapPlaceholderPainter extends CustomPainter {
     paint.style = PaintingStyle.fill;
     paint.color = Color(0xFFE0E0E0);
     canvas.drawRect(
-        Rect.fromLTWH(size.width * 0.05, size.height * 0.45, 60.w, 40.h), paint);
+        Rect.fromLTWH(size.width * 0.05, size.height * 0.45, 60.w, 40.h),
+        paint);
     canvas.drawRect(
         Rect.fromLTWH(size.width * 0.5, size.height * 0.1, 80.w, 50.h), paint);
   }

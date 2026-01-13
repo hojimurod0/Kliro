@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../../core/constants/constants.dart';
 import '../../../../core/errors/app_exception.dart';
@@ -35,11 +36,11 @@ class MortgageRemoteDataSourceImpl implements MortgageRemoteDataSource {
         ...filter.toQueryParameters(),
       };
 
-      print('[MortgageRemoteDataSource] Fetching mortgages:');
-      print('  - URL: ${ApiPaths.getMortgages}');
-      print('  - Base URL: ${ApiConstants.effectiveBaseUrl}');
-      print('  - Page: $page, Size: $size');
-      print('  - Query params: $query');
+      debugPrint('[MortgageRemoteDataSource] Fetching mortgages:');
+      debugPrint('  - URL: ${ApiPaths.getMortgages}');
+      debugPrint('  - Base URL: ${ApiConstants.effectiveBaseUrl}');
+      debugPrint('  - Page: $page, Size: $size');
+      debugPrint('  - Query params: $query');
 
       developer.log(
         'Fetching mortgages page=$page size=$size query=$query',
@@ -51,29 +52,29 @@ class MortgageRemoteDataSourceImpl implements MortgageRemoteDataSource {
         queryParameters: query,
       );
 
-      print('[MortgageRemoteDataSource] Response received:');
-      print('  - Status: ${response.statusCode}');
-      print('  - Data type: ${response.data.runtimeType}');
+      debugPrint('[MortgageRemoteDataSource] Response received:');
+      debugPrint('  - Status: ${response.statusCode}');
+      debugPrint('  - Data type: ${response.data.runtimeType}');
 
       final data = response.data;
       if (data is! Map<String, dynamic>) {
         throw const AppException(message: 'Server notogri malumot qaytardi');
       }
 
-      print('[MortgageRemoteDataSource] Parsing ApiResponse...');
+      debugPrint('[MortgageRemoteDataSource] Parsing ApiResponse...');
 
       final apiResponse = ApiResponse.fromJson(
         data,
         (json) => json as Map<String, dynamic>,
       );
 
-      print('[MortgageRemoteDataSource] ApiResponse parsed:');
-      print('  - Success: ${apiResponse.success}');
-      print('  - Message: ${apiResponse.message}');
-      print('  - Result type: ${apiResponse.result.runtimeType}');
+      debugPrint('[MortgageRemoteDataSource] ApiResponse parsed:');
+      debugPrint('  - Success: ${apiResponse.success}');
+      debugPrint('  - Message: ${apiResponse.message}');
+      debugPrint('  - Result type: ${apiResponse.result.runtimeType}');
 
       if (!apiResponse.success) {
-        print(
+        debugPrint(
           '[MortgageRemoteDataSource] API returned error: ${apiResponse.message}',
         );
         throw ValidationException(
@@ -83,14 +84,14 @@ class MortgageRemoteDataSourceImpl implements MortgageRemoteDataSource {
       }
 
       final result = apiResponse.result;
-      print('[MortgageRemoteDataSource] Result extracted:');
-      print('  - Type: ${result.runtimeType}');
+      debugPrint('[MortgageRemoteDataSource] Result extracted:');
+      debugPrint('  - Type: ${result.runtimeType}');
       if (result is Map<String, dynamic>) {
-        print('  - Keys: ${result.keys}');
+        debugPrint('  - Keys: ${result.keys}');
         if (result.containsKey('content')) {
-          print('  - Content type: ${result['content'].runtimeType}');
+          debugPrint('  - Content type: ${result['content'].runtimeType}');
           if (result['content'] is List) {
-            print(
+            debugPrint(
               '  - Content length: ${(result['content'] as List).length}',
             );
           }
@@ -113,20 +114,20 @@ class MortgageRemoteDataSourceImpl implements MortgageRemoteDataSource {
         );
       }
 
-      print('[MortgageRemoteDataSource] Parsing result: ${result.keys}');
-      print('[MortgageRemoteDataSource] Result type: ${result.runtimeType}');
+      debugPrint('[MortgageRemoteDataSource] Parsing result: ${result.keys}');
+      debugPrint('[MortgageRemoteDataSource] Result type: ${result.runtimeType}');
 
       final parsed = MortgagePageModel.fromJson(result);
 
-      print('[MortgageRemoteDataSource] Parsed successfully:');
-      print('  - Total items: ${parsed.content.length}');
-      print('  - Page: ${parsed.number}');
-      print('  - Total pages: ${parsed.totalPages}');
-      print('  - Total elements: ${parsed.totalElements}');
-      print('  - Is last: ${parsed.last}');
+      debugPrint('[MortgageRemoteDataSource] Parsed successfully:');
+      debugPrint('  - Total items: ${parsed.content.length}');
+      debugPrint('  - Page: ${parsed.number}');
+      debugPrint('  - Total pages: ${parsed.totalPages}');
+      debugPrint('  - Total elements: ${parsed.totalElements}');
+      debugPrint('  - Is last: ${parsed.last}');
 
       if (parsed.content.isNotEmpty) {
-        print(
+        debugPrint(
           '[MortgageRemoteDataSource] First item: ${parsed.content.first.bankName} - ${parsed.content.first.description}',
         );
       }

@@ -51,7 +51,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
               : null),
       title: Text(
         title ?? (titleKey != null ? tr(titleKey!) : ''),
-        style: AppTypography.headingL.copyWith(
+        style: AppTypography.headingL(context).copyWith(
           fontSize: 17.sp,
           fontWeight: FontWeight.w600,
           color: foregroundColor ?? 

@@ -1,12 +1,14 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/services/auth/auth_service.dart';
+import '../../../../core/utils/input_formatters.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../register/domain/params/auth_params.dart';
 import '../../../register/domain/usecases/get_profile.dart';
@@ -227,6 +229,17 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       create: (context) => ServiceLocator.resolve<RegisterBloc>(),
       child: BlocListener<RegisterBloc, RegisterState>(
         listener: (context, state) {
+          // Loading state ni har doim yangilash
+          if (state.status == RegisterStatus.loading) {
+            setState(() {
+              _isLoading = true;
+            });
+          } else {
+            setState(() {
+              _isLoading = false;
+            });
+          }
+
           if (state.status == RegisterStatus.success) {
             if (state.flow == RegisterFlow.contactUpdate) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -255,6 +268,10 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               Navigator.pop(context);
             }
           } else if (state.status == RegisterStatus.failure) {
+            // Xatolik holatida ham loading state ni false qilish
+            setState(() {
+              _isLoading = false;
+            });
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.error ?? tr('profile_edit.update_failed')),
@@ -291,9 +308,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         centerTitle: true,
         title: Text(
           tr('profile_edit.title'),
-          style: AppTypography.headingL.copyWith(
+          style: AppTypography.headingL(context).copyWith(
             fontSize: 18.sp,
-            color: Theme.of(context).textTheme.titleLarge?.color,
           ),
         ),
       ),
@@ -310,9 +326,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             children: [
               Text(
                 tr('profile_edit.profile_info'),
-                style: AppTypography.headingL.copyWith(
+                style: AppTypography.headingL(context).copyWith(
                   fontSize: 22.sp,
-                  color: Theme.of(context).textTheme.titleLarge?.color,
                 ),
               ),
               SizedBox(height: 20.h),
@@ -365,6 +380,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 icon: Icons.call_outlined,
                 hintText: _trOrFallback('profile_edit.phone_hint', '+998'),
                 keyboardType: TextInputType.phone,
+                inputFormatters: [PhoneFormatter()],
                 fillColor: bg,
                 borderColor: borderColor,
                 textColor: textColor,
@@ -377,7 +393,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 icon: Icons.calendar_today_outlined,
                 hintText:
                     _trOrFallback('profile_edit.birth_date_hint', 'DD.MM.YYYY'),
-                keyboardType: TextInputType.datetime,
+                keyboardType: TextInputType.number,
+                inputFormatters: [DateFormatterWithDots()],
                 fillColor: bg,
                 borderColor: borderColor,
                 textColor: textColor,
@@ -404,7 +421,10 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                         onPressed: () => Navigator.pop(context),
                         icon: Icon(
                           Icons.close,
-                          color: Theme.of(context).iconTheme.color ?? Colors.black,
+                          color: Theme.of(context).iconTheme.color ?? 
+                              (Theme.of(context).brightness == Brightness.dark 
+                                  ? AppColors.white 
+                                  : AppColors.black),
                         ),
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(color: borderColor),
@@ -414,7 +434,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                         ),
                         label: Text(
                           tr('profile_edit.cancel'),
-                          style: AppTypography.bodyPrimary.copyWith(
+                          style: AppTypography.bodyPrimary(context).copyWith(
                             color: textColor,
                             fontSize: 16.sp,
                             fontWeight: FontWeight.w600,
@@ -461,7 +481,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                                 ),
                           label: Text(
                             tr('profile_edit.save'),
-                            style: AppTypography.bodyPrimary.copyWith(
+                            style: AppTypography.bodyPrimary(context).copyWith(
                               color: Colors.white,
                               fontSize: 16.sp,
                               fontWeight: FontWeight.w600,
@@ -489,6 +509,7 @@ class _ProfileInputField extends StatelessWidget {
     required this.icon,
     required this.hintText,
     this.keyboardType,
+    this.inputFormatters,
     required this.fillColor,
     required this.borderColor,
     required this.textColor,
@@ -500,6 +521,7 @@ class _ProfileInputField extends StatelessWidget {
   final IconData icon;
   final String hintText;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
   final Color fillColor;
   final Color borderColor;
   final Color textColor;
@@ -512,8 +534,7 @@ class _ProfileInputField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: AppTypography.bodyPrimary.copyWith(
-            color: Theme.of(context).textTheme.bodySmall?.color ?? AppColors.labelText,
+          style: AppTypography.bodyPrimary(context).copyWith(
             fontSize: 14.sp,
             fontWeight: FontWeight.w500,
           ),
@@ -522,7 +543,8 @@ class _ProfileInputField extends StatelessWidget {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
-          style: AppTypography.bodyPrimary.copyWith(
+          inputFormatters: inputFormatters,
+          style: AppTypography.bodyPrimary(context).copyWith(
             color: textColor,
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
@@ -537,7 +559,7 @@ class _ProfileInputField extends StatelessWidget {
             ),
             prefixIcon: Icon(icon, color: AppColors.primaryBlue, size: 20.sp),
             hintText: hintText,
-            hintStyle: AppTypography.bodyPrimary.copyWith(
+            hintStyle: AppTypography.bodyPrimary(context).copyWith(
               color: hintColor,
               fontSize: 16.sp,
               fontWeight: FontWeight.w500,

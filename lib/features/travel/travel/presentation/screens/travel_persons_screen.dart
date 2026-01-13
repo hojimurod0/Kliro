@@ -7,6 +7,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/constants/app_typography.dart';
 import '../../../../../core/utils/snackbar_helper.dart';
 import '../logic/bloc/travel_bloc.dart';
 import '../logic/bloc/travel_state.dart';
@@ -23,15 +24,6 @@ class TravelPersonsScreen extends StatefulWidget {
 }
 
 class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
-  // --- RANGLAR PALITRASI ---
-  final Color kPrimaryBlue = const Color(0xFF0085FF); // Asosiy ko'k rang
-  final Color kLightBlueBg = const Color(0xFFEFF8FF); // Ochiq ko'k fon
-  final Color kTextBlack = const Color(0xFF111111); // Qora matn
-  final Color kTextGrey = const Color(0xFF6B7280); // Kulrang matn
-  final Color kBorderGrey = const Color(0xFFE5E7EB); // Och kulrang hoshiya
-  final Color kInputBg = const Color(0xFFFFFFFF); // Input foni
-  final Color kDeleteRedBg = const Color(0xFFFEF2F2); // O'chirish tugmasi foni
-  final Color kDeleteRedIcon = const Color(0xFFEF4444); // Qizil ikonka
 
   // State variables
   List<Map<String, dynamic>> _countries = [];
@@ -73,13 +65,13 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final scaffoldBg = AppColors.getScaffoldBg(isDark);
-    final textColor = isDark ? AppColors.getTextColor(isDark) : kTextBlack;
+    final textColor = isDark ? AppColors.getTextColor(isDark) : AppColors.travelTextBlack;
     final textGreyColor = isDark
         ? AppColors.getSubtitleColor(isDark)
-        : kTextGrey;
-    final borderColor = isDark ? AppColors.getBorderColor(isDark) : kBorderGrey;
+        : AppColors.travelTextGrey;
+    final borderColor = isDark ? AppColors.getBorderColor(isDark) : AppColors.travelBorderGrey;
     final cardBg = AppColors.getCardBg(isDark);
-    final lightBlueBg = isDark ? const Color(0xFF1E3A5C) : kLightBlueBg;
+    final lightBlueBg = isDark ? AppColors.travelLightBlueBgDark : AppColors.travelLightBlueBg;
 
     return BlocListener<TravelBloc, TravelState>(
       listener: (context, state) {
@@ -161,7 +153,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
               leading: IconButton(
                 icon: Icon(
                   Icons.arrow_back,
-                  color: isDark ? Colors.white : Colors.black,
+                  color: isDark ? AppColors.white : AppColors.black,
                   size: 24,
                 ),
                 onPressed: () => Navigator.of(context).pop(),
@@ -169,10 +161,8 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
               ),
               title: Text(
                 "travel.persons_screen.title".tr(),
-                style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
+                style: AppTypography.headingM(context).copyWith(
+                  color: isDark ? AppColors.white : AppColors.black,
                 ),
               ),
               centerTitle: true,
@@ -190,9 +180,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                   // Katta Sarlavha - веб-стиль, адаптированный для мобильного
                   Text(
                     "travel.persons_screen.subtitle".tr(),
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
+                    style: AppTypography.headingXL(context).copyWith(
                       color: textColor,
                       letterSpacing: -0.3,
                       height: 1.2,
@@ -201,11 +189,9 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                   const SizedBox(height: 8),
                   Text(
                     "travel.persons_screen.description".tr(),
-                    style: TextStyle(
-                      fontSize: 14,
+                    style: AppTypography.bodyMedium(context).copyWith(
                       color: textGreyColor,
                       height: 1.5,
-                      fontWeight: FontWeight.w400,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -235,7 +221,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                             color: lightBlueBg,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: kPrimaryBlue.withOpacity(0.3),
+                              color: AppColors.travelPrimaryBlue.withOpacity(0.3),
                               width: 1,
                             ),
                           ),
@@ -244,8 +230,8 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                             children: [
                               Text(
                                 _getCountryName(country),
-                                style: TextStyle(
-                                  color: kPrimaryBlue,
+                                style: AppTypography.bodyMedium(context).copyWith(
+                                  color: AppColors.travelPrimaryBlue,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13,
                                 ),
@@ -263,7 +249,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                                   child: Icon(
                                     Icons.close,
                                     size: 16,
-                                    color: kPrimaryBlue,
+                                    color: AppColors.travelPrimaryBlue,
                                   ),
                                 ),
                               ),
@@ -317,9 +303,8 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                       Expanded(
                         child: Text(
                           "travel.persons_screen.additional_protection".tr(),
-                          style: TextStyle(
+                          style: AppTypography.bodyMedium(context).copyWith(
                             color: textGreyColor,
-                            fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -343,15 +328,15 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                         color: _isAnnualInsuranceSelected
                             ? lightBlueBg
                             : (isDark
-                                  ? const Color(0xFF1E1E1E)
-                                  : const Color(0xFFFAFAFA)),
+                                  ? AppColors.darkCardBg
+                                  : AppColors.grayBackground),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: _isAnnualInsuranceSelected
-                              ? kPrimaryBlue
+                              ? AppColors.travelPrimaryBlue
                               : (isDark
-                                    ? Colors.grey[700]!
-                                    : Colors.grey.shade200),
+                                    ? AppColors.darkBorder
+                                    : AppColors.grayBorder),
                           width: _isAnnualInsuranceSelected ? 1.5 : 1,
                         ),
                       ),
@@ -363,19 +348,17 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                               children: [
                                 Text(
                                   "travel.persons_screen.annual_insurance".tr(),
-                                  style: TextStyle(
+                                  style: AppTypography.headingM(context).copyWith(
                                     color: _isAnnualInsuranceSelected
-                                        ? kPrimaryBlue
+                                        ? AppColors.travelPrimaryBlue
                                         : textColor,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   "travel.persons_screen.annual_description"
                                       .tr(),
-                                  style: TextStyle(
+                                  style: AppTypography.bodyMedium(context).copyWith(
                                     color: textGreyColor,
                                     fontSize: 13,
                                   ),
@@ -386,7 +369,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                           if (_isAnnualInsuranceSelected)
                             Icon(
                               Icons.check_circle,
-                              color: kPrimaryBlue,
+                              color: AppColors.travelPrimaryBlue,
                               size: 26,
                             ),
                         ],
@@ -409,15 +392,15 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                         color: _isCovidProtectionSelected
                             ? lightBlueBg
                             : (isDark
-                                  ? const Color(0xFF1E1E1E)
-                                  : const Color(0xFFFAFAFA)),
+                                  ? AppColors.darkCardBg
+                                  : AppColors.grayBackground),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: _isCovidProtectionSelected
-                              ? kPrimaryBlue
+                              ? AppColors.travelPrimaryBlue
                               : (isDark
-                                    ? Colors.grey[700]!
-                                    : Colors.grey.shade200),
+                                    ? AppColors.darkBorder
+                                    : AppColors.grayBorder),
                           width: _isCovidProtectionSelected ? 1.5 : 1,
                         ),
                       ),
@@ -431,7 +414,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                                   "travel.persons_screen.covid_protection".tr(),
                                   style: TextStyle(
                                     color: _isCovidProtectionSelected
-                                        ? kPrimaryBlue
+                                        ? AppColors.travelPrimaryBlue
                                         : textColor,
                                     fontWeight: FontWeight.w700,
                                     fontSize: 16,
@@ -441,7 +424,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                                 Text(
                                   "travel.persons_screen.covid_description"
                                       .tr(),
-                                  style: TextStyle(
+                                  style: AppTypography.bodyMedium(context).copyWith(
                                     color: textGreyColor,
                                     fontSize: 13,
                                   ),
@@ -452,7 +435,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                           if (_isCovidProtectionSelected)
                             Icon(
                               Icons.check_circle,
-                              color: kPrimaryBlue,
+                              color: AppColors.travelPrimaryBlue,
                               size: 26,
                             ),
                         ],
@@ -508,12 +491,12 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.add, size: 18, color: kPrimaryBlue),
+                              Icon(Icons.add, size: 18, color: AppColors.travelPrimaryBlue),
                               const SizedBox(width: 4),
                               Text(
                                 "travel.persons_screen.add".tr(),
                                 style: TextStyle(
-                                  color: kPrimaryBlue,
+                                  color: AppColors.travelPrimaryBlue,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13,
                                 ),
@@ -545,7 +528,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(
+                              color: AppColors.black.withOpacity(
                                 isDark ? 0.3 : 0.02,
                               ),
                               blurRadius: 10,
@@ -589,13 +572,13 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                                       width: 32,
                                       height: 32,
                                       decoration: BoxDecoration(
-                                        color: kDeleteRedBg,
+                                        color: AppColors.travelDeleteRedBg,
                                         shape: BoxShape.circle,
                                       ),
                                       child: Icon(
                                         Icons.close,
                                         size: 18,
-                                        color: kDeleteRedIcon,
+                                        color: AppColors.travelDeleteRedIcon,
                                       ),
                                     ),
                                   ),
@@ -633,8 +616,8 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: isDark
-                                      ? Colors.grey[900]
-                                      : const Color(0xFFFAFAFA),
+                                      ? AppColors.darkCardBg
+                                      : AppColors.grayBackground,
                                   border: Border.all(color: borderColor),
                                   borderRadius: BorderRadius.circular(50),
                                 ),
@@ -654,8 +637,8 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                                           color: birthDate != null
                                               ? textColor
                                               : (isDark
-                                                    ? Colors.grey[500]
-                                                    : Colors.grey.shade400),
+                                                    ? AppColors.darkPlaceholder
+                                                    : AppColors.gray500),
                                           fontSize: 15,
                                           fontWeight: birthDate != null
                                               ? FontWeight.w500
@@ -691,13 +674,13 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                 border: Border(
                   top: BorderSide(
                     color: isDark
-                        ? Colors.grey[800]!
-                        : kBorderGrey.withOpacity(0.5),
+                        ? AppColors.darkSubtitle
+                        : AppColors.travelBorderGrey.withOpacity(0.5),
                   ),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.3 : 0.03),
+                    color: AppColors.black.withOpacity(isDark ? 0.3 : 0.03),
                     blurRadius: 10,
                     offset: const Offset(0, -5),
                   ),
@@ -841,8 +824,8 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: kPrimaryBlue,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.travelPrimaryBlue,
+                  foregroundColor: AppColors.white,
                   elevation: 0,
                   fixedSize: const Size(double.infinity, 56),
                   shape: RoundedRectangleBorder(
@@ -867,9 +850,9 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
   // Dropdown для выбора стран
   Widget _buildCountryDropdown(TravelState state) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : kTextBlack;
-    final borderColor = isDark ? Colors.grey[700]! : kBorderGrey;
+    final cardBg = isDark ? AppColors.darkCardBg : AppColors.white;
+    final textColor = isDark ? AppColors.white : AppColors.travelTextBlack;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.travelBorderGrey;
 
     // Показываем индикатор загрузки только если данные еще не загружены
     if ((state is TravelLoading || state is TravelInitial) &&
@@ -894,7 +877,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
 
     // Если список стран пустой, показываем сообщение
     if (_countries.isEmpty) {
-      final textGreyColor = isDark ? Colors.grey[400]! : kTextGrey;
+      final textGreyColor = isDark ? AppColors.darkSubtitle : AppColors.travelTextGrey;
       return Container(
         height: 56,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -932,7 +915,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
               ? "travel.persons_screen.select_country".tr()
               : "${_selectedCountries.length} ta tanlangan",
           hintStyle: TextStyle(
-            color: isDark ? Colors.grey[500] : Colors.grey.shade400,
+            color: isDark ? AppColors.darkPlaceholder : AppColors.gray500,
             fontWeight: FontWeight.w400,
           ),
           contentPadding: const EdgeInsets.symmetric(
@@ -945,7 +928,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: kPrimaryBlue, width: 1.5),
+            borderSide: BorderSide(color: AppColors.travelPrimaryBlue, width: 1.5),
           ),
           filled: true,
           fillColor: cardBg,
@@ -953,7 +936,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
         style: TextStyle(color: textColor, fontWeight: FontWeight.w500),
         icon: Icon(
           Icons.keyboard_arrow_down,
-          color: isDark ? Colors.grey[400] : Colors.grey.shade600,
+          color: isDark ? AppColors.darkPlaceholder : AppColors.gray500,
         ),
         items: _countries.isEmpty
             ? []
@@ -974,7 +957,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
                           if (isSelected)
                             Icon(
                               Icons.check_circle,
-                              color: kPrimaryBlue,
+                              color: AppColors.travelPrimaryBlue,
                               size: 18,
                             )
                           else
@@ -1012,9 +995,9 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
   // Dropdown для выбора цели путешествия - веб-стиль
   Widget _buildPurposeDropdown() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : kTextBlack;
-    final borderColor = isDark ? Colors.grey[700]! : kBorderGrey;
+    final cardBg = isDark ? AppColors.darkCardBg : AppColors.white;
+    final textColor = isDark ? AppColors.white : AppColors.travelTextBlack;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.travelBorderGrey;
 
     // Показываем индикатор загрузки если данные еще не загружены
     if (_purposes.isEmpty) {
@@ -1069,7 +1052,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: kPrimaryBlue, width: 2),
+            borderSide: BorderSide(color: AppColors.travelPrimaryBlue, width: 2),
           ),
           filled: true,
           fillColor: cardBg,
@@ -1077,7 +1060,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
         style: TextStyle(color: textColor, fontWeight: FontWeight.w500),
         icon: Icon(
           Icons.keyboard_arrow_down,
-          color: isDark ? Colors.grey[400] : Colors.grey.shade600,
+          color: isDark ? AppColors.darkPlaceholder : AppColors.gray500,
         ),
         items: _purposes
             .where((purpose) {
@@ -1155,13 +1138,12 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
   // --- YORDAMCHI WIDGETLAR ---
   Widget _buildLabel(String text) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textGreyColor = isDark ? Colors.grey[400]! : kTextGrey;
+    final textGreyColor = isDark ? AppColors.darkPlaceholder : AppColors.travelTextGrey;
 
     return Text(
       text,
-      style: TextStyle(
+      style: AppTypography.bodyMedium(context).copyWith(
         color: textGreyColor,
-        fontSize: 14,
         fontWeight: FontWeight.w500,
         height: 1.4,
       ),
@@ -1171,18 +1153,16 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
   // Веб-стиль секция с иконкой
   Widget _buildSectionLabel(String text, IconData icon) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white : kTextBlack;
+    final textColor = isDark ? AppColors.white : AppColors.travelTextBlack;
 
     return Row(
       children: [
-        Icon(icon, size: 20, color: kPrimaryBlue),
+        Icon(icon, size: 20, color: AppColors.travelPrimaryBlue),
         const SizedBox(width: 8),
         Text(
           text,
-          style: TextStyle(
+          style: AppTypography.headingS(context).copyWith(
             color: textColor,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
             height: 1.4,
           ),
         ),
@@ -1192,9 +1172,9 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
 
   Widget _buildDateInputBox(String hint, {required bool isStart}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final borderColor = isDark ? Colors.grey[700]! : kBorderGrey;
-    final textColor = isDark ? Colors.white : kTextBlack;
+    final cardBg = isDark ? AppColors.darkCardBg : AppColors.white;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.travelBorderGrey;
+    final textColor = isDark ? AppColors.white : AppColors.travelTextBlack;
     final selectedDate = isStart ? _startDate : _endDate;
     final dateText = selectedDate != null
         ? DateFormat('dd/MM/yyyy').format(selectedDate)
@@ -1219,7 +1199,7 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
         ),
         child: Row(
           children: [
-            Icon(Icons.calendar_month_outlined, size: 18, color: kPrimaryBlue),
+            Icon(Icons.calendar_month_outlined, size: 18, color: AppColors.travelPrimaryBlue),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -1266,13 +1246,13 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: kPrimaryBlue,
-              onPrimary: Colors.white,
-              surface: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-              onSurface: isDark ? Colors.white : kTextBlack,
+              primary: AppColors.travelPrimaryBlue,
+              onPrimary: AppColors.white,
+              surface: isDark ? AppColors.darkCardBg : AppColors.white,
+              onSurface: isDark ? AppColors.white : AppColors.travelTextBlack,
             ),
             dialogBackgroundColor: isDark
-                ? const Color(0xFF1E1E1E)
+                ? AppColors.darkCardBg
                 : Colors.white,
           ),
           child: child!,
@@ -1322,13 +1302,13 @@ class _TravelPersonsScreenState extends State<TravelPersonsScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: kPrimaryBlue,
-              onPrimary: Colors.white,
-              surface: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-              onSurface: isDark ? Colors.white : kTextBlack,
+              primary: AppColors.travelPrimaryBlue,
+              onPrimary: AppColors.white,
+              surface: isDark ? AppColors.darkCardBg : AppColors.white,
+              onSurface: isDark ? AppColors.white : AppColors.travelTextBlack,
             ),
             dialogBackgroundColor: isDark
-                ? const Color(0xFF1E1E1E)
+                ? AppColors.darkCardBg
                 : Colors.white,
           ),
           child: child!,

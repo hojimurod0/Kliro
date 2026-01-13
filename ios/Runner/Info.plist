@@ -56,5 +56,18 @@
 			</array>
 		</dict>
 	</array>
+	
+	<!-- Location permissions for Google Maps -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs access to your location to show your position on the map</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>This app needs access to your location to show your position on the map</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs access to your location to show your position on the map</string>
+	
+	<!-- Google Maps API Key -->
+	<!-- TODO: Replace YOUR_API_KEY with your actual Google Maps API key -->
+	<key>GMSApiKey</key>
+	<string>YOUR_API_KEY</string>
 </dict>
 </plist>

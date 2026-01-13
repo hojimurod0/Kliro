@@ -68,6 +68,8 @@ class Hotel extends Equatable {
     this.stars,
     this.discount,
     this.photos,
+    this.latitude,
+    this.longitude,
   });
 
   /// String ID (legacy support)
@@ -99,6 +101,12 @@ class Hotel extends Equatable {
 
   /// Фотографии отеля
   final List<HotelPhoto>? photos;
+  
+  /// Широта (latitude)
+  final double? latitude;
+  
+  /// Долгота (longitude)
+  final double? longitude;
 
   Hotel copyWith({
     String? id,
@@ -118,6 +126,8 @@ class Hotel extends Equatable {
     int? stars,
     int? discount,
     List<HotelPhoto>? photos,
+    double? latitude,
+    double? longitude,
   }) {
     return Hotel(
       id: id ?? this.id,
@@ -137,6 +147,8 @@ class Hotel extends Equatable {
       stars: stars ?? this.stars,
       discount: discount ?? this.discount,
       photos: photos ?? this.photos,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 
@@ -159,6 +171,8 @@ class Hotel extends Equatable {
         stars,
         discount,
         photos,
+        latitude,
+        longitude,
       ];
 }
 

@@ -180,21 +180,21 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                   // 2. Sarlavha
                   Text(
                     'auth.user_details.title'.tr(),
-                    style: AppTypography.headingXL.copyWith(
+                    style: AppTypography.headingXL(context).copyWith(
                       color: isDark ? AppColors.white : AppColors.black,
                     ),
                   ),
                   SizedBox(height: AppSpacing.xs),
                   Text(
                     'auth.user_details.subtitle'.tr(),
-                    style: AppTypography.bodyPrimary,
+                    style: AppTypography.bodyPrimary(context),
                   ),
 
                   SizedBox(height: AppSpacing.lg),
                   // 3. Inputlar
 
                   // --- ISM ---
-                  _buildLabel('auth.field.first_name'.tr()),
+                  _buildLabel(context, 'auth.field.first_name'.tr()),
                   SizedBox(height: AppSpacing.xs),
                   _buildTextField(
                     controller: _firstNameController,
@@ -204,7 +204,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                   SizedBox(height: AppSpacing.md),
 
                   // --- FAMILIYA ---
-                  _buildLabel('auth.field.last_name'.tr()),
+                  _buildLabel(context, 'auth.field.last_name'.tr()),
                   SizedBox(height: AppSpacing.xs),
                   _buildTextField(
                     controller: _lastNameController,
@@ -214,13 +214,13 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                   SizedBox(height: AppSpacing.md),
 
                   // --- MANZIL (DROPDOWN) ---
-                  _buildLabel('auth.field.address'.tr()),
+                  _buildLabel(context, 'auth.field.address'.tr()),
                   SizedBox(height: AppSpacing.xs),
                   _buildDropdownField(),
                   SizedBox(height: AppSpacing.md),
 
                   // --- PAROL ---
-                  _buildLabel('auth.field.password_label'.tr()),
+                  _buildLabel(context, 'auth.field.password_label'.tr()),
                   SizedBox(height: AppSpacing.xs),
                   _buildTextField(
                     controller: _passwordController,
@@ -237,7 +237,8 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                   SizedBox(height: AppSpacing.md),
 
                   // --- PAROLNI TASDIQLASH ---
-                  _buildLabel('auth.field.confirm_password_label'.tr()),
+                  _buildLabel(
+                      context, 'auth.field.confirm_password_label'.tr()),
                   SizedBox(height: AppSpacing.xs),
                   _buildTextField(
                     controller: _confirmPasswordController,
@@ -270,10 +271,10 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   }
 
   // Label (Input tepasidagi kichik yozuv)
-  Widget _buildLabel(String text) {
+  Widget _buildLabel(BuildContext context, String text) {
     return Padding(
       padding: EdgeInsets.only(left: 2.w),
-      child: Text(text, style: AppTypography.labelSmall),
+      child: Text(text, style: AppTypography.labelSmall(context)),
     );
   }
 

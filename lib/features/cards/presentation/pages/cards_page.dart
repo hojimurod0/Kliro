@@ -1053,7 +1053,7 @@ class _StateMessage extends StatelessWidget {
             SizedBox(height: 16.h),
             Text(
               title,
-              style: AppTypography.headingL.copyWith(
+              style: AppTypography.headingL(context).copyWith(
                 fontSize: AppTextSize.filterTitle,
                 fontWeight: FontWeight.w600,
               ),
@@ -1062,7 +1062,7 @@ class _StateMessage extends StatelessWidget {
             SizedBox(height: 8.h),
             Text(
               subtitle,
-              style: AppTypography.bodySecondary.copyWith(
+              style: AppTypography.bodySecondary(context).copyWith(
                 color: theme.textTheme.bodySmall?.color,
               ),
               textAlign: TextAlign.center,
@@ -1112,7 +1112,7 @@ class _PaginationErrorBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: AppTypography.bodySecondary.copyWith(
+              style: AppTypography.bodySecondary(context).copyWith(
                 color: AppColors.dangerRed,
               ),
             ),

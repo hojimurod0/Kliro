@@ -1,38 +1,39 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 /// Интерцептор для логирования HTTP запросов
 class DioLoggingInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    print('┌─────────────────────────────────────────────────────────────');
-    print('│ REQUEST: ${options.method} ${options.uri}');
-    print('│ Headers: ${options.headers}');
+    debugPrint('┌─────────────────────────────────────────────────────────────');
+    debugPrint('│ REQUEST: ${options.method} ${options.uri}');
+    debugPrint('│ Headers: ${options.headers}');
     if (options.data != null) {
-      print('│ Body: ${options.data}');
+      debugPrint('│ Body: ${options.data}');
     }
-    print('└─────────────────────────────────────────────────────────────');
+    debugPrint('└─────────────────────────────────────────────────────────────');
     super.onRequest(options, handler);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    print('┌─────────────────────────────────────────────────────────────');
-    print('│ RESPONSE: ${response.statusCode} ${response.requestOptions.uri}');
-    print('│ Data: ${response.data}');
-    print('└─────────────────────────────────────────────────────────────');
+    debugPrint('┌─────────────────────────────────────────────────────────────');
+    debugPrint('│ RESPONSE: ${response.statusCode} ${response.requestOptions.uri}');
+    debugPrint('│ Data: ${response.data}');
+    debugPrint('└─────────────────────────────────────────────────────────────');
     super.onResponse(response, handler);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    print('┌─────────────────────────────────────────────────────────────');
-    print('│ ERROR: ${err.requestOptions.method} ${err.requestOptions.uri}');
-    print('│ Status: ${err.response?.statusCode}');
-    print('│ Message: ${err.message}');
+    debugPrint('┌─────────────────────────────────────────────────────────────');
+    debugPrint('│ ERROR: ${err.requestOptions.method} ${err.requestOptions.uri}');
+    debugPrint('│ Status: ${err.response?.statusCode}');
+    debugPrint('│ Message: ${err.message}');
     if (err.response?.data != null) {
-      print('│ Data: ${err.response?.data}');
+      debugPrint('│ Data: ${err.response?.data}');
     }
-    print('└─────────────────────────────────────────────────────────────');
+    debugPrint('└─────────────────────────────────────────────────────────────');
     super.onError(err, handler);
   }
 }

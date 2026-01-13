@@ -31,11 +31,24 @@ class SafeNetworkImage extends StatelessWidget {
       );
     }
 
+    // Calculate memory cache dimensions for optimization
+    // If width/height provided, use them; otherwise use reasonable defaults
+    // Check for finite values to avoid Infinity/NaN errors
+    final int? memCacheWidth = width != null && width! > 0 && width!.isFinite
+        ? (width! * 2).toInt() // 2x for high DPI screens
+        : null;
+    final int? memCacheHeight =
+        height != null && height! > 0 && height!.isFinite
+            ? (height! * 2).toInt() // 2x for high DPI screens
+            : null;
+
     final child = CachedNetworkImage(
       imageUrl: imageUrl,
       width: width,
       height: height,
       fit: fit,
+      memCacheWidth: memCacheWidth,
+      memCacheHeight: memCacheHeight,
       placeholder: (context, url) => Container(
         width: width,
         height: height,

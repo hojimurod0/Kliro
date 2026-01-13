@@ -121,7 +121,7 @@ class KaskoPaymentPage extends StatelessWidget {
                       'insurance.kasko.payment_page.go_to_payment'.tr(),
                       style: TextStyle(
                         fontSize: 16.sp,
-                        color: Colors.white,
+                        color: AppColors.white,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../constants/app_colors.dart';
 
 class PrimarySearchFilterBar extends StatelessWidget {
   const PrimarySearchFilterBar({
@@ -27,12 +28,11 @@ class PrimarySearchFilterBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final borderColor =
-        isDark ? const Color(0xFF333333) : const Color(0xFFE5E7EB);
-    final searchBg =
-        isDark ? const Color(0xFF1E1E1E) : theme.cardColor.withOpacity(0.95);
-    final hintColor =
-        theme.textTheme.bodySmall?.color ?? const Color(0xFF9CA3AF);
+    final borderColor = AppColors.getBorderColor(isDark);
+    final searchBg = isDark 
+        ? AppColors.darkCardBg 
+        : theme.cardColor.withOpacity(0.95);
+    final hintColor = theme.textTheme.bodySmall?.color ?? AppColors.grayText;
 
     final content = Row(
       children: [
@@ -50,7 +50,7 @@ class PrimarySearchFilterBar extends StatelessWidget {
               inputFormatters: inputFormatters,
               textAlignVertical: TextAlignVertical.center,
               style: TextStyle(
-                color: theme.textTheme.bodyLarge?.color ?? const Color(0xFF111827),
+                color: theme.textTheme.bodyLarge?.color ?? AppColors.charcoal,
                 fontSize: 14.sp,
               ),
               decoration: InputDecoration(
@@ -58,7 +58,7 @@ class PrimarySearchFilterBar extends StatelessWidget {
                 hintStyle: TextStyle(color: hintColor, fontSize: 14.sp),
                 prefixIcon: Icon(
                   Icons.search_rounded,
-                  color: const Color(0xFF0085FF),
+                  color: AppColors.primaryBlue,
                   size: 20.sp,
                 ),
                 border: InputBorder.none,
@@ -76,10 +76,10 @@ class PrimarySearchFilterBar extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16.r),
               border: Border.all(
-                color: hasActiveFilter ? const Color(0xFF0085FF) : borderColor,
+                color: hasActiveFilter ? AppColors.primaryBlue : borderColor,
               ),
               color: hasActiveFilter
-                  ? const Color(0xFF0085FF).withOpacity(0.08)
+                  ? AppColors.primaryBlue.withOpacity(0.08)
                   : searchBg,
             ),
             child: IconButton(

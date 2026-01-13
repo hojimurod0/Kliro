@@ -1,17 +1,23 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/constants/app_colors.dart';
 
 class FavoritesPage extends StatelessWidget {
   const FavoritesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text('home.favorites'.tr()),
         automaticallyImplyLeading: false,
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        foregroundColor: theme.appBarTheme.foregroundColor,
       ),
       body: Center(
         child: Padding(
@@ -22,14 +28,15 @@ class FavoritesPage extends StatelessWidget {
               Icon(
                 Icons.favorite_border,
                 size: 80.sp,
-                color: Colors.grey[400],
+                color: isDark ? AppColors.gray500 : AppColors.grayText,
               ),
               SizedBox(height: 20.h),
               Text(
                 tr('home.favorites_empty'),
                 style: TextStyle(
                   fontSize: 18.sp,
-                  color: Colors.grey[600],
+                  color: theme.textTheme.titleMedium?.color ?? 
+                      (isDark ? AppColors.white : AppColors.black),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -38,7 +45,8 @@ class FavoritesPage extends StatelessWidget {
                 tr('home.favorites_empty_subtitle'),
                 style: TextStyle(
                   fontSize: 14.sp,
-                  color: Colors.grey[500],
+                  color: theme.textTheme.bodySmall?.color ?? 
+                      (isDark ? AppColors.gray500 : AppColors.grayText),
                 ),
               ),
             ],

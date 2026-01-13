@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -289,12 +290,12 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('PDF saqlandi'),
-        content: Text('PDF fayl muvaffaqiyatli saqlandi. Ulashishni xohlaysizmi?'),
+        title: Text('avia.booking_success.pdf.saved'.tr()),
+        content: Text('avia.booking_success.pdf.saved_message'.tr()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Yopish'),
+            child: Text('avia.booking_success.pdf.close'.tr()),
           ),
           TextButton(
             onPressed: () async {
@@ -392,10 +393,9 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
       appBar: AppBar(
         title: Text(
           'avia.status.title'.tr(),
-          style: AppTypography.headingL.copyWith(
+          style: AppTypography.headingL(context).copyWith(
             fontSize: 20.sp,
             fontWeight: FontWeight.w700,
-            color: theme.textTheme.titleLarge?.color,
           ),
         ),
         centerTitle: true,
@@ -541,38 +541,41 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
             // Empty listener - all handled in MultiBlocListener above
           },
         builder: (context, state) {
+          // Avval booking ma'lumotlarini olish (state yoki previousState'dan)
+          BookingModel? currentBooking;
+          
+          if (state is AviaBookingInfoSuccess) {
+            // Hozirgi state success bo'lsa, undan olish
+            currentBooking = state.booking;
+          } else if (state.previousState is AviaBookingInfoSuccess) {
+            // Agar hozirgi state loading yoki boshqa state bo'lsa, 
+            // oldingi success state'dan booking ma'lumotlarini olish
+            currentBooking = (state.previousState as AviaBookingInfoSuccess).booking;
+          } else if (_booking != null) {
+            // Local state'dan olish (fallback)
+            currentBooking = _booking;
+          }
+
           // Keep showing content while processing actions if we have data
           // But if initial load, show loading
-          if (state is AviaLoading && !_hasLoaded) {
+          if ((state is AviaBookingInfoLoading || 
+               state is AviaCancelUnpaidLoading || 
+               state is AviaVoidLoading || 
+               state is AviaAutoCancelLoading || 
+               state is AviaManualRefundLoading) && !_hasLoaded) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (state is AviaBookingInfoSuccess || (state is AviaLoading && _hasLoaded)) {
-            // If we are loading (e.g. refunding) but have previous success state, 
-            // we need access to the booking data. 
-            // However, typical BlocBuilder replaces state. 
-            // Ideally we need to store booking locally or use "Success" state as valid data holder.
-            // For now, assuming AviaBookingInfoSuccess stays or we handle it via a local variable if we were sophisticated.
-            // But simplifying: only show if state IS Success or we cache it.
-            // To be safe, if state transfers to something else (like RefundAmountsSuccess), we lose the booking info in builder!
-            // So we MUST check if state HAS booking. If not, we might flicker.
-            // Let's rely on BlocListener to handle transient states and only rebuild UI on InfoSuccess.
-            // But wait, if I trigger refund, state becomes RefundAmountsSuccess, and this builder sees it.
-            // It falls through to bottom (CircularProgressIndicator if not handled).
-            
-            // Fix: Store booking in local state
-            // Or better: Re-fetch booking info after actions.
-          }
-          
-          if (state is AviaBookingInfoSuccess) {
-            final booking = state.booking;
+          // Agar booking ma'lumotlari mavjud bo'lsa, UI'ni ko'rsatish
+          if (currentBooking != null) {
             safeSetState(() {
-              _booking = booking;
+              _booking = currentBooking;
+              _hasLoaded = true;
             });
-            final bookingStatus = booking.status ?? widget.status;
+            
+            final bookingStatus = currentBooking.status ?? widget.status;
             final isSuccess = ['success', 'paid', 'confirmed', 'ticketed'].contains(bookingStatus.toLowerCase());
             final isBooked = ['booked', 'pending', 'waiting'].contains(bookingStatus.toLowerCase());
-            // final isCancelled = ['cancelled', 'canceled', 'voided', 'refunded'].contains(bookingStatus.toLowerCase());
             
             return SingleChildScrollView(
               padding: EdgeInsets.all(16.w),
@@ -580,11 +583,11 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Booking Details Card (rasmdagidek)
-                  _buildBookingDetailsCard(context, booking, bookingStatus, isSuccess, isBooked),
+                  _buildBookingDetailsCard(context, currentBooking, bookingStatus, isSuccess, isBooked),
                   SizedBox(height: 16.h),
                   
                   // Price Card
-                  if (booking.price != null)
+                  if (currentBooking.price != null)
                     Card(
                       child: Padding(
                         padding: EdgeInsets.all(16.w),
@@ -600,12 +603,12 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
                             ),
                             Text(
                               () {
-                                if (booking.price == null) return '0 ${booking.currency ?? 'so\'m'}';
+                                if (currentBooking?.price == null) return '0 ${currentBooking?.currency ?? 'so\'m'}';
                                 // Parse price and add 10% commission
-                                final rawPrice = booking.price!.replaceAll(RegExp(r'[^\d.]'), '');
+                                final rawPrice = currentBooking!.price!.replaceAll(RegExp(r'[^\d.]'), '');
                                 final priceValue = double.tryParse(rawPrice) ?? 0.0;
                                 final priceWithCommission = (priceValue * 1.10).toStringAsFixed(0);
-                                return '$priceWithCommission ${booking.currency ?? 'so\'m'}';
+                                return '$priceWithCommission ${currentBooking.currency ?? 'so\'m'}';
                               }(),
                               style: TextStyle(
                                 fontSize: 20.sp,
@@ -763,7 +766,7 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
 
                   // Info Sections (Payer & Passengers)
                   // ... (Keeping logic simple, just showing them if present)
-                   if (booking.payer != null) ...[
+                   if (currentBooking.payer != null) ...[
                     Text(
                       'avia.status.payer_info'.tr(),
                       style: TextStyle(
@@ -779,11 +782,11 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildInfoRow('Ism', booking.payer!.name ?? 'N/A', context),
+                            _buildInfoRow('Ism', currentBooking.payer!.name ?? 'N/A', context),
                             SizedBox(height: 8.h),
-                            _buildInfoRow('Email', booking.payer!.email ?? 'N/A', context),
+                            _buildInfoRow('Email', currentBooking.payer!.email ?? 'N/A', context),
                             SizedBox(height: 8.h),
-                            _buildInfoRow('Telefon', booking.payer!.tel ?? 'N/A', context),
+                            _buildInfoRow('Telefon', currentBooking.payer!.tel ?? 'N/A', context),
                           ],
                         ),
                       ),
@@ -809,12 +812,35 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
                   SizedBox(height: 16.h),
                   Text('avia.status.error_message'.tr(), style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold)),
                   Text(state.message, textAlign: TextAlign.center),
-                  ElevatedButton(onPressed: _loadBookingInfo, child: Text('avia.status.retry'.tr())),
+                  SizedBox(height: 16.h),
+                  ElevatedButton(
+                    onPressed: _loadBookingInfo, 
+                    child: Text('avia.status.retry'.tr())
+                  ),
                 ],
               ),
             );
           }
 
+          // Agar booking ma'lumotlari yo'q bo'lsa va loading state bo'lmasa
+          if (currentBooking == null && !_hasLoaded) {
+            // Agar loading state bo'lmasa va ma'lumotlar yo'q bo'lsa, booking ma'lumotlarini yuklash
+            if (!(state is AviaBookingInfoLoading || 
+                  state is AviaCancelUnpaidLoading || 
+                  state is AviaVoidLoading || 
+                  state is AviaAutoCancelLoading || 
+                  state is AviaManualRefundLoading)) {
+              // Booking ma'lumotlarini yuklash
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  _loadBookingInfo();
+                }
+              });
+            }
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // Agar booking ma'lumotlari yo'q bo'lsa va loading state bo'lsa
           return const Center(child: CircularProgressIndicator());
         },
         ),
@@ -928,10 +954,10 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
       paymentStatusColor = AppColors.accentGreen;
     } else if (isBooked) {
       paymentStatusText = 'avia.booking_details.payment_pending'.tr();
-      paymentStatusColor = const Color(0xFFD4A574); // Dark yellow/brown from image
+      paymentStatusColor = AppColors.paymentPendingColor; // Dark yellow/brown from image
     } else {
       paymentStatusText = 'avia.statuses.cancelled'.tr();
-      paymentStatusColor = Colors.red;
+      paymentStatusColor = AppColors.dangerRed;
     }
 
     // Refund status (assuming non-refundable for now, can be enhanced later)
@@ -946,10 +972,10 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
         
         return Container(
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            color: isDark ? AppColors.darkCardBg : AppColors.white,
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(
-              color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+              color: isDark ? AppColors.darkBorder : AppColors.grayBorder,
               width: 1,
             ),
           ),
@@ -1005,7 +1031,7 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
                             '${'avia.booking_details.payment_status'.tr()}:',
                             style: TextStyle(
                               fontSize: 14.sp,
-                              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ?? Colors.white70,
+                              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7) ?? AppColors.grayText,
                             ),
                           ),
                           Container(
@@ -1036,7 +1062,7 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
                             '${'avia.status.refund'.tr()}:',
                             style: TextStyle(
                               fontSize: 14.sp,
-                              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ?? Colors.white70,
+                              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7) ?? AppColors.grayText,
                             ),
                           ),
                           Container(
@@ -1082,6 +1108,7 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
     bool isValueBold = false,
   }) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1090,7 +1117,7 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
           '$label:',
           style: TextStyle(
             fontSize: 14.sp,
-            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ?? Colors.white70,
+            color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7) ?? AppColors.grayText,
           ),
         ),
         Expanded(
@@ -1100,7 +1127,8 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
             style: TextStyle(
               fontSize: 14.sp,
               fontWeight: isValueBold ? FontWeight.w600 : FontWeight.normal,
-              color: theme.textTheme.titleLarge?.color ?? Colors.white,
+              color: theme.textTheme.titleLarge?.color ?? 
+                  (isDark ? AppColors.white : AppColors.black),
             ),
           ),
         ),
@@ -1151,9 +1179,9 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
     final priceValue = double.tryParse(cleanPrice) ?? 0.0;
 
     // Debug log
-    print('💰 STATUS_PAGE: Original price: $priceString');
-    print('💰 STATUS_PAGE: Clean price: $cleanPrice');
-    print('💰 STATUS_PAGE: Price value: $priceValue');
+    debugPrint('💰 STATUS_PAGE: Original price: $priceString');
+    debugPrint('💰 STATUS_PAGE: Clean price: $cleanPrice');
+    debugPrint('💰 STATUS_PAGE: Price value: $priceValue');
 
     // API eng kichik birlikda amount kutadi (masalan, 500000)
     // UZS uchun: 5000 UZS = 500000 (100 ga ko'paytiriladi)
@@ -1163,8 +1191,8 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
     final amount = (priceValue * 1.10 * 100).toInt();
     
     // Debug log
-    print('💰 STATUS_PAGE: Amount without commission: $amountWithoutCommission');
-    print('💰 STATUS_PAGE: Amount with 10% commission: $amount');
+    debugPrint('💰 STATUS_PAGE: Amount without commission: $amountWithoutCommission');
+    debugPrint('💰 STATUS_PAGE: Amount with 10% commission: $amount');
 
     // Amount musbat bo'lishi kerak (backend talabi)
     if (amount <= 0) {

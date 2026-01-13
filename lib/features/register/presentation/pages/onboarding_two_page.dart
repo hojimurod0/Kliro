@@ -20,13 +20,21 @@ class OnboardingTwoPage extends StatelessWidget {
         fit: BoxFit.cover,
         alignment: Alignment.topCenter,
         errorBuilder: (context, error, stackTrace) {
+          final theme = Theme.of(context);
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                Icon(
+                  Icons.error_outline, 
+                  size: 48, 
+                  color: theme.colorScheme.error,
+                ),
                 const SizedBox(height: 8),
-                Text('Error: ${error.toString()}'),
+                Text(
+                  'Error: ${error.toString()}',
+                  style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+                ),
               ],
             ),
           );

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../../core/constants/constants.dart';
 import '../../../../core/errors/app_exception.dart';
@@ -56,7 +57,7 @@ class BankRemoteDataSourceImpl implements BankRemoteDataSource {
       result.forEach((currencyCode, currencyData) {
         try {
           if (currencyData is! Map<String, dynamic>) {
-            print('Currency $currencyCode: currencyData is not Map');
+            debugPrint('Currency $currencyCode: currencyData is not Map');
             return;
           }
           
@@ -78,7 +79,7 @@ class BankRemoteDataSourceImpl implements BankRemoteDataSource {
           // Get all unique banks
           final allBanks = <String>{...buyMap.keys, ...sellMap.keys};
           
-          print('Currency $currencyCode: Found ${allBanks.length} banks');
+          debugPrint('Currency $currencyCode: Found ${allBanks.length} banks');
           
           for (final bankName in allBanks) {
             try {
@@ -89,7 +90,7 @@ class BankRemoteDataSourceImpl implements BankRemoteDataSource {
                 final buyRate = buyItem?.rateAsDouble ?? 0.0;
                 final sellRate = sellItem?.rateAsDouble ?? 0.0;
                 
-                print('Adding currency: $bankName ($currencyCode) - Buy: $buyRate, Sell: $sellRate');
+                debugPrint('Adding currency: $bankName ($currencyCode) - Buy: $buyRate, Sell: $sellRate');
                 
                 currencies.add(
                   CurrencyModel(
@@ -106,19 +107,19 @@ class BankRemoteDataSourceImpl implements BankRemoteDataSource {
                 );
               }
             } catch (e) {
-              print('Error adding bank $bankName for currency $currencyCode: $e');
+              debugPrint('Error adding bank $bankName for currency $currencyCode: $e');
             }
           }
         } catch (e, stackTrace) {
           // Skip this currency if parsing fails, continue with others
-          print('Error parsing currency $currencyCode: $e');
-          print('Stack trace: $stackTrace');
+          debugPrint('Error parsing currency $currencyCode: $e');
+          debugPrint('Stack trace: $stackTrace');
         }
       });
       
-      print('Total currencies parsed: ${currencies.length}');
+      debugPrint('Total currencies parsed: ${currencies.length}');
       if (currencies.isEmpty) {
-        print('WARNING: No currencies were parsed! Check the parsing logic above.');
+        debugPrint('WARNING: No currencies were parsed! Check the parsing logic above.');
       }
       return currencies;
     } on DioException catch (error) {

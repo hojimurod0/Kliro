@@ -1,121 +1,240 @@
 part of 'avia_bloc.dart';
 
 abstract class AviaState extends Equatable {
-  const AviaState();
+  final AviaState? previousState; // State preservation
+  const AviaState({this.previousState});
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [previousState];
 }
 
-class AviaInitial extends AviaState {}
+class AviaInitial extends AviaState {
+  const AviaInitial({super.previousState});
+}
 
-class AviaLoading extends AviaState {}
+// Specific loading states instead of generic AviaLoading
+class AviaLoginLoading extends AviaState {
+  const AviaLoginLoading({super.previousState});
+}
+
+class AviaBalanceLoading extends AviaState {
+  const AviaBalanceLoading({super.previousState});
+}
+
+class AviaOfferDetailLoading extends AviaState {
+  const AviaOfferDetailLoading({super.previousState});
+}
+
+class AviaFareFamilyLoading extends AviaState {
+  const AviaFareFamilyLoading({super.previousState});
+}
+
+class AviaFareRulesLoading extends AviaState {
+  const AviaFareRulesLoading({super.previousState});
+}
+
+class AviaBookingLoading extends AviaState {
+  const AviaBookingLoading({super.previousState});
+}
+
+class AviaBookingInfoLoading extends AviaState {
+  const AviaBookingInfoLoading({super.previousState});
+}
+
+class AviaBookingRulesLoading extends AviaState {
+  const AviaBookingRulesLoading({super.previousState});
+}
+
+class AviaCheckPriceLoading extends AviaState {
+  const AviaCheckPriceLoading({super.previousState});
+}
+
+class AviaPaymentPermissionLoading extends AviaState {
+  const AviaPaymentPermissionLoading({super.previousState});
+}
+
+class AviaPaymentLoading extends AviaState {
+  const AviaPaymentLoading({super.previousState});
+}
+
+class AviaCancelUnpaidLoading extends AviaState {
+  const AviaCancelUnpaidLoading({super.previousState});
+}
+
+class AviaVoidLoading extends AviaState {
+  const AviaVoidLoading({super.previousState});
+}
+
+class AviaRefundAmountsLoading extends AviaState {
+  const AviaRefundAmountsLoading({super.previousState});
+}
+
+class AviaAutoCancelLoading extends AviaState {
+  const AviaAutoCancelLoading({super.previousState});
+}
+
+class AviaManualRefundLoading extends AviaState {
+  const AviaManualRefundLoading({super.previousState});
+}
+
+class AviaPdfReceiptLoading extends AviaState {
+  const AviaPdfReceiptLoading({super.previousState});
+}
+
+class AviaScheduleLoading extends AviaState {
+  const AviaScheduleLoading({super.previousState});
+}
+
+class AviaVisaTypesLoading extends AviaState {
+  const AviaVisaTypesLoading({super.previousState});
+}
+
+class AviaServiceClassesLoading extends AviaState {
+  const AviaServiceClassesLoading({super.previousState});
+}
+
+class AviaPassengerTypesLoading extends AviaState {
+  const AviaPassengerTypesLoading({super.previousState});
+}
+
+class AviaHealthLoading extends AviaState {
+  const AviaHealthLoading({super.previousState});
+}
+
+class AviaCreateHumanLoading extends AviaState {
+  const AviaCreateHumanLoading({super.previousState});
+}
+
+class AviaGetHumansLoading extends AviaState {
+  const AviaGetHumansLoading({super.previousState});
+}
+
+class AviaSearchHumansLoading extends AviaState {
+  const AviaSearchHumansLoading({super.previousState});
+}
+
+class AviaUpdateHumanLoading extends AviaState {
+  const AviaUpdateHumanLoading({super.previousState});
+}
+
+class AviaDeleteHumanLoading extends AviaState {
+  const AviaDeleteHumanLoading({super.previousState});
+}
 
 // Search Loading State with search parameters
 class AviaSearchLoading extends AviaState {
   final SearchOffersRequestModel searchRequest;
-  const AviaSearchLoading(this.searchRequest);
+  const AviaSearchLoading(this.searchRequest, {super.previousState});
   @override
-  List<Object?> get props => [searchRequest];
+  List<Object?> get props => [searchRequest, previousState];
 }
 
 // Login States
 class AviaLoginSuccess extends AviaState {
   final LoginResponseModel response;
-  const AviaLoginSuccess(this.response);
+  const AviaLoginSuccess(this.response, {super.previousState});
   @override
-  List<Object?> get props => [response];
+  List<Object?> get props => [response, previousState];
 }
 
 class AviaLoginFailure extends AviaState {
   final String message;
-  const AviaLoginFailure(this.message);
+  const AviaLoginFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 // Balance States
 class AviaBalanceSuccess extends AviaState {
   final BalanceResponseModel response;
-  const AviaBalanceSuccess(this.response);
+  const AviaBalanceSuccess(this.response, {super.previousState});
   @override
-  List<Object?> get props => [response];
+  List<Object?> get props => [response, previousState];
 }
 
 class AviaBalanceFailure extends AviaState {
   final String message;
-  const AviaBalanceFailure(this.message);
+  const AviaBalanceFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 // Search States
 class AviaSearchSuccess extends AviaState {
   final List<OfferModel> offers;
   final SearchOffersRequestModel? searchRequest;
-  const AviaSearchSuccess(this.offers, {this.searchRequest});
+  const AviaSearchSuccess(
+    this.offers, {
+    this.searchRequest,
+    super.previousState,
+  });
   @override
-  List<Object?> get props => [offers, searchRequest];
+  List<Object?> get props => [offers, searchRequest, previousState];
 }
 
 class AviaSearchFailure extends AviaState {
   final String message;
-  const AviaSearchFailure(this.message);
+  final List<OfferModel>? cachedOffers; // Preserve previous offers on error
+  const AviaSearchFailure(
+    this.message, {
+    this.cachedOffers,
+    super.previousState,
+  });
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, cachedOffers, previousState];
 }
 
 // Offer Detail States
 class AviaOfferDetailSuccess extends AviaState {
   final OfferModel offer;
-  const AviaOfferDetailSuccess(this.offer);
+  const AviaOfferDetailSuccess(this.offer, {super.previousState});
   @override
-  List<Object?> get props => [offer];
+  List<Object?> get props => [offer, previousState];
 }
 
 class AviaOfferDetailFailure extends AviaState {
   final String message;
-  const AviaOfferDetailFailure(this.message);
+  const AviaOfferDetailFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 // Fare Family States
 class AviaFareFamilySuccess extends AviaState {
   final List<FareFamilyModel> families;
-  const AviaFareFamilySuccess(this.families);
+  const AviaFareFamilySuccess(this.families, {super.previousState});
   @override
-  List<Object?> get props => [families];
+  List<Object?> get props => [families, previousState];
 }
 
 class AviaFareFamilyFailure extends AviaState {
   final String message;
-  const AviaFareFamilyFailure(this.message);
+  const AviaFareFamilyFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 // Fare Rules States
 class AviaFareRulesSuccess extends AviaState {
   final FareRulesModel rules;
-  const AviaFareRulesSuccess(this.rules);
+  const AviaFareRulesSuccess(this.rules, {super.previousState});
   @override
-  List<Object?> get props => [rules];
+  List<Object?> get props => [rules, previousState];
 }
 
 class AviaFareRulesFailure extends AviaState {
   final String message;
-  const AviaFareRulesFailure(this.message);
+  const AviaFareRulesFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 // Booking States
 class AviaCreateBookingSuccess extends AviaState {
   final BookingModel booking;
-  const AviaCreateBookingSuccess(this.booking);
+  const AviaCreateBookingSuccess(this.booking, {super.previousState});
   @override
-  List<Object?> get props => [booking];
+  List<Object?> get props => [booking, previousState];
 }
 
 class AviaCreateBookingFailure extends AviaState {
@@ -124,323 +243,326 @@ class AviaCreateBookingFailure extends AviaState {
   const AviaCreateBookingFailure(
     this.message, {
     this.existingBookingId,
+    super.previousState,
   });
   @override
-  List<Object?> get props => [message, existingBookingId];
+  List<Object?> get props => [message, existingBookingId, previousState];
 }
 
 class AviaBookingInfoSuccess extends AviaState {
   final BookingModel booking;
-  const AviaBookingInfoSuccess(this.booking);
+  const AviaBookingInfoSuccess(this.booking, {super.previousState});
   @override
-  List<Object?> get props => [booking];
+  List<Object?> get props => [booking, previousState];
 }
 
 class AviaBookingInfoFailure extends AviaState {
   final String message;
-  const AviaBookingInfoFailure(this.message);
+  const AviaBookingInfoFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 class AviaBookingRulesSuccess extends AviaState {
   final FareRulesModel rules;
-  const AviaBookingRulesSuccess(this.rules);
+  const AviaBookingRulesSuccess(this.rules, {super.previousState});
   @override
-  List<Object?> get props => [rules];
+  List<Object?> get props => [rules, previousState];
 }
 
 class AviaBookingRulesFailure extends AviaState {
   final String message;
-  const AviaBookingRulesFailure(this.message);
+  const AviaBookingRulesFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 // Payment States
 class AviaCheckPriceSuccess extends AviaState {
   final PriceCheckModel priceCheck;
-  const AviaCheckPriceSuccess(this.priceCheck);
+  const AviaCheckPriceSuccess(this.priceCheck, {super.previousState});
   @override
-  List<Object?> get props => [priceCheck];
+  List<Object?> get props => [priceCheck, previousState];
 }
 
 class AviaCheckPriceFailure extends AviaState {
   final String message;
-  const AviaCheckPriceFailure(this.message);
+  const AviaCheckPriceFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 class AviaPaymentPermissionSuccess extends AviaState {
   final PaymentPermissionModel permission;
-  const AviaPaymentPermissionSuccess(this.permission);
+  const AviaPaymentPermissionSuccess(this.permission, {super.previousState});
   @override
-  List<Object?> get props => [permission];
+  List<Object?> get props => [permission, previousState];
 }
 
 class AviaPaymentPermissionFailure extends AviaState {
   final String message;
-  const AviaPaymentPermissionFailure(this.message);
+  const AviaPaymentPermissionFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 class AviaPaymentSuccess extends AviaState {
   final PaymentResponseModel response;
-  const AviaPaymentSuccess(this.response);
+  const AviaPaymentSuccess(this.response, {super.previousState});
   @override
-  List<Object?> get props => [response];
+  List<Object?> get props => [response, previousState];
 }
 
 class AviaPaymentFailure extends AviaState {
   final String message;
-  const AviaPaymentFailure(this.message);
+  const AviaPaymentFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 // Cancel States
 class AviaCancelUnpaidSuccess extends AviaState {
   final CancelResponseModel response;
-  const AviaCancelUnpaidSuccess(this.response);
+  const AviaCancelUnpaidSuccess(this.response, {super.previousState});
   @override
-  List<Object?> get props => [response];
+  List<Object?> get props => [response, previousState];
 }
 
 class AviaCancelUnpaidFailure extends AviaState {
   final String message;
-  const AviaCancelUnpaidFailure(this.message);
+  const AviaCancelUnpaidFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 class AviaVoidSuccess extends AviaState {
   final CancelResponseModel response;
-  const AviaVoidSuccess(this.response);
+  const AviaVoidSuccess(this.response, {super.previousState});
   @override
-  List<Object?> get props => [response];
+  List<Object?> get props => [response, previousState];
 }
 
 class AviaVoidFailure extends AviaState {
   final String message;
-  const AviaVoidFailure(this.message);
+  const AviaVoidFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 // Refund States
 class AviaRefundAmountsSuccess extends AviaState {
   final RefundAmountsModel amounts;
-  const AviaRefundAmountsSuccess(this.amounts);
+  const AviaRefundAmountsSuccess(this.amounts, {super.previousState});
   @override
-  List<Object?> get props => [amounts];
+  List<Object?> get props => [amounts, previousState];
 }
 
 class AviaRefundAmountsFailure extends AviaState {
   final String message;
-  const AviaRefundAmountsFailure(this.message);
+  const AviaRefundAmountsFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 class AviaAutoCancelSuccess extends AviaState {
   final CancelResponseModel response;
-  const AviaAutoCancelSuccess(this.response);
+  const AviaAutoCancelSuccess(this.response, {super.previousState});
   @override
-  List<Object?> get props => [response];
+  List<Object?> get props => [response, previousState];
 }
 
 class AviaAutoCancelFailure extends AviaState {
   final String message;
-  const AviaAutoCancelFailure(this.message);
+  const AviaAutoCancelFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 class AviaManualRefundSuccess extends AviaState {
   final CancelResponseModel response;
-  const AviaManualRefundSuccess(this.response);
+  const AviaManualRefundSuccess(this.response, {super.previousState});
   @override
-  List<Object?> get props => [response];
+  List<Object?> get props => [response, previousState];
 }
 
 class AviaManualRefundFailure extends AviaState {
   final String message;
-  const AviaManualRefundFailure(this.message);
+  const AviaManualRefundFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 // Airport Hints States
 class AviaAirportHintsSuccess extends AviaState {
   final List<AirportHintModel> airports;
-  const AviaAirportHintsSuccess(this.airports);
+  const AviaAirportHintsSuccess(this.airports, {super.previousState});
   @override
-  List<Object?> get props => [airports];
+  List<Object?> get props => [airports, previousState];
 }
 
 class AviaAirportHintsFailure extends AviaState {
   final String message;
-  const AviaAirportHintsFailure(this.message);
+  const AviaAirportHintsFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
-// User Humans States
-class CreateHumanSuccess extends AviaState {
+// User Humans States (renamed with Avia prefix for consistency)
+class AviaCreateHumanSuccess extends AviaState {
   final HumanModel human;
-  const CreateHumanSuccess(this.human);
+  const AviaCreateHumanSuccess(this.human, {super.previousState});
   @override
-  List<Object?> get props => [human];
+  List<Object?> get props => [human, previousState];
 }
 
-class CreateHumanFailure extends AviaState {
+class AviaCreateHumanFailure extends AviaState {
   final String message;
-  const CreateHumanFailure(this.message);
+  const AviaCreateHumanFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
-class GetHumansSuccess extends AviaState {
+class AviaGetHumansSuccess extends AviaState {
   final List<HumanModel> humans;
-  const GetHumansSuccess(this.humans);
+  const AviaGetHumansSuccess(this.humans, {super.previousState});
   @override
-  List<Object?> get props => [humans];
+  List<Object?> get props => [humans, previousState];
 }
 
-class GetHumansFailure extends AviaState {
+class AviaGetHumansFailure extends AviaState {
   final String message;
-  const GetHumansFailure(this.message);
+  const AviaGetHumansFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
-class SearchHumansSuccess extends AviaState {
+class AviaSearchHumansSuccess extends AviaState {
   final List<HumanModel> humans;
-  const SearchHumansSuccess(this.humans);
+  const AviaSearchHumansSuccess(this.humans, {super.previousState});
   @override
-  List<Object?> get props => [humans];
+  List<Object?> get props => [humans, previousState];
 }
 
-class SearchHumansFailure extends AviaState {
+class AviaSearchHumansFailure extends AviaState {
   final String message;
-  const SearchHumansFailure(this.message);
+  const AviaSearchHumansFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
-class UpdateHumanSuccess extends AviaState {
+class AviaUpdateHumanSuccess extends AviaState {
   final HumanModel human;
-  const UpdateHumanSuccess(this.human);
+  const AviaUpdateHumanSuccess(this.human, {super.previousState});
   @override
-  List<Object?> get props => [human];
+  List<Object?> get props => [human, previousState];
 }
 
-class UpdateHumanFailure extends AviaState {
+class AviaUpdateHumanFailure extends AviaState {
   final String message;
-  const UpdateHumanFailure(this.message);
+  const AviaUpdateHumanFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
-class DeleteHumanSuccess extends AviaState {
-  const DeleteHumanSuccess();
+class AviaDeleteHumanSuccess extends AviaState {
+  const AviaDeleteHumanSuccess({super.previousState});
+  @override
+  List<Object?> get props => [previousState];
 }
 
-class DeleteHumanFailure extends AviaState {
+class AviaDeleteHumanFailure extends AviaState {
   final String message;
-  const DeleteHumanFailure(this.message);
+  const AviaDeleteHumanFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 // PDF Receipt States
 class AviaPdfReceiptSuccess extends AviaState {
   final String pdfUrl;
-  const AviaPdfReceiptSuccess(this.pdfUrl);
+  const AviaPdfReceiptSuccess(this.pdfUrl, {super.previousState});
   @override
-  List<Object?> get props => [pdfUrl];
+  List<Object?> get props => [pdfUrl, previousState];
 }
 
 class AviaPdfReceiptFailure extends AviaState {
   final String message;
-  const AviaPdfReceiptFailure(this.message);
+  const AviaPdfReceiptFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 // Schedule States
 class AviaScheduleSuccess extends AviaState {
   final List<ScheduleModel> schedules;
-  const AviaScheduleSuccess(this.schedules);
+  const AviaScheduleSuccess(this.schedules, {super.previousState});
   @override
-  List<Object?> get props => [schedules];
+  List<Object?> get props => [schedules, previousState];
 }
 
 class AviaScheduleFailure extends AviaState {
   final String message;
-  const AviaScheduleFailure(this.message);
+  const AviaScheduleFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 // Visa Types States
 class AviaVisaTypesSuccess extends AviaState {
   final List<VisaTypeModel> visaTypes;
-  const AviaVisaTypesSuccess(this.visaTypes);
+  const AviaVisaTypesSuccess(this.visaTypes, {super.previousState});
   @override
-  List<Object?> get props => [visaTypes];
+  List<Object?> get props => [visaTypes, previousState];
 }
 
 class AviaVisaTypesFailure extends AviaState {
   final String message;
-  const AviaVisaTypesFailure(this.message);
+  const AviaVisaTypesFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 // Service Classes States
 class AviaServiceClassesSuccess extends AviaState {
   final List<ServiceClassModel> serviceClasses;
-  const AviaServiceClassesSuccess(this.serviceClasses);
+  const AviaServiceClassesSuccess(this.serviceClasses, {super.previousState});
   @override
-  List<Object?> get props => [serviceClasses];
+  List<Object?> get props => [serviceClasses, previousState];
 }
 
 class AviaServiceClassesFailure extends AviaState {
   final String message;
-  const AviaServiceClassesFailure(this.message);
+  const AviaServiceClassesFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 // Passenger Types States
 class AviaPassengerTypesSuccess extends AviaState {
   final List<PassengerTypeModel> passengerTypes;
-  const AviaPassengerTypesSuccess(this.passengerTypes);
+  const AviaPassengerTypesSuccess(this.passengerTypes, {super.previousState});
   @override
-  List<Object?> get props => [passengerTypes];
+  List<Object?> get props => [passengerTypes, previousState];
 }
 
 class AviaPassengerTypesFailure extends AviaState {
   final String message;
-  const AviaPassengerTypesFailure(this.message);
+  const AviaPassengerTypesFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }
 
 // Health States
 class AviaHealthSuccess extends AviaState {
   final HealthModel health;
-  const AviaHealthSuccess(this.health);
+  const AviaHealthSuccess(this.health, {super.previousState});
   @override
-  List<Object?> get props => [health];
+  List<Object?> get props => [health, previousState];
 }
 
 class AviaHealthFailure extends AviaState {
   final String message;
-  const AviaHealthFailure(this.message);
+  const AviaHealthFailure(this.message, {super.previousState});
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previousState];
 }

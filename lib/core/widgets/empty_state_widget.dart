@@ -36,7 +36,7 @@ class EmptyStateWidget extends StatelessWidget {
             SizedBox(height: 16.h),
             Text(
               message ?? (messageKey != null ? tr(messageKey!) : 'common.empty'.tr()),
-              style: AppTypography.bodyPrimary.copyWith(
+              style: AppTypography.bodyPrimary(context).copyWith(
                 fontSize: 16.sp,
                 color: theme.textTheme.bodyMedium?.color ?? 
                     (isDark ? AppColors.gray500 : AppColors.grayText),

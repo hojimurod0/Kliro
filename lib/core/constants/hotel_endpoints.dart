@@ -10,7 +10,7 @@ class HotelEndpoints {
   static const String getHotelList = '/hotels/list';
   static String getHotelDetails(String hotelId) => '/hotels/$hotelId';
   static const String getHotelPhotos = '/hotels/photos';
-  static String getHotelRoomTypes(int hotelId) => '/hotels/$hotelId/room-types';
+  static const String getHotelRoomTypes = '/hotels/room-types';
   static const String getHotelRoomPhotos = '/hotels/room-photos';
   static const String getFacilities = '/hotels/facilities';
   static const String getHotelFacilities = '/hotels/hotel-facilities';

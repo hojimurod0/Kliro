@@ -183,7 +183,8 @@ class _RegisterVerificationScreenState
           } else if (state.status == RegisterStatus.failure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.error ?? tr('common.error_occurred_simple')),
+                content:
+                    Text(state.error ?? tr('common.error_occurred_simple')),
                 backgroundColor: Colors.red,
               ),
             );
@@ -205,7 +206,7 @@ class _RegisterVerificationScreenState
                   // Sarlavha
                   Text(
                     'auth.verification.title_register'.tr(),
-                    style: AppTypography.headingXL.copyWith(
+                    style: AppTypography.headingXL(context).copyWith(
                       color: isDark ? AppColors.white : AppColors.black,
                     ),
                   ),
@@ -217,16 +218,18 @@ class _RegisterVerificationScreenState
                       final after = 'auth.verification.subtitle_after'.tr();
                       return RichText(
                         text: TextSpan(
-                          style: AppTypography.bodyPrimary.copyWith(
+                          style: AppTypography.bodyPrimary(context).copyWith(
                             fontSize: 14.sp,
                           ),
                           children: [
                             if (before.isNotEmpty) TextSpan(text: before),
                             TextSpan(
                               text: contact,
-                              style: AppTypography.bodyPrimary.copyWith(
+                              style:
+                                  AppTypography.bodyPrimary(context).copyWith(
                                 fontWeight: FontWeight.w600,
-                                color: isDark ? AppColors.white : AppColors.black,
+                                color:
+                                    isDark ? AppColors.white : AppColors.black,
                               ),
                             ),
                             if (after.isNotEmpty) TextSpan(text: after),
@@ -290,7 +293,7 @@ class _RegisterVerificationScreenState
                           onTap: _canResend ? _resendCode : null,
                           child: Text(
                             'auth.verification.resend'.tr(),
-                            style: AppTypography.caption,
+                            style: AppTypography.caption(context),
                           ),
                         ),
                       ],
@@ -325,7 +328,9 @@ class _RegisterVerificationScreenState
         color: isDark ? AppColors.darkCardBg : AppColors.white,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.grayBorder.withOpacity(0.5),
+          color: isDark
+              ? AppColors.darkBorder
+              : AppColors.grayBorder.withOpacity(0.5),
           width: 1.w,
         ),
         boxShadow: [

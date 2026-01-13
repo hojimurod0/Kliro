@@ -34,14 +34,20 @@ class AppColors {
   static const Color pinkIcon = Color(0xFFFF4D8D);
   static const Color pinkBg = Color(0xFFFFEEF4);
   static const Color greenIcon = Color(0xFF1ABC9C);
-  static Color greenBg = Color(0xFF1ABC9C).withValues(alpha: 0.15);
+  // Cached green background color with opacity
+  static const Color _greenBase = Color(0xFF1ABC9C);
+  static final Color greenBg = _greenBase.withValues(alpha: 0.15);
 
   // Qo'shimcha pastel ranglar
-  static Color lilacSurface = Color(0xFF6366F1).withValues(alpha: 0.15);
+  // Cached colors with opacity
+  static const Color _lilacBase = Color(0xFF6366F1);
+  static final Color lilacSurface = _lilacBase.withValues(alpha: 0.15);
   static const Color lilacIcon = Color(0xFF6366F1);
-  static Color pinkSurface = Color(0xFFEC4899).withValues(alpha: 0.15);
+  static const Color _pinkBase = Color(0xFFEC4899);
+  static final Color pinkSurface = _pinkBase.withValues(alpha: 0.15);
   static const Color pinkAccent = Color(0xFFEC4899);
-  static Color skySurface = Color(0xFF0EA5E9).withValues(alpha: 0.15);
+  static const Color _skyBase = Color(0xFF0EA5E9);
+  static final Color skySurface = _skyBase.withValues(alpha: 0.15);
   static const Color skyAccent = Color(0xFF0EA5E9);
   static const Color charcoal = Color(0xFF111827);
   static const Color midnight = Color(0xFF1F2937);
@@ -95,4 +101,40 @@ class AppColors {
   static Color getBorderColor(bool isDark) => isDark ? darkBorder : lightBorder;
   static Color getPlaceholderColor(bool isDark) =>
       isDark ? darkPlaceholder : lightPlaceholder;
+
+  // Snackbar colors
+  static const Color errorRedDark = Color(0xFFD32F2F);
+  static const Color errorRedLight = Color(0xFFF44336);
+  static const Color successGreenDark = Color(0xFF28A745);
+  static const Color successGreenLight = Color(0xFF34C759);
+  static const Color infoBlueLight = Color(0xFF0D6EFD);
+  static const Color warningOrangeLight = Color(0xFFFFB800);
+  static const Color defaultGrayDark = Color(0xFF424242);
+  static const Color defaultGrayLight = Color(0xFF6C757D);
+
+  // Currency page colors
+  static const Color onlineBadgeBgDark = Color(0xFF1E3A5F);
+  static const Color greenBgDark = Color(0xFF1A3A2E);
+  static const Color redBgDark = Color(0xFF3A1E1E);
+  static const Color redBgLight = Color(0xFFFEF2F2);
+  
+  // Home services grid colors
+  static const Color greenBgLight = Color(0xFFECFDF5);
+  static const Color greenText = Color(0xFF059669);
+  static const Color redText = Color(0xFFDC2626);
+  static const Color blueBgLight = Color(0xFFEFF6FF);
+  
+  // Status page colors
+  static const Color paymentPendingColor = Color(0xFFD4A574); // Dark yellow/brown
+  
+  // Travel module colors
+  static const Color travelPrimaryBlue = Color(0xFF0085FF); // Travel asosiy ko'k
+  static const Color travelLightBlueBg = Color(0xFFEFF8FF); // Travel ochiq ko'k fon
+  static const Color travelTextBlack = Color(0xFF111111); // Travel qora matn
+  static const Color travelTextGrey = Color(0xFF6B7280); // Travel kulrang matn
+  static const Color travelBorderGrey = Color(0xFFE5E7EB); // Travel och kulrang hoshiya
+  static const Color travelDeleteRedBg = Color(0xFFFEF2F2); // Travel o'chirish tugmasi foni
+  static const Color travelDeleteRedIcon = Color(0xFFEF4444); // Travel qizil ikonka
+  static const Color travelLightBlueBgDark = Color(0xFF1E3A5C); // Travel dark mode ochiq ko'k fon
+  static const Color travelTagTextDark = Color(0xFF60A5FA); // Travel dark mode tag text
 }

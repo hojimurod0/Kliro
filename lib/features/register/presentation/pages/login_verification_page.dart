@@ -32,7 +32,8 @@ class LoginVerificationPage extends StatefulWidget {
 
 class _LoginVerificationPageState extends State<LoginVerificationPage> {
   static const int _otpLength = 6;
-  late final RegisterBloc _registerBloc = ServiceLocator.resolve<RegisterBloc>();
+  late final RegisterBloc _registerBloc =
+      ServiceLocator.resolve<RegisterBloc>();
 
   final List<TextEditingController> _controllers = List.generate(
     _otpLength,
@@ -117,7 +118,7 @@ class _LoginVerificationPageState extends State<LoginVerificationPage> {
     if (code.length == _otpLength) {
       final contact = widget.phoneNumber;
       final isEmail = contact.contains('@');
-      
+
       _registerBloc.add(
         ConfirmRegisterOtpRequested(
           ConfirmOtpParams(
@@ -134,7 +135,7 @@ class _LoginVerificationPageState extends State<LoginVerificationPage> {
     if (_canResend) {
       final contact = widget.phoneNumber;
       final isEmail = contact.contains('@');
-      
+
       _registerBloc.add(
         SendRegisterOtpRequested(
           SendOtpParams(
@@ -153,18 +154,18 @@ class _LoginVerificationPageState extends State<LoginVerificationPage> {
       value: _registerBloc,
       child: BlocConsumer<RegisterBloc, RegisterState>(
         listener: (context, state) {
-           if (state.status == RegisterStatus.success) {
+          if (state.status == RegisterStatus.success) {
             if (state.flow == RegisterFlow.registerConfirmOtp) {
-              // OTP tasdiqlandi. 
+              // OTP tasdiqlandi.
               // DIQQAT: API token qaytarmaydi, shuning uchun "marked logged in" qilamiz.
               // Haqiqiy tokenlarni olish uchun Login API ishlatilishi kerak.
               AuthService.instance.markLoggedIn();
-              
+
               SnackbarHelper.showSuccess(
                 context,
                 'auth.verification.snack_success'.tr(),
               );
-              
+
               context.router.replace(HomeRoute());
             } else if (state.flow == RegisterFlow.registerSendOtp) {
               _startTimer();
@@ -181,8 +182,9 @@ class _LoginVerificationPageState extends State<LoginVerificationPage> {
           }
         },
         builder: (context, state) {
-          final isLoading = state.isLoading && state.flow == RegisterFlow.registerConfirmOtp;
-          
+          final isLoading =
+              state.isLoading && state.flow == RegisterFlow.registerConfirmOtp;
+
           return Scaffold(
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             body: SafeArea(
@@ -196,7 +198,7 @@ class _LoginVerificationPageState extends State<LoginVerificationPage> {
                     SizedBox(height: AppSpacing.xl),
                     Text(
                       'auth.verification.title_login'.tr(),
-                      style: AppTypography.headingXL.copyWith(
+                      style: AppTypography.headingXL(context).copyWith(
                         color: isDark ? AppColors.white : AppColors.black,
                       ),
                     ),
@@ -208,16 +210,19 @@ class _LoginVerificationPageState extends State<LoginVerificationPage> {
                         final after = 'auth.verification.subtitle_after'.tr();
                         return RichText(
                           text: TextSpan(
-                            style: AppTypography.bodyPrimary.copyWith(
+                            style: AppTypography.bodyPrimary(context).copyWith(
                               fontSize: 14.sp,
                             ),
                             children: [
                               if (before.isNotEmpty) TextSpan(text: before),
                               TextSpan(
                                 text: contact,
-                                style: AppTypography.bodyPrimary.copyWith(
+                                style:
+                                    AppTypography.bodyPrimary(context).copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: isDark ? AppColors.white : AppColors.black,
+                                  color: isDark
+                                      ? AppColors.white
+                                      : AppColors.black,
                                 ),
                               ),
                               if (after.isNotEmpty) TextSpan(text: after),
@@ -234,7 +239,8 @@ class _LoginVerificationPageState extends State<LoginVerificationPage> {
                           final spacing = 8.w;
                           final totalSpacing = spacing * (_otpLength - 1);
                           final boxSize =
-                              ((constraints.maxWidth - totalSpacing) / _otpLength)
+                              ((constraints.maxWidth - totalSpacing) /
+                                      _otpLength)
                                   .clamp(40.w, 54.w);
                           return Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -291,7 +297,7 @@ class _LoginVerificationPageState extends State<LoginVerificationPage> {
                             onTap: _canResend ? _resendCode : null,
                             child: Text(
                               'auth.verification.resend'.tr(),
-                              style: AppTypography.caption,
+                              style: AppTypography.caption(context),
                             ),
                           ),
                         ],
@@ -299,9 +305,9 @@ class _LoginVerificationPageState extends State<LoginVerificationPage> {
                     ),
                     SizedBox(height: AppSpacing.xxl),
                     AuthPrimaryButton(
-                       label: 'auth.verification.cta'.tr(),
-                       onPressed: _verifyCode,
-                       isLoading: isLoading,
+                      label: 'auth.verification.cta'.tr(),
+                      onPressed: _verifyCode,
+                      isLoading: isLoading,
                     ),
                   ],
                 ),

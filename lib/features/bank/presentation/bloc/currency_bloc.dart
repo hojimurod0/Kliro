@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/app_exception.dart';
@@ -29,18 +30,18 @@ class CurrencyBloc extends Bloc<CurrencyEvent, CurrencyState> {
     
     try {
       final currencies = await _getCurrencies();
-      print('CurrencyBloc: Loaded ${currencies.length} currencies');
+      debugPrint('CurrencyBloc: Loaded ${currencies.length} currencies');
       if (currencies.isEmpty) {
         emit(const CurrencyError('Valyuta kurslari topilmadi'));
       } else {
         emit(CurrencyLoaded(currencies));
       }
     } on AppException catch (e) {
-      print('CurrencyBloc: AppException - ${e.message}');
+      debugPrint('CurrencyBloc: AppException - ${e.message}');
       emit(CurrencyError(e.message));
     } catch (e, stackTrace) {
-      print('CurrencyBloc: Exception - $e');
-      print('Stack trace: $stackTrace');
+      debugPrint('CurrencyBloc: Exception - $e');
+      debugPrint('Stack trace: $stackTrace');
       emit(CurrencyError('Noma\'lum xatolik yuz berdi: ${e.toString()}'));
     }
   }

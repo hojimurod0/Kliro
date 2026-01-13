@@ -41,7 +41,7 @@ class PrimaryButton extends StatelessWidget {
               )
             : Text(
                 text,
-                style: AppTypography.buttonPrimary.copyWith(
+                style: AppTypography.buttonPrimary(context).copyWith(
                   color: AppColors.white,
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w600,
@@ -51,4 +51,3 @@ class PrimaryButton extends StatelessWidget {
     );
   }
 }
-

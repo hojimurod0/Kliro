@@ -44,7 +44,7 @@ class _SearchPageState extends State<SearchPage> {
       ),
       body: BlocBuilder<AviaBloc, AviaState>(
         builder: (context, state) {
-          if (state is AviaLoading) {
+          if (state is AviaSearchLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -288,7 +288,7 @@ class _SearchPageState extends State<SearchPage> {
                     const SizedBox(height: 24),
                     BlocBuilder<AviaBloc, AviaState>(
                       builder: (context, state) {
-                        final isLoading = state is AviaLoading;
+                        final isLoading = state is AviaSearchLoading;
                         return PrimaryButton(
                           text: 'avia.search.search_button'.tr(),
                           isLoading: isLoading,

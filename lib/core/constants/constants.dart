@@ -1,8 +1,13 @@
 class ApiConstants {
   ApiConstants._();
 
-  // Production server base URL
-  static String get baseUrl => 'https://api.kliro.uz';
+  // Production server base URL (can be overridden by --dart-define=HOTEL_BASE_URL)
+  static String get baseUrl {
+    const envBase =
+        String.fromEnvironment('HOTEL_BASE_URL', defaultValue: '');
+    if (envBase.isNotEmpty) return envBase;
+    return 'https://api.kliro.uz';
+  }
 
   // Agar real server IP manzilini ishlatmoqchi bo'lsangiz, quyidagilardan birini ishlating:
   // static const String baseUrl = 'http://192.168.1.100:8080'; // Kompyuteringizning IP manzili
@@ -111,6 +116,22 @@ class ApiPaths {
   // Google OAuth
   static const String googleLogin = '/auth/google';
   static const String googleComplete = '/auth/google/complete';
+  static const String googleCallback = '/auth/google/callback';
+  
+  /// Google OAuth callback URL (to'liq URL)
+  /// Backend'ga yuboriladigan redirect URL
+  static const String googleOAuthRedirectUrl = 'https://kliro.uz/auth-callback';
+  
+  /// Google OAuth callback URL (to'liq URL)
+  static String get googleCallbackUrl {
+    return '${ApiConstants.effectiveBaseUrl}$googleCallback';
+  }
+
+  /// Google OAuth direct login URL (KLiRO sayti orqali)
+  /// Bu URL to'g'ridan-to'g'ri Google OAuth sahifasiga yo'naltiradi
+  /// Backend API chaqiruvsiz, to'g'ridan-to'g'ri Google OAuth flow ni ishga tushiradi
+  static const String googleOAuthDirectUrl = 
+    'https://accounts.google.com/v3/signin/accountchooser?access_type=offline&client_id=317528081630-iruspj0h9ot377birdgjen3cr82iaaa5.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fapi.kliro.uz%2Fauth%2Fgoogle%2Fcallback&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile';
 
   // User profile
   static const String getProfile = '/user/profile';

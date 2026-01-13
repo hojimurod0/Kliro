@@ -10,7 +10,11 @@ class PassportFormatter extends TextInputFormatter {
     final text = newValue.text.toUpperCase().replaceAll(' ', '');
     
     if (text.isEmpty) {
-      return newValue.copyWith(text: '');
+      // Return empty text with valid selection to avoid SPAN_EXCLUSIVE_EXCLUSIVE error
+      return TextEditingValue(
+        text: '',
+        selection: const TextSelection.collapsed(offset: 0),
+      );
     }
     
     // Extract letters and numbers
@@ -28,9 +32,13 @@ class PassportFormatter extends TextInputFormatter {
       formatted += ' ${numbers.substring(0, numbers.length > 7 ? 7 : numbers.length)}';
     }
     
+    // Ensure selection is valid (not zero length) to avoid SPAN_EXCLUSIVE_EXCLUSIVE error
+    final selectionOffset = formatted.length;
     return TextEditingValue(
       text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
+      selection: selectionOffset > 0
+          ? TextSelection.collapsed(offset: selectionOffset)
+          : const TextSelection.collapsed(offset: 0),
     );
   }
 }
@@ -46,7 +54,11 @@ class PhoneFormatter extends TextInputFormatter {
     final text = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
     
     if (text.isEmpty) {
-      return newValue.copyWith(text: '');
+      // Return empty text with valid selection to avoid SPAN_EXCLUSIVE_EXCLUSIVE error
+      return TextEditingValue(
+        text: '',
+        selection: const TextSelection.collapsed(offset: 0),
+      );
     }
     
     // Limit to 12 digits maximum (998 + 9 digits)
@@ -80,9 +92,13 @@ class PhoneFormatter extends TextInputFormatter {
       formatted += '-${limitedText.substring(10, limitedText.length > 12 ? 12 : limitedText.length)}';
     }
     
+    // Ensure selection is valid (not zero length) to avoid SPAN_EXCLUSIVE_EXCLUSIVE error
+    final selectionOffset = formatted.length;
     return TextEditingValue(
       text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
+      selection: selectionOffset > 0
+          ? TextSelection.collapsed(offset: selectionOffset)
+          : const TextSelection.collapsed(offset: 0),
     );
   }
 }
@@ -97,7 +113,11 @@ class DateFormatter extends TextInputFormatter {
     final text = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
     
     if (text.isEmpty) {
-      return newValue.copyWith(text: '');
+      // Return empty text with valid selection to avoid SPAN_EXCLUSIVE_EXCLUSIVE error
+      return TextEditingValue(
+        text: '',
+        selection: const TextSelection.collapsed(offset: 0),
+      );
     }
     
     String formatted = '';
@@ -117,9 +137,61 @@ class DateFormatter extends TextInputFormatter {
       formatted += '/${text.substring(4, text.length > 8 ? 8 : text.length)}';
     }
     
+    // Ensure selection is valid (not zero length) to avoid SPAN_EXCLUSIVE_EXCLUSIVE error
+    final selectionOffset = formatted.length;
     return TextEditingValue(
       text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
+      selection: selectionOffset > 0
+          ? TextSelection.collapsed(offset: selectionOffset)
+          : const TextSelection.collapsed(offset: 0),
+    );
+  }
+}
+
+/// Date formatter with dots: 13092008 -> 13.09.2008
+class DateFormatterWithDots extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    
+    if (text.isEmpty) {
+      // Return empty text with valid selection to avoid SPAN_EXCLUSIVE_EXCLUSIVE error
+      return TextEditingValue(
+        text: '',
+        selection: const TextSelection.collapsed(offset: 0),
+      );
+    }
+    
+    // Limit to 8 digits (DDMMYYYY)
+    final limitedText = text.length > 8 ? text.substring(0, 8) : text;
+    
+    String formatted = '';
+    
+    // Add day (13)
+    if (limitedText.isNotEmpty) {
+      formatted = limitedText.substring(0, limitedText.length > 2 ? 2 : limitedText.length);
+    }
+    
+    // Add month (09)
+    if (limitedText.length > 2) {
+      formatted += '.${limitedText.substring(2, limitedText.length > 4 ? 4 : limitedText.length)}';
+    }
+    
+    // Add year (2008)
+    if (limitedText.length > 4) {
+      formatted += '.${limitedText.substring(4, limitedText.length > 8 ? 8 : limitedText.length)}';
+    }
+    
+    // Ensure selection is valid (not zero length) to avoid SPAN_EXCLUSIVE_EXCLUSIVE error
+    final selectionOffset = formatted.length;
+    return TextEditingValue(
+      text: formatted,
+      selection: selectionOffset > 0
+          ? TextSelection.collapsed(offset: selectionOffset)
+          : const TextSelection.collapsed(offset: 0),
     );
   }
 }

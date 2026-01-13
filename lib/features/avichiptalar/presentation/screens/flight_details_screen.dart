@@ -131,8 +131,7 @@ class FlightDetailsScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'avia.details.title'.tr(),
-          style: AppTypography.headingL.copyWith(
-            color: theme.textTheme.titleLarge?.color,
+          style: AppTypography.headingL(context).copyWith(
           ),
         ),
         centerTitle: true,
@@ -142,7 +141,9 @@ class FlightDetailsScreen extends StatelessWidget {
       ),
       body: BlocBuilder<AviaBloc, AviaState>(
         builder: (context, state) {
-          if (state is AviaLoading) {
+          if (state is AviaOfferDetailLoading || 
+              state is AviaFareFamilyLoading || 
+              state is AviaFareRulesLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 

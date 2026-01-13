@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../constants/app_colors.dart';
+import '../constants/app_typography.dart';
 
 class LoadingStateWidget extends StatelessWidget {
   final String? message;
@@ -16,7 +17,7 @@ class LoadingStateWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -30,9 +31,8 @@ class LoadingStateWidget extends StatelessWidget {
             SizedBox(height: 16.h),
             Text(
               message!,
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: theme.textTheme.bodyMedium?.color ?? 
+              style: AppTypography.bodyMedium(context).copyWith(
+                color: theme.textTheme.bodyMedium?.color ??
                     (isDark ? AppColors.white : AppColors.darkTextAutoCredit),
               ),
             ),
@@ -42,4 +42,3 @@ class LoadingStateWidget extends StatelessWidget {
     );
   }
 }
-

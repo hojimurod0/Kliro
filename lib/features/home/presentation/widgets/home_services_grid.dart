@@ -95,9 +95,8 @@ class _LargeServiceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isBankCard) {
       return BlocProvider(
-        create: (context) =>
-            ServiceLocator.resolve<CurrencyBloc>()
-              ..add(const LoadCurrenciesEvent()),
+        create: (context) => ServiceLocator.resolve<CurrencyBloc>()
+          ..add(const LoadCurrenciesEvent()),
         child: _BankCardWithCurrency(
           title: title,
           subtitle: subtitle,
@@ -125,14 +124,14 @@ class _LargeServiceCard extends StatelessWidget {
             const Spacer(),
             Text(
               title,
-              style: AppTypography.headingL.copyWith(
+              style: AppTypography.headingL(context).copyWith(
                 color: Theme.of(context).textTheme.titleLarge?.color,
               ),
             ),
             SizedBox(height: 6.h),
             Text(
               subtitle,
-              style: AppTypography.bodySecondary.copyWith(
+              style: AppTypography.bodySecondary(context).copyWith(
                 fontSize: 14.sp,
                 color: Theme.of(context).textTheme.bodyMedium?.color,
               ),
@@ -164,10 +163,10 @@ class _BankCardWithCurrency extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final greenBg = isDark ? const Color(0xFF1A3A2E) : const Color(0xFFECFDF5);
-    const greenText = Color(0xFF059669);
-    final redBg = isDark ? const Color(0xFF3A1E1E) : const Color(0xFFFEF2F2);
-    const redText = Color(0xFFDC2626);
+    final greenBg = isDark ? AppColors.greenBgDark : AppColors.greenBgLight;
+    final greenText = AppColors.greenText;
+    final redBg = isDark ? AppColors.redBgDark : AppColors.redBgLight;
+    final redText = AppColors.redText;
 
     return BlocBuilder<CurrencyBloc, CurrencyState>(
       builder: (context, state) {
@@ -211,7 +210,7 @@ class _BankCardWithCurrency extends StatelessWidget {
                 SizedBox(height: 10.h),
                 Text(
                   title,
-                  style: AppTypography.headingL.copyWith(
+                  style: AppTypography.headingL(context).copyWith(
                     color: Theme.of(context).textTheme.titleLarge?.color,
                   ),
                 ),
@@ -273,7 +272,7 @@ class _BankCardWithCurrency extends StatelessWidget {
                     child: Center(
                       child: Text(
                         subtitle,
-                        style: AppTypography.bodySecondary.copyWith(
+                        style: AppTypography.bodySecondary(context).copyWith(
                           fontSize: 14.sp,
                           color: Theme.of(context).textTheme.bodyMedium?.color,
                         ),
@@ -332,7 +331,7 @@ class _MiniServiceCard extends StatelessWidget {
               Flexible(
                 child: Text(
                   title,
-                  style: AppTypography.headingL.copyWith(
+                  style: AppTypography.headingL(context).copyWith(
                     fontSize: 16.sp,
                     color: Theme.of(context).textTheme.titleLarge?.color,
                   ),
@@ -344,7 +343,7 @@ class _MiniServiceCard extends StatelessWidget {
               Flexible(
                 child: Text(
                   subtitle,
-                  style: AppTypography.bodySecondary.copyWith(
+                  style: AppTypography.bodySecondary(context).copyWith(
                     fontSize: 12.sp,
                     color: Theme.of(context).textTheme.bodyMedium?.color,
                   ),
@@ -403,9 +402,7 @@ class _MiniBankCard extends StatelessWidget {
   });
 
   String _formatCurrency(double value) {
-    return value
-        .toStringAsFixed(0)
-        .replaceAllMapped(
+    return value.toStringAsFixed(0).replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
@@ -444,7 +441,7 @@ class _MiniBankCard extends StatelessWidget {
                     Flexible(
                       child: Text(
                         bank.bankName,
-                        style: AppTypography.bodySecondary.copyWith(
+                        style: AppTypography.bodySecondary(context).copyWith(
                           fontSize: 11.sp,
                           color: Theme.of(context).textTheme.titleLarge?.color,
                           fontWeight: FontWeight.w600,
@@ -461,7 +458,7 @@ class _MiniBankCard extends StatelessWidget {
                   children: [
                     Text(
                       _formatCurrency(isBuy ? bank.buyRate : bank.sellRate),
-                      style: TextStyle(
+                      style: AppTypography.bodyMedium(context).copyWith(
                         fontSize: 14.sp,
                         fontWeight: FontWeight.bold,
                         color: greenText,
@@ -472,7 +469,7 @@ class _MiniBankCard extends StatelessWidget {
                       padding: EdgeInsets.only(bottom: 1.h),
                       child: Text(
                         tr('currency.som'),
-                        style: TextStyle(
+                        style: AppTypography.bodyMedium(context).copyWith(
                           fontSize: 9.sp,
                           color: greenText.withOpacity(0.7),
                           fontWeight: FontWeight.w500,
@@ -500,7 +497,7 @@ class _MiniBankLogo extends StatelessWidget {
     final logoAsset = bankLogoAsset(bankName);
     final shouldContain = bankLogoUsesContainFit(bankName);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFEFF6FF);
+    final bgColor = isDark ? AppColors.darkCardBg : AppColors.blueBgLight;
 
     return Container(
       width: 28.w,
@@ -518,7 +515,7 @@ class _MiniBankLogo extends StatelessWidget {
                   fit: shouldContain ? BoxFit.contain : BoxFit.cover,
                   filterQuality: FilterQuality.medium,
                   errorBuilder: (context, error, stackTrace) {
-                    return _buildPlaceholder();
+                    return _buildPlaceholder(context);
                   },
                 );
                 if (shouldContain) {
@@ -527,16 +524,15 @@ class _MiniBankLogo extends StatelessWidget {
                 return image;
               },
             )
-          : _buildPlaceholder(),
+          : _buildPlaceholder(context),
     );
   }
 
-  Widget _buildPlaceholder() {
+  Widget _buildPlaceholder(BuildContext context) {
     return Center(
       child: Text(
         bankName.isNotEmpty ? bankName[0].toUpperCase() : 'B',
-        style: TextStyle(
-          fontSize: 12.sp,
+        style: AppTypography.bodySecondary(context).copyWith(
           fontWeight: FontWeight.bold,
           color: AppColors.skyAccent,
         ),
@@ -587,13 +583,13 @@ class HomeWideServiceCard extends StatelessWidget {
               children: [
                 Text(
                   'home.hotels'.tr(),
-                  style: AppTypography.headingL.copyWith(
+                  style: AppTypography.headingL(context).copyWith(
                     color: Theme.of(context).textTheme.titleLarge?.color,
                   ),
                 ),
                 Text(
                   'home.hotels_subtitle'.tr(),
-                  style: AppTypography.bodyPrimary.copyWith(
+                  style: AppTypography.bodyPrimary(context).copyWith(
                     color: Theme.of(context).textTheme.bodyMedium?.color,
                   ),
                 ),

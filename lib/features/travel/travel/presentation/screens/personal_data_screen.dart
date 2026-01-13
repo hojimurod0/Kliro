@@ -5,7 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:intl/intl.dart';
+import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/constants/app_typography.dart';
 import '../../../../../core/utils/snackbar_helper.dart';
+import '../../../../../core/utils/input_formatters.dart';
 import '../logic/bloc/travel_bloc.dart';
 import '../logic/bloc/travel_state.dart';
 import '../logic/bloc/travel_event.dart';
@@ -117,19 +120,19 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
       },
       builder: (context, state) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        final scaffoldBg = isDark ? const Color(0xFF121212) : Colors.white;
-        final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+        final scaffoldBg = isDark ? AppColors.darkScaffoldBg : AppColors.white;
+        final cardBg = isDark ? AppColors.darkCardBg : AppColors.white;
         final textColor =
-            isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
+            isDark ? AppColors.white : AppColors.travelTextBlack;
         final textSubColor =
-            isDark ? Colors.grey[400]! : _PersonalDataScreenColors.kTextSub;
+            isDark ? AppColors.darkPlaceholder : AppColors.travelTextGrey;
         final borderColor =
-            isDark ? Colors.grey[700]! : _PersonalDataScreenColors.kBorderColor;
+            isDark ? AppColors.darkBorder : AppColors.travelBorderGrey;
         final cardBlueBg = isDark
-            ? const Color(0xFF1E3A5C)
-            : _PersonalDataScreenColors.kCardBlueBg;
-        final iconBg = isDark ? Colors.grey[800]! : Colors.white;
-        final iconBg2 = isDark ? Colors.grey[800]! : const Color(0xFFF1F5F9);
+            ? AppColors.travelLightBlueBgDark
+            : AppColors.travelLightBlueBg;
+        final iconBg = isDark ? AppColors.darkSubtitle : AppColors.white;
+        final iconBg2 = isDark ? AppColors.darkSubtitle : AppColors.grayBackground;
 
         // TravelBloc state dan ma'lumotlarni olish
         final persons = state.persons;
@@ -199,7 +202,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
             leading: IconButton(
               icon: Icon(
                 Icons.arrow_back,
-                color: isDark ? Colors.white : Colors.black,
+                color: isDark ? AppColors.white : AppColors.black,
                 size: 24,
               ),
               onPressed: () => Navigator.of(context).pop(),
@@ -207,10 +210,8 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
             ),
             title: Text(
               "travel.personal_data.title".tr(),
-              style: TextStyle(
-                color: isDark ? Colors.white : Colors.black,
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
+              style: AppTypography.headingM(context).copyWith(
+                color: isDark ? AppColors.white : AppColors.black,
                 letterSpacing: -0.3,
               ),
             ),
@@ -229,10 +230,9 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                       // Sarlavha
                       Text(
                         "travel.personal_data.personal_info".tr(),
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
+                        style: AppTypography.headingXL(context).copyWith(
                           color: textColor,
+                          fontWeight: FontWeight.w800,
                           letterSpacing: -0.5,
                           height: 1.2,
                         ),
@@ -240,10 +240,8 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                       const SizedBox(height: 8),
                       Text(
                         "travel.personal_data.subtitle".tr(),
-                        style: TextStyle(
-                          fontSize: 15,
+                        style: AppTypography.bodyMedium(context).copyWith(
                           color: textSubColor,
-                          fontWeight: FontWeight.w400,
                           letterSpacing: -0.2,
                         ),
                       ),
@@ -257,7 +255,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                           color: cardBlueBg,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: _PersonalDataScreenColors.kPrimaryBlue
+                            color: AppColors.travelPrimaryBlue
                                 .withOpacity(0.08),
                           ),
                         ),
@@ -276,20 +274,15 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                                   child: const Icon(
                                     Icons.person_outline_rounded,
                                     color:
-                                        _PersonalDataScreenColors.kPrimaryBlue,
+                                        AppColors.travelPrimaryBlue,
                                     size: 20,
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
                                   "travel.personal_data.insurer".tr(),
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark
-                                        ? _PersonalDataScreenColors.kPrimaryBlue
-                                        : _PersonalDataScreenColors
-                                            .kPrimaryBlue,
+                                  style: AppTypography.headingM(context).copyWith(
+                                    color: AppColors.travelPrimaryBlue,
                                     letterSpacing: -0.3,
                                   ),
                                 ),
@@ -366,7 +359,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                           border: Border.all(color: borderColor),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(
+                              color: AppColors.black.withOpacity(
                                 isDark ? 0.3 : 0.02,
                               ),
                               blurRadius: 15,
@@ -395,9 +388,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                                 const SizedBox(width: 12),
                                 Text(
                                   "travel.personal_data.traveler".tr(),
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w700,
+                                  style: AppTypography.headingM(context).copyWith(
                                     color: textColor,
                                     letterSpacing: -0.3,
                                   ),
@@ -485,7 +476,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                   border: Border(top: BorderSide(color: borderColor)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+                      color: AppColors.black.withOpacity(isDark ? 0.3 : 0.04),
                       blurRadius: 10,
                       offset: const Offset(0, -5),
                     ),
@@ -775,10 +766,10 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
                                       },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: isLoading
-                                      ? _PersonalDataScreenColors.kPrimaryBlue
+                                      ? AppColors.travelPrimaryBlue
                                           .withOpacity(0.6)
-                                      : _PersonalDataScreenColors.kPrimaryBlue,
-                                  foregroundColor: Colors.white,
+                                      : AppColors.travelPrimaryBlue,
+                                  foregroundColor: AppColors.white,
                                   elevation: 0,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
@@ -824,16 +815,16 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
   Widget _buildLabel(String text) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textSubColor =
-        isDark ? Colors.grey[400]! : _PersonalDataScreenColors.kTextSub;
+        isDark ? AppColors.darkPlaceholder : AppColors.travelTextGrey;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0, left: 4),
       child: Text(
         text,
-        style: TextStyle(
+        style: AppTypography.bodyMedium(context).copyWith(
           color: textSubColor,
-          fontSize: 13,
           fontWeight: FontWeight.w500,
+          fontSize: 13,
         ),
       ),
     );
@@ -842,7 +833,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
   Widget _buildTextField({String? initialValue}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor =
-        isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
+        isDark ? AppColors.white : AppColors.travelTextBlack;
 
     return TextFormField(
       initialValue: initialValue,
@@ -852,7 +843,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
         fontSize: 15,
       ),
       decoration: InputDecoration(
-        fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
         filled: true,
       ),
     );
@@ -867,7 +858,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor =
-        isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
+        isDark ? AppColors.white : AppColors.travelTextBlack;
 
     // Initial value ni controller ga o'rnatish (faqat birinchi marta)
     if (initialValue != null && controller.text.isEmpty) {
@@ -884,7 +875,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
         fontSize: 15,
       ),
       decoration: InputDecoration(
-        fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
         filled: true,
         hintText: hintText,
         hintStyle: TextStyle(
@@ -897,7 +888,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
   Widget _buildPassportRow({required String series, required String number}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor =
-        isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
+        isDark ? AppColors.white : AppColors.travelTextBlack;
 
     return Row(
       children: [
@@ -913,7 +904,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
               fontSize: 15,
             ),
             decoration: InputDecoration(
-              fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
               filled: true,
             ),
           ),
@@ -929,7 +920,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
               fontSize: 15,
             ),
             decoration: InputDecoration(
-              fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
               filled: true,
             ),
           ),
@@ -946,7 +937,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor =
-        isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
+        isDark ? AppColors.white : AppColors.travelTextBlack;
 
     // Initial value larni controller ga o'rnatish (faqat birinchi marta)
     if (series.isNotEmpty && seriesController.text.isEmpty) {
@@ -988,7 +979,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
               }
             },
             decoration: InputDecoration(
-              fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
               filled: true,
             ),
           ),
@@ -1004,7 +995,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
               fontSize: 15,
             ),
             decoration: InputDecoration(
-              fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
               filled: true,
             ),
           ),
@@ -1020,7 +1011,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor =
-        isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
+        isDark ? AppColors.white : AppColors.travelTextBlack;
 
     return TextFormField(
       initialValue: value,
@@ -1035,11 +1026,11 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
       decoration: InputDecoration(
         prefixIcon: Icon(
           icon,
-          color: _PersonalDataScreenColors.kPrimaryBlue,
+          color: AppColors.travelPrimaryBlue,
           size: 20,
         ),
         prefixIconConstraints: const BoxConstraints(minWidth: 46),
-        fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
         filled: true,
       ),
     );
@@ -1053,7 +1044,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor =
-        isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
+        isDark ? AppColors.white : AppColors.travelTextBlack;
 
     return GestureDetector(
       onTap: onTap,
@@ -1071,11 +1062,11 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
           decoration: InputDecoration(
             prefixIcon: Icon(
               icon,
-              color: _PersonalDataScreenColors.kPrimaryBlue,
+              color: AppColors.travelPrimaryBlue,
               size: 20,
             ),
             prefixIconConstraints: const BoxConstraints(minWidth: 46),
-            fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
             filled: true,
           ),
         ),
@@ -1091,7 +1082,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor =
-        isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
+        isDark ? AppColors.white : AppColors.travelTextBlack;
     final isPlaceholder = controller.text.isEmpty;
 
     return GestureDetector(
@@ -1110,11 +1101,11 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
           decoration: InputDecoration(
             prefixIcon: Icon(
               icon,
-              color: _PersonalDataScreenColors.kPrimaryBlue,
+              color: AppColors.travelPrimaryBlue,
               size: 20,
             ),
             prefixIconConstraints: const BoxConstraints(minWidth: 46),
-            fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
             filled: true,
             hintText: hintText,
             hintStyle: TextStyle(
@@ -1133,7 +1124,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor =
-        isDark ? Colors.white : _PersonalDataScreenColors.kTextMain;
+        isDark ? AppColors.white : AppColors.travelTextBlack;
 
     return TextFormField(
       controller: controller,
@@ -1144,12 +1135,7 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
         fontSize: 15,
       ),
       inputFormatters: [
-        FilteringTextInputFormatter.allow(
-          RegExp(r'[0-9+]'),
-        ), // + belgisini ham ruxsat berish
-        LengthLimitingTextInputFormatter(
-          13,
-        ), // +998 (4 ta belgi) + 9 ta raqam = 13 ta belgi
+        PhoneFormatter(),
       ],
       onChanged: (value) {
         // +998 ni har doim saqlab qolish
@@ -1186,11 +1172,11 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
       decoration: InputDecoration(
         prefixIcon: Icon(
           Icons.phone_outlined,
-          color: _PersonalDataScreenColors.kPrimaryBlue,
+          color: AppColors.travelPrimaryBlue,
           size: 20,
         ),
         prefixIconConstraints: const BoxConstraints(minWidth: 46),
-        fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
         filled: true,
         hintText: hintText,
         hintStyle: TextStyle(
@@ -1219,14 +1205,14 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: _PersonalDataScreenColors.kPrimaryBlue,
-              onPrimary: Colors.white,
-              surface: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              primary: AppColors.travelPrimaryBlue,
+              onPrimary: AppColors.white,
+              surface: isDark ? AppColors.darkCardBg : AppColors.white,
               onSurface:
-                  isDark ? Colors.white : _PersonalDataScreenColors.kTextMain,
+                  isDark ? AppColors.white : AppColors.travelTextBlack,
             ),
             dialogBackgroundColor:
-                isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                isDark ? AppColors.darkCardBg : AppColors.white,
           ),
           child: child!,
         );
@@ -1249,10 +1235,3 @@ class _PersonalDataScreenState extends State<PersonalDataScreen> {
 }
 
 // --- MUKAMMAL RANGLAR PALITRASI ---
-class _PersonalDataScreenColors {
-  static const Color kPrimaryBlue = Color(0xFF0085FF); // Asosiy ko'k
-  static const Color kCardBlueBg = Color(0xFFF0F9FF); // Sug'urtalovchi foni
-  static const Color kTextMain = Color(0xFF0F172A); // Asosiy matn (Slate 900)
-  static const Color kTextSub = Color(0xFF64748B); // Yordamchi matn (Slate 500)
-  static const Color kBorderColor = Color(0xFFE2E8F0); // Hoshiya (Slate 200)
-}

@@ -8,8 +8,57 @@ import '../../../../core/services/auth/auth_service.dart';
 
 class HomeHeader extends StatelessWidget {
   final VoidCallback? onProfileTap;
+  final VoidCallback? onNotificationTap;
 
-  const HomeHeader({super.key, this.onProfileTap});
+  const HomeHeader({
+    super.key,
+    this.onProfileTap,
+    this.onNotificationTap,
+  });
+
+  void _showComingSoonDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? AppColors.darkCardBg : AppColors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        title: Text(
+          'common.coming_soon_title'.tr(),
+          style: AppTypography.headingL(context).copyWith(
+            fontSize: 20.sp,
+            color: isDark ? AppColors.white : AppColors.black,
+          ),
+        ),
+        content: Text(
+          'common.coming_soon_message'.tr(),
+          style: AppTypography.bodyPrimary(context).copyWith(
+            fontSize: 14.sp,
+            color: isDark ? AppColors.grayText : AppColors.bodyText,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primaryBlue,
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            ),
+            child: Text(
+              'common.close'.tr(),
+              style: AppTypography.buttonPrimary(context).copyWith(
+                fontSize: 16.sp,
+                color: AppColors.primaryBlue,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +86,7 @@ class HomeHeader extends StatelessWidget {
                     child: hasValidInitials
                         ? Text(
                             initials,
-                            style: AppTypography.headingL.copyWith(
+                            style: AppTypography.headingL(context).copyWith(
                               color: AppColors.white,
                               fontSize: 16.sp,
                             ),
@@ -58,7 +107,7 @@ class HomeHeader extends StatelessWidget {
                   children: [
                     Text(
                       'home.welcome'.tr(),
-                      style: AppTypography.bodyPrimary.copyWith(
+                      style: AppTypography.bodyPrimary(context).copyWith(
                         fontSize: 12.sp,
                         color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
@@ -67,7 +116,7 @@ class HomeHeader extends StatelessWidget {
                     ),
                     Text(
                       firstName.isNotEmpty ? firstName : 'home.welcome'.tr(),
-                      style: AppTypography.headingL.copyWith(
+                      style: AppTypography.headingL(context).copyWith(
                         color: Theme.of(context).textTheme.titleLarge?.color,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -77,11 +126,14 @@ class HomeHeader extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 8.w),
-              const _CircleIcon(icon: Icons.search),
-              SizedBox(width: 8.w),
               Stack(
                 children: [
-                  const _CircleIcon(icon: Icons.notifications_none_rounded),
+                  GestureDetector(
+                    onTap: () {
+                      _showComingSoonDialog(context);
+                    },
+                    child: const _CircleIcon(icon: Icons.notifications_none_rounded),
+                  ),
                   Positioned(
                     right: 2,
                     top: 2,

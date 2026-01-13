@@ -54,7 +54,6 @@ class _CityInputState extends State<CityInput> {
   OverlayEntry? _overlayEntry;
   Timer? _debounceTimer;
   List<City> _citiesWithIds = [];
-  List<Hotel> _hotels = []; // List of hotels
   bool _isLoadingCities = false;
 
   @override
@@ -65,35 +64,53 @@ class _CityInputState extends State<CityInput> {
     _focusNode.addListener(_onFocusChanged);
     // Load cities
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final bloc = context.read<HotelBloc>();
-      // Check if data is already loaded to avoid stuck loading state
-      if (bloc.state is HotelCitiesWithIdsSuccess) {
-        setState(() {
-          _citiesWithIds = (bloc.state as HotelCitiesWithIdsSuccess).cities;
-          _isLoadingCities = false;
-        });
-      } else {
-        bloc.add(GetCitiesWithIdsRequested(countryId: widget.countryId));
-        // Timeout: agar 10 soniyadan keyin javob kelmasa, loading state ni o'chirish
-        Future.delayed(const Duration(seconds: 10), () {
-          if (mounted && _isLoadingCities) {
-            debugPrint(
-                '⚠️ CityInput: Loading timeout, setting _isLoadingCities = false');
-            setState(() {
-              _isLoadingCities = false;
-            });
-          }
-        });
+      debugPrint('🔍 CityInput: initState postFrameCallback called');
+      if (!mounted) {
+        debugPrint('⚠️ CityInput: Widget not mounted, skipping city load');
+        return;
       }
 
-      // Instead of relying on global 'list', we will search specifically if user types
-      // or try to fetch popular hotels
       try {
-        // Try simple list first
-        bloc.add(const GetHotelsListRequested());
-      } catch (e) {
-        debugPrint('Initial hotel load error: $e');
+        final bloc = context.read<HotelBloc>();
+        debugPrint(
+            '🔍 CityInput: Got HotelBloc, current state: ${bloc.state.runtimeType}');
+
+        // Check if data is already loaded to avoid stuck loading state
+        if (bloc.state is HotelCitiesWithIdsSuccess) {
+          final successState = bloc.state as HotelCitiesWithIdsSuccess;
+          debugPrint(
+              '✅ CityInput: Cities already loaded: ${successState.cities.length} cities');
+          setState(() {
+            _citiesWithIds = successState.cities;
+            _isLoadingCities = false;
+          });
+        } else {
+          debugPrint(
+              '🔍 CityInput: Requesting cities with countryId: ${widget.countryId}');
+          bloc.add(GetCitiesWithIdsRequested(countryId: widget.countryId));
+
+          // Timeout: agar 10 soniyadan keyin javob kelmasa, loading state ni o'chirish
+          Future.delayed(const Duration(seconds: 10), () {
+            if (mounted && _isLoadingCities) {
+              debugPrint(
+                  '⚠️ CityInput: Loading timeout after 10 seconds, setting _isLoadingCities = false');
+              setState(() {
+                _isLoadingCities = false;
+              });
+            }
+          });
+        }
+      } catch (e, stackTrace) {
+        debugPrint('❌ CityInput: Error in initState: $e');
+        debugPrint('❌ CityInput: Stack trace: $stackTrace');
+        if (mounted) {
+          setState(() {
+            _isLoadingCities = false;
+          });
+        }
       }
+
+      // Hotels are no longer loaded - only cities are shown
     });
   }
 
@@ -117,7 +134,8 @@ class _CityInputState extends State<CityInput> {
       if (_focusNode.hasFocus) {
         if (text.isEmpty) {
           _removeOverlay();
-        } else if (text.length >= 2) {
+        } else if (text.length >= 1) {
+          // Allow search from 1 character (for "tosh" case)
           _filterAndShowSuggestions(text);
         } else {
           _removeOverlay();
@@ -136,136 +154,234 @@ class _CityInputState extends State<CityInput> {
     } else {
       final text = widget.controller.text.trim();
       if (text.isEmpty) {
-        _removeOverlay();
+        // Focus bo'lganda va text bo'sh bo'lsa, barcha takliflarni ko'rsatish
+        if (_citiesWithIds.isNotEmpty) {
+          _showAllSuggestions();
+        } else {
+          _removeOverlay();
+        }
       } else if (text.length >= 2) {
         _filterAndShowSuggestions(text);
       } else {
-        _removeOverlay();
+        // 1 ta belgi yozilganda ham barcha takliflarni ko'rsatish
+        if (_citiesWithIds.isNotEmpty) {
+          _showAllSuggestions();
+        } else {
+          _removeOverlay();
+        }
       }
     }
   }
 
   List<SearchSuggestion> _getFilteredSuggestions(String searchText) {
-    final searchTextLower = searchText.toLowerCase();
+    final searchTextLower = searchText.toLowerCase().trim();
+    if (searchTextLower.isEmpty) {
+      return [];
+    }
+
     final List<SearchSuggestion> suggestions = [];
-    final Set<String> addedHotelIds = {}; // Prevent duplicates
 
-    // Handle Uzbek unification: 'tosh' <-> 'tash'
-    final isToshSearch = searchTextLower.contains('tosh');
-    final isTashSearch = searchTextLower.contains('tash');
-
-    String? altSearchText;
-    if (isToshSearch) {
-      altSearchText = searchTextLower.replaceAll('tosh', 'tash');
-    } else if (isTashSearch) {
-      altSearchText = searchTextLower.replaceAll('tash', 'tosh');
+    if (_citiesWithIds.isEmpty) {
+      debugPrint('⚠️ _getFilteredSuggestions: _citiesWithIds is empty!');
+      return [];
     }
 
-    // First, find matching cities
-    final List<City> matchingCities = [];
-    if (_citiesWithIds.isNotEmpty) {
-      final locale = context.locale.toString();
-      for (final city in _citiesWithIds) {
-        final cityName = city.name.toLowerCase();
-        final names =
-            city.names?.values.map((v) => v.toLowerCase()).toList() ?? [];
-        bool cityMatches = cityName.contains(searchTextLower) ||
-            names.any((n) => n.contains(searchTextLower));
-        if (!cityMatches && altSearchText != null) {
-          final altText = altSearchText;
-          cityMatches = cityName.contains(altText) ||
-              names.any((n) => n.contains(altText));
-        }
+    final locale = context.locale.toString();
 
-        if (cityMatches) {
-          matchingCities.add(city);
-          suggestions.add(SearchSuggestion(
-            id: city.id.toString(),
-            name: city.getDisplayName(locale),
-            type: 'city',
-            originalObject: city,
-          ));
+    // Handle "toshent" typo -> convert to "toshkent" for matching
+    String normalizedSearch = searchTextLower;
+    if (normalizedSearch.contains('toshent')) {
+      normalizedSearch = normalizedSearch.replaceAll('toshent', 'toshkent');
+    }
+
+    // Create search variants (handle 'tosh' <-> 'tash' conversion and typos)
+    final searchVariants = <String>{
+      searchTextLower,
+      normalizedSearch,
+    };
+
+    // Add "tosh" <-> "tash" variants
+    if (searchTextLower.contains('tosh')) {
+      searchVariants.add(searchTextLower.replaceAll('tosh', 'tash'));
+    }
+    if (searchTextLower.contains('tash')) {
+      searchVariants.add(searchTextLower.replaceAll('tash', 'tosh'));
+    }
+
+    // If user types "tosh", also add "toshkent" and "tashkent" for better matching
+    if (searchTextLower == 'tosh' || searchTextLower.startsWith('tosh')) {
+      searchVariants.add('toshkent');
+      searchVariants.add('tashkent');
+    }
+
+    debugPrint('🔍 _getFilteredSuggestions: Searching for "$searchTextLower"');
+    debugPrint('🔍 _getFilteredSuggestions: Normalized: "$normalizedSearch"');
+    debugPrint('🔍 _getFilteredSuggestions: Search variants: $searchVariants');
+    debugPrint(
+        '🔍 _getFilteredSuggestions: Total cities: ${_citiesWithIds.length}');
+
+    // Debug: Print all city names for "tosh" search
+    if (searchTextLower == 'tosh' ||
+        searchTextLower.contains('tosh') ||
+        searchTextLower.contains('toshent')) {
+      final allCityNames = _citiesWithIds.map((c) {
+        final names = <String>[c.name];
+        if (c.names != null) {
+          names.addAll(c.names!.values);
         }
+        return '${c.id}: ${names.join(", ")}';
+      }).toList();
+      debugPrint(
+          '🔍 All city names (first 20): ${allCityNames.take(20).toList()}');
+
+      // Find any city with "tosh" or "tash" in name
+      final toshkentCities = _citiesWithIds.where((c) {
+        final nameLower = c.name.toLowerCase();
+        final namesLower =
+            c.names?.values.map((v) => v.toLowerCase()).toList() ?? [];
+        return nameLower.contains('tosh') ||
+            nameLower.contains('tash') ||
+            namesLower.any((n) => n.contains('tosh') || n.contains('tash'));
+      }).toList();
+      debugPrint(
+          '🔍 Cities with "tosh"/"tash" in name: ${toshkentCities.length}');
+      for (final city in toshkentCities.take(5)) {
+        debugPrint(
+            '  - ${city.name} (id: ${city.id}, names: ${city.names?.values.toList()})');
       }
     }
 
-    // Filter Hotels - show hotels that match city name or search text
-    if (_hotels.isNotEmpty) {
-      // Collect city names from matching cities for hotel filtering
-      final Set<String> matchingCityNames = {};
-      for (final city in matchingCities) {
-        matchingCityNames.add(city.name.toLowerCase());
-        if (city.names != null) {
-          matchingCityNames
-              .addAll(city.names!.values.map((v) => v.toLowerCase()));
-        }
-      }
+    for (final city in _citiesWithIds) {
+      // Get all possible city name variants to search
+      final allNameVariants = <String>{
+        city.name.toLowerCase(),
+        ...(city.names?.values.map((v) => v.toLowerCase()) ?? []),
+      };
 
-      for (final hotel in _hotels) {
-        if (addedHotelIds.contains(hotel.id)) continue; // Skip duplicates
+      bool cityMatches = false;
 
-        final nameLower = hotel.name.toLowerCase();
-        final cityLower = hotel.city.toLowerCase();
+      // Check each search variant against all name variants
+      for (final searchVariant in searchVariants) {
+        if (searchVariant.isEmpty) continue;
 
-        // Check if hotel name matches search text
-        bool matches = nameLower.contains(searchTextLower);
+        for (final nameVariant in allNameVariants) {
+          // Normalize name variant - handle "toshent" typo in city names too
+          String normalizedName = nameVariant;
+          if (nameVariant.contains('toshent')) {
+            normalizedName = nameVariant.replaceAll('toshent', 'toshkent');
+          }
 
-        // Check if hotel city matches search text
-        if (!matches) {
-          matches = cityLower.contains(searchTextLower);
-        }
-
-        // Check with alternative search text (tosh/tash)
-        if (!matches && altSearchText != null) {
-          matches = nameLower.contains(altSearchText) ||
-              cityLower.contains(altSearchText);
-        }
-
-        // Check if hotel's city matches any of the found cities
-        if (!matches && matchingCityNames.isNotEmpty) {
-          for (final cityName in matchingCityNames) {
-            if (cityLower.contains(cityName) || cityName.contains(cityLower)) {
-              matches = true;
-              break;
+          // Check if name starts with or contains the search text
+          if (nameVariant.startsWith(searchVariant) ||
+              nameVariant.contains(searchVariant)) {
+            cityMatches = true;
+            if (searchTextLower == 'tosh' ||
+                searchTextLower.contains('tosh') ||
+                searchTextLower.contains('toshent')) {
+              debugPrint(
+                  '✅ Match found: "$nameVariant" matches "$searchVariant" (city: ${city.name}, id: ${city.id})');
             }
+            break;
+          } else if (normalizedName.startsWith(normalizedSearch) ||
+              normalizedName.contains(normalizedSearch)) {
+            cityMatches = true;
+            if (searchTextLower == 'tosh' ||
+                searchTextLower.contains('tosh') ||
+                searchTextLower.contains('toshent')) {
+              debugPrint(
+                  '✅ Match found (normalized): "$normalizedName" matches "$normalizedSearch" (city: ${city.name}, id: ${city.id})');
+            }
+            break;
           }
         }
+        if (cityMatches) break;
+      }
 
-        if (matches) {
-          addedHotelIds.add(hotel.id);
-          suggestions.add(SearchSuggestion(
-            id: hotel.id,
-            name: hotel.name,
-            type: 'hotel',
-            originalObject: hotel,
-          ));
-        }
+      if (cityMatches) {
+        suggestions.add(SearchSuggestion(
+          id: city.id.toString(),
+          name: city.getDisplayName(locale),
+          type: 'city',
+          originalObject: city,
+        ));
       }
     }
 
-    // Sort: Cities first, then Hotels, then alphabetical
+    debugPrint(
+        '🔍 _getFilteredSuggestions: Found ${suggestions.length} matching cities');
+    if (suggestions.isNotEmpty) {
+      debugPrint(
+          '🔍 Matched cities: ${suggestions.map((s) => s.name).take(10).toList()}');
+    } else {
+      debugPrint('⚠️ No cities matched for "$searchTextLower"');
+    }
+
+    // Sort cities: prioritize Toshkent when searching for "tosh"
     suggestions.sort((a, b) {
-      if (a.type != b.type) {
-        return a.type == 'city' ? -1 : 1; // Cities first
+      final aName = a.name.toLowerCase();
+      final bName = b.name.toLowerCase();
+      final searchLower = searchTextLower;
+
+      // Prioritize Toshkent/Tashkent when searching for "tosh" or "toshent"
+      if (searchLower.contains('tosh') ||
+          searchLower.contains('tash') ||
+          searchLower.contains('toshent')) {
+        final aIsToshkent = aName.contains('tosh') || aName.contains('tash');
+        final bIsToshkent = bName.contains('tosh') || bName.contains('tash');
+
+        if (aIsToshkent && !bIsToshkent) return -1;
+        if (!aIsToshkent && bIsToshkent) return 1;
       }
+
+      // Then sort alphabetically
       return a.name.compareTo(b.name);
     });
-
-    // Limit to 10000 items to show more hotels
-    if (suggestions.length > 10000) {
-      return suggestions.sublist(0, 10000);
-    }
 
     return suggestions;
   }
 
   void _filterAndShowSuggestions(String searchText) {
-    debugPrint('🔍 _filterAndShowSuggestions: searchText = "$searchText"');
+    final trimmedText = searchText.trim();
+    debugPrint('🔍 _filterAndShowSuggestions: searchText = "$trimmedText"');
     debugPrint(
         '🔍 _filterAndShowSuggestions: _citiesWithIds.length = ${_citiesWithIds.length}');
-    final suggestions = _getFilteredSuggestions(searchText);
+    debugPrint(
+        '🔍 _filterAndShowSuggestions: _isLoadingCities = $_isLoadingCities');
+
+    // Debug: print first few city names for debugging
+    if (_citiesWithIds.isNotEmpty) {
+      debugPrint(
+          '🔍 First 5 cities: ${_citiesWithIds.take(5).map((c) => c.name).toList()}');
+      // Check if Toshkent/Tashkent exists in the list
+      final toshkentCities = _citiesWithIds.where((c) {
+        final nameLower = c.name.toLowerCase();
+        final namesLower =
+            c.names?.values.map((v) => v.toLowerCase()).toList() ?? [];
+        return nameLower.contains('tosh') ||
+            nameLower.contains('tash') ||
+            namesLower.any((n) => n.contains('tosh') || n.contains('tash'));
+      }).toList();
+      if (toshkentCities.isNotEmpty) {
+        debugPrint(
+            '🔍 Found Toshkent/Tashkent cities: ${toshkentCities.map((c) => '${c.name} (names: ${c.names?.values.toList()})').toList()}');
+      } else {
+        debugPrint('⚠️ No Toshkent/Tashkent cities found in _citiesWithIds!');
+      }
+    } else {
+      debugPrint('⚠️ _citiesWithIds is EMPTY!');
+    }
+
+    final suggestions = _getFilteredSuggestions(trimmedText);
     debugPrint(
         '🔍 _filterAndShowSuggestions: Found ${suggestions.length} suggestions');
+
+    // Debug: print found city names
+    if (suggestions.isNotEmpty) {
+      debugPrint(
+          '🔍 Found cities: ${suggestions.map((s) => s.name).take(10).toList()}');
+    } else {
+      debugPrint('⚠️ No suggestions found for "$trimmedText"');
+    }
 
     if ((suggestions.isNotEmpty || _isLoadingCities) && _focusNode.hasFocus) {
       _showOverlayFromSuggestions(suggestions);
@@ -282,12 +398,11 @@ class _CityInputState extends State<CityInput> {
 
     debugPrint(
         '🔍 _showAllSuggestions: _citiesWithIds.length = ${_citiesWithIds.length}');
-    debugPrint('🔍 _showAllSuggestions: _hotels.length = ${_hotels.length}');
 
     final locale = context.locale.toString();
     final List<SearchSuggestion> suggestions = [];
 
-    // Add Cities
+    // Faqat shaharlarni qo'shish
     if (_citiesWithIds.isNotEmpty) {
       suggestions.addAll(_citiesWithIds.map((city) => SearchSuggestion(
             id: city.id.toString(),
@@ -299,24 +414,8 @@ class _CityInputState extends State<CityInput> {
       debugPrint('⚠️ _citiesWithIds is EMPTY!');
     }
 
-    // Add Hotels (limit to avoid huge list)
-    if (_hotels.isNotEmpty) {
-      suggestions.addAll(_hotels.map((hotel) => SearchSuggestion(
-            id: hotel.id,
-            name: hotel.name,
-            type: 'hotel',
-            originalObject: hotel,
-          )));
-    }
-
-
-    // Sort: Cities first, then Hotels, then alphabetical
-    suggestions.sort((a, b) {
-      if (a.type != b.type) {
-        return a.type == 'city' ? -1 : 1; // Cities first
-      }
-      return a.name.compareTo(b.name);
-    });
+    // Faqat shaharlarni alfavit bo'yicha tartiblash
+    suggestions.sort((a, b) => a.name.compareTo(b.name));
 
     // Limit total validation
     final limitedSuggestions = suggestions.length > 10000
@@ -405,7 +504,8 @@ class _CityInputState extends State<CityInput> {
                       itemCount: suggestions.length,
                       itemBuilder: (context, index) {
                         final suggestion = suggestions[index];
-                        final isHotel = suggestion.type == 'hotel';
+                        // Only cities are shown, so type is always 'city'
+                        final city = suggestion.originalObject as City;
 
                         return InkWell(
                           onTap: () {
@@ -413,16 +513,8 @@ class _CityInputState extends State<CityInput> {
                             _focusNode.unfocus();
                             _removeOverlay();
 
-                            if (isHotel) {
-                              if (widget.onHotelSelected != null) {
-                                widget.onHotelSelected!(
-                                    suggestion.originalObject as Hotel);
-                              }
-                            } else {
-                              if (widget.onCitySelected != null) {
-                                widget.onCitySelected!(
-                                    suggestion.originalObject as City);
-                              }
+                            if (widget.onCitySelected != null) {
+                              widget.onCitySelected!(city);
                             }
                           },
                           child: Padding(
@@ -433,39 +525,21 @@ class _CityInputState extends State<CityInput> {
                             child: Row(
                               children: [
                                 Icon(
-                                  isHotel ? Icons.hotel : Icons.location_city,
+                                  Icons.location_city,
                                   size: 20.sp,
-                                  color: isHotel ? Colors.orange : Colors.blue,
+                                  color: Colors.blue,
                                 ),
                                 SizedBox(width: 12.w),
                                 Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        suggestion.name,
-                                        style: TextStyle(
-                                          fontSize: 14.sp,
-                                          color: Theme.of(context)
-                                              .textTheme
-                                              .bodyLarge
-                                              ?.color,
-                                          fontWeight: isHotel
-                                              ? FontWeight.w500
-                                              : FontWeight.normal,
-                                        ),
-                                      ),
-                                      if (isHotel)
-                                        Text(
-                                          (suggestion.originalObject as Hotel)
-                                              .city,
-                                          style: TextStyle(
-                                            fontSize: 12.sp,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                    ],
+                                  child: Text(
+                                    suggestion.name,
+                                    style: TextStyle(
+                                      fontSize: 14.sp,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.color,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -500,20 +574,12 @@ class _CityInputState extends State<CityInput> {
           //   debugPrint('🔍 City: ${city.name} (id: ${city.id})');
           // }
           _refreshOverlayIfHasFocus();
-        } else if (state is HotelHotelsListSuccess) {
-          setState(() {
-            _hotels = state.hotels;
-          });
-          debugPrint('🔍 CityInput: Loaded ${state.hotels.length} hotels');
-          _refreshOverlayIfHasFocus();
         } else if (state is HotelCitiesWithIdsFailure) {
           setState(() {
             _isLoadingCities = false;
           });
           debugPrint('❌ CityInput: Failed to load cities: ${state.message}');
           _refreshOverlayIfHasFocus();
-        } else if (state is HotelHotelsListFailure) {
-          debugPrint('❌ Hotel list load failed: ${state.message}');
         }
       },
       child: CompositedTransformTarget(
@@ -540,6 +606,9 @@ class _CityInputState extends State<CityInput> {
                     ? IconButton(
                         icon: Icon(Icons.clear, size: 20.sp),
                         onPressed: () {
+                          // Keep it safe for spannable selection edge cases
+                          widget.controller.selection =
+                              const TextSelection.collapsed(offset: 0);
                           widget.controller.clear();
                           if (widget.onClear != null) {
                             widget.onClear!();
@@ -575,15 +644,27 @@ class _CityInputState extends State<CityInput> {
     if (_focusNode.hasFocus) {
       final searchText = widget.controller.text.trim();
       if (searchText.isEmpty) {
-        debugPrint(
-            '🔍 _refreshOverlayIfHasFocus: Calling _removeOverlay() because text is empty');
-        _removeOverlay();
+        // Text bo'sh bo'lsa, barcha takliflarni ko'rsatish
+        if (_citiesWithIds.isNotEmpty) {
+          debugPrint(
+              '🔍 _refreshOverlayIfHasFocus: Calling _showAllSuggestions() because text is empty');
+          _showAllSuggestions();
+        } else {
+          debugPrint(
+              '🔍 _refreshOverlayIfHasFocus: Calling _removeOverlay() because text is empty and no data');
+          _removeOverlay();
+        }
       } else if (searchText.length >= 2) {
         debugPrint(
             '🔍 _refreshOverlayIfHasFocus: Calling _filterAndShowSuggestions("$searchText")');
         _filterAndShowSuggestions(searchText);
       } else {
-        _removeOverlay();
+        // 1 ta belgi yozilganda ham barcha takliflarni ko'rsatish
+        if (_citiesWithIds.isNotEmpty) {
+          _showAllSuggestions();
+        } else {
+          _removeOverlay();
+        }
       }
     } else {
       debugPrint(

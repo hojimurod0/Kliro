@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/app_colors.dart';
 import '../../domain/entities/auto_credit_filter.dart';
 import '../../domain/entities/auto_credit_offer.dart';
 import '../../domain/repositories/auto_credit_repository.dart';
@@ -162,11 +163,11 @@ class AutoCreditRepositoryImpl implements AutoCreditRepository {
   Color _colorForOpening(String opening) {
     switch (opening) {
       case 'online':
-        return Colors.green;
+        return AppColors.accentGreen;
       case 'bank':
-        return Colors.blueGrey;
+        return AppColors.gray500;
       default:
-        return Colors.orange;
+        return AppColors.orangeWarning;
     }
   }
 

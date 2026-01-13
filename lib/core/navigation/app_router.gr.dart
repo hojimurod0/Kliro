@@ -469,6 +469,17 @@ abstract class _$AppRouter extends RootStackRouter {
         )),
       );
     },
+    GoogleCompleteFormRoute.name: (routeData) {
+      final args = routeData.argsAs<GoogleCompleteFormRouteArgs>();
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: WrappedRoute(
+            child: GoogleCompleteFormPage(
+          key: args.key,
+          sessionId: args.sessionId,
+        )),
+      );
+    },
   };
 }
 
@@ -1836,5 +1847,43 @@ class UserDetailsRouteArgs {
   @override
   String toString() {
     return 'UserDetailsRouteArgs{key: $key, contactInfo: $contactInfo}';
+  }
+}
+
+/// generated route for
+/// [GoogleCompleteFormPage]
+class GoogleCompleteFormRoute extends PageRouteInfo<GoogleCompleteFormRouteArgs> {
+  GoogleCompleteFormRoute({
+    Key? key,
+    required String sessionId,
+    List<PageRouteInfo>? children,
+  }) : super(
+          GoogleCompleteFormRoute.name,
+          args: GoogleCompleteFormRouteArgs(
+            key: key,
+            sessionId: sessionId,
+          ),
+          initialChildren: children,
+        );
+
+  static const String name = 'GoogleCompleteFormRoute';
+
+  static const PageInfo<GoogleCompleteFormRouteArgs> page =
+      PageInfo<GoogleCompleteFormRouteArgs>(name);
+}
+
+class GoogleCompleteFormRouteArgs {
+  const GoogleCompleteFormRouteArgs({
+    this.key,
+    required this.sessionId,
+  });
+
+  final Key? key;
+
+  final String sessionId;
+
+  @override
+  String toString() {
+    return 'GoogleCompleteFormRouteArgs{key: $key, sessionId: $sessionId}';
   }
 }

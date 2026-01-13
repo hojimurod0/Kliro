@@ -17,9 +17,7 @@ class HomeBestBanksCard extends StatelessWidget {
 
   CurrencyEntity? _getBestBuyBank(List<CurrencyEntity> currencies) {
     final usdCurrencies = currencies
-        .where((c) => 
-            c.currencyCode.toUpperCase() == 'USD' && 
-            c.buyRate > 0)
+        .where((c) => c.currencyCode.toUpperCase() == 'USD' && c.buyRate > 0)
         .toList();
     if (usdCurrencies.isEmpty) return null;
     // Eng baland buyRate - eng yaxshi narx
@@ -29,9 +27,7 @@ class HomeBestBanksCard extends StatelessWidget {
 
   CurrencyEntity? _getBestSellBank(List<CurrencyEntity> currencies) {
     final usdCurrencies = currencies
-        .where((c) => 
-            c.currencyCode.toUpperCase() == 'USD' && 
-            c.sellRate > 0)
+        .where((c) => c.currencyCode.toUpperCase() == 'USD' && c.sellRate > 0)
         .toList();
     if (usdCurrencies.isEmpty) return null;
     // Eng arzon sellRate - eng yaxshi narx
@@ -42,9 +38,8 @@ class HomeBestBanksCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) =>
-          ServiceLocator.resolve<CurrencyBloc>()
-            ..add(const LoadCurrenciesEvent()),
+      create: (context) => ServiceLocator.resolve<CurrencyBloc>()
+        ..add(const LoadCurrenciesEvent()),
       child: BlocBuilder<CurrencyBloc, CurrencyState>(
         builder: (context, state) {
           CurrencyEntity? bestBuyBank;
@@ -96,9 +91,7 @@ class _BestRateCard extends StatelessWidget {
   });
 
   String _formatCurrency(double value) {
-    return value
-        .toStringAsFixed(0)
-        .replaceAllMapped(
+    return value.toStringAsFixed(0).replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
@@ -107,19 +100,15 @@ class _BestRateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     // Ranglar: buy uchun yashil, sell uchun qizil
     final bgColor = isBuy
         ? (isDark ? const Color(0xFF1A3A2E) : const Color(0xFFECFDF5))
         : (isDark ? const Color(0xFF3A1E1E) : const Color(0xFFFEF2F2));
-    
-    final textColor = isBuy
-        ? const Color(0xFF059669)
-        : const Color(0xFFDC2626);
-    
-    final iconColor = isBuy
-        ? const Color(0xFF059669)
-        : const Color(0xFFDC2626);
+
+    final textColor = isBuy ? const Color(0xFF059669) : const Color(0xFFDC2626);
+
+    final iconColor = isBuy ? const Color(0xFF059669) : const Color(0xFFDC2626);
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -144,7 +133,7 @@ class _BestRateCard extends StatelessWidget {
               SizedBox(width: 6.w),
               Text(
                 isBuy ? tr('currency.buy') : tr('currency.sell'),
-                style: AppTypography.bodySecondary.copyWith(
+                style: AppTypography.bodySecondary(context).copyWith(
                   fontSize: 12.sp,
                   color: Theme.of(context).textTheme.bodyMedium?.color ??
                       const Color(0xFF374151),
@@ -164,7 +153,7 @@ class _BestRateCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   bank.bankName,
-                  style: AppTypography.bodyPrimary.copyWith(
+                  style: AppTypography.bodyPrimary(context).copyWith(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).textTheme.titleLarge?.color,
@@ -220,9 +209,7 @@ class _BankLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     final logoAsset = bankLogoAsset(bankName);
     final shouldContain = bankLogoUsesContainFit(bankName);
-    final bgColor = isDark 
-        ? const Color(0xFF1E1E1E) 
-        : const Color(0xFFEFF6FF);
+    final bgColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFEFF6FF);
 
     return Container(
       width: 40.w,
@@ -269,4 +256,3 @@ class _BankLogo extends StatelessWidget {
     );
   }
 }
-

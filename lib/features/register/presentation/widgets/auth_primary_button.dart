@@ -46,7 +46,7 @@ class AuthPrimaryButton extends StatelessWidget {
               )
             : Text(
                 label,
-                style: AppTypography.buttonPrimary.copyWith(color: textColor),
+                style: AppTypography.buttonPrimary(context).copyWith(color: textColor),
               ),
       ),
     );

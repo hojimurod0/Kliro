@@ -84,7 +84,7 @@ class _HomeNewsSectionState extends State<HomeNewsSection> {
               children: [
                 Text(
                   'home.news'.tr(),
-                  style: AppTypography.headingL.copyWith(
+                  style: AppTypography.headingL(context).copyWith(
                     color: Theme.of(context).textTheme.titleLarge?.color,
                   ),
                 ),
@@ -104,7 +104,7 @@ class _HomeNewsSectionState extends State<HomeNewsSection> {
               ),
               child: Text(
                 'home.view_all'.tr(),
-                style: AppTypography.chip.copyWith(
+                style: AppTypography.chip(context).copyWith(
                   color: Theme.of(context).colorScheme.primary,
                 ),
               ),
@@ -188,7 +188,7 @@ class _NewsCard extends StatelessWidget {
                       ),
                       child: Text(
                         item.getTag(context),
-                        style: AppTypography.labelSmall.copyWith(
+                        style: AppTypography.labelSmall(context).copyWith(
                           color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.bold,
                           fontSize: 10.sp,
@@ -206,7 +206,7 @@ class _NewsCard extends StatelessWidget {
                     SizedBox(width: 4.w),
                     Text(
                       item.getDate(context),
-                      style: AppTypography.caption.copyWith(
+                      style: AppTypography.caption(context).copyWith(
                         color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                     ),
@@ -217,7 +217,7 @@ class _NewsCard extends StatelessWidget {
                   item.getTitle(context),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.headingL.copyWith(
+                  style: AppTypography.headingL(context).copyWith(
                     fontSize: 16.sp,
                     color: Theme.of(context).textTheme.titleLarge?.color,
                   ),

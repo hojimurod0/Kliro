@@ -229,7 +229,7 @@ class KaskoRemoteDataSourceImpl implements KaskoRemoteDataSource {
   Future<List<RateModel>> getRates() async {
     try {
       if (_enableRatesDebugLogs) {
-        print('🌐 Starting GET request to: ${ApiPaths.kaskoRates}');
+        debugPrint('🌐 Starting GET request to: ${ApiPaths.kaskoRates}');
       }
 
       // MUHIM: Raw JSON string olish uchun ResponseType.plain ishlatamiz
@@ -246,14 +246,14 @@ class KaskoRemoteDataSourceImpl implements KaskoRemoteDataSource {
       );
 
       if (_enableRatesDebugLogs) {
-        print('✅ GET response received, status: ${response.statusCode}');
+        debugPrint('✅ GET response received, status: ${response.statusCode}');
       }
 
       final responseString = response.data as String?;
 
       if (_enableRatesDebugLogs) {
-        print('📄 Response string length: ${responseString?.length ?? 0}');
-        print(
+        debugPrint('📄 Response string length: ${responseString?.length ?? 0}');
+        debugPrint(
           '📄 Response string preview: ${responseString?.substring(0, responseString.length > 200 ? 200 : responseString.length)}',
         );
       }
@@ -261,7 +261,7 @@ class KaskoRemoteDataSourceImpl implements KaskoRemoteDataSource {
       // Response tekshiruvi
       if (responseString == null || responseString.isEmpty) {
         if (_enableRatesDebugLogs) {
-          print('❌ Response is null or empty');
+          debugPrint('❌ Response is null or empty');
         }
         throw const ApiException(message: 'Server response is null or empty');
       }
@@ -270,16 +270,16 @@ class KaskoRemoteDataSourceImpl implements KaskoRemoteDataSource {
       // JSON string'ni Dart obyektlariga o'girish isolate'da bajariladi
       try {
         if (_enableRatesDebugLogs) {
-          print('🔄 Starting JSON parsing in isolate...');
+          debugPrint('🔄 Starting JSON parsing in isolate...');
         }
         final rates = await compute(_parseRatesDataFromJson, responseString);
         if (_enableRatesDebugLogs) {
-          print('✅ Parsing completed, got ${rates.length} rates');
+          debugPrint('✅ Parsing completed, got ${rates.length} rates');
         }
         return rates;
       } catch (e) {
         if (_enableRatesDebugLogs) {
-          print('❌ Parsing error: $e');
+          debugPrint('❌ Parsing error: $e');
         }
         // compute() funksiyasidan kelgan exception'larni catch qilish
         if (e is FormatException) {
@@ -781,9 +781,9 @@ List<CarModel> _parseCarsDataFromJson(String jsonString) {
 List<RateModel> _parseRatesDataFromJson(String jsonString) {
   // Debug loglar _enableRatesDebugLogs orqali boshqariladi
   if (KaskoRemoteDataSourceImpl._enableRatesDebugLogs) {
-    print('🔄 _parseRatesDataFromJson: Starting to parse JSON string...');
-    print('📄 JSON string length: ${jsonString.length}');
-    print(
+    debugPrint('🔄 _parseRatesDataFromJson: Starting to parse JSON string...');
+    debugPrint('📄 JSON string length: ${jsonString.length}');
+    debugPrint(
       '📄 JSON string preview: ${jsonString.substring(0, jsonString.length > 500 ? 500 : jsonString.length)}',
     );
   }
@@ -792,13 +792,13 @@ List<RateModel> _parseRatesDataFromJson(String jsonString) {
   // Bu yerda FormatException chiqishi mumkin, agar JSON noto'g'ri bo'lsa
   final responseData = jsonDecode(jsonString) as dynamic;
   if (KaskoRemoteDataSourceImpl._enableRatesDebugLogs) {
-    print('✅ JSON decoded successfully, type: ${responseData.runtimeType}');
+    debugPrint('✅ JSON decoded successfully, type: ${responseData.runtimeType}');
   }
 
   // Agar response.data to'g'ridan-to'g'ri List bo'lsa
   if (responseData is List) {
     if (KaskoRemoteDataSourceImpl._enableRatesDebugLogs) {
-      print('📋 Response is a List directly, length: ${responseData.length}');
+      debugPrint('📋 Response is a List directly, length: ${responseData.length}');
     }
     return responseData
         .where((item) => item is Map<String, dynamic>)
@@ -809,23 +809,23 @@ List<RateModel> _parseRatesDataFromJson(String jsonString) {
   // Agar response.data Map bo'lsa
   if (responseData is Map<String, dynamic>) {
     if (KaskoRemoteDataSourceImpl._enableRatesDebugLogs) {
-      print('📋 Response is a Map, keys: ${responseData.keys.toList()}');
+      debugPrint('📋 Response is a Map, keys: ${responseData.keys.toList()}');
     }
 
     // MUHIM: 'tarif' kalitini birinchi o'rinda tekshirish (yangi API format)
     // Format: {result: true, tarif: [{id: 1, name: "Basic", percent: 1}, ...]}
     if (responseData.containsKey('tarif')) {
       if (KaskoRemoteDataSourceImpl._enableRatesDebugLogs) {
-        print('✅ Found "tarif" key in response');
+        debugPrint('✅ Found "tarif" key in response');
       }
       final tarif = responseData['tarif'];
       if (KaskoRemoteDataSourceImpl._enableRatesDebugLogs) {
-        print('📋 "tarif" type: ${tarif.runtimeType}');
+        debugPrint('📋 "tarif" type: ${tarif.runtimeType}');
       }
 
       if (tarif is List) {
         if (KaskoRemoteDataSourceImpl._enableRatesDebugLogs) {
-          print('✅ "tarif" is a List with ${tarif.length} items');
+          debugPrint('✅ "tarif" is a List with ${tarif.length} items');
         }
 
         final rates = tarif.where((item) => item is Map<String, dynamic>).map((
@@ -836,7 +836,7 @@ List<RateModel> _parseRatesDataFromJson(String jsonString) {
           final Map<String, dynamic> rateJson = Map<String, dynamic>.from(json);
 
           if (KaskoRemoteDataSourceImpl._enableRatesDebugLogs) {
-            print(
+            debugPrint(
               '📋 Parsing rate: id=${rateJson['id']}, name="${rateJson['name']}", percent=${rateJson['percent']}',
             );
           }
@@ -881,7 +881,7 @@ List<RateModel> _parseRatesDataFromJson(String jsonString) {
 
           final rateModel = RateModel.fromJson(rateJson);
           if (KaskoRemoteDataSourceImpl._enableRatesDebugLogs) {
-            print(
+            debugPrint(
               '✅ Parsed RateModel: id=${rateModel.id}, name="${rateModel.name}", percent=${rateModel.percent}, description="${rateModel.description}"',
             );
           }
@@ -889,19 +889,19 @@ List<RateModel> _parseRatesDataFromJson(String jsonString) {
         }).toList();
 
         if (KaskoRemoteDataSourceImpl._enableRatesDebugLogs) {
-          print(
+          debugPrint(
             '✅✅✅ Successfully parsed ${rates.length} rates from "tarif" key',
           );
         }
         return rates;
       } else {
         if (KaskoRemoteDataSourceImpl._enableRatesDebugLogs) {
-          print('⚠️⚠️⚠️ "tarif" is not a List, type: ${tarif.runtimeType}');
+          debugPrint('⚠️⚠️⚠️ "tarif" is not a List, type: ${tarif.runtimeType}');
         }
       }
     } else {
       if (KaskoRemoteDataSourceImpl._enableRatesDebugLogs) {
-        print(
+        debugPrint(
           '⚠️⚠️⚠️ "tarif" key not found in response. Available keys: ${responseData.keys.toList()}',
         );
       }
@@ -910,7 +910,7 @@ List<RateModel> _parseRatesDataFromJson(String jsonString) {
     // 'data' kaliti bor bo'lsa (eski format)
     if (responseData.containsKey('data')) {
       if (KaskoRemoteDataSourceImpl._enableRatesDebugLogs) {
-        print('📋 Found "data" key (fallback to old format)');
+        debugPrint('📋 Found "data" key (fallback to old format)');
       }
       final data = responseData['data'];
       if (data is List) {
@@ -928,7 +928,7 @@ List<RateModel> _parseRatesDataFromJson(String jsonString) {
     // 'results' kaliti bor bo'lsa
     if (responseData.containsKey('results')) {
       if (KaskoRemoteDataSourceImpl._enableRatesDebugLogs) {
-        print('📋 Found "results" key');
+        debugPrint('📋 Found "results" key');
       }
       final results = responseData['results'];
       if (results is List) {
@@ -941,11 +941,11 @@ List<RateModel> _parseRatesDataFromJson(String jsonString) {
   }
 
   if (KaskoRemoteDataSourceImpl._enableRatesDebugLogs) {
-    print(
+    debugPrint(
       '❌❌❌ Failed to parse rates. Response type: ${responseData.runtimeType}',
     );
     if (responseData is Map<String, dynamic>) {
-      print('❌ Available keys: ${responseData.keys.toList()}');
+      debugPrint('❌ Available keys: ${responseData.keys.toList()}');
     }
   }
 

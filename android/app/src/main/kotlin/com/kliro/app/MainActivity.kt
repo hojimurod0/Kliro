@@ -1,5 +1,6 @@
-package com.example.klero
+package com.kliro.app
 
 import io.flutter.embedding.android.FlutterActivity
 
 class MainActivity : FlutterActivity()
+

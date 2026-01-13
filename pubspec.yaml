@@ -1,5 +1,5 @@
 name: klero
-description: "A new Flutter project."
+description: "KLiRO - Financial services mobile application for Uzbekistan"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.0+220
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -61,6 +61,12 @@ dependencies:
   path_provider: ^2.1.1
   flutter_html: ^3.0.0-beta.2
   open_file: ^3.5.0
+  webview_flutter: ^4.9.0
+  google_maps_flutter: ^2.5.0
+  geolocator: ^12.0.0
+  permission_handler: ^11.3.1
+  app_links: ^6.3.3
+  flutter_secure_storage: ^9.0.0
 
 dev_dependencies:
   flutter_test:
@@ -96,10 +102,17 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/translations/
+    # Translation fayllar - har birini aniq ko'rsatish (release build uchun muhim)
+    - assets/translations/uz.json
+    - assets/translations/uz-CYR.json
+    - assets/translations/ru.json
+    - assets/translations/en.json
+    # Video asset - barcha telefonlar uchun to'g'ri ishlashi uchun aniq ko'rsatish
+    - assets/videos/kliro_intro.mp4
+    # Boshqa assets
     - assets/images/
-    - assets/videos/
     - assets/svgs/
+    - assets/payment/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

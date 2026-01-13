@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../widgets/main_bottom_navigation.dart';
 import 'favorites_page.dart';
 import 'home_page.dart';
-import 'services_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 
 @RoutePage(name: 'HomeRoute')
@@ -34,8 +33,8 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
       HomePage(
         key: ValueKey('home_${locale.toString()}'),
         onTabChange: _handleTabChange,
+        onNotificationTap: () => _handleTabChange(TabItem.profile),
       ),
-      ServicesPage(key: ValueKey('services_${locale.toString()}')),
       FavoritesPage(key: ValueKey('favorites_${locale.toString()}')),
       ProfilePage(key: ValueKey('profile_${locale.toString()}')),
     ];

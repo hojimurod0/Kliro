@@ -22,7 +22,8 @@ import '../../../../core/utils/snackbar_helper.dart';
 import '../../../../core/services/auth/auth_service.dart';
 
 @RoutePage(name: 'FlightFormalizationRoute')
-class FlightFormalizationPage extends StatefulWidget implements AutoRouteWrapper {
+class FlightFormalizationPage extends StatefulWidget
+    implements AutoRouteWrapper {
   final OfferModel outboundOffer;
   final OfferModel? returnOffer;
   final String totalPrice;
@@ -77,7 +78,8 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
   // List of passengers data
   List<PassengerData> _passengers = [];
   int _expandedPassengerIndex = 0; // Index of currently expanded passenger card
-  int? _currentPassengerSelectionIndex; // Index of passenger being selected from saved list
+  int?
+      _currentPassengerSelectionIndex; // Index of passenger being selected from saved list
 
   // Controllers for each passenger (list of controllers)
   final List<TextEditingController> _passengerNameControllers = [];
@@ -107,7 +109,8 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
     // Remove + sign for processing
     final digitsOnly = cleaned.replaceAll('+', '');
     // Limit to 12 digits (998 + 9 digits) to prevent extra digits
-    final limitedDigits = digitsOnly.length > 12 ? digitsOnly.substring(0, 12) : digitsOnly;
+    final limitedDigits =
+        digitsOnly.length > 12 ? digitsOnly.substring(0, 12) : digitsOnly;
     // Return with + prefix if it starts with 998
     if (limitedDigits.startsWith('998')) {
       return '+$limitedDigits';
@@ -140,20 +143,20 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
   /// Check if user is logged in, if not redirect to login
   Future<void> _checkAuthAndLoadData() async {
     if (!mounted) return;
-    
+
     try {
       final authService = AuthService.instance;
       final user = await authService.fetchActiveUser();
-      
+
       if (!mounted) return;
-      
+
       // Agar ro'yxatdan o'tmagan bo'lsa, login sahifasiga yo'naltirish
       if (user == null) {
         // Login sahifasiga yo'naltirish va natijani kutish
         await context.router.push(const LoginRoute());
-        
+
         if (!mounted) return;
-        
+
         // Login muvaffaqiyatli bo'lgandan keyin ma'lumotlarni yuklash
         final userAfterLogin = await authService.fetchActiveUser();
         if (userAfterLogin != null && mounted) {
@@ -180,7 +183,7 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
     try {
       final authService = AuthService.instance;
       final user = await authService.fetchActiveUser();
-      
+
       // Faqat mavjud bo'lsa ma'lumotlarni yuklash
       if (user != null && mounted) {
         // Profile'ni yuklab, email va telefon alohida olish
@@ -192,16 +195,16 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
           // Profile yuklanmasa, faqat user.contact ishlatish
           AppLogger.warning('Failed to load profile, using contact only', e);
         }
-        
+
         setState(() {
           // Ismni faqat bo'sh bo'lsa to'ldirish
           if (_customerNameController.text.trim().isEmpty) {
             _customerNameController.text = user.fullName;
           }
-          
+
           final currentEmail = _customerEmailController.text.trim();
           final currentPhone = _customerPhoneController.text.trim();
-          
+
           // Email maydonini to'ldirish (user.email, profile'dan yoki user.contact'dan)
           if (currentEmail.isEmpty) {
             if (user.email != null && user.email!.isNotEmpty) {
@@ -212,17 +215,19 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
               _customerEmailController.text = user.contact;
             }
           }
-          
+
           // Telefon maydonini to'ldirish (user.phone, profile'dan yoki user.contact'dan)
           if (currentPhone.isEmpty || currentPhone == '+998') {
             if (user.phone != null && user.phone!.isNotEmpty) {
               final normalizedPhone = AuthService.normalizeContact(user.phone!);
               _customerPhoneController.text = normalizedPhone;
             } else if (profile?.phone != null && profile!.phone!.isNotEmpty) {
-              final normalizedPhone = AuthService.normalizeContact(profile.phone!);
+              final normalizedPhone =
+                  AuthService.normalizeContact(profile.phone!);
               _customerPhoneController.text = normalizedPhone;
             } else if (!user.contact.contains('@')) {
-              final normalizedPhone = AuthService.normalizeContact(user.contact);
+              final normalizedPhone =
+                  AuthService.normalizeContact(user.contact);
               _customerPhoneController.text = normalizedPhone;
             } else {
               _customerPhoneController.text = '+998';
@@ -263,7 +268,7 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
     for (int i = 0; i < widget.babies; i++) {
       _passengers.add(PassengerData(passengerType: 'baby', gender: 'Erkak'));
     }
-    
+
     // Initialize save preference to true (default) for each passenger
     _savePassengerInfo.clear();
     for (int i = 0; i < _passengers.length; i++) {
@@ -324,8 +329,9 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
       _passengerReturnDateControllers.add(
         TextEditingController(text: passenger.returnDate ?? ''),
       );
-      final initialPhone =
-          passenger.phone.trim().isEmpty ? '+998' : AuthService.normalizeContact(passenger.phone);
+      final initialPhone = passenger.phone.trim().isEmpty
+          ? '+998'
+          : AuthService.normalizeContact(passenger.phone);
       _passengerPhoneControllers.add(
         TextEditingController(text: initialPhone),
       );
@@ -495,8 +501,6 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
     }
   }
 
-
-
   @override
   void dispose() {
     _customerNameController.dispose();
@@ -535,26 +539,30 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
   ) async {
     // Close keyboard before showing date picker
     FocusScope.of(context).unfocus();
-    
+
     // Determine if this is for birth date or passport expiry
-    final isBirthDate = controller == _passengerReturnDateControllers[passengerIndex];
-    
+    final isBirthDate =
+        controller == _passengerReturnDateControllers[passengerIndex];
+
     DateTime initialDate;
     DateTime firstDate;
     DateTime lastDate;
-    
+
     if (isBirthDate) {
       // For birth date: allow dates from 1900 to today
       final now = DateTime.now();
-      initialDate = DateTime(now.year - 25, now.month, now.day); // Default: 25 years ago
+      initialDate =
+          DateTime(now.year - 25, now.month, now.day); // Default: 25 years ago
       firstDate = DateTime(1900); // Oldest date
       lastDate = now; // Today
     } else {
       // For passport expiry: allow dates from today to 10 years in the future
       final now = DateTime.now();
-      initialDate = DateTime(now.year + 5, now.month, now.day); // Default: 5 years from now
+      initialDate = DateTime(
+          now.year + 5, now.month, now.day); // Default: 5 years from now
       firstDate = now; // Today
-      lastDate = DateTime(now.year + 10, now.month, now.day); // 10 years from now
+      lastDate =
+          DateTime(now.year + 10, now.month, now.day); // 10 years from now
     }
 
     final DateTime? picked = await showDatePicker(
@@ -579,7 +587,7 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
         );
       },
     );
-    
+
     if (picked != null) {
       controller.text = DateFormat('dd/MM/yyyy').format(picked);
     }
@@ -595,7 +603,7 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
         if (state is AviaCreateBookingSuccess) {
           // Booking muvaffaqiyatli bo'lgandan keyin passenger'larni saqlash
           _savePassengersToMyList();
-          
+
           context.router.push(
             BookingSuccessRoute(
               outboundOffer: widget.outboundOffer,
@@ -623,16 +631,17 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
             // Regular error - show error message
             SnackbarHelper.showError(context, state.message);
           }
-        } else if (state is GetHumansSuccess) {
-          AppLogger.debug('GetHumansSuccess received with ${state.humans.length} humans');
+        } else if (state is AviaGetHumansSuccess) {
+          AppLogger.debug(
+              'AviaGetHumansSuccess received with ${state.humans.length} humans');
           _showHumansList(context, state.humans);
-        } else if (state is GetHumansFailure) {
-          AppLogger.error('GetHumansFailure: ${state.message}');
+        } else if (state is AviaGetHumansFailure) {
+          AppLogger.error('AviaGetHumansFailure: ${state.message}');
           SnackbarHelper.showError(context, state.message);
         }
       },
       builder: (context, state) {
-        final isLoading = state is AviaLoading;
+        final isLoading = state is AviaBookingLoading;
         return Scaffold(
           backgroundColor: AppColors.getScaffoldBg(isDark),
           appBar: AppBar(
@@ -667,7 +676,8 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Customer Information Section
-                        _buildSectionTitle('avia.formalization.customer_info'.tr()),
+                        _buildSectionTitle(
+                            'avia.formalization.customer_info'.tr()),
                         SizedBox(height: AppSpacing.md),
                         _buildInputField(
                           controller: _customerNameController,
@@ -685,13 +695,17 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                             if (value == null || value.trim().isEmpty) {
                               return null; // Bo'sh bo'lishi mumkin
                             }
-                            final phoneDigits = value.replaceAll(RegExp(r'[^0-9]'), '');
+                            final phoneDigits =
+                                value.replaceAll(RegExp(r'[^0-9]'), '');
                             // Agar faqat "998" (default prefix) bo'lsa, bo'sh deb hisoblash
-                            if (phoneDigits.isEmpty || phoneDigits == '998' || value.trim() == '+998') {
+                            if (phoneDigits.isEmpty ||
+                                phoneDigits == '998' ||
+                                value.trim() == '+998') {
                               return null;
                             }
                             // To'liq telefon raqami bo'lsa, formatni tekshirish
-                            if (phoneDigits.length != 12 || !phoneDigits.startsWith('998')) {
+                            if (phoneDigits.length != 12 ||
+                                !phoneDigits.startsWith('998')) {
                               return "Telefon raqami noto'g'ri. Misol: +998 90 123-45-67";
                             }
                             return null;
@@ -708,7 +722,8 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                               // Email bo'sh bo'lishi mumkin, agar telefon to'ldirilgan bo'lsa
                               return null;
                             }
-                            final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                            final emailRegex = RegExp(
+                                r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
                             if (!emailRegex.hasMatch(value.trim())) {
                               return "Email noto'g'ri formatda";
                             }
@@ -722,7 +737,8 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                           SizedBox(height: AppSpacing.md),
                         ],
                         // Passenger Information Cards
-                        _buildSectionTitle('avia.formalization.passenger_info'.tr()),
+                        _buildSectionTitle(
+                            'avia.formalization.passenger_info'.tr()),
                         SizedBox(height: AppSpacing.md),
                         // List of passenger cards
                         ...List.generate(_totalPassengers, (index) {
@@ -739,7 +755,8 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                     color: AppColors.getCardBg(isDark),
                     border: isDark
                         ? Border(
-                            top: BorderSide(color: AppColors.darkBorder, width: 1),
+                            top: BorderSide(
+                                color: AppColors.darkBorder, width: 1),
                           )
                         : null,
                     boxShadow: isDark
@@ -805,7 +822,9 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: isLoading ? null : () => Navigator.of(context).pop(),
+                              onPressed: isLoading
+                                  ? null
+                                  : () => Navigator.of(context).pop(),
                               style: OutlinedButton.styleFrom(
                                 padding: EdgeInsets.symmetric(vertical: 16.h),
                                 side: BorderSide(
@@ -831,308 +850,415 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                             child: PrimaryButton(
                               text: 'avia.formalization.formalize'.tr(),
                               isLoading: isLoading,
-                              onPressed: isLoading ? null : () {
-                                // Save all passenger data
-                                for (int i = 0; i < _passengers.length; i++) {
-                                  _savePassengerData(i);
-                                }
+                              onPressed: isLoading
+                                  ? null
+                                  : () {
+                                      // Save all passenger data
+                                      for (int i = 0;
+                                          i < _passengers.length;
+                                          i++) {
+                                        _savePassengerData(i);
+                                      }
 
-                                // Validate customer info first
-                                final customerName = _customerNameController.text.trim();
-                                final customerEmail = _customerEmailController.text.trim();
-                                final customerPhone = _customerPhoneController.text.trim();
-                                
-                                // Ism majburiy
-                                if (customerName.isEmpty) {
-                                  SnackbarHelper.showWarning(
-                                    context,
-                                    'Iltimos, ismni kiriting',
-                                  );
-                                  return;
-                                }
-                                
-                                // Telefon raqamini tozalash va tekshirish
-                                final phoneDigits = customerPhone.replaceAll(RegExp(r'[^0-9]'), '');
-                                // Agar telefon faqat "998" (default prefix) yoki bo'sh bo'lsa, uni bo'sh deb hisoblash
-                                final isPhoneEmpty = phoneDigits.isEmpty || phoneDigits == '998' || customerPhone.trim() == '+998';
-                                
-                                // Email validatsiyasi
-                                final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-                                final hasValidEmail = customerEmail.isNotEmpty && emailRegex.hasMatch(customerEmail);
-                                
-                                // Telefon validatsiyasi (faqat to'ldirilgan bo'lsa)
-                                final hasValidPhone = !isPhoneEmpty && phoneDigits.length == 12 && phoneDigits.startsWith('998');
-                                
-                                // Email yoki telefon kamida bittasi to'g'ri bo'lishi kerak
-                                if (!hasValidEmail && !hasValidPhone) {
-                                  if (customerEmail.isNotEmpty && !hasValidEmail) {
-                                    SnackbarHelper.showWarning(
-                                      context,
-                                      "Email noto'g'ri formatda. Misol: example@email.com",
-                                    );
-                                  } else if (!isPhoneEmpty && !hasValidPhone) {
-                                    SnackbarHelper.showWarning(
-                                      context,
-                                      "Telefon raqami noto'g'ri. Misol: +998 90 123-45-67",
-                                    );
-                                  } else {
-                                    SnackbarHelper.showWarning(
-                                      context,
-                                      'Iltimos, email yoki telefon raqamini to\'g\'ri kiriting',
-                                    );
-                                  }
-                                  return;
-                                }
+                                      // Validate customer info first
+                                      final customerName =
+                                          _customerNameController.text.trim();
+                                      final customerEmail =
+                                          _customerEmailController.text.trim();
+                                      final customerPhone =
+                                          _customerPhoneController.text.trim();
 
-                                // Validate passenger phone numbers to prevent backend 422 (passengers.*.tel invalid)
-                                for (int i = 0; i < _passengers.length; i++) {
-                                  final pPhone = _passengers[i].phone;
-                                  if (!_isValidUzPhone(pPhone)) {
-                                    setState(() {
-                                      _expandedPassengerIndex = i;
-                                    });
-                                    SnackbarHelper.showWarning(
-                                      context,
-                                      "Telefon raqami noto'g'ri. Misol: +998 90 123-45-67",
-                                    );
-                                    return;
-                                  }
-                                }
+                                      // Ism majburiy
+                                      if (customerName.isEmpty) {
+                                        SnackbarHelper.showWarning(
+                                          context,
+                                          'Iltimos, ismni kiriting',
+                                        );
+                                        return;
+                                      }
 
-                                // Validate all passengers
-                                bool allValid = true;
-                                int? firstInvalidIndex;
-                                for (int i = 0; i < _passengers.length; i++) {
-                                  if (!_passengers[i].isFilled) {
-                                    allValid = false;
-                                    firstInvalidIndex = i;
-                                    // Expand first unfilled passenger
-                                    setState(() {
-                                      _expandedPassengerIndex = i;
-                                    });
-                                    break;
-                                  }
-                                }
+                                      // Telefon raqamini tozalash va tekshirish
+                                      final phoneDigits = customerPhone
+                                          .replaceAll(RegExp(r'[^0-9]'), '');
+                                      // Agar telefon faqat "998" (default prefix) yoki bo'sh bo'lsa, uni bo'sh deb hisoblash
+                                      final isPhoneEmpty =
+                                          phoneDigits.isEmpty ||
+                                              phoneDigits == '998' ||
+                                              customerPhone.trim() == '+998';
 
-                                if (allValid && _formKey.currentState!.validate()) {
-                                  try {
-                                    // Prepare request data
-                                    // Debug logs removed to reduce console noise
-                                    
-                                    final passengersList = _passengers.map((p) {
-                                      // Convert date format from dd/MM/yyyy to yyyy-MM-dd if needed
-                                      // Or ensure it matches API expectation. Let's assume API expects YYYY-MM-DD
-                                      String formatDate(String? date) {
-                                        if (date == null || date.isEmpty) return '';
-                                        try {
-                                          if (date.isEmpty) return '';
-                                          
-                                          // 1. Handle yyyy-MM-dd (Standard API format)
-                                          if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(date)) {
-                                            return date;
-                                          }
-                                          // 2. Handle yyyy/MM/dd (Converting to yyyy-MM-dd)
-                                          if (RegExp(r'^\d{4}/\d{2}/\d{2}$').hasMatch(date)) {
-                                            return date.replaceAll('/', '-');
-                                          }
-                                          
-                                          // 3. Handle dd/MM/yyyy (Manual input standard)
-                                          // Also support . or - as separators for robust manual handling
-                                          // Regex checks for d/M/yyyy, dd/MM/yyyy, d-M-yyyy etc.
-                                          // If it starts with 2 digits, assume day.
-                                          if (RegExp(r'^\d{1,2}[./-]\d{1,2}[./-]\d{4}$').hasMatch(date)) {
-                                             // Normalize separators to / for standard parsing
-                                             String normDate = date.replaceAll('.', '/').replaceAll('-', '/');
-                                             final inputFormat = DateFormat('dd/MM/yyyy');
-                                             final outputFormat = DateFormat('yyyy-MM-dd');
-                                             final dateTime = inputFormat.parse(normDate);
-                                             return outputFormat.format(dateTime);
-                                          }
+                                      // Email validatsiyasi
+                                      final emailRegex = RegExp(
+                                          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                                      final hasValidEmail = customerEmail
+                                              .isNotEmpty &&
+                                          emailRegex.hasMatch(customerEmail);
 
-                                          // Fallback: try parsing with lenient format if above failed
-                                          // (E.g. maybe user typed ddMMyyyy without separators? unlikely given input formatter)
-                                          return date;
-                                        } catch (e) {
-                                          // Date format error - using original date
-                                          return date;
+                                      // Telefon validatsiyasi (faqat to'ldirilgan bo'lsa)
+                                      final hasValidPhone = !isPhoneEmpty &&
+                                          phoneDigits.length == 12 &&
+                                          phoneDigits.startsWith('998');
+
+                                      // Email yoki telefon kamida bittasi to'g'ri bo'lishi kerak
+                                      if (!hasValidEmail && !hasValidPhone) {
+                                        if (customerEmail.isNotEmpty &&
+                                            !hasValidEmail) {
+                                          SnackbarHelper.showWarning(
+                                            context,
+                                            "Email noto'g'ri formatda. Misol: example@email.com",
+                                          );
+                                        } else if (!isPhoneEmpty &&
+                                            !hasValidPhone) {
+                                          SnackbarHelper.showWarning(
+                                            context,
+                                            "Telefon raqami noto'g'ri. Misol: +998 90 123-45-67",
+                                          );
+                                        } else {
+                                          SnackbarHelper.showWarning(
+                                            context,
+                                            'Iltimos, email yoki telefon raqamini to\'g\'ri kiriting',
+                                          );
+                                        }
+                                        return;
+                                      }
+
+                                      // Validate passenger phone numbers to prevent backend 422 (passengers.*.tel invalid)
+                                      for (int i = 0;
+                                          i < _passengers.length;
+                                          i++) {
+                                        final pPhone = _passengers[i].phone;
+                                        if (!_isValidUzPhone(pPhone)) {
+                                          setState(() {
+                                            _expandedPassengerIndex = i;
+                                          });
+                                          SnackbarHelper.showWarning(
+                                            context,
+                                            "Telefon raqami noto'g'ri. Misol: +998 90 123-45-67",
+                                          );
+                                          return;
                                         }
                                       }
 
-                                      String mapAgeType(String type) {
-                                        switch(type) {
-                                          case 'adult': return 'adt';
-                                          case 'child': return 'chd';
-                                          case 'baby': return 'inf';
-                                          default: return 'adt';
+                                      // Validate all passengers
+                                      bool allValid = true;
+                                      int? firstInvalidIndex;
+                                      for (int i = 0;
+                                          i < _passengers.length;
+                                          i++) {
+                                        if (!_passengers[i].isFilled) {
+                                          allValid = false;
+                                          firstInvalidIndex = i;
+                                          // Expand first unfilled passenger
+                                          setState(() {
+                                            _expandedPassengerIndex = i;
+                                          });
+                                          break;
                                         }
                                       }
 
-                                      // Get flight departure date for age calculation
-                                      // Age should be calculated based on flight date, not current date
-                                      DateTime getFlightDepartureDate() {
+                                      if (allValid &&
+                                          _formKey.currentState!.validate()) {
                                         try {
-                                          // Try to get departure date from outbound offer
-                                          final segments = widget.outboundOffer.segments;
-                                          if (segments != null && segments.isNotEmpty) {
-                                            final departureTime = segments.first.departureTime;
-                                            if (departureTime != null && departureTime.isNotEmpty) {
-                                              // Parse departure time (format: "YYYY-MM-DD HH:mm:ss" or "YYYY-MM-DD")
-                                              final datePart = departureTime.split(' ').first;
-                                              final dateParts = datePart.split('-');
-                                              if (dateParts.length == 3) {
-                                                final year = int.parse(dateParts[0]);
-                                                final month = int.parse(dateParts[1]);
-                                                final day = int.parse(dateParts[2]);
-                                                return DateTime(year, month, day);
+                                          // Prepare request data
+                                          // Debug logs removed to reduce console noise
+
+                                          final passengersList =
+                                              _passengers.map((p) {
+                                            // Convert date format from dd/MM/yyyy to yyyy-MM-dd if needed
+                                            // Or ensure it matches API expectation. Let's assume API expects YYYY-MM-DD
+                                            String formatDate(String? date) {
+                                              if (date == null || date.isEmpty)
+                                                return '';
+                                              try {
+                                                if (date.isEmpty) return '';
+
+                                                // 1. Handle yyyy-MM-dd (Standard API format)
+                                                if (RegExp(
+                                                        r'^\d{4}-\d{2}-\d{2}$')
+                                                    .hasMatch(date)) {
+                                                  return date;
+                                                }
+                                                // 2. Handle yyyy/MM/dd (Converting to yyyy-MM-dd)
+                                                if (RegExp(
+                                                        r'^\d{4}/\d{2}/\d{2}$')
+                                                    .hasMatch(date)) {
+                                                  return date.replaceAll(
+                                                      '/', '-');
+                                                }
+
+                                                // 3. Handle dd/MM/yyyy (Manual input standard)
+                                                // Also support . or - as separators for robust manual handling
+                                                // Regex checks for d/M/yyyy, dd/MM/yyyy, d-M-yyyy etc.
+                                                // If it starts with 2 digits, assume day.
+                                                if (RegExp(
+                                                        r'^\d{1,2}[./-]\d{1,2}[./-]\d{4}$')
+                                                    .hasMatch(date)) {
+                                                  // Normalize separators to / for standard parsing
+                                                  String normDate = date
+                                                      .replaceAll('.', '/')
+                                                      .replaceAll('-', '/');
+                                                  final inputFormat =
+                                                      DateFormat('dd/MM/yyyy');
+                                                  final outputFormat =
+                                                      DateFormat('yyyy-MM-dd');
+                                                  final dateTime = inputFormat
+                                                      .parse(normDate);
+                                                  return outputFormat
+                                                      .format(dateTime);
+                                                }
+
+                                                // Fallback: try parsing with lenient format if above failed
+                                                // (E.g. maybe user typed ddMMyyyy without separators? unlikely given input formatter)
+                                                return date;
+                                              } catch (e) {
+                                                // Date format error - using original date
+                                                return date;
                                               }
                                             }
-                                          }
+
+                                            String mapAgeType(String type) {
+                                              switch (type) {
+                                                case 'adult':
+                                                  return 'adt';
+                                                case 'child':
+                                                  return 'chd';
+                                                case 'baby':
+                                                  return 'inf';
+                                                default:
+                                                  return 'adt';
+                                              }
+                                            }
+
+                                            // Get flight departure date for age calculation
+                                            // Age should be calculated based on flight date, not current date
+                                            DateTime getFlightDepartureDate() {
+                                              try {
+                                                // Try to get departure date from outbound offer
+                                                final segments = widget
+                                                    .outboundOffer.segments;
+                                                if (segments != null &&
+                                                    segments.isNotEmpty) {
+                                                  final departureTime = segments
+                                                      .first.departureTime;
+                                                  if (departureTime != null &&
+                                                      departureTime
+                                                          .isNotEmpty) {
+                                                    // Parse departure time (format: "YYYY-MM-DD HH:mm:ss" or "YYYY-MM-DD")
+                                                    final datePart =
+                                                        departureTime
+                                                            .split(' ')
+                                                            .first;
+                                                    final dateParts =
+                                                        datePart.split('-');
+                                                    if (dateParts.length == 3) {
+                                                      final year = int.parse(
+                                                          dateParts[0]);
+                                                      final month = int.parse(
+                                                          dateParts[1]);
+                                                      final day = int.parse(
+                                                          dateParts[2]);
+                                                      return DateTime(
+                                                          year, month, day);
+                                                    }
+                                                  }
+                                                }
+                                              } catch (e) {
+                                                // Failed to parse flight departure date - using current date
+                                              }
+                                              // Fall back to current date if flight date can't be determined
+                                              return DateTime.now();
+                                            }
+
+                                            // Calculate age type from birthdate based on API thresholds
+                                            // adult: 12-200, child: 2-12, infant: 0-2
+                                            // Uses flight departure date for accurate age calculation
+                                            String
+                                                calculateAgeTypeFromBirthdate(
+                                                    String? birthdate,
+                                                    String
+                                                        fallbackPassengerType) {
+                                              if (birthdate == null ||
+                                                  birthdate.isEmpty) {
+                                                // If no birthdate, use passengerType as fallback
+                                                return mapAgeType(
+                                                    fallbackPassengerType);
+                                              }
+
+                                              try {
+                                                // Parse birthdate (format: YYYY-MM-DD after formatDate)
+                                                final parts =
+                                                    birthdate.split('-');
+                                                if (parts.length != 3) {
+                                                  return mapAgeType(
+                                                      fallbackPassengerType);
+                                                }
+
+                                                final year =
+                                                    int.parse(parts[0]);
+                                                final month =
+                                                    int.parse(parts[1]);
+                                                final day = int.parse(parts[2]);
+                                                final birth =
+                                                    DateTime(year, month, day);
+
+                                                // Use flight departure date for age calculation
+                                                // This ensures age is calculated at the time of travel, not current date
+                                                final referenceDate =
+                                                    getFlightDepartureDate();
+
+                                                // Calculate age at the time of flight
+                                                int age = referenceDate.year -
+                                                    birth.year;
+                                                if (referenceDate.month <
+                                                        birth.month ||
+                                                    (referenceDate.month ==
+                                                            birth.month &&
+                                                        referenceDate.day <
+                                                            birth.day)) {
+                                                  age--;
+                                                }
+
+                                                // Determine age type based on API thresholds
+                                                // adult: >= 12, child: >= 2 and < 12, infant: >= 0 and < 2
+                                                String ageType;
+                                                if (age >= 12) {
+                                                  ageType = 'adt';
+                                                } else if (age >= 2) {
+                                                  ageType = 'chd';
+                                                } else if (age >= 0) {
+                                                  ageType = 'inf';
+                                                } else {
+                                                  // Invalid age (future date), default to adult
+                                                  ageType = 'adt';
+                                                }
+
+                                                // Age calculation debug log removed
+                                                return ageType;
+                                              } catch (e) {
+                                                // If parsing fails, use passengerType as fallback
+                                                return mapAgeType(
+                                                    fallbackPassengerType);
+                                              }
+                                            }
+
+                                            // Map citizenship to country code
+                                            String mapCitizenship(
+                                                String? citizenship) {
+                                              if (citizenship == null ||
+                                                  citizenship.isEmpty)
+                                                return 'UZ';
+
+                                              // Check if already a country code (2 letters)
+                                              if (citizenship.length == 2)
+                                                return citizenship
+                                                    .toUpperCase();
+
+                                              // Map from display name to code
+                                              final citizenshipMap = {
+                                                'avia.formalization.uzbekistan':
+                                                    'UZ',
+                                                'O\'zbekiston': 'UZ',
+                                                'Uzbekistan': 'UZ',
+                                                'avia.formalization.russia':
+                                                    'RU',
+                                                'Rossiya': 'RU',
+                                                'Russia': 'RU',
+                                                'avia.formalization.kazakhstan':
+                                                    'KZ',
+                                                'Qozog\'iston': 'KZ',
+                                                'Kazakhstan': 'KZ',
+                                                'avia.formalization.kyrgyzstan':
+                                                    'KG',
+                                                'Qirg\'iziston': 'KG',
+                                                'Kyrgyzstan': 'KG',
+                                              };
+
+                                              return citizenshipMap[
+                                                      citizenship] ??
+                                                  'UZ';
+                                            }
+
+                                            final formattedBirthdate =
+                                                formatDate(p.returnDate);
+                                            final calculatedAgeType =
+                                                calculateAgeTypeFromBirthdate(
+                                                    formattedBirthdate,
+                                                    p.passengerType);
+
+                                            final passenger = PassengerModel(
+                                              lastName: p.surname.trim(),
+                                              firstName: p.name.trim(),
+                                              age:
+                                                  calculatedAgeType, // Use calculated age type from birthdate
+                                              birthdate: formattedBirthdate,
+                                              gender: p.gender == 'Erkak'
+                                                  ? 'M'
+                                                  : 'F',
+                                              citizenship:
+                                                  mapCitizenship(p.citizenship),
+                                              tel: _normalizePhoneForApi(
+                                                  p.phone),
+                                              docType: 'P', // Passport
+                                              docNumber: p.passportSeries
+                                                  .replaceAll(' ', ''),
+                                              docExpire:
+                                                  formatDate(p.passportExpiry),
+                                            );
+
+                                            // Passenger debug log removed
+                                            return passenger;
+                                          }).toList();
+
+                                          final request =
+                                              CreateBookingRequestModel(
+                                            payerName: _customerNameController
+                                                .text
+                                                .trim(),
+                                            payerEmail: _customerEmailController
+                                                .text
+                                                .trim(),
+                                            payerTel: _normalizePhoneForApi(
+                                                _customerPhoneController.text),
+                                            passengers: passengersList,
+                                          );
+
+                                          // Payer debug log removed
+
+                                          context.read<AviaBloc>().add(
+                                                CreateBookingRequested(
+                                                  offerId: widget
+                                                          .outboundOffer.id ??
+                                                      '', // Using outbound offer ID for booking
+                                                  request: request,
+                                                ),
+                                              );
                                         } catch (e) {
-                                          // Failed to parse flight departure date - using current date
+                                          // Error preparing booking request
+                                          SnackbarHelper.showError(
+                                            context,
+                                            '${'avia.status.error_message'.tr()}: ${e.toString()}',
+                                            duration: Duration(seconds: 5),
+                                          );
                                         }
-                                        // Fall back to current date if flight date can't be determined
-                                        return DateTime.now();
-                                      }
-
-                                      // Calculate age type from birthdate based on API thresholds
-                                      // adult: 12-200, child: 2-12, infant: 0-2
-                                      // Uses flight departure date for accurate age calculation
-                                      String calculateAgeTypeFromBirthdate(String? birthdate, String fallbackPassengerType) {
-                                        if (birthdate == null || birthdate.isEmpty) {
-                                          // If no birthdate, use passengerType as fallback
-                                          return mapAgeType(fallbackPassengerType);
+                                      } else {
+                                        String message =
+                                            'avia.formalization.fill_all_fields'
+                                                .tr();
+                                        if (firstInvalidIndex != null) {
+                                          message =
+                                              'avia.formalization.fill_passenger_fields'
+                                                  .tr(
+                                            namedArgs: {
+                                              'index': (firstInvalidIndex + 1)
+                                                  .toString(),
+                                            },
+                                          );
                                         }
-                                        
-                                        try {
-                                          // Parse birthdate (format: YYYY-MM-DD after formatDate)
-                                          final parts = birthdate.split('-');
-                                          if (parts.length != 3) {
-                                            return mapAgeType(fallbackPassengerType);
-                                          }
-                                          
-                                          final year = int.parse(parts[0]);
-                                          final month = int.parse(parts[1]);
-                                          final day = int.parse(parts[2]);
-                                          final birth = DateTime(year, month, day);
-                                          
-                                          // Use flight departure date for age calculation
-                                          // This ensures age is calculated at the time of travel, not current date
-                                          final referenceDate = getFlightDepartureDate();
-                                          
-                                          // Calculate age at the time of flight
-                                          int age = referenceDate.year - birth.year;
-                                          if (referenceDate.month < birth.month || 
-                                              (referenceDate.month == birth.month && referenceDate.day < birth.day)) {
-                                            age--;
-                                          }
-                                          
-                                          // Determine age type based on API thresholds
-                                          // adult: >= 12, child: >= 2 and < 12, infant: >= 0 and < 2
-                                          String ageType;
-                                          if (age >= 12) {
-                                            ageType = 'adt';
-                                          } else if (age >= 2) {
-                                            ageType = 'chd';
-                                          } else if (age >= 0) {
-                                            ageType = 'inf';
-                                          } else {
-                                            // Invalid age (future date), default to adult
-                                            ageType = 'adt';
-                                          }
-                                          
-                                          // Age calculation debug log removed
-                                          return ageType;
-                                        } catch (e) {
-                                          // If parsing fails, use passengerType as fallback
-                                          return mapAgeType(fallbackPassengerType);
-                                        }
+                                        SnackbarHelper.showWarning(
+                                          context,
+                                          message,
+                                        );
                                       }
-
-                                      // Map citizenship to country code
-                                      String mapCitizenship(String? citizenship) {
-                                        if (citizenship == null || citizenship.isEmpty) return 'UZ';
-                                        
-                                        // Check if already a country code (2 letters)
-                                        if (citizenship.length == 2) return citizenship.toUpperCase();
-                                        
-                                        // Map from display name to code
-                                        final citizenshipMap = {
-                                          'avia.formalization.uzbekistan': 'UZ',
-                                          'O\'zbekiston': 'UZ',
-                                          'Uzbekistan': 'UZ',
-                                          'avia.formalization.russia': 'RU',
-                                          'Rossiya': 'RU',
-                                          'Russia': 'RU',
-                                          'avia.formalization.kazakhstan': 'KZ',
-                                          'Qozog\'iston': 'KZ',
-                                          'Kazakhstan': 'KZ',
-                                          'avia.formalization.kyrgyzstan': 'KG',
-                                          'Qirg\'iziston': 'KG',
-                                          'Kyrgyzstan': 'KG',
-                                        };
-                                        
-                                        return citizenshipMap[citizenship] ?? 'UZ';
-                                      }
-
-                                      final formattedBirthdate = formatDate(p.returnDate);
-                                      final calculatedAgeType = calculateAgeTypeFromBirthdate(formattedBirthdate, p.passengerType);
-                                      
-                                      final passenger = PassengerModel(
-                                        lastName: p.surname.trim(),
-                                        firstName: p.name.trim(),
-                                        age: calculatedAgeType, // Use calculated age type from birthdate
-                                        birthdate: formattedBirthdate,
-                                        gender: p.gender == 'Erkak' ? 'M' : 'F',
-                                        citizenship: mapCitizenship(p.citizenship),
-                                        tel: _normalizePhoneForApi(p.phone),
-                                        docType: 'P', // Passport
-                                        docNumber: p.passportSeries.replaceAll(' ', ''),
-                                        docExpire: formatDate(p.passportExpiry),
-                                      );
-                                      
-                                      // Passenger debug log removed
-                                      return passenger;
-                                    }).toList();
-
-                                    final request = CreateBookingRequestModel(
-                                      payerName: _customerNameController.text.trim(),
-                                      payerEmail: _customerEmailController.text.trim(),
-                                      payerTel: _normalizePhoneForApi(_customerPhoneController.text),
-                                      passengers: passengersList,
-                                    );
-                                    
-                                    // Payer debug log removed
-
-                                    context.read<AviaBloc>().add(
-                                      CreateBookingRequested(
-                                        offerId: widget.outboundOffer.id ?? '', // Using outbound offer ID for booking
-                                        request: request,
-                                      ),
-                                    );
-                                  } catch (e) {
-                                    // Error preparing booking request
-                                    SnackbarHelper.showError(
-                                      context,
-                                      '${'avia.status.error_message'.tr()}: ${e.toString()}',
-                                      duration: Duration(seconds: 5),
-                                    );
-                                  }
-                                } else {
-                                  String message = 'avia.formalization.fill_all_fields'.tr();
-                                  if (firstInvalidIndex != null) {
-                                    message =
-                                        'avia.formalization.fill_passenger_fields'.tr(
-                                      namedArgs: {
-                                        'index': (firstInvalidIndex + 1).toString(),
-                                      },
-                                    );
-                                  }
-                                  SnackbarHelper.showWarning(
-                                    context,
-                                    message,
-                                  );
-                                }
-                              },
+                                    },
                             ),
                           ),
                         ],
@@ -1174,8 +1300,8 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                 color: isExpanded
                     ? AppColors.primaryBlue
                     : (isFilled
-                          ? AppColors.primaryBlue.withValues(alpha: 0.2)
-                          : AppColors.getCardBg(isDark)),
+                        ? AppColors.primaryBlue.withValues(alpha: 0.2)
+                        : AppColors.getCardBg(isDark)),
                 borderRadius: BorderRadius.circular(12.r),
                 border: Border.all(
                   color: isExpanded
@@ -1240,9 +1366,8 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
       decoration: BoxDecoration(
         color: AppColors.getCardBg(isDark),
         borderRadius: BorderRadius.circular(16.r),
-        border: isDark
-            ? Border.all(color: AppColors.darkBorder, width: 1)
-            : null,
+        border:
+            isDark ? Border.all(color: AppColors.darkBorder, width: 1) : null,
         boxShadow: isDark
             ? null
             : [
@@ -1265,9 +1390,9 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
             child: Container(
               padding: EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                    color: isExpanded
-                        ? AppColors.primaryBlue.withValues(alpha: 0.1)
-                        : Colors.transparent,
+                color: isExpanded
+                    ? AppColors.primaryBlue.withValues(alpha: 0.1)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(16.r),
                   topRight: Radius.circular(16.r),
@@ -1430,8 +1555,8 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                     },
                     // Allow typing, open picker only on icon tap
                     onSuffixIconTap: () => _selectDate(
-                       _passengerReturnDateControllers[index],
-                       index,
+                      _passengerReturnDateControllers[index],
+                      index,
                     ),
                   ),
                   SizedBox(height: AppSpacing.md),
@@ -1444,7 +1569,7 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                     icon: Icons.credit_card_outlined,
                     inputFormatters: [PassportFormatter()],
                     validator: (value) {
-                       if (value == null || value.trim().isEmpty) {
+                      if (value == null || value.trim().isEmpty) {
                         return "Pasport seriya/raqam majburiy";
                       }
                       return null;
@@ -1479,7 +1604,7 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                     readOnly: true,
                     suffixIcon: Icons.arrow_drop_down,
                     validator: (value) {
-                       if (value == null || value.trim().isEmpty) {
+                      if (value == null || value.trim().isEmpty) {
                         return "Fuqarolik tanlash majburiy";
                       }
                       return null;
@@ -1500,7 +1625,8 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                   // Save passenger info toggle
                   Container(
                     decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkCardBg : AppColors.grayLight,
+                      color:
+                          isDark ? AppColors.darkCardBg : AppColors.grayLight,
                       borderRadius: BorderRadius.circular(12.r),
                       border: Border.all(
                         color: AppColors.getBorderColor(isDark),
@@ -1523,7 +1649,8 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                         ),
                       ),
                       activeColor: AppColors.primaryBlue,
-                      contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: AppSpacing.md),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
                       ),
@@ -1584,7 +1711,8 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
         suffixIcon: suffixIcon != null
             ? (onSuffixIconTap != null
                 ? IconButton(
-                    icon: Icon(suffixIcon, color: AppColors.getSubtitleColor(isDark)),
+                    icon: Icon(suffixIcon,
+                        color: AppColors.getSubtitleColor(isDark)),
                     onPressed: onSuffixIconTap,
                   )
                 : Icon(suffixIcon, color: AppColors.getSubtitleColor(isDark)))
@@ -1694,7 +1822,7 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
   void _showCitizenshipPicker(int passengerIndex) {
     // Close keyboard before showing bottom sheet
     FocusScope.of(context).unfocus();
-    
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
@@ -1737,7 +1865,7 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
 
   void _showHumansList(BuildContext context, List<HumanModel> humans) {
     AppLogger.debug('_showHumansList called with ${humans.length} humans');
-    
+
     if (humans.isEmpty) {
       AppLogger.warning('Humans list is empty');
       SnackbarHelper.showWarning(
@@ -1779,7 +1907,8 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                   final human = humans[index];
                   return ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.1),
+                      backgroundColor:
+                          AppColors.primaryBlue.withValues(alpha: 0.1),
                       child: Text(
                         human.firstName[0].toUpperCase(),
                         style: TextStyle(color: AppColors.primaryBlue),
@@ -1822,10 +1951,6 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
     );
   }
 
-
-
-
-
   // Format date from YYYY-MM-DD to DD/MM/YYYY for UI
   String _formatDateForUi(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return '';
@@ -1844,117 +1969,127 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
   // Format phone number to match PhoneFormatter format: +998 90 123-45-67
   String _formatPhoneForDisplay(String phone) {
     if (phone.trim().isEmpty) return '+998';
-    
+
     // Extract only digits
     final digitsOnly = phone.replaceAll(RegExp(r'[^0-9]'), '');
-    
+
     // If empty, return default
     if (digitsOnly.isEmpty) return '+998';
-    
+
     // If 9 digits (without 998), add 998 prefix
     final fullDigits = digitsOnly.length == 9 ? '998$digitsOnly' : digitsOnly;
-    
+
     // Limit to 12 digits (998 + 9 digits)
-    final limitedDigits = fullDigits.length > 12 ? fullDigits.substring(0, 12) : fullDigits;
-    
+    final limitedDigits =
+        fullDigits.length > 12 ? fullDigits.substring(0, 12) : fullDigits;
+
     // If doesn't start with 998, return default
     if (!limitedDigits.startsWith('998')) {
       return '+998';
     }
-    
+
     // Format: +998 90 123-45-67 (same as PhoneFormatter)
     String formatted = '+';
-    
+
     // Add country code (998)
     if (limitedDigits.isNotEmpty) {
-      final countryCode = limitedDigits.substring(0, limitedDigits.length > 3 ? 3 : limitedDigits.length);
+      final countryCode = limitedDigits.substring(
+          0, limitedDigits.length > 3 ? 3 : limitedDigits.length);
       formatted += countryCode;
     }
-    
+
     // Add operator code (90)
     if (limitedDigits.length > 3) {
-      formatted += ' ${limitedDigits.substring(3, limitedDigits.length > 5 ? 5 : limitedDigits.length)}';
+      formatted +=
+          ' ${limitedDigits.substring(3, limitedDigits.length > 5 ? 5 : limitedDigits.length)}';
     }
-    
+
     // Add first part (123)
     if (limitedDigits.length > 5) {
-      formatted += ' ${limitedDigits.substring(5, limitedDigits.length > 8 ? 8 : limitedDigits.length)}';
+      formatted +=
+          ' ${limitedDigits.substring(5, limitedDigits.length > 8 ? 8 : limitedDigits.length)}';
     }
-    
+
     // Add second part (45)
     if (limitedDigits.length > 8) {
-      formatted += '-${limitedDigits.substring(8, limitedDigits.length > 10 ? 10 : limitedDigits.length)}';
+      formatted +=
+          '-${limitedDigits.substring(8, limitedDigits.length > 10 ? 10 : limitedDigits.length)}';
     }
-    
+
     // Add third part (67)
     if (limitedDigits.length > 10) {
-      formatted += '-${limitedDigits.substring(10, limitedDigits.length > 12 ? 12 : limitedDigits.length)}';
+      formatted +=
+          '-${limitedDigits.substring(10, limitedDigits.length > 12 ? 12 : limitedDigits.length)}';
     }
-    
+
     return formatted;
   }
 
   void _fillPassengerData(int index, HumanModel human) {
     // Close keyboard before filling data
     FocusScope.of(context).unfocus();
-    
+
     setState(() {
       _passengerNameControllers[index].text = human.firstName;
       _passengerSurnameControllers[index].text = human.lastName;
       _passengerPatronymicControllers[index].text = human.middleName ?? '';
-      
+
       // Format dates if needed. HumanModel has String dates.
-      _passengerReturnDateControllers[index].text = _formatDateForUi(human.birthDate);
-      
-      if (human.gender.toLowerCase().contains('m') || human.gender.toLowerCase() == 'male') {
+      _passengerReturnDateControllers[index].text =
+          _formatDateForUi(human.birthDate);
+
+      if (human.gender.toLowerCase().contains('m') ||
+          human.gender.toLowerCase() == 'male') {
         _selectedGenders[index] = 'Erkak';
       } else {
         _selectedGenders[index] = 'Ayol';
       }
-      
+
       _passportSeriesControllers[index].text = human.passportNumber;
-      _passportExpiryControllers[index].text = _formatDateForUi(human.passportExpiry);
+      _passportExpiryControllers[index].text =
+          _formatDateForUi(human.passportExpiry);
       _citizenshipControllers[index].text = human.citizenship;
-      
+
       // Agar "Mening yo'lovchilarim" dan tanlansa, saqlash tugmasini o'chirib qo'yish (chunki allaqachon saqlangan)
       // Ammo foydalanuvchi o'zgartirib qayta saqlashni xohlashi mumkin, shuning uchun o'zgarmaydi yoki true qoladi.
       // Hozirchalik o'zgarishsiz qoldiramiz.
-      
+
       // Format phone number to match PhoneFormatter format
-      final phoneToFormat = human.phone.trim().isEmpty 
-          ? '+998' 
+      final phoneToFormat = human.phone.trim().isEmpty
+          ? '+998'
           : AuthService.normalizeContact(human.phone);
-      _passengerPhoneControllers[index].text = _formatPhoneForDisplay(phoneToFormat);
-      
+      _passengerPhoneControllers[index].text =
+          _formatPhoneForDisplay(phoneToFormat);
+
       // Update validation state
       _savePassengerData(index);
     });
-    
-      // Ensure keyboard stays closed after filling data
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) {
-          FocusScope.of(context).unfocus();
-        }
-      });
-    }
+
+    // Ensure keyboard stays closed after filling data
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        FocusScope.of(context).unfocus();
+      }
+    });
+  }
 
   // Booking muvaffaqiyatli bo'lgandan keyin passenger'larni "My Passengers"ga saqlash
   void _savePassengersToMyList() {
     for (int i = 0; i < _passengers.length; i++) {
       final p = _passengers[i];
-      
+
       // Agar foydalanuvchi ma'lumotlarni saqlashni xohlamasa, o'tkazib yuborish
       if (!_savePassengerInfo[i]) {
         continue;
       }
-      
+
       // Ma'lumotlar to'liqligini tekshirish
-      if ((p.name.trim().isEmpty) || 
-          (p.surname.trim().isEmpty) || 
+      if ((p.name.trim().isEmpty) ||
+          (p.surname.trim().isEmpty) ||
           (p.passportSeries.trim().isEmpty)) {
         continue; // To'liq bo'lmagan ma'lumotlarni o'tkazib yuborish
       }
-      
+
       try {
         // Tug'ilgan sana formatini tekshirish
         String birthDate = '';
@@ -1972,7 +2107,7 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
             birthDate = returnDate;
           }
         }
-        
+
         // Passport muddati formatini tekshirish
         String passportExpiry = '';
         final expiryDate = p.passportExpiry?.trim() ?? '';
@@ -1989,12 +2124,12 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
             passportExpiry = expiryDate;
           }
         }
-        
+
         // Citizenship mapping
         String mapCitizenship(String? citizenship) {
           if (citizenship == null || citizenship.isEmpty) return 'UZ';
           if (citizenship.length == 2) return citizenship.toUpperCase();
-          
+
           final citizenshipMap = {
             'avia.formalization.uzbekistan': 'UZ',
             'O\'zbekiston': 'UZ',
@@ -2009,10 +2144,10 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
             'Qirg\'iziston': 'KG',
             'Kyrgyzstan': 'KG',
           };
-          
+
           return citizenshipMap[citizenship] ?? 'UZ';
         }
-        
+
         // HumanModel yaratish
         final human = HumanModel(
           firstName: p.name.trim(),
@@ -2025,7 +2160,7 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
           passportExpiry: passportExpiry,
           phone: _normalizePhoneForApi(p.phone),
         );
-        
+
         // API'ga yuborish (background'da, xatolikni ko'rsatmasdan)
         // Bu asinxron ishlaydi, shuning uchun booking page'ga o'tishni kutmaydi
         context.read<AviaBloc>().add(CreateHumanRequested(human));

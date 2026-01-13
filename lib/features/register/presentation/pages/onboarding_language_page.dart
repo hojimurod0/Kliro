@@ -13,6 +13,7 @@ class OnboardingLanguagePage extends StatefulWidget {
 
 class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
   Locale? _selected;
+  bool _isApplying = false; // IMPORTANT: _apply() faqat bir marta chaqirilishini ta'minlash uchun
 
   final _locales = const [
     Locale('uz'),
@@ -39,28 +40,63 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
         locale1.countryCode == locale2.countryCode;
   }
 
-  String _getCtaText(Locale locale) {
-    final country = locale.countryCode?.toUpperCase();
-    if (locale.languageCode == 'uz' && country == 'CYR') {
+  String _getCtaText(Locale? selectedLocale) {
+    // Default til English bo'lgani uchun, har doim selectedLocale mavjud
+    if (selectedLocale == null) {
+      return 'Continue'; // Fallback - default English
+    }
+    
+    // Agar til tanlangan bo'lsa, tanlangan til bo'yicha ko'rsatiladi
+    final country = selectedLocale.countryCode?.toUpperCase();
+    if (selectedLocale.languageCode == 'uz' && country == 'CYR') {
       return 'Танлаш';
     }
-    if (locale.languageCode == 'uz') {
+    if (selectedLocale.languageCode == 'uz') {
       return 'Tanlash';
     }
-    if (locale.languageCode == 'ru') {
+    if (selectedLocale.languageCode == 'ru') {
       return 'Продолжить';
     }
-    if (locale.languageCode == 'en') {
+    if (selectedLocale.languageCode == 'en') {
       return 'Continue';
     }
-    return 'auth.common.cta'.tr();
+    return 'Continue'; // Default English
   }
 
   @override
   void initState() {
     super.initState();
-    // Dastlab foydalanuvchining joriy locale'ini olishga harakat qilamiz.
-    _selected = const Locale('en');
+    // IMPORTANT: Saqlangan tilni yuklab, default qilib o'rnatish
+    _loadSavedLocale();
+  }
+
+  // Saqlangan tilni yuklash
+  Future<void> _loadSavedLocale() async {
+    try {
+      final savedLocale = await LocalePrefs.load();
+      if (savedLocale != null && mounted) {
+        setState(() {
+          _selected = savedLocale;
+        });
+        debugPrint('OnboardingLanguagePage: Loaded saved locale: ${savedLocale.languageCode}_${savedLocale.countryCode ?? 'null'}');
+      } else {
+        // Saqlangan til yo'q - default English
+        if (mounted) {
+          setState(() {
+            _selected = const Locale('en');
+          });
+          debugPrint('OnboardingLanguagePage: No saved locale, default set to: en (English)');
+        }
+      }
+    } catch (e) {
+      debugPrint('OnboardingLanguagePage: Error loading saved locale: $e');
+      // Xatolik bo'lsa, default English
+      if (mounted) {
+        setState(() {
+          _selected = const Locale('en');
+        });
+      }
+    }
   }
 
   @override
@@ -80,10 +116,30 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
 
   Future<void> _apply() async {
     if (!mounted) return;
+    
+    // IMPORTANT: _apply() faqat bir marta chaqirilishini ta'minlash
+    if (_isApplying) {
+      debugPrint('OnboardingLanguagePage: _apply() already in progress, skipping...');
+      return;
+    }
+    
+    // IMPORTANT: Flag'ni setState() da yangilash - UI yangilanishi uchun
+    if (mounted) {
+      setState(() {
+        _isApplying = true;
+      });
+    }
+    
+    // IMPORTANT: Default til English, lekin agar null bo'lsa, English'ga o'rnatamiz
+    if (_selected == null) {
+      _selected = const Locale('en');
+      if (mounted) {
+        setState(() {});
+      }
+    }
 
     try {
-      // Локални текшириш - агар кирилл локали бўлса, тўғри форматда бўлишини текшириш
-      final localeToSet = _selected ?? context.locale;
+      final localeToSet = _selected!;
       debugPrint(
         'Onboarding: Changing locale to: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}',
       );
@@ -95,101 +151,33 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
       );
 
       // Keyin locale'ni o'zgartiramiz
-      // EasyLocalization xatolikni o'zi boshqaradi, lekin biz yana ham xavfsizlikni ta'minlaymiz
       if (mounted) {
+        await context.setLocale(localeToSet);
         debugPrint(
-          'Onboarding: Setting locale: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}',
+          'Onboarding: Locale set: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}',
         );
 
-        // Локални текшириш ва ўрнатиш
-        try {
-          // Кирилл локали учун қўшимча вақт бериш
-          if (localeToSet.languageCode == 'uz' && localeToSet.countryCode == 'CYR') {
-            await Future.delayed(const Duration(milliseconds: 100));
-          }
-          await context.setLocale(localeToSet);
-          
-          // Локалнинг тўғри ўрнатилганини текшириш
-          final actualLocale = context.locale;
-          debugPrint(
-            'Onboarding: Locale set successfully: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}',
-          );
-          debugPrint(
-            'Onboarding: Actual locale after set: ${actualLocale.languageCode}_${actualLocale.countryCode ?? 'null'}',
-          );
-          
-          // Локалнинг мос келишини текшириш
-          if (actualLocale.languageCode != localeToSet.languageCode ||
-              actualLocale.countryCode != localeToSet.countryCode) {
-            debugPrint('Onboarding: WARNING: Locale mismatch! Expected: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}, Got: ${actualLocale.languageCode}_${actualLocale.countryCode ?? 'null'}');
-          }
-
-          // Таржима файлини текшириш
+        // Translation delegate'ni yuklash
+        final easyLocalization = EasyLocalization.of(context);
+        if (easyLocalization != null && mounted) {
           try {
-            final testTranslation = tr('app_title');
-            debugPrint('Onboarding: Translation test: app_title = $testTranslation');
-          } catch (e) {
-            debugPrint('Onboarding: Translation error: $e');
-            // Таржима хатоси бўлса ҳам, локал ўрнатилди, шунинг учун давом этиш
-          }
-        } catch (setLocaleError) {
-          debugPrint('Onboarding: Error setting locale: $setLocaleError');
-          // Агар локални ўрнатишда хато бўлса, fallback локални ишлатиш
-          if (mounted) {
-            try {
-              // Кирилл локали учун алохида ишлаш
-              if (localeToSet.languageCode == 'uz' &&
-                  localeToSet.countryCode == 'CYR') {
-                // Кирилл локали учун қайта уриниш
-                await Future.delayed(const Duration(milliseconds: 200));
-                await context.setLocale(localeToSet);
-                debugPrint('Onboarding: Cyrillic locale set after retry');
-              } else {
-                // Бошқа локаллар учун fallback
-                await context.setLocale(const Locale('en'));
-                debugPrint('Onboarding: Fallback to English locale');
-              }
-            } catch (fallbackError) {
-              debugPrint('Onboarding: Fallback locale error: $fallbackError');
-              // Хатолик бўлса ҳам, локал сақланди, шунинг учун давом этиш
-            }
+            await easyLocalization.delegate.load(localeToSet);
+            debugPrint('Onboarding: Translation delegate loaded');
+          } catch (loadError) {
+            debugPrint('Onboarding: Error loading translation delegate: $loadError');
           }
         }
-
-        // Locale yuklanishini kutish uchun kichik kechikish
-        // Bu vaqt ichida barcha widget'lar qayta build bo'lishi uchun
-        // Кирилл локали учун қўшимча вақт бериш
-        if (localeToSet.languageCode == 'uz' && localeToSet.countryCode == 'CYR') {
-          await Future.delayed(const Duration(milliseconds: 300));
-        } else {
+        
+        // Qisqa kutish - translation yuklanishini ta'minlash uchun
+        if (mounted) {
+          setState(() {});
           await Future.delayed(const Duration(milliseconds: 200));
         }
         
-        // Locale'ning тўғри ўрнатилганини текшириш
+        // IMPORTANT: Callback chaqirish - onboarding sahifaga o'tish uchun
         if (mounted) {
-          final finalLocale = context.locale;
-          debugPrint('Onboarding: Final locale before navigation: ${finalLocale.languageCode}_${finalLocale.countryCode ?? 'null'}');
-          
-          // Локалнинг мос келишини яна бир бор текшириш
-          if (finalLocale.languageCode != localeToSet.languageCode ||
-              finalLocale.countryCode != localeToSet.countryCode) {
-            debugPrint('Onboarding: WARNING: Final locale mismatch! Expected: ${localeToSet.languageCode}_${localeToSet.countryCode ?? 'null'}, Got: ${finalLocale.languageCode}_${finalLocale.countryCode ?? 'null'}');
-            // Агар локал мос келмаса, қайта уриниш
-            if (mounted) {
-              try {
-                await context.setLocale(localeToSet);
-                debugPrint('Onboarding: Retry setLocale successful');
-              } catch (e) {
-                debugPrint('Onboarding: Retry setLocale failed: $e');
-              }
-            }
-          }
-          
-          // Qo'shimcha rebuild uchun bir marta setState chaqirish
-          // Bu parent widget'ga locale o'zgarganini bildiradi
-          if (mounted) {
-            widget.onSelected();
-          }
+          debugPrint('OnboardingLanguagePage: Calling onSelected callback');
+          widget.onSelected();
         }
       }
     } catch (e, stackTrace) {
@@ -197,14 +185,25 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
       debugPrint('Onboarding: Stack trace: $stackTrace');
       // Хатолик бўлса ҳам, локал сақланди ва давом этиш
       if (mounted) {
-        await Future.delayed(const Duration(milliseconds: 200));
-        widget.onSelected();
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (mounted) {
+          widget.onSelected();
+        }
+      }
+    } finally {
+      // IMPORTANT: Har doim flag'ni reset qilish
+      if (mounted) {
+        setState(() {
+          _isApplying = false;
+        });
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final primary = const Color(0xFF0A93F6); // ko'k rang (designga yaqin)
     final mediaQuery = MediaQuery.of(context);
     final screenWidth = mediaQuery.size.width;
@@ -234,7 +233,7 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
       top: false,
       bottom: true,
       child: Container(
-        color: Colors.white,
+        color: theme.scaffoldBackgroundColor,
         padding: EdgeInsets.only(
           left: horizontalPadding,
           right: horizontalPadding,
@@ -255,7 +254,8 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
                       style: TextStyle(
                         fontSize: logoFontSize,
                         fontWeight: FontWeight.w700,
-                        color: Colors.black87,
+                        color: theme.textTheme.titleLarge?.color ?? 
+                            (isDark ? Colors.white : Colors.black87),
                       ),
                       children: [
                         const TextSpan(text: 'K'),
@@ -266,7 +266,7 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
                             height: logoDotSize,
                             child: DecoratedBox(
                               decoration: BoxDecoration(
-                                color: Colors.blue,
+                                color: primary,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -289,13 +289,15 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
                   final isSelected = _isLocaleEqual(_selected, l);
                   return Card(
                     elevation: 0,
-                    color: Colors.white,
+                    color: theme.cardColor,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(cardBorderRadius),
                       side: BorderSide(
                         color: isSelected
                             ? primary
-                            : Colors.black.withOpacity(0.1),
+                            : (isDark 
+                                ? Colors.white.withOpacity(0.1) 
+                                : Colors.black.withOpacity(0.1)),
                         width: isSelected ? 2 : 1,
                       ),
                     ),
@@ -315,14 +317,16 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
                         if (states.contains(MaterialState.selected)) {
                           return primary;
                         }
-                        return Colors.black;
+                        return theme.iconTheme.color ?? 
+                            (isDark ? Colors.white : Colors.black);
                       }),
                       title: Text(
                         _labelFor(l),
                         style: TextStyle(
                           fontSize: titleFontSize,
                           fontWeight: FontWeight.w500,
-                          color: Colors.black,
+                          color: theme.textTheme.titleMedium?.color ?? 
+                              (isDark ? Colors.white : Colors.black),
                         ),
                       ),
                       secondary: _FlagBadge(
@@ -335,11 +339,11 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
                 },
               ),
             ),
-            SizedBox(height: buttonSpacing),
+              SizedBox(height: buttonSpacing),
             SizedBox(
               height: buttonHeight,
               child: ElevatedButton(
-                onPressed: _apply,
+                onPressed: _isApplying ? null : _apply, // Agar _apply() jarayonda bo'lsa, disabled
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primary,
                   foregroundColor: Colors.white,
@@ -347,7 +351,7 @@ class _OnboardingLanguagePageState extends State<OnboardingLanguagePage> {
                     borderRadius: BorderRadius.circular(buttonBorderRadius),
                   ),
                 ),
-                child: Text(_getCtaText(_selected ?? context.locale)),
+                child: Text(_getCtaText(_selected)),
               ),
             ),
             SizedBox(height: bottomSpacing),

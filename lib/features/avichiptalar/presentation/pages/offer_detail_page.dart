@@ -41,7 +41,9 @@ class _OfferDetailPageState extends State<OfferDetailPage> {
       ),
       body: BlocBuilder<AviaBloc, AviaState>(
         builder: (context, state) {
-          if (state is AviaLoading) {
+          if (state is AviaOfferDetailLoading || 
+              state is AviaFareFamilyLoading || 
+              state is AviaFareRulesLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -107,7 +109,9 @@ class _OfferDetailPageState extends State<OfferDetailPage> {
                     ),
                     child: BlocBuilder<AviaBloc, AviaState>(
                       builder: (context, buttonState) {
-                        final isLoading = buttonState is AviaLoading;
+                        final isLoading = buttonState is AviaOfferDetailLoading || 
+                                         buttonState is AviaFareFamilyLoading || 
+                                         buttonState is AviaFareRulesLoading;
                         return PrimaryButton(
                           text: 'avia.details.book'.tr(),
                           isLoading: isLoading,

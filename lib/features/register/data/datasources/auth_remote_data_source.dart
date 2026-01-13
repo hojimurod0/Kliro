@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../../core/constants/constants.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/network/api_response.dart';
+import '../../../../core/utils/logger.dart';
 import '../../domain/params/auth_params.dart';
 import '../models/auth_tokens_model.dart';
 import '../models/google_auth_redirect_model.dart';
@@ -95,14 +98,139 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<GoogleAuthRedirectModel> getGoogleRedirect(String redirectUrl) async {
-    return _getData<GoogleAuthRedirectModel>(
-      ApiPaths.googleLogin,
-      queryParameters: {
-        'redirect_url': redirectUrl,
-      },
-      parser: (json) =>
-          GoogleAuthRedirectModel.fromJson(json as Map<String, dynamic>),
-    );
+    try {
+      // Backend Google OAuth URL'ni POST metod bilan olish
+      // Backend HTML response (Google OAuth sahifasi) qaytarishi mumkin
+      final response = await _dio.post(
+        ApiPaths.googleLogin,
+        queryParameters: {
+          'redirect_url': redirectUrl,
+        },
+        options: Options(
+          // HTML response'ni qabul qilish uchun
+          responseType: ResponseType.plain, // String sifatida olish
+          validateStatus: (status) => status != null && status < 500, // 4xx status'larni ham qabul qilish
+        ),
+      );
+      
+      // Agar response JSON bo'lsa (backend JSON qaytarsa)
+      if (response.data is Map<String, dynamic>) {
+        try {
+          return GoogleAuthRedirectModel.fromJson(
+            response.data as Map<String, dynamic>,
+          );
+        } catch (e) {
+          // JSON parse qilishda xato bo'lsa, HTML response sifatida handle qilamiz
+        }
+      }
+      
+      // Agar response String (HTML) bo'lsa
+      // Backend Google OAuth sahifasini to'g'ridan-to'g'ri qaytarayotgan bo'lishi mumkin
+      if (response.data is String) {
+        final responseData = response.data as String;
+        
+        // JSON string bo'lishi mumkin
+        try {
+          final jsonData = responseData.trim();
+          if (jsonData.startsWith('{') || jsonData.startsWith('[')) {
+            final parsed = jsonDecode(jsonData) as Map<String, dynamic>;
+            return GoogleAuthRedirectModel.fromJson(parsed);
+          }
+        } catch (e) {
+          // JSON emas, HTML bo'lishi mumkin
+        }
+        
+        // HTML response bo'lsa, request URL ni o'zi Google OAuth URL sifatida qaytaramiz
+        // Backend bu URL'ni Google OAuth sahifasiga redirect qiladi yoki to'g'ridan-to'g'ri ko'rsatadi
+        if (responseData.contains('<!doctype html>') || 
+            responseData.contains('accounts.google.com') ||
+            responseData.contains('signin') ||
+            responseData.contains('google.com')) {
+          // Request URL ni o'zi Google OAuth URL sifatida qaytaramiz
+          final requestUrl = response.requestOptions.uri.toString();
+          
+          if (kDebugMode) {
+            AppLogger.debug(
+              '✅ Backend HTML response qaytardi (Google OAuth sahifasi). '
+              'Request URL ni ishlatamiz: $requestUrl',
+            );
+          }
+          
+          return GoogleAuthRedirectModel(
+            url: requestUrl,
+            sessionId: null,
+          );
+        }
+      }
+      
+      // Agar status code 302, 301 (Redirect) bo'lsa
+      if (response.statusCode == 302 || response.statusCode == 301) {
+        final location = response.headers.value('location');
+        if (location != null && location.isNotEmpty) {
+          if (kDebugMode) {
+            AppLogger.debug('✅ Redirect Location topildi: $location');
+          }
+          return GoogleAuthRedirectModel(
+            url: location,
+            sessionId: null,
+          );
+        }
+      }
+      
+      // Fallback: request URL ni qaytarish
+      // Bu backend Google OAuth sahifasini ko'rsatadigan URL bo'ladi
+      final requestUrl = response.requestOptions.uri.toString();
+      
+      if (kDebugMode) {
+        AppLogger.debug(
+          '⚠️ Response format aniqlanmadi, request URL ni qaytaramiz: $requestUrl',
+        );
+      }
+      
+      return GoogleAuthRedirectModel(
+        url: requestUrl,
+        sessionId: null,
+      );
+    } catch (e, stackTrace) {
+      // Xatolik yuz bersa, xatoni log qilish va request URL ni qaytarish
+      AppLogger.error(
+        'getGoogleRedirect xatolik',
+        e.toString(),
+        stackTrace,
+      );
+      
+      // Fallback: request URL ni qaytarish
+      try {
+        final baseUrl = ApiConstants.effectiveBaseUrl;
+        final cleanBaseUrl = baseUrl.endsWith('/') 
+            ? baseUrl.substring(0, baseUrl.length - 1)
+            : baseUrl;
+        final path = ApiPaths.googleLogin.startsWith('/')
+            ? ApiPaths.googleLogin
+            : '/${ApiPaths.googleLogin}';
+        final uri = Uri.parse('$cleanBaseUrl$path').replace(queryParameters: {
+          'redirect_url': redirectUrl,
+        });
+        
+        final requestUrl = uri.toString();
+        
+        if (kDebugMode) {
+          AppLogger.debug('⚠️ Fallback: Request URL ni qaytaramiz: $requestUrl');
+        }
+        
+        return GoogleAuthRedirectModel(
+          url: requestUrl,
+          sessionId: null,
+        );
+      } catch (fallbackError) {
+        AppLogger.error(
+          'getGoogleRedirect fallback xatolik',
+          fallbackError.toString(),
+          StackTrace.current,
+        );
+        rethrow;
+      }
+    }
   }
 
   @override

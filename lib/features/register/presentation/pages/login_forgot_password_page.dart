@@ -11,7 +11,7 @@ import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
 import '../../../../core/utils/snackbar_helper.dart';
-import '../../../../core/services/auth/auth_service.dart';
+import '../../../../core/utils/input_formatters.dart';
 import '../../domain/params/auth_params.dart';
 import '../bloc/register_bloc.dart';
 import '../bloc/register_event.dart';
@@ -49,41 +49,6 @@ class _LoginForgotPasswordPageState extends State<LoginForgotPasswordPage> {
   void dispose() {
     _emailOrPhoneController.dispose();
     super.dispose();
-  }
-
-  // Telefon raqamni chiroyli formatlash (Maskirovka)
-  // Input: 901234567 -> Output: 90 123 45 67
-  void _formatPhoneNumber(String value) {
-    if (isEmailMode) return;
-
-    // Faqat raqamlarni qoldiramiz
-    String digits = value.replaceAll(RegExp(r'\D'), '');
-
-    // Agar 998 prefixi kiritilgan bo'lsa, olib tashlaymiz (bizda UI da +998 bor)
-    if (digits.startsWith('998')) {
-      digits = digits.substring(3);
-    }
-
-    // Maksimum 9 ta raqam
-    if (digits.length > 9) {
-      digits = digits.substring(0, 9);
-    }
-
-    String formatted = '';
-    for (int i = 0; i < digits.length; i++) {
-      if (i == 2 || i == 5 || i == 7) {
-        formatted += ' ';
-      }
-      formatted += digits[i];
-    }
-
-    // Kursor joylashuvini to'g'irlash
-    if (_emailOrPhoneController.text != formatted) {
-      _emailOrPhoneController.value = TextEditingValue(
-        text: formatted,
-        selection: TextSelection.collapsed(offset: formatted.length),
-      );
-    }
   }
 
   @override
@@ -137,7 +102,7 @@ class _LoginForgotPasswordPageState extends State<LoginForgotPasswordPage> {
                     // 2. Sarlavha
                     Text(
                       'auth.forgot.title'.tr(),
-                      style: AppTypography.headingXL.copyWith(
+                      style: AppTypography.headingXL(context).copyWith(
                         color: isDark ? AppColors.white : AppColors.black,
                       ),
                     ),
@@ -146,7 +111,7 @@ class _LoginForgotPasswordPageState extends State<LoginForgotPasswordPage> {
                     // 3. Izoh matni
                     Text(
                       'auth.forgot.subtitle'.tr(),
-                      style: AppTypography.bodyPrimary,
+                      style: AppTypography.bodyPrimary(context),
                     ),
 
                     SizedBox(height: AppSpacing.lg),
@@ -182,7 +147,7 @@ class _LoginForgotPasswordPageState extends State<LoginForgotPasswordPage> {
                         isEmailMode
                             ? 'auth.field.email_label'.tr()
                             : 'auth.field.phone_label'.tr(),
-                        style: AppTypography.labelSmall,
+                        style: AppTypography.labelSmall(context),
                       ),
                     ),
                     SizedBox(height: AppSpacing.xs),
@@ -205,18 +170,8 @@ class _LoginForgotPasswordPageState extends State<LoginForgotPasswordPage> {
                           : TextInputType.phone,
 
                       inputFormatters: !isEmailMode
-                          ? [
-                              LengthLimitingTextInputFormatter(
-                                12,
-                              ), // Probellar bilan hisoblaganda
-                            ]
+                          ? [PhoneFormatter()]
                           : [],
-
-                      onChanged: (value) {
-                        if (!isEmailMode) {
-                          _formatPhoneNumber(value);
-                        }
-                      },
 
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {

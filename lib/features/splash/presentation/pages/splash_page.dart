@@ -138,6 +138,7 @@ class _SplashPageState extends State<SplashPage> {
         child: Stack(
           fit: StackFit.expand,
           children: [
+            // Error holat
             if (_error != null)
               Center(
                 child: Padding(
@@ -154,7 +155,7 @@ class _SplashPageState extends State<SplashPage> {
                       Text(
                         tr('splash.video_error'),
                         textAlign: TextAlign.center,
-                        style: AppTypography.bodyPrimary.copyWith(
+                        style: AppTypography.bodyPrimary(context).copyWith(
                           fontSize: 16.sp,
                           color: AppColors.white,
                         ),
@@ -164,7 +165,7 @@ class _SplashPageState extends State<SplashPage> {
                         Text(
                           _error!,
                           textAlign: TextAlign.center,
-                          style: AppTypography.caption.copyWith(
+                          style: AppTypography.caption(context).copyWith(
                             color: AppColors.white.withOpacity(0.7),
                           ),
                         ),
@@ -173,13 +174,20 @@ class _SplashPageState extends State<SplashPage> {
                   ),
                 ),
               )
+            // Video ko'rsatish - barcha telefonlar uchun to'g'ri format
             else if (_initialized && _controller != null)
-              FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: _controller!.value.size.width,
-                  height: _controller!.value.size.height,
-                  child: VideoPlayer(_controller!),
+              Center(
+                child: AspectRatio(
+                  aspectRatio: _controller!.value.aspectRatio,
+                  child: FittedBox(
+                    // BoxFit.contain video'ni kesib qo'ymaydi va to'liq ko'rsatadi
+                    fit: BoxFit.contain,
+                    child: SizedBox(
+                      width: _controller!.value.size.width,
+                      height: _controller!.value.size.height,
+                      child: VideoPlayer(_controller!),
+                    ),
+                  ),
                 ),
               ),
           ],

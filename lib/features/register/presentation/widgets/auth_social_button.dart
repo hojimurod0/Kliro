@@ -48,9 +48,7 @@ class AuthSocialButton extends StatelessWidget {
             SizedBox(width: 10.w),
             Text(
               label,
-              style: AppTypography.googleButton.copyWith(
-                color: isDark ? AppColors.white : AppColors.black,
-              ),
+              style: AppTypography.googleButton(context),
             ),
           ],
         ),

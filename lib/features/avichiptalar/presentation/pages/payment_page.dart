@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -263,7 +264,9 @@ class _PaymentPageState extends BaseStatefulWidget<PaymentPage>
           child: BlocConsumer<AviaBloc, AviaState>(
             bloc: _aviaBloc,
             listener: (context, state) {
-              if (state is AviaLoading) {
+              if (state is AviaCheckPriceLoading || 
+                  state is AviaPaymentPermissionLoading || 
+                  state is AviaPaymentLoading) {
                 safeSetState(() => _isLoadingAvia = true);
               } else if (state is AviaCheckPriceSuccess) {
                 safeSetState(() {
@@ -428,9 +431,9 @@ class _PaymentPageState extends BaseStatefulWidget<PaymentPage>
                                         double.tryParse(cleanPrice) ?? 0.0;
 
                                     // Debug log
-                                    print('💰 PAYMENT_PAGE: Original price: $priceString');
-                                    print('💰 PAYMENT_PAGE: Clean price: $cleanPrice');
-                                    print('💰 PAYMENT_PAGE: Price value: $priceValue');
+                                    debugPrint('💰 PAYMENT_PAGE: Original price: $priceString');
+                                    debugPrint('💰 PAYMENT_PAGE: Clean price: $cleanPrice');
+                                    debugPrint('💰 PAYMENT_PAGE: Price value: $priceValue');
 
                                     // API eng kichik birlikda amount kutadi (masalan, 500000)
                                     // UZS uchun: 5000 UZS = 500000 (100 ga ko'paytiriladi)
@@ -440,8 +443,8 @@ class _PaymentPageState extends BaseStatefulWidget<PaymentPage>
                                     final amount = (priceValue * 1.10 * 100).toInt();
                                     
                                     // Debug log
-                                    print('💰 PAYMENT_PAGE: Amount without commission: $amountWithoutCommission');
-                                    print('💰 PAYMENT_PAGE: Amount with 10% commission: $amount');
+                                    debugPrint('💰 PAYMENT_PAGE: Amount without commission: $amountWithoutCommission');
+                                    debugPrint('💰 PAYMENT_PAGE: Amount with 10% commission: $amount');
 
                                     // Amount musbat bo'lishi kerak (backend talabi)
                                     if (amount <= 0) {

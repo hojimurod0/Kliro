@@ -224,10 +224,10 @@ class DepositBloc extends Bloc<DepositEvent, DepositState> {
     );
 
     try {
-      print('[DepositBloc] Calling _getDeposits:');
-      print('  - Page: $page');
-      print('  - Size: ${state.pageSize}');
-      print('  - Filter: ${effectiveFilter.toQueryParameters()}');
+      debugPrint('[DepositBloc] Calling _getDeposits:');
+      debugPrint('  - Page: $page');
+      debugPrint('  - Size: ${state.pageSize}');
+      debugPrint('  - Filter: ${effectiveFilter.toQueryParameters()}');
 
       final result = await _getDeposits(
         page: page,
@@ -235,15 +235,15 @@ class DepositBloc extends Bloc<DepositEvent, DepositState> {
         filter: effectiveFilter,
       );
 
-      print('[DepositBloc] _getDeposits returned:');
-      print('  - Items count: ${result.items.length}');
-      print('  - Page number: ${result.pageNumber}');
-      print('  - Total pages: ${result.totalPages}');
-      print('  - Total elements: ${result.totalElements}');
-      print('  - Is last: ${result.isLast}');
+      debugPrint('[DepositBloc] _getDeposits returned:');
+      debugPrint('  - Items count: ${result.items.length}');
+      debugPrint('  - Page number: ${result.pageNumber}');
+      debugPrint('  - Total pages: ${result.totalPages}');
+      debugPrint('  - Total elements: ${result.totalElements}');
+      debugPrint('  - Is last: ${result.isLast}');
 
       if (result.items.isNotEmpty) {
-        print(
+        debugPrint(
           '[DepositBloc] First item: ${result.items.first.bankName} - ${result.items.first.description}',
         );
       }
@@ -260,10 +260,10 @@ class DepositBloc extends Bloc<DepositEvent, DepositState> {
       // Клиентская сортировка по проценту (самый высокий процент сверху)
       final sortedItems = _sortByRate(updatedItems, effectiveFilter.direction ?? 'desc');
 
-      print('[DepositBloc] Updated items list:');
-      print('  - Previous items: ${state.items.length}');
-      print('  - New items: ${result.items.length}');
-      print(
+      debugPrint('[DepositBloc] Updated items list:');
+      debugPrint('  - Previous items: ${state.items.length}');
+      debugPrint('  - New items: ${result.items.length}');
+      debugPrint(
         '  - Total after ${append ? "append" : "replace"}: ${sortedItems.length}',
       );
 
@@ -295,10 +295,10 @@ class DepositBloc extends Bloc<DepositEvent, DepositState> {
 
       debugPrint('[DepositBloc] State emitted successfully!');
     } catch (error, stackTrace) {
-      print('[DepositBloc] ERROR loading page:');
-      print('  - Error type: ${error.runtimeType}');
-      print('  - Error message: $error');
-      print('  - Stack trace: $stackTrace');
+      debugPrint('[DepositBloc] ERROR loading page:');
+      debugPrint('  - Error type: ${error.runtimeType}');
+      debugPrint('  - Error message: $error');
+      debugPrint('  - Stack trace: $stackTrace');
       debugPrint('[DepositBloc] Error loading page: $error');
       addError(error, stackTrace);
       final message = _mapError(error);

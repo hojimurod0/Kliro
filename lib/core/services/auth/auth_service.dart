@@ -8,7 +8,7 @@ class AuthUser {
     required this.firstName,
     required this.lastName,
     required this.contact,
-    required this.password,
+    this.password,
     this.region,
     this.email,
     this.phone,
@@ -17,7 +17,9 @@ class AuthUser {
   final String firstName;
   final String lastName;
   final String contact;
-  final String password;
+  // Password is optional - not stored in client for security reasons
+  // Google OAuth users don't have passwords
+  final String? password;
   final String? region;
   final String? email;
   final String? phone;
@@ -112,7 +114,10 @@ class AuthService {
     await prefs.setString(_keyFirstName, user.firstName);
     await prefs.setString(_keyLastName, user.lastName);
     await prefs.setString(_keyContact, user.contact);
-    await prefs.setString(_keyPassword, user.password);
+    // SECURITY: Password is NOT stored in client
+    // Password should only be sent to server during authentication
+    // Old password will be removed if exists (backward compatibility)
+    await prefs.remove(_keyPassword);
 
     // Email va telefon alohida saqlash
     if (user.email != null && user.email!.isNotEmpty) {
@@ -160,18 +165,8 @@ class AuthService {
     return prefs.getString(_keyRefreshToken);
   }
 
-  Future<bool> validateCredentials({
-    required String contact,
-    required String password,
-  }) async {
-    final prefs = _preferences;
-    final storedContact = prefs.getString(_keyContact);
-    final storedPassword = prefs.getString(_keyPassword);
-    if (storedContact == null || storedPassword == null) {
-      return false;
-    }
-    return storedContact == contact && storedPassword == password;
-  }
+  // DEPRECATED: validateCredentials removed for security reasons
+  // Passwords are not stored in client, authentication should be done via server API
 
   Future<void> markLoggedIn() async {
     await _preferences.setBool(_keyLoggedIn, true);
@@ -228,12 +223,9 @@ class AuthService {
     final firstName = prefs.getString(_keyFirstName);
     final lastName = prefs.getString(_keyLastName);
     final contact = prefs.getString(_keyContact);
-    final password = prefs.getString(_keyPassword);
 
-    if (firstName == null ||
-        lastName == null ||
-        contact == null ||
-        password == null) {
+    // Password is no longer required (security improvement)
+    if (firstName == null || lastName == null || contact == null) {
       AppLogger.debug('👤 AUTH_SERVICE: _readUserFromPrefs - Missing required fields');
       return null;
     }
@@ -251,7 +243,7 @@ class AuthService {
       firstName: firstName,
       lastName: lastName,
       contact: contact,
-      password: password,
+      password: null, // Password is never stored in client
       region: region,
       email: email,
       phone: phone,
@@ -309,47 +301,12 @@ class AuthService {
         }
       } catch (e) {
         AppLogger.warning('⚠️ AUTH_SERVICE: Refresh endpoint failed: $e');
-        // Kuting, pastda Silent Login bor
+        // SECURITY: No fallback - passwords are not stored in client
       }
 
-      // 2-URINISH: Silent Login (Agar endpoint 404/401 bersa)
-      AppLogger.debug('🔄 AUTH_SERVICE: Attempting Silent Login fallback...');
-      final contact = prefs.getString(_keyContact);
-      final password = prefs.getString(_keyPassword);
-
-      if (contact != null && password != null) {
-        final loginResponse = await dio.post(
-          ApiPaths.login,
-          data: {
-            'phone': contact, // Yoki email, normalize qilingan bo'lsa
-            'password': password,
-            // access_type "avia" uchun kerak bo'lsa qo'shamiz, lekin bu global auth
-          },
-        );
-
-        if (loginResponse.statusCode == 200) {
-           final data = loginResponse.data;
-           // Login response strukturasi: ApiResponse -> result -> AuthTokensModel
-           // Lekin bu yerda raw dio, shuning uchun qo'lda pars qilamiz
-           // Odatda: { success: true, data: { ...tokens... } }
-           if (data is Map<String, dynamic> && data['data'] != null) {
-             final result = data['data'];
-             final newAccessToken = result['access_token'] as String?;
-             final newRefreshToken = result['refresh_token'] as String?;
-
-             if (newAccessToken != null) {
-               await saveTokens(
-                 accessToken: newAccessToken,
-                 refreshToken: newRefreshToken ?? refreshToken,
-               );
-               AppLogger.debug('✅ AUTH_SERVICE: Token refreshed successfully (via Silent Login)');
-               return newAccessToken;
-             }
-           }
-        }
-      }
-
-      AppLogger.error('❌ AUTH_SERVICE: All refresh attempts failed');
+      // SECURITY: Silent login removed - passwords are not stored in client
+      // If refresh token fails, user must login again
+      AppLogger.error('❌ AUTH_SERVICE: Refresh token failed - user must login again');
       return null;
     } catch (e) {
       AppLogger.error('❌ AUTH_SERVICE: Refresh logic error', e); 

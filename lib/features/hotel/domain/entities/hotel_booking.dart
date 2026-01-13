@@ -14,6 +14,7 @@ class HotelBooking extends Equatable {
     this.totalAmount,
     this.currency,
     this.paymentStatus,
+    this.paymentUrl,
     this.cancellationPolicy,
     this.hotelInfo,
     this.roomInfo,
@@ -31,6 +32,7 @@ class HotelBooking extends Equatable {
   final double? totalAmount;
   final String? currency;
   final String? paymentStatus;
+  final String? paymentUrl; // Payment URL for redirecting to payment gateway
   final Map<String, dynamic>? cancellationPolicy;
   final Map<String, dynamic>? hotelInfo;
   final Map<String, dynamic>? roomInfo;
@@ -49,6 +51,7 @@ class HotelBooking extends Equatable {
         totalAmount,
         currency,
         paymentStatus,
+        paymentUrl,
         cancellationPolicy,
         hotelInfo,
         roomInfo,

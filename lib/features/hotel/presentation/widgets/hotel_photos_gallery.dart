@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -35,11 +36,19 @@ class _HotelPhotosGalleryState extends State<HotelPhotosGallery> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = Colors.black; // Photo gallery should always be dark
+    final textColor = Colors.white; // Photo gallery text should always be white
+    
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
+        iconTheme: IconThemeData(color: textColor),
+        systemOverlayStyle: isDark 
+            ? SystemUiOverlayStyle.light 
+            : SystemUiOverlayStyle.dark,
       ),
       body: PageView.builder(
         controller: _pageController,
@@ -50,29 +59,50 @@ class _HotelPhotosGalleryState extends State<HotelPhotosGallery> {
           });
         },
         itemBuilder: (context, index) {
-          return InteractiveViewer(
-            child: Center(
-              child: CachedNetworkImage(
-                imageUrl: widget.photoUrls[index],
-                fit: BoxFit.contain,
-                placeholder: (context, url) => const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              return InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Center(
+                  child: SizedBox(
+                    width: constraints.maxWidth,
+                    height: constraints.maxHeight,
+                    child: CachedNetworkImage(
+                      imageUrl: widget.photoUrls[index],
+                      fit: BoxFit.contain,
+                      placeholder: (context, url) => Center(
+                        child: CircularProgressIndicator(
+                          color: textColor,
+                          strokeWidth: 2,
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Center(
+                        child: Icon(
+                          Icons.error_outline,
+                          color: textColor,
+                          size: 50,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                errorWidget: (context, url, error) => const Center(
-                  child: Icon(Icons.error, color: Colors.white, size: 50),
-                ),
-              ),
-            ),
+              );
+            },
           );
         },
       ),
       bottomNavigationBar: Container(
         height: 60.h,
-        color: Colors.black54,
+        color: isDark ? Colors.black87 : Colors.black54,
         child: Center(
           child: Text(
             '${_currentIndex + 1} / ${widget.photoUrls.length}',
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(
+              color: textColor,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ),

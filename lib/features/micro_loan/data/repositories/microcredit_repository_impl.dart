@@ -1,5 +1,7 @@
 import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
+
 import '../../../../core/errors/app_exception.dart';
 import '../../domain/entities/microcredit_filter.dart';
 import '../../domain/entities/microcredit_page.dart';
@@ -24,9 +26,9 @@ class MicrocreditRepositoryImpl implements MicrocreditRepository {
     required int size,
     MicrocreditFilter filter = MicrocreditFilter.empty,
   }) async {
-    print('[MicrocreditRepository] Fetching microcredits:');
-    print('  - Page: $page, Size: $size');
-    print('  - Filter: ${filter.toQueryParameters()}');
+    debugPrint('[MicrocreditRepository] Fetching microcredits:');
+    debugPrint('  - Page: $page, Size: $size');
+    debugPrint('  - Filter: ${filter.toQueryParameters()}');
     
     developer.log(
       'Repository fetching page=$page size=$size filter=${filter.toQueryParameters()}',
@@ -39,14 +41,14 @@ class MicrocreditRepositoryImpl implements MicrocreditRepository {
         filter: filter,
       );
       
-      print('[MicrocreditRepository] API response received:');
-      print('  - Items count: ${result.content.length}');
-      print('  - Page number: ${result.number}');
-      print('  - Total pages: ${result.totalPages}');
-      print('  - Is last: ${result.last}');
+      debugPrint('[MicrocreditRepository] API response received:');
+      debugPrint('  - Items count: ${result.content.length}');
+      debugPrint('  - Page number: ${result.number}');
+      debugPrint('  - Total pages: ${result.totalPages}');
+      debugPrint('  - Is last: ${result.last}');
       
       if (result.content.isNotEmpty) {
-        print('[MicrocreditRepository] First item: ${result.content.first.bankName}');
+        debugPrint('[MicrocreditRepository] First item: ${result.content.first.bankName}');
       }
       
       developer.log(
@@ -57,7 +59,7 @@ class MicrocreditRepositoryImpl implements MicrocreditRepository {
       developer.log('Repository returning fresh data', name: 'MicrocreditRepository');
       
       final entity = result.toEntity();
-      print('[MicrocreditRepository] Converted to entity: ${entity.items.length} items');
+      debugPrint('[MicrocreditRepository] Converted to entity: ${entity.items.length} items');
       return entity;
     } on AppException catch (error) {
       developer.log(

@@ -489,7 +489,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('insurance.kasko.tariff.not_found'.tr()),
-                      backgroundColor: Colors.orange,
+                      backgroundColor: AppColors.orangeWarning,
                     ),
                   );
                   return;
@@ -527,7 +527,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('insurance.kasko.tariff.conversion_failed'.tr()),
-                          backgroundColor: Colors.red,
+                          backgroundColor: AppColors.errorRedLight,
                         ),
                       );
                       return;
@@ -565,7 +565,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(state.message),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.errorRedLight,
                     duration: const Duration(seconds: 5),
                   ),
                 );
@@ -661,7 +661,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                               Icon(
                                 Icons.error_outline,
                                 size: 64.sp,
-                                color: Colors.red,
+                                color: AppColors.errorRedLight,
                               ),
                               SizedBox(height: 16.h),
                               Text(
@@ -680,7 +680,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                   );
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0085FF),
+                                  backgroundColor: AppColors.primaryBlue,
                                   padding: EdgeInsets.symmetric(
                                     horizontal: 32.w,
                                     vertical: 12.h,
@@ -690,7 +690,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                   'insurance.kasko.tariff.retry'.tr(),
                                   style: TextStyle(
                                     fontSize: 16.sp,
-                                    color: Colors.white,
+                                    color: AppColors.white,
                                   ),
                                 ),
                               ),
@@ -749,8 +749,8 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                                           ),
                                           decoration: BoxDecoration(
                                             color: isDark
-                                                ? const Color(0xFF2A2A2A)
-                                                : const Color(0xFFF3F4F6),
+                                                ? AppColors.darkCardBg
+                                                : AppColors.grayBackground,
                                             borderRadius: BorderRadius.circular(
                                               8.r,
                                             ),
@@ -951,7 +951,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                               borderRadius: BorderRadius.circular(12.r),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: AppColors.black.withOpacity(0.05),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -1091,7 +1091,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('insurance.kasko.tariff.pdf_open_error'.tr()),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.errorRedLight,
                     ),
                   );
                 }
@@ -1101,7 +1101,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('insurance.kasko.tariff.pdf_open_error'.tr()),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.errorRedLight,
                   ),
                 );
               }
@@ -1111,7 +1111,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
             'insurance.kasko.tariff.insurance_rules'.tr(),
             style: TextStyle(
               fontSize: 14.sp,
-              color: const Color(0xFF0085FF),
+              color: AppColors.primaryBlue,
               decoration: TextDecoration.underline,
             ),
           ),
@@ -1213,7 +1213,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('insurance.kasko.tariff.select_tariff'.tr()),
-                        backgroundColor: Colors.red,
+                        backgroundColor: AppColors.errorRedLight,
                       ),
                     );
                     return;
@@ -1228,7 +1228,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('insurance.kasko.tariff.select_car'.tr()),
-                          backgroundColor: Colors.red,
+                          backgroundColor: AppColors.errorRedLight,
                         ),
                       );
                       return;
@@ -1239,7 +1239,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('insurance.kasko.tariff.select_year'.tr()),
-                          backgroundColor: Colors.red,
+                          backgroundColor: AppColors.errorRedLight,
                         ),
                       );
                       return;
@@ -1316,7 +1316,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('${tr('common.error')}: $e'),
-                        backgroundColor: Colors.red,
+                        backgroundColor: AppColors.errorRedLight,
                       ),
                     );
                   }
@@ -1337,7 +1337,7 @@ class _KaskoTariffPageState extends State<KaskoTariffPage> {
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
-              color: isEnabled ? Colors.white : const Color(0xFF9CA3AF),
+              color: isEnabled ? AppColors.white : AppColors.gray500,
             ),
           ),
         ),
@@ -1374,12 +1374,12 @@ class _TariffCard extends StatelessWidget {
     final cardBg = isDark ? darkBlueBg : lightBlueBg;
 
     // Matn ranglari
-    final titleColor = isDark ? Colors.white : const Color(0xFF111827);
-    final valueColor = isDark ? Colors.white : const Color(0xFF111827);
-    final dividerColor = isDark ? Colors.grey[700]! : Colors.grey[300]!;
+    final titleColor = isDark ? AppColors.white : AppColors.charcoal;
+    final valueColor = isDark ? AppColors.white : AppColors.charcoal;
+    final dividerColor = isDark ? AppColors.darkBorder : AppColors.grayBorder;
     final shadowColor = isDark
-        ? Colors.black.withOpacity(0.3)
-        : Colors.black.withOpacity(0.05);
+        ? AppColors.black.withOpacity(0.3)
+        : AppColors.black.withOpacity(0.05);
 
     return GestureDetector(
       onTap: onTap,

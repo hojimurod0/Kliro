@@ -1,8 +1,6 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -18,49 +16,6 @@ import '../bloc/kasko_state.dart';
 import '../widgets/kasko_info_card.dart';
 import '../widgets/kasko_tech_passport_input.dart';
 import 'kasko_personal_data_page.dart';
-
-// #region agent log
-Future<void> _debugLog(String location, String message, Map<String, dynamic> data, {String? hypothesisId}) async {
-  try {
-    final logEntry = {
-      'id': 'log_${DateTime.now().millisecondsSinceEpoch}_${data.hashCode}',
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
-      'location': location,
-      'message': message,
-      'data': data,
-      'sessionId': 'debug-session',
-      'runId': 'run1',
-      if (hypothesisId != null) 'hypothesisId': hypothesisId,
-    };
-    final logPath = r'c:\Users\user\Desktop\KLiRO\KLiRO\.cursor\debug.log';
-    final file = File(logPath);
-    final logLine = '${jsonEncode(logEntry)}\n';
-    await file.writeAsString(logLine, mode: FileMode.append);
-    debugPrint('📝 DEBUG LOG: $message at $location');
-  } catch (e) {
-    debugPrint('❌ DEBUG LOG ERROR: $e at $location');
-    // Also try to write to a simpler location
-    try {
-      final logPath = '.cursor/debug.log';
-      final file = File(logPath);
-      final logEntry = {
-        'id': 'log_${DateTime.now().millisecondsSinceEpoch}_${data.hashCode}',
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
-        'location': location,
-        'message': message,
-        'data': data,
-        'sessionId': 'debug-session',
-        'runId': 'run1',
-        if (hypothesisId != null) 'hypothesisId': hypothesisId,
-        'error': e.toString(),
-      };
-      await file.writeAsString('${jsonEncode(logEntry)}\n', mode: FileMode.append);
-    } catch (e2) {
-      debugPrint('❌ DEBUG LOG ERROR (fallback): $e2');
-    }
-  }
-}
-// #endregion
 
 @RoutePage()
 class KaskoDocumentDataPage extends StatefulWidget {
@@ -93,13 +48,14 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
     _numberController.addListener(_updateButtonState);
     _texPassportSeriesController.addListener(_updateButtonState);
     _texPassportNumberController.addListener(_updateButtonState);
-    
+
     // Dastlabki tarifni saqlash
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final bloc = context.read<KaskoBloc>();
         _lastKnownRate = bloc.selectedRate ?? bloc.cachedSelectedRate;
-        debugPrint('🔄🔄🔄 initState: Dastlabki tarif: ${_lastKnownRate?.name ?? "null"}');
+        debugPrint(
+            '🔄🔄🔄 initState: Dastlabki tarif: ${_lastKnownRate?.name ?? "null"}');
       }
     });
   }
@@ -107,13 +63,7 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // #region agent log
-    _debugLog('kasko_document_data_page.dart:64', 'didChangeDependencies called', {
-      'lastKnownRateId': _lastKnownRate?.id,
-      'lastKnownRateName': _lastKnownRate?.name,
-    }, hypothesisId: 'H3');
-    // #endregion
-    
+
     // Sahifaga qaytganida (masalan, orqaga qaytib yangi tarif tanlaganda),
     // bloc state'ni tekshirish va UI'ni yangilash
     // PostFrameCallback o'rniga darhol tekshirish - bu sahifaga qaytganida ishlaydi
@@ -121,42 +71,29 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
       if (mounted) {
         final bloc = context.read<KaskoBloc>();
         final currentRate = bloc.selectedRate ?? bloc.cachedSelectedRate;
-        
-        // #region agent log
-        _debugLog('kasko_document_data_page.dart:72', 'didChangeDependencies postFrameCallback', {
-          'currentRateId': currentRate?.id,
-          'currentRateName': currentRate?.name,
-          'lastKnownRateId': _lastKnownRate?.id,
-          'lastKnownRateName': _lastKnownRate?.name,
-          'ratesMatch': currentRate?.id == _lastKnownRate?.id,
-        }, hypothesisId: 'H3');
-        // #endregion
-        
-        debugPrint('🔄🔄🔄 didChangeDependencies: Joriy tarif: ${currentRate?.name ?? "null"} (id: ${currentRate?.id ?? "null"})');
-        debugPrint('🔄🔄🔄 didChangeDependencies: Oxirgi tarif: ${_lastKnownRate?.name ?? "null"} (id: ${_lastKnownRate?.id ?? "null"})');
-        
+
+        debugPrint(
+            '🔄🔄🔄 didChangeDependencies: Joriy tarif: ${currentRate?.name ?? "null"} (id: ${currentRate?.id ?? "null"})');
+        debugPrint(
+            '🔄🔄🔄 didChangeDependencies: Oxirgi tarif: ${_lastKnownRate?.name ?? "null"} (id: ${_lastKnownRate?.id ?? "null"})');
+
         // Agar tarif o'zgarganda, UI'ni yangilash
         if (currentRate != null) {
           if (_lastKnownRate == null || currentRate.id != _lastKnownRate!.id) {
-            // #region agent log
-            _debugLog('kasko_document_data_page.dart:79', 'didChangeDependencies: rate changed, calling setState', {
-              'oldRateId': _lastKnownRate?.id,
-              'oldRateName': _lastKnownRate?.name,
-              'newRateId': currentRate.id,
-              'newRateName': currentRate.name,
-            }, hypothesisId: 'H2');
-            // #endregion
             // Avval _lastKnownRate'ni yangilash, keyin setState chaqirish
             _lastKnownRate = currentRate;
             setState(() {});
-            debugPrint('🔄🔄🔄 didChangeDependencies: UI yangilandi, yangi tarif: ${currentRate.name}');
+            debugPrint(
+                '🔄🔄🔄 didChangeDependencies: UI yangilandi, yangi tarif: ${currentRate.name}');
           } else {
-            debugPrint('🔄🔄🔄 didChangeDependencies: Tarif o\'zgarmadi, UI yangilanmaydi');
+            debugPrint(
+                '🔄🔄🔄 didChangeDependencies: Tarif o\'zgarmadi, UI yangilanmaydi');
           }
         } else if (_lastKnownRate != null) {
           // Agar currentRate null bo'lsa, lekin _lastKnownRate null emas bo'lsa,
           // bu xatolik bo'lishi mumkin, lekin UI'ni yangilash kerak emas
-          debugPrint('🔄🔄🔄 didChangeDependencies: currentRate null, lekin _lastKnownRate mavjud');
+          debugPrint(
+              '🔄🔄🔄 didChangeDependencies: currentRate null, lekin _lastKnownRate mavjud');
         }
       }
     });
@@ -263,23 +200,9 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
 
   /// Ikkinchi sahifada tanlangan tarif nomini olish
   String _getTariffName(KaskoBloc bloc, KaskoState state) {
-    // #region agent log
-    _debugLog('kasko_document_data_page.dart:200', '_getTariffName called', {
-      'stateType': state.runtimeType.toString(),
-      'lastKnownRateId': _lastKnownRate?.id,
-      'lastKnownRateName': _lastKnownRate?.name,
-    }, hypothesisId: 'H5');
-    // #endregion
-    
     // Ikkinchi sahifada tanlangan tarif nomi
     // Avval state'dan olish (KaskoRatesLoaded state'da selectedRate bor)
     if (state is KaskoRatesLoaded && state.selectedRate != null) {
-      // #region agent log
-      _debugLog('kasko_document_data_page.dart:207', '_getTariffName: found in KaskoRatesLoaded state', {
-        'rateName': state.selectedRate!.name,
-        'rateId': state.selectedRate!.id,
-      }, hypothesisId: 'H5');
-      // #endregion
       return state.selectedRate!.name;
     }
 
@@ -288,17 +211,6 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
     final selectedRate = bloc.selectedRate;
     final cachedRate = bloc.cachedSelectedRate;
     final rate = selectedRate ?? cachedRate;
-    
-    // #region agent log
-    _debugLog('kasko_document_data_page.dart:217', '_getTariffName: got rates from bloc', {
-      'selectedRateId': selectedRate?.id,
-      'selectedRateName': selectedRate?.name,
-      'cachedRateId': cachedRate?.id,
-      'cachedRateName': cachedRate?.name,
-      'finalRateId': rate?.id,
-      'finalRateName': rate?.name,
-    }, hypothesisId: 'H5');
-    // #endregion
 
     if (rate != null && rate.name.isNotEmpty) {
       return rate.name;
@@ -385,9 +297,8 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
     Color subtitleColor,
     Color cardBg,
   ) {
-    final personalCardBg = isDark
-        ? const Color(0xFF1E3A5C)
-        : const Color(0xFFE3F2FD);
+    final personalCardBg =
+        isDark ? const Color(0xFF1E3A5C) : const Color(0xFFE3F2FD);
 
     // Получаем личные данные из BLoC
     final ownerName = bloc.ownerName ?? '--';
@@ -519,10 +430,8 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
   void _saveDocumentData(KaskoBloc bloc) {
     // Формируем номер автомобиля (регион + номер без пробелов)
     final region = _regionController.text.trim();
-    final number = _numberController.text
-        .trim()
-        .replaceAll(' ', '')
-        .toUpperCase();
+    final number =
+        _numberController.text.trim().replaceAll(' ', '').toUpperCase();
     final carNumber = '$region$number';
 
     // Формируем VIN (техпаспорт серия + номер)
@@ -592,105 +501,73 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
             centerTitle: true,
             systemOverlayStyle: SystemUiOverlayStyle(
               statusBarColor: Colors.transparent,
-              statusBarIconBrightness: isDark
-                  ? Brightness.light
-                  : Brightness.dark,
+              statusBarIconBrightness:
+                  isDark ? Brightness.light : Brightness.dark,
             ),
           ),
           body: BlocConsumer<KaskoBloc, KaskoState>(
             listener: (context, state) {
-              // #region agent log
-              _debugLog('kasko_document_data_page.dart:517', 'BlocConsumer listener called', {
-                'stateType': state.runtimeType.toString(),
-                'lastKnownRateId': _lastKnownRate?.id,
-                'lastKnownRateName': _lastKnownRate?.name,
-              }, hypothesisId: 'H1');
-              // #endregion
-              
               // State o'zgarganda, bloc'dan tarifni olish va tekshirish
               final bloc = context.read<KaskoBloc>();
               final selectedRate = bloc.selectedRate;
               final cachedRate = bloc.cachedSelectedRate;
               final currentRate = selectedRate ?? cachedRate;
-              
-              // #region agent log
-              _debugLog('kasko_document_data_page.dart:520', 'BlocConsumer: got rates from bloc', {
-                'selectedRateId': selectedRate?.id,
-                'selectedRateName': selectedRate?.name,
-                'cachedRateId': cachedRate?.id,
-                'cachedRateName': cachedRate?.name,
-                'currentRateId': currentRate?.id,
-                'currentRateName': currentRate?.name,
-              }, hypothesisId: 'H5');
-              // #endregion
-              
-              debugPrint('🔔🔔🔔 Listener: State o\'zgardi: ${state.runtimeType}');
-              debugPrint('🔔🔔🔔 Listener: Joriy tarif: ${currentRate?.name ?? "null"} (id: ${currentRate?.id ?? "null"})');
-              debugPrint('🔔🔔🔔 Listener: Oxirgi tarif: ${_lastKnownRate?.name ?? "null"} (id: ${_lastKnownRate?.id ?? "null"})');
-              
+
+              if (kDebugMode) {
+                debugPrint(
+                    '🔔🔔🔔 Listener: State o\'zgardi: ${state.runtimeType}');
+                debugPrint(
+                    '🔔🔔🔔 Listener: Joriy tarif: ${currentRate?.name ?? "null"} (id: ${currentRate?.id ?? "null"})');
+                debugPrint(
+                    '🔔🔔🔔 Listener: Oxirgi tarif: ${_lastKnownRate?.name ?? "null"} (id: ${_lastKnownRate?.id ?? "null"})');
+              }
+
               // Agar tarif o'zgarganda, UI'ni yangilash
               if (currentRate != null) {
-                if (_lastKnownRate == null || currentRate.id != _lastKnownRate!.id) {
-                  // #region agent log
-                  _debugLog('kasko_document_data_page.dart:528', 'BlocConsumer: rate changed, updating _lastKnownRate and calling setState', {
-                    'oldRateId': _lastKnownRate?.id,
-                    'oldRateName': _lastKnownRate?.name,
-                    'newRateId': currentRate.id,
-                    'newRateName': currentRate.name,
-                  }, hypothesisId: 'H2');
-                  // #endregion
+                if (_lastKnownRate == null ||
+                    currentRate.id != _lastKnownRate!.id) {
                   _lastKnownRate = currentRate;
-                  debugPrint('🔔🔔🔔 Listener: Tarif o\'zgardi, UI yangilanmoqda: ${currentRate.name}');
+                  if (kDebugMode) {
+                    debugPrint(
+                        '🔔🔔🔔 Listener: Tarif o\'zgardi, UI yangilanmoqda: ${currentRate.name}');
+                  }
                   if (mounted) {
                     setState(() {});
                   }
                 } else {
-                  // #region agent log
-                  _debugLog('kasko_document_data_page.dart:535', 'BlocConsumer: rate not changed', {
-                    'rateId': currentRate.id,
-                    'rateName': currentRate.name,
-                  }, hypothesisId: 'H2');
-                  // #endregion
-                  debugPrint('🔔🔔🔔 Listener: Tarif o\'zgarmadi');
+                  if (kDebugMode) {
+                    debugPrint('🔔🔔🔔 Listener: Tarif o\'zgarmadi');
+                  }
                 }
-              } else if (state is KaskoRatesLoaded && state.selectedRate != null) {
+              } else if (state is KaskoRatesLoaded &&
+                  state.selectedRate != null) {
                 // Agar state'dan tarif olish mumkin bo'lsa
-                // #region agent log
-                _debugLog('kasko_document_data_page.dart:537', 'BlocConsumer: got rate from KaskoRatesLoaded state', {
-                  'stateSelectedRateId': state.selectedRate?.id,
-                  'stateSelectedRateName': state.selectedRate?.name,
-                  'lastKnownRateId': _lastKnownRate?.id,
-                  'ratesMatch': state.selectedRate?.id == _lastKnownRate?.id,
-                }, hypothesisId: 'H1');
-                // #endregion
-                if (_lastKnownRate == null || state.selectedRate!.id != _lastKnownRate!.id) {
+                if (_lastKnownRate == null ||
+                    state.selectedRate!.id != _lastKnownRate!.id) {
                   _lastKnownRate = state.selectedRate;
-                  debugPrint('🔔🔔🔔 Listener: State\'dan tarif yangilandi: ${state.selectedRate!.name}');
+                  if (kDebugMode) {
+                    debugPrint(
+                        '🔔🔔🔔 Listener: State\'dan tarif yangilandi: ${state.selectedRate!.name}');
+                  }
                   if (mounted) {
                     setState(() {});
                   }
                 }
               } else if (state is KaskoPolicyCalculated) {
                 // Policy hisoblanganida ham UI'ni yangilash
-                debugPrint('🔔🔔🔔 Listener: Policy hisoblandi, UI yangilanmoqda');
+                if (kDebugMode) {
+                  debugPrint(
+                      '🔔🔔🔔 Listener: Policy hisoblandi, UI yangilanmoqda');
+                }
                 if (mounted) {
                   setState(() {});
                 }
               }
             },
             buildWhen: (previous, current) {
-              // #region agent log
-              _debugLog('kasko_document_data_page.dart:554', 'buildWhen called', {
-                'previousType': previous.runtimeType.toString(),
-                'currentType': current.runtimeType.toString(),
-                'previousSelectedRateId': (previous is KaskoRatesLoaded) ? previous.selectedRate?.id : null,
-                'currentSelectedRateId': (current is KaskoRatesLoaded) ? current.selectedRate?.id : null,
-              }, hypothesisId: 'H4');
-              // #endregion
-              
-              // Har safar build qilish - tarif o'zgarishini kuzatish uchun
-              // Builder ichida bloc state'ni tekshiramiz
-              return true;
+              // State type o'zgarganda rebuild qilish
+              // Builder ichida bloc state'ni tekshiramiz, shuning uchun state type o'zgarishi yetarli
+              return previous.runtimeType != current.runtimeType;
             },
             builder: (context, state) {
               final bloc = context.read<KaskoBloc>();
@@ -698,24 +575,23 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
               // Sahifaga qaytganida, bloc'dan tarifni tekshirish va yangilash
               // Bu muhim, chunki listener har safar ishlamasligi mumkin
               final currentRate = bloc.selectedRate ?? bloc.cachedSelectedRate;
-              
+
               // Agar tarif o'zgarganda, UI'ni yangilash
               // Builder ichida setState chaqirolmaymiz, shuning uchun postFrameCallback ishlatamiz
-              if (currentRate != null && (_lastKnownRate == null || currentRate.id != _lastKnownRate!.id)) {
-                // #region agent log
-                _debugLog('kasko_document_data_page.dart:575', 'Builder: rate changed, scheduling setState', {
-                  'oldRateId': _lastKnownRate?.id,
-                  'oldRateName': _lastKnownRate?.name,
-                  'newRateId': currentRate.id,
-                  'newRateName': currentRate.name,
-                }, hypothesisId: 'H2');
-                // #endregion
+              if (currentRate != null &&
+                  (_lastKnownRate == null ||
+                      currentRate.id != _lastKnownRate!.id)) {
                 // PostFrameCallback orqali setState chaqirish - bu keyingi frame'da ishlaydi
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted && currentRate.id == (bloc.selectedRate ?? bloc.cachedSelectedRate)?.id) {
+                  if (mounted &&
+                      currentRate.id ==
+                          (bloc.selectedRate ?? bloc.cachedSelectedRate)?.id) {
                     _lastKnownRate = currentRate;
                     setState(() {});
-                    debugPrint('🔄🔄🔄 Builder: UI yangilandi, yangi tarif: ${currentRate.name}');
+                    if (kDebugMode) {
+                      debugPrint(
+                          '🔄🔄🔄 Builder: UI yangilandi, yangi tarif: ${currentRate.name}');
+                    }
                   }
                 });
               }
@@ -726,16 +602,6 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
               final carYear = _getCarYear(bloc);
               final tariffName = _getTariffName(bloc, state);
               final totalPrice = _getTotalPrice(bloc, state);
-              
-              // #region agent log
-              _debugLog('kasko_document_data_page.dart:590', 'BlocConsumer builder: got tariff name', {
-                'tariffName': tariffName,
-                'lastKnownRateId': _lastKnownRate?.id,
-                'lastKnownRateName': _lastKnownRate?.name,
-                'currentRateId': currentRate?.id,
-                'currentRateName': currentRate?.name,
-              }, hypothesisId: 'H2');
-              // #endregion
 
               return Stack(
                 children: [
@@ -909,10 +775,9 @@ class _KaskoDocumentDataPageState extends State<KaskoDocumentDataPage> {
                                       MaterialPageRoute(
                                         builder: (context) =>
                                             BlocProvider.value(
-                                              value: bloc,
-                                              child:
-                                                  const KaskoPersonalDataPage(),
-                                            ),
+                                          value: bloc,
+                                          child: const KaskoPersonalDataPage(),
+                                        ),
                                       ),
                                     );
                                   }

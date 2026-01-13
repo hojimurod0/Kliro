@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/utils/snackbar_helper.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../bloc/avia_bloc.dart';
 import '../../data/models/login_request_model.dart';
 
@@ -138,10 +139,14 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text('avia.orders.title'.tr()),
         centerTitle: true,
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        foregroundColor: theme.appBarTheme.foregroundColor,
       ),
       body: BlocProvider.value(
         value: _aviaBloc,
@@ -165,18 +170,34 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
                   });
                   showDialog(
                     context: context,
-                    builder: (context) => AlertDialog(
-                      title: Text('Balans'),
-                      content: Text(
-                        '${state.response.balance ?? 0} ${state.response.currency ?? ''}',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('OK'),
+                    builder: (context) {
+                      final dialogTheme = Theme.of(context);
+                      final isDialogDark = dialogTheme.brightness == Brightness.dark;
+                      return AlertDialog(
+                        backgroundColor: isDialogDark ? AppColors.darkCardBg : AppColors.white,
+                        title: Text(
+                          'avia.orders.balance'.tr(),
+                          style: TextStyle(
+                            color: isDialogDark ? AppColors.white : AppColors.black,
+                          ),
                         ),
-                      ],
-                    ),
+                        content: Text(
+                          '${state.response.balance ?? 0} ${state.response.currency ?? ''}',
+                          style: TextStyle(
+                            color: isDialogDark ? AppColors.white : AppColors.black,
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              'common.close'.tr(),
+                              style: TextStyle(color: AppColors.primaryBlue),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   );
                 } else if (state is AviaBalanceFailure) {
                   setState(() {
@@ -246,48 +267,73 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
                   children: [
                     // Login Section
                     Card(
+                      color: theme.cardColor,
                       child: Padding(
                         padding: EdgeInsets.all(16.w),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              'Avia Login',
+                              'avia.orders.login_title'.tr(),
                               style: TextStyle(
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.bold,
+                                color: theme.textTheme.titleLarge?.color,
                               ),
                             ),
                             SizedBox(height: 16.h),
                             TextField(
                               controller: _emailController,
+                              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
                               decoration: InputDecoration(
-                                labelText: 'Email',
-                                border: OutlineInputBorder(),
+                                labelText: 'auth.field.email_label'.tr(),
+                                labelStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
+                                border: OutlineInputBorder(
+                                  borderSide: BorderSide(color: theme.dividerColor),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(color: theme.dividerColor),
+                                ),
+                                filled: true,
+                                fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
                               ),
                               keyboardType: TextInputType.emailAddress,
                             ),
                             SizedBox(height: 12.h),
                             TextField(
                               controller: _passwordController,
+                              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
                               decoration: InputDecoration(
-                                labelText: 'Parol',
-                                border: OutlineInputBorder(),
+                                labelText: 'auth.field.password_label'.tr(),
+                                labelStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
+                                border: OutlineInputBorder(
+                                  borderSide: BorderSide(color: theme.dividerColor),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(color: theme.dividerColor),
+                                ),
+                                filled: true,
+                                fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
                               ),
                               obscureText: true,
                             ),
                             SizedBox(height: 16.h),
                             ElevatedButton(
                               onPressed: _isLoadingLogin ? null : _handleLogin,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBlue,
+                                foregroundColor: AppColors.white,
+                              ),
                               child: _isLoadingLogin
                                   ? SizedBox(
                                       width: 20.w,
                                       height: 20.h,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
                                       ),
                                     )
-                                  : Text('Kirish'),
+                                  : Text('auth.login.title'.tr()),
                             ),
                           ],
                         ),
@@ -296,16 +342,18 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
                     SizedBox(height: 16.h),
                     // Check Balance Section
                     Card(
+                      color: theme.cardColor,
                       child: Padding(
                         padding: EdgeInsets.all(16.w),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              'Balansni tekshirish',
+                              'avia.orders.check_balance'.tr(),
                               style: TextStyle(
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.bold,
+                                color: theme.textTheme.titleLarge?.color,
                               ),
                             ),
                             SizedBox(height: 16.h),
@@ -313,15 +361,20 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
                               onPressed: _isLoadingBalance
                                   ? null
                                   : _handleCheckBalance,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBlue,
+                                foregroundColor: AppColors.white,
+                              ),
                               child: _isLoadingBalance
                                   ? SizedBox(
                                       width: 20.w,
                                       height: 20.h,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
                                       ),
                                     )
-                                  : Text('Balansni tekshirish'),
+                                  : Text('avia.orders.check_balance'.tr()),
                             ),
                           ],
                         ),
@@ -330,40 +383,69 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
                     SizedBox(height: 16.h),
                     // Schedule Section
                     Card(
+                      color: theme.cardColor,
                       child: Padding(
                         padding: EdgeInsets.all(16.w),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              'Reyjlar jadvali',
+                              'avia.orders.schedule_title'.tr(),
                               style: TextStyle(
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.bold,
+                                color: theme.textTheme.titleLarge?.color,
                               ),
                             ),
                             SizedBox(height: 16.h),
                             TextField(
                               controller: _scheduleFromController,
+                              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
                               decoration: InputDecoration(
-                                labelText: 'Dan (YYYY-MM-DD)',
-                                border: OutlineInputBorder(),
+                                labelText: 'avia.orders.schedule_from'.tr(),
+                                labelStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
+                                border: OutlineInputBorder(
+                                  borderSide: BorderSide(color: theme.dividerColor),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(color: theme.dividerColor),
+                                ),
+                                filled: true,
+                                fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
                               ),
                             ),
                             SizedBox(height: 12.h),
                             TextField(
                               controller: _scheduleToController,
+                              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
                               decoration: InputDecoration(
-                                labelText: 'Gacha (YYYY-MM-DD)',
-                                border: OutlineInputBorder(),
+                                labelText: 'avia.orders.schedule_to'.tr(),
+                                labelStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
+                                border: OutlineInputBorder(
+                                  borderSide: BorderSide(color: theme.dividerColor),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(color: theme.dividerColor),
+                                ),
+                                filled: true,
+                                fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
                               ),
                             ),
                             SizedBox(height: 12.h),
                             TextField(
                               controller: _scheduleAirportController,
+                              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
                               decoration: InputDecoration(
-                                labelText: 'Aeroport kodi',
-                                border: OutlineInputBorder(),
+                                labelText: 'avia.orders.airport_code'.tr(),
+                                labelStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
+                                border: OutlineInputBorder(
+                                  borderSide: BorderSide(color: theme.dividerColor),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(color: theme.dividerColor),
+                                ),
+                                filled: true,
+                                fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
                               ),
                             ),
                             SizedBox(height: 16.h),
@@ -371,15 +453,20 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
                               onPressed: _isLoadingSchedule
                                   ? null
                                   : _handleGetSchedule,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBlue,
+                                foregroundColor: AppColors.white,
+                              ),
                               child: _isLoadingSchedule
                                   ? SizedBox(
                                       width: 20.w,
                                       height: 20.h,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
                                       ),
                                     )
-                                  : Text('Jadvalni olish'),
+                                  : Text('avia.orders.get_schedule'.tr()),
                             ),
                           ],
                         ),
@@ -388,16 +475,18 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
                     SizedBox(height: 16.h),
                     // Additional APIs Section
                     Card(
+                      color: theme.cardColor,
                       child: Padding(
                         padding: EdgeInsets.all(16.w),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              'Qo\'shimcha API\'lar',
+                              'avia.orders.additional_apis'.tr(),
                               style: TextStyle(
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.bold,
+                                color: theme.textTheme.titleLarge?.color,
                               ),
                             ),
                             SizedBox(height: 16.h),
@@ -405,60 +494,80 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
                               onPressed: _isLoadingVisaTypes
                                   ? null
                                   : _handleGetVisaTypes,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBlue,
+                                foregroundColor: AppColors.white,
+                              ),
                               child: _isLoadingVisaTypes
                                   ? SizedBox(
                                       width: 20.w,
                                       height: 20.h,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
                                       ),
                                     )
-                                  : Text('Viza turlari'),
+                                  : Text('avia.orders.visa_types'.tr()),
                             ),
                             SizedBox(height: 12.h),
                             ElevatedButton(
                               onPressed: _isLoadingServiceClasses
                                   ? null
                                   : _handleGetServiceClasses,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBlue,
+                                foregroundColor: AppColors.white,
+                              ),
                               child: _isLoadingServiceClasses
                                   ? SizedBox(
                                       width: 20.w,
                                       height: 20.h,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
                                       ),
                                     )
-                                  : Text('Xizmat sinflari'),
+                                  : Text('avia.orders.service_classes'.tr()),
                             ),
                             SizedBox(height: 12.h),
                             ElevatedButton(
                               onPressed: _isLoadingPassengerTypes
                                   ? null
                                   : _handleGetPassengerTypes,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBlue,
+                                foregroundColor: AppColors.white,
+                              ),
                               child: _isLoadingPassengerTypes
                                   ? SizedBox(
                                       width: 20.w,
                                       height: 20.h,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
                                       ),
                                     )
-                                  : Text('Yo\'lovchi turlari'),
+                                  : Text('avia.orders.passenger_types'.tr()),
                             ),
                             SizedBox(height: 12.h),
                             ElevatedButton(
                               onPressed: _isLoadingHealth
                                   ? null
                                   : _handleGetHealth,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBlue,
+                                foregroundColor: AppColors.white,
+                              ),
                               child: _isLoadingHealth
                                   ? SizedBox(
                                       width: 20.w,
                                       height: 20.h,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
                                       ),
                                     )
-                                  : Text('Health check'),
+                                  : Text('avia.orders.health_check'.tr()),
                             ),
                           ],
                         ),
@@ -467,6 +576,7 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
                     SizedBox(height: 16.h),
                     // Orders Section
                     Card(
+                      color: theme.cardColor,
                       child: Padding(
                         padding: EdgeInsets.all(24.w),
                         child: Column(
@@ -475,9 +585,8 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
                             Icon(
                               Icons.airplane_ticket_outlined,
                               size: 64.sp,
-                              color: theme.iconTheme.color
-                                      ?.withValues(alpha: 0.6) ??
-                                  Colors.grey,
+                              color: theme.iconTheme.color?.withOpacity(0.6) ??
+                                  AppColors.grayText,
                             ),
                             SizedBox(height: 16.h),
                             Text(
@@ -485,9 +594,8 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
                               style: TextStyle(
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.w600,
-                                color: theme.textTheme.bodyLarge?.color
-                                        ?.withValues(alpha: 0.7) ??
-                                    Colors.grey,
+                                color: theme.textTheme.bodyLarge?.color?.withOpacity(0.7) ??
+                                    AppColors.grayText,
                               ),
                             ),
                             SizedBox(height: 8.h),
@@ -495,9 +603,8 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
                               'avia.orders.empty_subtitle'.tr(),
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                color: theme.textTheme.bodyMedium?.color
-                                        ?.withValues(alpha: 0.6) ??
-                                    Colors.grey,
+                                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6) ??
+                                    AppColors.grayText,
                               ),
                             ),
                           ],
@@ -515,10 +622,18 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
   }
 
   void _showScheduleDialog(BuildContext context, List<dynamic> schedules) {
+    final dialogTheme = Theme.of(context);
+    final isDialogDark = dialogTheme.brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Reyjlar jadvali'),
+        backgroundColor: isDialogDark ? AppColors.darkCardBg : AppColors.white,
+        title: Text(
+          'avia.orders.schedule_title'.tr(),
+          style: TextStyle(
+            color: isDialogDark ? AppColors.white : AppColors.black,
+          ),
+        ),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -527,9 +642,17 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
             itemBuilder: (context, index) {
               final schedule = schedules[index];
               return ListTile(
-                title: Text(schedule.flightNumber ?? ''),
+                title: Text(
+                  schedule.flightNumber ?? '',
+                  style: TextStyle(
+                    color: isDialogDark ? AppColors.white : AppColors.black,
+                  ),
+                ),
                 subtitle: Text(
                   '${schedule.departureAirport} - ${schedule.arrivalAirport}',
+                  style: TextStyle(
+                    color: isDialogDark ? AppColors.grayText : AppColors.bodyText,
+                  ),
                 ),
               );
             },
@@ -538,7 +661,10 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
+            child: Text(
+              'common.close'.tr(),
+              style: TextStyle(color: AppColors.primaryBlue),
+            ),
           ),
         ],
       ),
@@ -546,10 +672,18 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
   }
 
   void _showVisaTypesDialog(BuildContext context, List<dynamic> visaTypes) {
+    final dialogTheme = Theme.of(context);
+    final isDialogDark = dialogTheme.brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Viza turlari'),
+        backgroundColor: isDialogDark ? AppColors.darkCardBg : AppColors.white,
+        title: Text(
+          'avia.orders.visa_types'.tr(),
+          style: TextStyle(
+            color: isDialogDark ? AppColors.white : AppColors.black,
+          ),
+        ),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -558,8 +692,18 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
             itemBuilder: (context, index) {
               final visa = visaTypes[index];
               return ListTile(
-                title: Text(visa.name ?? ''),
-                subtitle: Text(visa.description ?? ''),
+                title: Text(
+                  visa.name ?? '',
+                  style: TextStyle(
+                    color: isDialogDark ? AppColors.white : AppColors.black,
+                  ),
+                ),
+                subtitle: Text(
+                  visa.description ?? '',
+                  style: TextStyle(
+                    color: isDialogDark ? AppColors.grayText : AppColors.bodyText,
+                  ),
+                ),
               );
             },
           ),
@@ -567,7 +711,10 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
+            child: Text(
+              'common.close'.tr(),
+              style: TextStyle(color: AppColors.primaryBlue),
+            ),
           ),
         ],
       ),
@@ -576,10 +723,18 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
 
   void _showServiceClassesDialog(
       BuildContext context, List<dynamic> serviceClasses) {
+    final dialogTheme = Theme.of(context);
+    final isDialogDark = dialogTheme.brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Xizmat sinflari'),
+        backgroundColor: isDialogDark ? AppColors.darkCardBg : AppColors.white,
+        title: Text(
+          'avia.orders.service_classes'.tr(),
+          style: TextStyle(
+            color: isDialogDark ? AppColors.white : AppColors.black,
+          ),
+        ),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -588,8 +743,18 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
             itemBuilder: (context, index) {
               final serviceClass = serviceClasses[index];
               return ListTile(
-                title: Text(serviceClass.code ?? ''),
-                subtitle: Text(serviceClass.name ?? ''),
+                title: Text(
+                  serviceClass.code ?? '',
+                  style: TextStyle(
+                    color: isDialogDark ? AppColors.white : AppColors.black,
+                  ),
+                ),
+                subtitle: Text(
+                  serviceClass.name ?? '',
+                  style: TextStyle(
+                    color: isDialogDark ? AppColors.grayText : AppColors.bodyText,
+                  ),
+                ),
               );
             },
           ),
@@ -597,7 +762,10 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
+            child: Text(
+              'common.close'.tr(),
+              style: TextStyle(color: AppColors.primaryBlue),
+            ),
           ),
         ],
       ),
@@ -606,10 +774,18 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
 
   void _showPassengerTypesDialog(
       BuildContext context, List<dynamic> passengerTypes) {
+    final dialogTheme = Theme.of(context);
+    final isDialogDark = dialogTheme.brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Yo\'lovchi turlari'),
+        backgroundColor: isDialogDark ? AppColors.darkCardBg : AppColors.white,
+        title: Text(
+          'avia.orders.passenger_types'.tr(),
+          style: TextStyle(
+            color: isDialogDark ? AppColors.white : AppColors.black,
+          ),
+        ),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -618,8 +794,18 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
             itemBuilder: (context, index) {
               final passengerType = passengerTypes[index];
               return ListTile(
-                title: Text(passengerType.code ?? ''),
-                subtitle: Text(passengerType.name ?? ''),
+                title: Text(
+                  passengerType.code ?? '',
+                  style: TextStyle(
+                    color: isDialogDark ? AppColors.white : AppColors.black,
+                  ),
+                ),
+                subtitle: Text(
+                  passengerType.name ?? '',
+                  style: TextStyle(
+                    color: isDialogDark ? AppColors.grayText : AppColors.bodyText,
+                  ),
+                ),
               );
             },
           ),
@@ -627,7 +813,10 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
+            child: Text(
+              'common.close'.tr(),
+              style: TextStyle(color: AppColors.primaryBlue),
+            ),
           ),
         ],
       ),
@@ -635,15 +824,31 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
   }
 
   void _showHealthDialog(BuildContext context, dynamic health) {
+    final dialogTheme = Theme.of(context);
+    final isDialogDark = dialogTheme.brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Health check'),
-        content: Text(health.status ?? 'Unknown'),
+        backgroundColor: isDialogDark ? AppColors.darkCardBg : AppColors.white,
+        title: Text(
+          'avia.orders.health_check'.tr(),
+          style: TextStyle(
+            color: isDialogDark ? AppColors.white : AppColors.black,
+          ),
+        ),
+        content: Text(
+          health.status ?? 'common.unknown'.tr(),
+          style: TextStyle(
+            color: isDialogDark ? AppColors.white : AppColors.black,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
+            child: Text(
+              'common.close'.tr(),
+              style: TextStyle(color: AppColors.primaryBlue),
+            ),
           ),
         ],
       ),

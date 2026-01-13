@@ -1,9 +1,13 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_typography.dart';
 import '../../../../core/navigation/app_router.dart';
 import '../widgets/home_banner.dart';
+import '../widgets/home_bank_logos_carousel.dart';
 import '../widgets/home_header.dart';
 import '../widgets/home_news_section.dart';
 import '../widgets/home_services_grid.dart';
@@ -11,8 +15,13 @@ import '../widgets/main_bottom_navigation.dart';
 
 class HomePage extends StatelessWidget {
   final ValueChanged<TabItem>? onTabChange;
+  final VoidCallback? onNotificationTap;
 
-  const HomePage({super.key, this.onTabChange});
+  const HomePage({
+    super.key,
+    this.onTabChange,
+    this.onNotificationTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +38,7 @@ class HomePage extends StatelessWidget {
               SizedBox(height: 10.h),
               HomeHeader(
                 onProfileTap: () => onTabChange?.call(TabItem.profile),
+                onNotificationTap: onNotificationTap,
               ),
               SizedBox(height: 20.h),
               HomeBanner(),
@@ -38,15 +48,15 @@ class HomePage extends StatelessWidget {
                   children: [
                     HomeServicesGrid(
                       onBankTap: () => context.router.push(BankServicesRoute()),
-                      onInsuranceTap: () =>
-                          context.router.push(InsuranceServicesRoute()),
-                      onFlightsTap: () =>
-                          context.router.push(AvichiptalarModuleRoute()),
+                      onInsuranceTap: () => context.router.push(InsuranceServicesRoute()),
+                      onFlightsTap: () => context.router.push(AvichiptalarModuleRoute()),
                     ),
                     SizedBox(height: 16.h),
                     HomeWideServiceCard(
                       onTap: () => context.router.push(HotelModuleRoute()),
                     ),
+                    SizedBox(height: 30.h),
+                    const HomeBankLogosCarousel(),
                     SizedBox(height: 30.h),
                     const HomeNewsSection(),
                   ],
@@ -58,4 +68,5 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
+
 }

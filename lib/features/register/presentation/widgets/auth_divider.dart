@@ -27,9 +27,7 @@ class AuthDivider extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: 12.w),
           child: Text(
             text,
-            style: AppTypography.divider.copyWith(
-              color: isDark ? AppColors.grayText : AppColors.grayText,
-            ),
+            style: AppTypography.divider(context),
           ),
         ),
         Expanded(

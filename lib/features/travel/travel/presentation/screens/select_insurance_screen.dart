@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:intl/intl.dart';
+import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/constants/app_typography.dart';
 import '../../../../../core/utils/snackbar_helper.dart';
 import 'personal_data_screen.dart';
 import '../logic/bloc/travel_bloc.dart';
@@ -26,13 +28,6 @@ class SelectInsuranceScreen extends StatefulWidget {
   @override
   State<SelectInsuranceScreen> createState() => _SelectInsuranceScreenState();
 
-  // --- DESIGN CONSTANTS ---
-  static const Color kPrimaryBlue = Color(0xFF0085FF); // Yorqin ko'k
-  static const Color kTextBlack = Color(0xFF0F172A); // To'q qora (Slate 900)
-  static const Color kTextGrey = Color(0xFF64748B); // Kulrang (Slate 500)
-  static const Color kBorderColor = Color(0xFFF1F5F9); // Juda och kulrang
-  static const Color kTagBg = Color(0xFFE0F2FE); // Tag foni (Sky 100)
-  static const Color kTagText = Color(0xFF0284C7); // Tag matni (Sky 600)
 }
 
 class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
@@ -52,10 +47,10 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final scaffoldBg = isDark ? const Color(0xFF121212) : Colors.white;
-    final textColor = isDark ? Colors.white : SelectInsuranceScreen.kTextBlack;
+    final scaffoldBg = isDark ? AppColors.darkScaffoldBg : AppColors.white;
+    final textColor = isDark ? AppColors.white : AppColors.travelTextBlack;
     final textGreyColor =
-        isDark ? Colors.grey[400]! : SelectInsuranceScreen.kTextGrey;
+        isDark ? AppColors.darkPlaceholder : AppColors.travelTextGrey;
 
     return Scaffold(
       backgroundColor: scaffoldBg,
@@ -66,7 +61,7 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back,
-            color: isDark ? Colors.white : Colors.black,
+            color: isDark ? AppColors.white : AppColors.black,
             size: 24,
           ),
           onPressed: () => Navigator.of(context).pop(),
@@ -75,7 +70,7 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
         title: Text(
           "travel.select_insurance.title".tr(),
           style: TextStyle(
-            color: isDark ? Colors.white : Colors.black,
+            color: isDark ? AppColors.white : AppColors.black,
             fontSize: 17,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.3,
@@ -95,7 +90,7 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
             if (state is TravelLoading) {
               return Center(
                 child: CircularProgressIndicator(
-                  color: SelectInsuranceScreen.kPrimaryBlue,
+                  color: AppColors.travelPrimaryBlue,
                 ),
               );
             }
@@ -125,8 +120,8 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
                         Icons.info_outline,
                         size: 64,
                         color: isDark
-                            ? Colors.blue[300]
-                            : SelectInsuranceScreen.kPrimaryBlue,
+                            ? AppColors.primaryBlue
+                            : AppColors.travelPrimaryBlue,
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -148,8 +143,8 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: SelectInsuranceScreen.kPrimaryBlue,
-                          foregroundColor: Colors.white,
+                          backgroundColor: AppColors.travelPrimaryBlue,
+                          foregroundColor: AppColors.white,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 24,
                             vertical: 12,
@@ -382,7 +377,7 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
           color: scaffoldBg,
           border: Border(
             top: BorderSide(
-              color: isDark ? Colors.grey[800]! : Colors.grey.shade100,
+              color: isDark ? AppColors.darkSubtitle : AppColors.grayBorder,
             ),
           ),
           boxShadow: [
@@ -511,18 +506,18 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
               : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: selectedInsuranceIndex != null
-                ? SelectInsuranceScreen.kPrimaryBlue
-                : Colors.grey[300],
+                ? AppColors.travelPrimaryBlue
+                : AppColors.grayBorder,
             foregroundColor: selectedInsuranceIndex != null
-                ? Colors.white
-                : Colors.grey[600],
+                ? AppColors.white
+                : AppColors.gray500,
             elevation: 0,
             fixedSize: const Size(double.infinity, 56),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            disabledBackgroundColor: Colors.grey[300],
-            disabledForegroundColor: Colors.grey[600],
+            disabledBackgroundColor: AppColors.grayBorder,
+            disabledForegroundColor: AppColors.gray500,
           ),
           child: Text(
             "travel.select_insurance.continue".tr(),
@@ -743,16 +738,16 @@ class InsuranceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : SelectInsuranceScreen.kTextBlack;
+    final cardBg = isDark ? AppColors.darkCardBg : AppColors.white;
+    final textColor = isDark ? AppColors.white : AppColors.travelTextBlack;
     final textGreyColor =
-        isDark ? Colors.grey[400]! : SelectInsuranceScreen.kTextGrey;
+        isDark ? AppColors.darkPlaceholder : AppColors.travelTextGrey;
     final borderColor =
-        isDark ? Colors.grey[700]! : SelectInsuranceScreen.kBorderColor;
+        isDark ? AppColors.darkBorder : AppColors.travelBorderGrey;
     final tagBg =
-        isDark ? const Color(0xFF1E3A5C) : SelectInsuranceScreen.kTagBg;
+        isDark ? AppColors.travelLightBlueBgDark : AppColors.travelLightBlueBg;
     final tagTextColor =
-        isDark ? const Color(0xFF60A5FA) : SelectInsuranceScreen.kTagText;
+        isDark ? AppColors.travelTagTextDark : AppColors.travelPrimaryBlue;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -760,13 +755,13 @@ class InsuranceCard extends StatelessWidget {
         color: cardBg,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isSelected ? SelectInsuranceScreen.kPrimaryBlue : borderColor,
+          color: isSelected ? AppColors.travelPrimaryBlue : borderColor,
           width: isSelected ? 2.5 : 1.5,
         ),
         boxShadow: [
           BoxShadow(
             color: isSelected
-                ? SelectInsuranceScreen.kPrimaryBlue.withOpacity(0.2)
+                ? AppColors.travelPrimaryBlue.withOpacity(0.2)
                 : Colors.blueGrey.withOpacity(isDark ? 0.2 : 0.08),
             blurRadius: 24,
             offset: const Offset(0, 8),
@@ -922,7 +917,7 @@ class InsuranceCard extends StatelessWidget {
                   onPressed: onTap,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isSelected
-                        ? SelectInsuranceScreen.kPrimaryBlue
+                        ? AppColors.travelPrimaryBlue
                         : Colors.grey[300],
                     foregroundColor:
                         isSelected ? Colors.white : Colors.grey[600],

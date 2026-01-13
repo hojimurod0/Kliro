@@ -22,7 +22,7 @@ class ErrorStateWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Center(
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 24.w),
@@ -36,10 +36,11 @@ class ErrorStateWidget extends StatelessWidget {
             ),
             SizedBox(height: 16.h),
             Text(
-              message ?? (messageKey != null ? tr(messageKey!) : 'error.unknown'.tr()),
-              style: AppTypography.bodyPrimary.copyWith(
+              message ??
+                  (messageKey != null ? tr(messageKey!) : 'error.unknown'.tr()),
+              style: AppTypography.bodyPrimary(context).copyWith(
                 fontSize: 16.sp,
-                color: theme.textTheme.bodyLarge?.color ?? 
+                color: theme.textTheme.bodyLarge?.color ??
                     (isDark ? AppColors.white : AppColors.darkTextAutoCredit),
               ),
               textAlign: TextAlign.center,
@@ -54,11 +55,12 @@ class ErrorStateWidget extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.r),
                   ),
-                  padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
                 ),
                 child: Text(
                   'common.retry'.tr(),
-                  style: AppTypography.buttonPrimary,
+                  style: AppTypography.buttonPrimary(context),
                 ),
               ),
             ],
@@ -68,4 +70,3 @@ class ErrorStateWidget extends StatelessWidget {
     );
   }
 }
-

@@ -28,6 +28,8 @@ class HotelModel extends Hotel {
     super.stars,
     super.discount,
     super.photos,
+    super.latitude,
+    super.longitude,
   });
 
   /// Copy with method that returns HotelModel
@@ -49,6 +51,8 @@ class HotelModel extends Hotel {
     int? stars,
     int? discount,
     List<HotelPhoto>? photos,
+    double? latitude,
+    double? longitude,
   }) {
     return HotelModel(
       id: id ?? this.id,
@@ -68,6 +72,8 @@ class HotelModel extends Hotel {
       stars: stars ?? this.stars,
       discount: discount ?? this.discount,
       photos: photos ?? this.photos,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 
@@ -90,6 +96,37 @@ class HotelModel extends Hotel {
     double? safeDouble(dynamic val) {
       if (val is num) return val.toDouble();
       if (val is String) return double.tryParse(val);
+      return null;
+    }
+
+    // Parse cancellation policy - can be Map or List format
+    Map<String, dynamic>? _parseCancellationPolicy(dynamic value) {
+      if (value == null) return null;
+      
+      // Handle List format: [{locale: 'ru', value: '...'}, ...]
+      if (value is List) {
+        final policyMap = <String, dynamic>{};
+        for (var item in value) {
+          if (item is Map) {
+            final locale = item['locale']?.toString();
+            final policyValue = item['value'];
+            if (locale != null && policyValue != null) {
+              policyMap[locale] = policyValue;
+            }
+          }
+        }
+        return policyMap.isNotEmpty ? policyMap : null;
+      }
+      
+      // Handle Map format: {uz: '...', ru: '...', en: '...'}
+      if (value is Map) {
+        try {
+          return Map<String, dynamic>.from(value);
+        } catch (_) {
+          return null;
+        }
+      }
+      
       return null;
     }
 
@@ -118,11 +155,17 @@ class HotelModel extends Hotel {
                 optMap['savings']);
             final originalPrice = safeDouble(optMap['price']);
 
-            // Percentage markup calculation
-            // Price = Price + (Price * Percent / 100)
-            final newPrice = originalPrice != null && percent > 0
-                ? originalPrice + (originalPrice * percent / 100)
+            // Commission calculation (komissiya)
+            // Agar API'dan foiz kelsa, uni ishlatish, aks holda 10% qo'shish
+            final commissionPercent = percent > 0 ? percent : 10; // Default 10% komissiya
+            final newPrice = originalPrice != null
+                ? originalPrice + (originalPrice * commissionPercent / 100)
                 : originalPrice;
+            
+            // Debug log
+            if (kDebugMode && originalPrice != null) {
+              debugPrint('💰 HotelModel: optionRefId=${optMap['option_ref_id']}, originalPrice=$originalPrice, API percent=$percent%, used percent=$commissionPercent%, newPrice=$newPrice');
+            }
 
             return HotelOption(
               optionRefId: optMap['option_ref_id'] as String? ?? '',
@@ -132,8 +175,7 @@ class HotelModel extends Hotel {
               currency: optMap['currency'] as String?,
               priceBreakdown:
                   optMap['price_breakdown'] as Map<String, dynamic>?,
-              cancellationPolicy:
-                  optMap['cancellation_policy'] as Map<String, dynamic>?,
+              cancellationPolicy: _parseCancellationPolicy(optMap['cancellation_policy']),
               includedMealOptions: optMap['included_meal_options'] != null
                   ? (optMap['included_meal_options'] as List<dynamic>)
                       .map((e) => e.toString())
@@ -257,9 +299,88 @@ class HotelModel extends Hotel {
       debugPrint('✅ HotelModel: Parsed name = "$name" for hotelId=$hotelId');
     }
 
-    // Safe parsing for address
-    String address =
-        getString(hotelInfo?['address']) ?? getString(json['address']) ?? '';
+    // Safe parsing for address - check multiple possible field names
+    String address = '';
+    
+    // Try different field names for address
+    address = getString(hotelInfo?['address']) ?? 
+              getString(hotelInfo?['location']) ??
+              getString(hotelInfo?['full_address']) ??
+              getString(json['address']) ?? 
+              getString(json['location']) ??
+              getString(json['full_address']) ?? 
+              '';
+    
+    // If address is still empty, try to get it directly from json (might be a simple string, Map, or List)
+    if (address.isEmpty && json['address'] != null) {
+      final addressValue = json['address'];
+      if (addressValue is String && addressValue.isNotEmpty) {
+        address = addressValue;
+        debugPrint('✅ HotelModel: Found address as direct string: "$address" for hotelId=$hotelId');
+      } else if (addressValue is Map) {
+        // Try to extract from map
+        final addressFromMap = getString(addressValue);
+        if (addressFromMap != null && addressFromMap.isNotEmpty) {
+          address = addressFromMap;
+          debugPrint('✅ HotelModel: Found address in map: "$address" for hotelId=$hotelId');
+        }
+      } else if (addressValue is List && addressValue.isNotEmpty) {
+        // Address is a List format: [{locale: uz, value: ...}, {locale: ru, value: ...}, ...]
+        // Try to extract based on locale preference
+        for (var item in addressValue) {
+          if (item is Map) {
+            final locale = item['locale']?.toString();
+            final value = item['value']?.toString();
+            if (value != null && value.isNotEmpty) {
+              // Prefer uz locale, then ru, then en
+              if (locale == 'uz' || (address.isEmpty && locale == 'ru') || (address.isEmpty && locale == 'en')) {
+                address = value;
+                if (locale == 'uz') {
+                  debugPrint('✅ HotelModel: Found address from List with uz locale: "$address" for hotelId=$hotelId');
+                  break; // Prefer uz, so break after finding it
+                }
+              }
+            }
+          }
+        }
+        // If still empty, take first available value
+        if (address.isEmpty) {
+          for (var item in addressValue) {
+            if (item is Map) {
+              final value = item['value']?.toString();
+              if (value != null && value.isNotEmpty) {
+                address = value;
+                debugPrint('✅ HotelModel: Found address from List (first available): "$address" for hotelId=$hotelId');
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Debug log for address
+    if (address.isEmpty) {
+      debugPrint('⚠️ HotelModel: Address is empty for hotelId=$hotelId');
+      if (hotelInfo != null) {
+        debugPrint('🔍 HotelModel: hotelInfo keys for address check = ${hotelInfo.keys.toList()}');
+        // Try to find any field that might contain address
+        for (var key in hotelInfo.keys) {
+          if (key.toString().toLowerCase().contains('address') || 
+              key.toString().toLowerCase().contains('location') ||
+              key.toString().toLowerCase().contains('street')) {
+            debugPrint('🔍 HotelModel: Found potential address field: $key = ${hotelInfo[key]}');
+          }
+        }
+      }
+      debugPrint('🔍 HotelModel: json keys for address check = ${json.keys.toList()}');
+      // Log the actual address value from json
+      if (json['address'] != null) {
+        debugPrint('🔍 HotelModel: json[address] value = ${json['address']} (type: ${json['address'].runtimeType})');
+      }
+    } else {
+      debugPrint('✅ HotelModel: Parsed address = "$address" for hotelId=$hotelId');
+    }
 
     // Safe parsing for city
     String city =
@@ -287,7 +408,110 @@ class HotelModel extends Hotel {
         }
       }
     }
-    final stars = safeInt(hotelInfo?['stars'] ?? json['stars']);
+    
+    // Safe parsing for stars - check multiple possible field names
+    int stars = 0;
+    
+    // Helper to safely get int from multiple sources (returns 0 if invalid)
+    int tryGetStars(dynamic value) {
+      if (value == null) return 0;
+      final result = safeInt(value);
+      return result > 0 ? result : 0;
+    }
+    
+    // Try different field names for stars
+    final starsFromHotelInfo = tryGetStars(hotelInfo?['stars']);
+    if (starsFromHotelInfo > 0) {
+      stars = starsFromHotelInfo;
+    } else {
+      final starsFromStar = tryGetStars(hotelInfo?['star']);
+      if (starsFromStar > 0) {
+        stars = starsFromStar;
+      } else {
+        final starsFromStarRating = tryGetStars(hotelInfo?['star_rating']);
+        if (starsFromStarRating > 0) {
+          stars = starsFromStarRating;
+        } else {
+          final starsFromRatingStars = tryGetStars(hotelInfo?['rating_stars']);
+          if (starsFromRatingStars > 0) {
+            stars = starsFromRatingStars;
+          } else {
+            // Try from json directly
+            stars = tryGetStars(json['stars']);
+            if (stars == 0) {
+              stars = tryGetStars(json['star']);
+              if (stars == 0) {
+                stars = tryGetStars(json['star_rating']);
+                if (stars == 0) {
+                  stars = tryGetStars(json['rating_stars']);
+                  if (stars == 0) {
+                    // Try star_id - API returns star_id which might be the star rating (1-5)
+                    final starId = tryGetStars(json['star_id']);
+                    if (starId > 0 && starId <= 5) {
+                      stars = starId;
+                      debugPrint('✅ HotelModel: Using star_id as stars: $stars for hotelId=$hotelId');
+                    } else if (starId > 0) {
+                      // If star_id is > 5, it might be an ID, not the rating
+                      // But we'll try to use it anyway if it's reasonable (1-10)
+                      if (starId <= 10) {
+                        stars = starId;
+                        debugPrint('✅ HotelModel: Using star_id as stars (unusual value): $stars for hotelId=$hotelId');
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Debug log for stars
+    if (stars == 0) {
+      debugPrint('⚠️ HotelModel: Stars is 0 for hotelId=$hotelId');
+      if (hotelInfo != null) {
+        debugPrint('🔍 HotelModel: hotelInfo keys for stars check = ${hotelInfo.keys.toList()}');
+        // Try to find any field that might contain stars
+        for (var key in hotelInfo.keys) {
+          if (key.toString().toLowerCase().contains('star') || 
+              key.toString().toLowerCase().contains('rating')) {
+            debugPrint('🔍 HotelModel: Found potential stars field: $key = ${hotelInfo[key]} (type: ${hotelInfo[key].runtimeType})');
+          }
+        }
+      }
+      debugPrint('🔍 HotelModel: json keys for stars check = ${json.keys.toList()}');
+      // Try to find any field that might contain stars in json
+      for (var key in json.keys) {
+        if (key.toString().toLowerCase().contains('star') || 
+            key.toString().toLowerCase().contains('rating')) {
+          debugPrint('🔍 HotelModel: Found potential stars field in json: $key = ${json[key]} (type: ${json[key].runtimeType})');
+        }
+      }
+    } else {
+      debugPrint('✅ HotelModel: Parsed stars = $stars for hotelId=$hotelId');
+    }
+    
+    // Parse latitude and longitude
+    double? latitude;
+    double? longitude;
+    
+    // Try to get coordinates from hotelInfo or json
+    if (hotelInfo != null) {
+      latitude = safeDouble(hotelInfo['latitude']);
+      longitude = safeDouble(hotelInfo['longitude']);
+    }
+    
+    if (latitude == null || longitude == null) {
+      latitude = safeDouble(json['latitude']);
+      longitude = safeDouble(json['longitude']);
+    }
+    
+    if (latitude != null && longitude != null) {
+      debugPrint('✅ HotelModel: Parsed coordinates: lat=$latitude, lng=$longitude for hotelId=$hotelId');
+    } else {
+      debugPrint('⚠️ HotelModel: No coordinates found for hotelId=$hotelId');
+    }
 
     // Safe parsing for imageUrl - check multiple possible keys and formats
     String? imageUrl;
@@ -394,12 +618,64 @@ class HotelModel extends Hotel {
     if (imageUrl == null || imageUrl.isEmpty) {
       debugPrint('🔍 HotelModel: Searching all fields for image URL...');
       final allData = hotelInfo ?? json;
+      
+      // Helper to recursively search for image URLs in nested structures
+      String? searchNestedForImage(dynamic value, int depth) {
+        if (depth > 3) return null; // Limit recursion depth
+        
+        if (value == null) return null;
+        
+        // If it's a string, try to extract URL
+        if (value is String && value.isNotEmpty) {
+          final url = extractImageUrl(value);
+          if (url != null && url.isNotEmpty) return url;
+        }
+        
+        // If it's a Map, search all values
+        if (value is Map) {
+          for (final entry in value.entries) {
+            final key = entry.key.toString().toLowerCase();
+            // Check if key suggests it's an image field
+            if (key.contains('image') ||
+                key.contains('photo') ||
+                key.contains('picture') ||
+                key.contains('img') ||
+                key.contains('link') ||
+                key == 'url') {
+              final foundUrl = extractImageUrl(entry.value);
+              if (foundUrl != null && foundUrl.isNotEmpty) {
+                return foundUrl;
+              }
+            }
+            // Recursively search nested structures
+            final nestedUrl = searchNestedForImage(entry.value, depth + 1);
+            if (nestedUrl != null && nestedUrl.isNotEmpty) {
+              return nestedUrl;
+            }
+          }
+        }
+        
+        // If it's a List, search first few items
+        if (value is List && value.isNotEmpty) {
+          for (int i = 0; i < value.length && i < 5; i++) {
+            final itemUrl = searchNestedForImage(value[i], depth + 1);
+            if (itemUrl != null && itemUrl.isNotEmpty) {
+              return itemUrl;
+            }
+          }
+        }
+        
+        return null;
+      }
+      
+      // Search all fields
       for (final entry in allData.entries) {
         final key = entry.key.toString().toLowerCase();
         if (key.contains('image') ||
             key.contains('photo') ||
             key.contains('picture') ||
-            key.contains('img')) {
+            key.contains('img') ||
+            key.contains('link')) {
           final foundUrl = extractImageUrl(entry.value);
           if (foundUrl != null && foundUrl.isNotEmpty) {
             imageUrl = foundUrl;
@@ -407,6 +683,15 @@ class HotelModel extends Hotel {
                 '✅ HotelModel: Found image in field "${entry.key}": $imageUrl');
             break;
           }
+        }
+      }
+      
+      // If still not found, do a deep recursive search
+      if (imageUrl == null || imageUrl.isEmpty) {
+        final deepFoundUrl = searchNestedForImage(allData, 0);
+        if (deepFoundUrl != null && deepFoundUrl.isNotEmpty) {
+          imageUrl = deepFoundUrl;
+          debugPrint('✅ HotelModel: Found image in nested structure: $imageUrl');
         }
       }
     }
@@ -510,15 +795,132 @@ class HotelModel extends Hotel {
       debugPrint('⚠️ HotelModel: No description found for hotelId=$hotelId');
     }
 
-    final amenities = hotelInfo?['amenities'] != null
-        ? (hotelInfo!['amenities'] as List<dynamic>)
-            .map((e) => e.toString())
-            .toList()
-        : json['amenities'] != null
-            ? (json['amenities'] as List<dynamic>)
-                .map((e) => e.toString())
-                .toList()
-            : null;
+    // Parse amenities - handle multiple formats and field names
+    List<String>? amenities;
+    
+    // Helper function to extract amenity names from various formats
+    List<String> extractAmenities(dynamic value) {
+      if (value == null) return [];
+      
+      if (value is List) {
+        return value.map((e) {
+          if (e is String) {
+            return e;
+          } else if (e is Map) {
+            // Try to get name from map (could be {"id": 1, "name": "WiFi", "name_uz": "...", etc.})
+            return e['name']?.toString() ?? 
+                   e['name_uz']?.toString() ?? 
+                   e['name_ru']?.toString() ?? 
+                   e['name_en']?.toString() ??
+                   e['title']?.toString() ??
+                   e['label']?.toString() ??
+                   e.toString();
+          } else {
+            return e.toString();
+          }
+        }).where((name) => name.isNotEmpty).toList();
+      } else if (value is String) {
+        // If it's a single string, try to parse as JSON array
+        try {
+          final parsed = jsonDecode(value);
+          if (parsed is List) {
+            return extractAmenities(parsed);
+          }
+        } catch (_) {
+          // If not JSON, return as single item
+          return [value];
+        }
+      }
+      
+      return [];
+    }
+    
+    // Try hotelInfo first
+    if (hotelInfo != null) {
+      // Check 'amenities' field
+      if (hotelInfo['amenities'] != null) {
+        debugPrint('🔍 HotelModel: Found amenities in hotelInfo, type: ${hotelInfo['amenities'].runtimeType}');
+        amenities = extractAmenities(hotelInfo['amenities']);
+        if (amenities.isNotEmpty) {
+          debugPrint('✅ HotelModel: Parsed ${amenities.length} amenities from hotelInfo.amenities');
+        }
+      }
+      
+      // Also check 'facilities' field (alternative name)
+      if ((amenities == null || amenities.isEmpty) && hotelInfo['facilities'] != null) {
+        debugPrint('🔍 HotelModel: Found facilities in hotelInfo, type: ${hotelInfo['facilities'].runtimeType}');
+        amenities = extractAmenities(hotelInfo['facilities']);
+        if (amenities.isNotEmpty) {
+          debugPrint('✅ HotelModel: Parsed ${amenities.length} amenities from hotelInfo.facilities');
+        }
+      }
+      
+      // Check 'features' field (another alternative)
+      if ((amenities == null || amenities.isEmpty) && hotelInfo['features'] != null) {
+        debugPrint('🔍 HotelModel: Found features in hotelInfo, type: ${hotelInfo['features'].runtimeType}');
+        amenities = extractAmenities(hotelInfo['features']);
+        if (amenities.isNotEmpty) {
+          debugPrint('✅ HotelModel: Parsed ${amenities.length} amenities from hotelInfo.features');
+        }
+      }
+    }
+    
+    // Try json directly if not found
+    if (amenities == null || amenities.isEmpty) {
+      if (json['amenities'] != null) {
+        debugPrint('🔍 HotelModel: Found amenities in json, type: ${json['amenities'].runtimeType}');
+        amenities = extractAmenities(json['amenities']);
+        if (amenities.isNotEmpty) {
+          debugPrint('✅ HotelModel: Parsed ${amenities.length} amenities from json.amenities');
+        }
+      }
+      
+      // Also check 'facilities' field in json
+      if ((amenities == null || amenities.isEmpty) && json['facilities'] != null) {
+        debugPrint('🔍 HotelModel: Found facilities in json, type: ${json['facilities'].runtimeType}');
+        amenities = extractAmenities(json['facilities']);
+        if (amenities.isNotEmpty) {
+          debugPrint('✅ HotelModel: Parsed ${amenities.length} amenities from json.facilities');
+        }
+      }
+      
+      // Check 'features' field in json
+      if ((amenities == null || amenities.isEmpty) && json['features'] != null) {
+        debugPrint('🔍 HotelModel: Found features in json, type: ${json['features'].runtimeType}');
+        amenities = extractAmenities(json['features']);
+        if (amenities.isNotEmpty) {
+          debugPrint('✅ HotelModel: Parsed ${amenities.length} amenities from json.features');
+        }
+      }
+      
+      // Check 'hotel_facilities' field in json (this is the actual field from API)
+      // Note: hotel_facilities contains only facility_id, not full facility details
+      // So we skip parsing it here - full details will come from getHotelFacilities API
+      if ((amenities == null || amenities.isEmpty) && json['hotel_facilities'] != null) {
+        debugPrint('🔍 HotelModel: Found hotel_facilities in json, type: ${json['hotel_facilities'].runtimeType}');
+        debugPrint('🔍 HotelModel: hotel_facilities value: ${json['hotel_facilities']}');
+        // hotel_facilities contains only facility_id, not full details
+        // Skip parsing - full details will come from getHotelFacilities API
+        // This prevents showing incorrect facility names/ids
+        debugPrint('ℹ️ HotelModel: Skipping hotel_facilities parse - will use getHotelFacilities API for full details');
+      }
+    }
+    
+    // Debug final result
+    if (amenities != null && amenities.isNotEmpty) {
+      debugPrint('✅ HotelModel: Final amenities count = ${amenities.length} for hotelId=$hotelId');
+      debugPrint('🔍 HotelModel: First few amenities: ${amenities.take(3).toList()}');
+    } else {
+      debugPrint('⚠️ HotelModel: No amenities found for hotelId=$hotelId');
+      // Log all keys to help debug
+      if (hotelInfo != null) {
+        debugPrint('🔍 HotelModel: hotelInfo keys = ${hotelInfo.keys.toList()}');
+      }
+      debugPrint('🔍 HotelModel: json keys = ${json.keys.toList()}');
+    }
+    
+    // Convert to nullable list
+    amenities = amenities?.isEmpty == true ? null : amenities;
 
     // Parse photos if available
     List<HotelPhoto>? photos;
@@ -559,6 +961,39 @@ class HotelModel extends Hotel {
           .toList();
     }
 
+    // If imageUrl is still not found, try to use first photo from photos array
+    if ((imageUrl == null || imageUrl.isEmpty) && photos != null && photos.isNotEmpty) {
+      // Try to find default photo first
+      HotelPhoto? defaultPhoto;
+      try {
+        defaultPhoto = photos.firstWhere(
+          (p) => p.isDefault && p.url.isNotEmpty,
+        );
+      } catch (e) {
+        // No default photo found, try to find any photo with URL
+        try {
+          defaultPhoto = photos.firstWhere(
+            (p) => p.url.isNotEmpty,
+          );
+        } catch (e2) {
+          // No photo with URL found, use first photo
+          defaultPhoto = photos.isNotEmpty ? photos.first : null;
+        }
+      }
+      
+      if (defaultPhoto != null && defaultPhoto.url.isNotEmpty) {
+        imageUrl = defaultPhoto.url;
+        debugPrint('✅ HotelModel: Using first photo as imageUrl for hotelId=$hotelId: $imageUrl');
+      }
+    }
+
+    // Final fallback placeholder to avoid empty images
+    if (imageUrl == null || imageUrl.isEmpty) {
+      imageUrl = 'https://placehold.co/400x250?text=Mehmonxona+rasmi';
+      debugPrint(
+          'ℹ️ HotelModel: Using fallback imageUrl for hotelId=$hotelId');
+    }
+
     return HotelModel(
       id: hotelId.toString(),
       hotelId: hotelId,
@@ -581,6 +1016,8 @@ class HotelModel extends Hotel {
               hotelInfo?['discount_percent'] ??
               json['discount_percent']),
       photos: photos,
+      latitude: latitude,
+      longitude: longitude,
     );
   }
 

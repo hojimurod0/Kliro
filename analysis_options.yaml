@@ -21,8 +21,43 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    # Code style
+    prefer_single_quotes: true
+    prefer_const_constructors: true
+    prefer_const_literals_to_create_immutables: true
+    prefer_const_declarations: true
+    prefer_final_fields: true
+    prefer_final_locals: true
+    
+    # Performance
+    avoid_unnecessary_containers: true
+    avoid_print: true
+    
+    # Best practices
+    use_key_in_widget_constructors: true
+    avoid_empty_else: true
+    prefer_is_empty: true
+    prefer_is_not_empty: true
+    unnecessary_const: true
+    unnecessary_new: true
+    
+    # Documentation
+    public_member_api_docs: false  # Optional: enable if you want documentation
+    
+    # Code quality
+    avoid_dynamic_calls: true
+    avoid_redundant_argument_values: true
+    avoid_types_as_parameter_names: true
+    cancel_subscriptions: true
+    close_sinks: true
+    no_duplicate_case_values: true
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
+
+# Note: Hardcoded colors and text styles
+# To find hardcoded colors and text styles, use:
+# - grep -r "Color(0x" lib/
+# - grep -r "Colors\." lib/ | grep -v "AppColors"
+# - grep -r "TextStyle(" lib/ | grep -v "AppTypography"
+# Always use AppColors and AppTypography from core/constants/

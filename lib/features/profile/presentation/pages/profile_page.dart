@@ -28,7 +28,8 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late Future<AuthUser?> _userFuture;
-  bool _notificationsEnabled = false; // Notification holati
+  // Notification toggle - temporarily disabled for Play Market submission
+  // bool _notificationsEnabled = false; // Notification holati
 
   @override
   void initState() {
@@ -173,6 +174,63 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  Future<int> _getBookingsCount() async {
+    try {
+      // Hozircha 0 qaytaramiz, keyin API dan haqiqiy sonni olish mumkin
+      // TODO: API dan bronlar sonini olish
+      return 0;
+    } catch (e) {
+      AppLogger.warning('📱 PROFILE_PAGE: _getBookingsCount - Error: $e');
+      return 0;
+    }
+  }
+
+  void _handleMyOrdersTap(BuildContext context) {
+    _showComingSoonDialog(context);
+  }
+
+  void _showComingSoonDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? AppColors.darkCardBg : AppColors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        title: Text(
+          'common.coming_soon_title'.tr(),
+          style: AppTypography.headingL(context).copyWith(
+            fontSize: 20.sp,
+          ),
+        ),
+        content: Text(
+          'common.coming_soon_message'.tr(),
+          style: AppTypography.bodyPrimary(context).copyWith(
+            fontSize: 14.sp,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primaryBlue,
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            ),
+            child: Text(
+              'common.close'.tr(),
+              style: AppTypography.buttonPrimary(context).copyWith(
+                fontSize: 16.sp,
+                color: AppColors.primaryBlue,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleLogout() async {
     // API orqali logout qilish
     try {
@@ -208,20 +266,23 @@ class _ProfilePageState extends State<ProfilePage> {
             AuthService.instance.logout();
           }
         },
-        child: Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          appBar: AppBar(
-            toolbarHeight: 50.h,
-            backgroundColor: Theme.of(context).appBarTheme.backgroundColor ??
-                Theme.of(context).scaffoldBackgroundColor,
-            elevation: 0,
-            centerTitle: true,
-            scrolledUnderElevation: 0,
-            title: Text(
-              tr('profile.title'),
-              style: TextStyle(
-                color: Theme.of(context).textTheme.titleLarge?.color ??
-                    Colors.black,
+        child: Builder(
+          builder: (context) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return Scaffold(
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              appBar: AppBar(
+                toolbarHeight: 50.h,
+                backgroundColor: Theme.of(context).appBarTheme.backgroundColor ??
+                    Theme.of(context).scaffoldBackgroundColor,
+                elevation: 0,
+                centerTitle: true,
+                scrolledUnderElevation: 0,
+                title: Text(
+                  tr('profile.title'),
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.titleLarge?.color ??
+                        (isDark ? AppColors.white : AppColors.black),
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -241,6 +302,8 @@ class _ProfilePageState extends State<ProfilePage> {
               return _buildProfileContent(context, user);
             },
           ),
+            );
+          },
         ),
       ),
     );
@@ -272,6 +335,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       ? () => context.router.push(const ProfileEditRoute())
                       : () => context.router.push(const LoginRoute()),
                 ),
+                // Notification toggle - temporarily disabled for Play Market submission
+                // TODO: Implement backend API integration before enabling
+                /*
                 _buildSettingItem(
                   icon: Icons.notifications_outlined,
                   title: tr('profile.notifications'),
@@ -301,19 +367,30 @@ class _ProfilePageState extends State<ProfilePage> {
                     });
                   },
                 ),
+                */
                 _buildSettingItem(
                   icon: Icons.work_outline,
                   title: tr('profile.my_bookings'),
                   trailingWidget: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildBookingBadge(count: 12),
-                      const Icon(Icons.chevron_right, color: Colors.grey),
+                      FutureBuilder<int>(
+                        future: _getBookingsCount(),
+                        builder: (context, snapshot) {
+                          final count = snapshot.data ?? 0;
+                          if (count > 0) {
+                            return _buildBookingBadge(count: count);
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                      Icon(
+                        Icons.chevron_right, 
+                        color: Theme.of(context).iconTheme.color ?? AppColors.grayText,
+                      ),
                     ],
                   ),
-                  onTap: () {
-                    context.router.push(const MyOrdersRoute());
-                  },
+                  onTap: () => _handleMyOrdersTap(context),
                 ),
                 _buildSettingItem(
                   icon: Icons.nightlight_round,
@@ -345,9 +422,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 _buildSettingItem(
                   icon: Icons.headset_mic_outlined,
                   title: tr('profile.support'),
-                  onTap: () {
-                    context.router.push(const SupportRoute());
-                  },
+                  onTap: () => _showComingSoonDialog(context),
                 ),
                 _buildSettingItem(
                   icon: Icons.info_outline,
@@ -431,7 +506,7 @@ class _ProfilePageState extends State<ProfilePage> {
       children: [
         Text(
           tr('profile.login_section.title'),
-          style: AppTypography.bodyPrimary.copyWith(
+          style: AppTypography.bodyPrimary(context).copyWith(
             fontWeight: FontWeight.w600,
             fontSize: 14.sp,
           ),
@@ -439,8 +514,8 @@ class _ProfilePageState extends State<ProfilePage> {
         SizedBox(height: 2.h),
         Text(
           tr('profile.login_section.subtitle'),
-          style: AppTypography.bodyPrimary.copyWith(
-            color: Colors.grey.shade600,
+          style: AppTypography.bodyPrimary(context).copyWith(
+            color: Theme.of(context).textTheme.bodySmall?.color ?? AppColors.grayText,
             fontSize: 12.sp,
           ),
         ),
@@ -452,7 +527,8 @@ class _ProfilePageState extends State<ProfilePage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.primaryBlue.withOpacity(0.1) : AppColors.white,
+        color:
+            isDark ? AppColors.primaryBlue.withOpacity(0.1) : AppColors.white,
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(
           color: AppColors.primaryBlue,
@@ -472,7 +548,7 @@ class _ProfilePageState extends State<ProfilePage> {
               fit: BoxFit.scaleDown,
               child: Text(
                 tr('profile.login_section.login'),
-                style: AppTypography.bodyPrimary.copyWith(
+                style: AppTypography.bodyPrimary(context).copyWith(
                   color: AppColors.primaryBlue,
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w600,
@@ -494,7 +570,10 @@ class _ProfilePageState extends State<ProfilePage> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+        border: Border.all(
+          color: AppColors.white.withOpacity(0.3), 
+          width: 1.5,
+        ),
       ),
       child: Material(
         color: Colors.transparent,
@@ -509,8 +588,8 @@ class _ProfilePageState extends State<ProfilePage> {
               fit: BoxFit.scaleDown,
               child: Text(
                 tr('profile.login_section.register'),
-                style: AppTypography.bodyPrimary.copyWith(
-                  color: Colors.white,
+                style: AppTypography.bodyPrimary(context).copyWith(
+                  color: AppColors.white,
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w600,
                 ),
@@ -529,17 +608,21 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, color: Colors.red, size: 40.sp),
+            Icon(
+              Icons.error_outline, 
+              color: AppColors.dangerRed, 
+              size: 40.sp,
+            ),
             SizedBox(height: 12.h),
             Text(
               tr('profile.error_loading'),
-              style: AppTypography.bodyPrimary,
+              style: AppTypography.bodyPrimary(context),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 6.h),
             Text(
               '$error',
-              style: AppTypography.caption,
+              style: AppTypography.caption(context),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 16.h),
@@ -582,7 +665,7 @@ class _ProfilePageState extends State<ProfilePage> {
               backgroundColor: AppColors.primaryBlue,
               child: Text(
                 user.initials,
-                style: AppTypography.headingL.copyWith(
+                style: AppTypography.headingL(context).copyWith(
                   color: Theme.of(context).colorScheme.onPrimary,
                   fontSize: 18.sp,
                 ),
@@ -596,7 +679,7 @@ class _ProfilePageState extends State<ProfilePage> {
               children: [
                 Text(
                   displayName,
-                  style: AppTypography.headingL.copyWith(
+                  style: AppTypography.headingL(context).copyWith(
                     color: Theme.of(context).textTheme.titleLarge?.color,
                   ),
                 ),
@@ -614,7 +697,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         Expanded(
                           child: Text(
                             user.email!,
-                            style: AppTypography.bodyPrimary.copyWith(
+                            style: AppTypography.bodyPrimary(context).copyWith(
                               color: Theme.of(context).colorScheme.primary,
                               fontSize: 12.sp,
                             ),
@@ -637,7 +720,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         Expanded(
                           child: Text(
                             user.phone!,
-                            style: AppTypography.bodyPrimary.copyWith(
+                            style: AppTypography.bodyPrimary(context).copyWith(
                               color: Theme.of(context).colorScheme.primary,
                               fontSize: 12.sp,
                             ),
@@ -653,7 +736,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     padding: EdgeInsets.only(top: 4.h),
                     child: Text(
                       user.contact,
-                      style: AppTypography.bodyPrimary.copyWith(
+                      style: AppTypography.bodyPrimary(context).copyWith(
                         color: Theme.of(context).colorScheme.primary,
                         fontSize: 12.sp,
                       ),
@@ -672,9 +755,9 @@ class _ProfilePageState extends State<ProfilePage> {
       padding: EdgeInsets.only(left: 8.w, bottom: 5.h),
       child: Text(
         title,
-        style: AppTypography.bodyPrimary.copyWith(
+        style: AppTypography.bodyPrimary(context).copyWith(
           color: Theme.of(context).textTheme.bodySmall?.color ??
-              Colors.grey.shade600,
+              AppColors.grayText,
           fontSize: 12.sp,
           fontWeight: FontWeight.bold,
           letterSpacing: 1.2,
@@ -691,6 +774,7 @@ class _ProfilePageState extends State<ProfilePage> {
     bool showArrow = true,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bool shouldShowChevron =
         showArrow && trailingWidget == null && trailingText == null;
 
@@ -714,9 +798,9 @@ class _ProfilePageState extends State<ProfilePage> {
             Expanded(
               child: Text(
                 title,
-                style: AppTypography.bodyPrimary.copyWith(
+                style: AppTypography.bodyPrimary(context).copyWith(
                   color: Theme.of(context).textTheme.bodyLarge?.color ??
-                      Colors.black87,
+                      (isDark ? AppColors.white : AppColors.black),
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w600,
                 ),
@@ -725,9 +809,9 @@ class _ProfilePageState extends State<ProfilePage> {
             if (trailingText != null)
               Text(
                 trailingText,
-                style: AppTypography.bodyPrimary.copyWith(
+                style: AppTypography.bodyPrimary(context).copyWith(
                   color: Theme.of(context).textTheme.bodyMedium?.color ??
-                      Colors.grey.shade500,
+                      AppColors.grayText,
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w500,
                 ),
@@ -736,7 +820,7 @@ class _ProfilePageState extends State<ProfilePage> {
             if (shouldShowChevron)
               Icon(
                 Icons.chevron_right,
-                color: Theme.of(context).iconTheme.color ?? Colors.grey,
+                color: Theme.of(context).iconTheme.color ?? AppColors.grayText,
                 size: 20,
               ),
           ],
@@ -755,7 +839,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       child: Text(
         count.toString(),
-        style: AppTypography.bodyPrimary.copyWith(
+        style: AppTypography.bodyPrimary(context).copyWith(
           color: Colors.white,
           fontWeight: FontWeight.bold,
           fontSize: 12.sp,
@@ -775,10 +859,10 @@ class _ProfilePageState extends State<ProfilePage> {
         icon: const Icon(Icons.logout, color: Colors.white),
         label: Text(
           tr('profile.logout'),
-          style: AppTypography.bodyPrimary.copyWith(
+          style: AppTypography.bodyPrimary(context).copyWith(
             fontSize: 18.sp,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: AppColors.white,
           ),
         ),
         style: ElevatedButton.styleFrom(

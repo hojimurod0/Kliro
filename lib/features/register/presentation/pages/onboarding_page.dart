@@ -52,12 +52,57 @@ class _OnboardingPageState extends State<OnboardingPage> {
   late final PageController _pageController;
   int _currentIndex = 0;
   bool _isLanguageSelected = false; // Til tanlash holati
+  bool _isCheckingLanguage = false; // Til tekshirilayotgan holat
   Locale? _currentLocale; // Locale o'zgarishini kuzatish uchun
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
+    // IMPORTANT: Saqlangan tilni tekshirib, agar til tanlangan bo'lsa onboarding sahifaga o'tish
+    _checkLanguageSelection();
+  }
+
+  // Saqlangan tilni tekshirish
+  Future<void> _checkLanguageSelection() async {
+    // Agar allaqachon tekshirilayotgan bo'lsa, qayta tekshirish kerak emas
+    if (_isCheckingLanguage) {
+      return;
+    }
+    
+    _isCheckingLanguage = true;
+    
+    try {
+      final savedLocale = await LocalePrefs.load();
+      if (savedLocale != null) {
+        // Til saqlangan - onboarding sahifaga o'tish
+        if (mounted && !_isLanguageSelected) {
+          setState(() {
+            _isLanguageSelected = true;
+            _currentLocale = savedLocale;
+          });
+          debugPrint('Onboarding: Saved locale found: ${savedLocale.languageCode}_${savedLocale.countryCode ?? 'null'}, skipping language selection');
+        }
+      } else {
+        // Til saqlanmagan - til tanlash sahifasini ko'rsatish
+        if (mounted && _isLanguageSelected) {
+          setState(() {
+            _isLanguageSelected = false;
+          });
+          debugPrint('Onboarding: No saved locale found, showing language selection');
+        }
+      }
+    } catch (e) {
+      debugPrint('Onboarding: Error checking saved locale: $e');
+      // Xatolik bo'lsa, til tanlash sahifasini ko'rsatish
+      if (mounted && _isLanguageSelected) {
+        setState(() {
+          _isLanguageSelected = false;
+        });
+      }
+    } finally {
+      _isCheckingLanguage = false;
+    }
   }
 
   @override
@@ -87,28 +132,59 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   // Til tanlanganda
   void _onLanguageSelected() async {
+    if (!mounted) return;
+    
+    // IMPORTANT: Agar allaqachon til tanlangan bo'lsa, qayta ishlatmaslik
+    if (_isLanguageSelected) {
+      debugPrint('Onboarding: Language already selected, skipping...');
+      return;
+    }
+    
+    debugPrint('Onboarding: _onLanguageSelected called');
+    
+    // Locale allaqachon saqlangan va o'rnatilgan (_apply() da)
+    // Saqlangan tilni yuklab olamiz
     if (mounted) {
-      // Locale o'zgarganda yangilash
-      // Kichik kechikish - locale to'liq yuklanishini kutish uchun
-      await Future.delayed(const Duration(milliseconds: 100));
-      
-      if (mounted) {
-        final newLocale = context.locale;
+      try {
         final savedLocale = await LocalePrefs.load();
+        final localeToUse = savedLocale ?? context.locale;
         
-        debugPrint('Onboarding: Language selected');
-        debugPrint('Onboarding: Current context locale: ${newLocale.languageCode}_${newLocale.countryCode ?? 'null'}');
-        debugPrint('Onboarding: Saved locale from prefs: ${savedLocale?.languageCode ?? 'null'}_${savedLocale?.countryCode ?? 'null'}');
+        debugPrint('Onboarding: Using saved locale: ${localeToUse.languageCode}_${localeToUse.countryCode ?? 'null'}');
         
-        // Агар сақланган локал мавжуд бўлса, уни ишлатиш
-        final localeToUse = savedLocale ?? newLocale;
+        // Translation delegate'ni yuklash
+        final easyLocalization = EasyLocalization.of(context);
+        if (easyLocalization != null && mounted) {
+          try {
+            await easyLocalization.delegate.load(localeToUse);
+            debugPrint('Onboarding: Translation delegate loaded');
+          } catch (loadError) {
+            debugPrint('Onboarding: Error loading translation delegate: $loadError');
+          }
+        }
         
-        setState(() {
-          _isLanguageSelected = true;
-          _currentLocale = localeToUse; // Locale'ni yangilash
-        });
+        // Qisqa kutish - translation yuklanishini ta'minlash uchun
+        await Future.delayed(const Duration(milliseconds: 50));
         
-        debugPrint('Onboarding: Language selected, using locale: ${localeToUse.languageCode}_${localeToUse.countryCode ?? 'null'}');
+        // CRITICAL: Flag'ni true qilish - til tanlash sahifasini yopish uchun
+        // Bu onboarding sahifaga o'tishni ta'minlaydi
+        // IMPORTANT: _isCheckingLanguage ni false qilish - keyingi tekshirishlarni to'xtatish uchun
+        if (mounted) {
+          setState(() {
+            _isLanguageSelected = true;
+            _currentLocale = localeToUse;
+            _isCheckingLanguage = false; // Tekshirishni to'xtatish
+          });
+          debugPrint('Onboarding: ✅ Language selection completed, flag set to true');
+        }
+      } catch (e) {
+        debugPrint('Onboarding: Error in _onLanguageSelected: $e');
+        // Xatolik bo'lsa ham flag'ni true qilish - onboarding sahifaga o'tish uchun
+        if (mounted) {
+          setState(() {
+            _isLanguageSelected = true;
+            _isCheckingLanguage = false;
+          });
+        }
       }
     }
   }
@@ -143,19 +219,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Widget build(BuildContext context) {
     // Locale o'zgarishini kuzatish uchun context.locale ni ishlatamiz
     final currentLocale = context.locale;
-    
-    // Locale o'zgarganda yangilash
-    if (_currentLocale == null ||
-        _currentLocale!.languageCode != currentLocale.languageCode ||
-        _currentLocale!.countryCode != currentLocale.countryCode) {
-      _currentLocale = currentLocale;
-      debugPrint('Onboarding: Locale changed in build: ${currentLocale.languageCode}_${currentLocale.countryCode ?? 'null'}');
-    }
 
     // 1. Agar til tanlanmagan bo'lsa -> Language Page
+    // IMPORTANT: Har safar til tanlash sahifasini ko'rsatish kerak
+    // Keyingi run'da ham foydalanuvchi tilni o'zgartirishi mumkin
     if (!_isLanguageSelected) {
       return OnboardingLanguagePage(
-        key: ValueKey('language_page_${currentLocale.toString()}'),
+        key: const ValueKey('language_page'), // Locale o'zgarganda key o'zgarmasligi kerak
         onSelected: _onLanguageSelected,
       );
     }

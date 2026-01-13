@@ -1,12 +1,11 @@
-import 'dart:io';
-
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:url_launcher/url_launcher_string.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_typography.dart';
 import '../../../../core/utils/snackbar_helper.dart';
+import '../../../../core/utils/global_error_handler.dart';
 
 class AccidentPaymentScreen extends StatefulWidget {
   final Map<String, dynamic> formData;
@@ -34,11 +33,10 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
     // Bu locale o'zgarganda widget'ni qayta build qiladi
     final currentLocale = context.locale;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor =
-        isDark ? const Color(0xFF121212) : const Color(0xFFF5F7FA);
-    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : const Color(0xFF222222);
-    final subtitleColor = isDark ? Colors.grey[400] : const Color(0xFF666666);
+    final backgroundColor = AppColors.getScaffoldBg(isDark);
+    final cardColor = AppColors.getCardBg(isDark);
+    final textColor = AppColors.getTextColor(isDark);
+    final subtitleColor = AppColors.getSubtitleColor(isDark);
 
     return Scaffold(
       key: ValueKey('accident_payment_${currentLocale.toString()}'),
@@ -54,7 +52,7 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: isDark ? Colors.white24 : const Color(0xFFE0E0E0),
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
               width: 1,
             ),
           ),
@@ -62,19 +60,27 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
             icon: Icon(
               Icons.arrow_back,
               size: 20.sp,
-              color: isDark ? Colors.white : const Color(0xFF333333),
+              color: textColor,
             ),
             padding: EdgeInsets.zero,
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              try {
+                Navigator.pop(context);
+              } catch (e) {
+                if (mounted) {
+                  GlobalErrorHandler.showErrorSnackBar(
+                    context,
+                    e,
+                    duration: const Duration(seconds: 3),
+                  );
+                }
+              }
+            },
           ),
         ),
         title: Text(
           'insurance.accident.payment.title'.tr(),
-          style: TextStyle(
-            color: textColor,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w700,
-          ),
+          style: AppTypography.headingM(context).copyWith(color: textColor),
         ),
         centerTitle: true,
         systemOverlayStyle: SystemUiOverlayStyle(
@@ -95,11 +101,8 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
                       // Order Information Section
                       Text(
                         'insurance.accident.payment.order_info'.tr(),
-                        style: TextStyle(
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.w700,
-                          color: textColor,
-                        ),
+                        style: AppTypography.headingL(context)
+                            .copyWith(color: textColor),
                       ),
                       SizedBox(height: 20.h),
 
@@ -108,32 +111,39 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
                         title: 'insurance.accident.payment.personal_info'.tr(),
                         isDark: isDark,
                         cardColor: cardColor,
+                        textColor: textColor,
                         children: [
                           _buildInfoRow(
                             'insurance.accident.last_name'.tr(),
                             widget.formData['lastName'] ?? '',
                             isDark: isDark,
                             subtitleColor: subtitleColor,
+                            textColor: textColor,
                           ),
                           _buildInfoRow(
                             'insurance.accident.first_name'.tr(),
                             widget.formData['firstName'] ?? '',
                             isDark: isDark,
                             subtitleColor: subtitleColor,
+                            textColor: textColor,
                           ),
                           if (widget.formData['middleName'] != null &&
-                              widget.formData['middleName'].toString().isNotEmpty)
+                              widget.formData['middleName']
+                                  .toString()
+                                  .isNotEmpty)
                             _buildInfoRow(
                               'insurance.accident.middle_name'.tr(),
                               widget.formData['middleName'] ?? '',
                               isDark: isDark,
                               subtitleColor: subtitleColor,
+                              textColor: textColor,
                             ),
                           _buildInfoRow(
                             'insurance.accident.birth_date'.tr(),
                             widget.formData['birthDate'] ?? '',
                             isDark: isDark,
                             subtitleColor: subtitleColor,
+                            textColor: textColor,
                           ),
                           _buildInfoRow(
                             'insurance.accident.passport_series'.tr() +
@@ -142,12 +152,14 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
                             '${widget.formData['passportSeries'] ?? ''} ${widget.formData['passportNumber'] ?? ''}',
                             isDark: isDark,
                             subtitleColor: subtitleColor,
+                            textColor: textColor,
                           ),
                           _buildInfoRow(
                             'insurance.accident.pinfl'.tr(),
                             widget.formData['pinfl'] ?? '',
                             isDark: isDark,
                             subtitleColor: subtitleColor,
+                            textColor: textColor,
                           ),
                         ],
                       ),
@@ -158,24 +170,28 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
                         title: 'insurance.accident.payment.contact_info'.tr(),
                         isDark: isDark,
                         cardColor: cardColor,
+                        textColor: textColor,
                         children: [
                           _buildInfoRow(
                             'insurance.accident.region'.tr(),
                             widget.formData['region'] ?? '',
                             isDark: isDark,
                             subtitleColor: subtitleColor,
+                            textColor: textColor,
                           ),
                           _buildInfoRow(
                             'insurance.accident.phone'.tr(),
                             widget.formData['phone'] ?? '',
                             isDark: isDark,
                             subtitleColor: subtitleColor,
+                            textColor: textColor,
                           ),
                           _buildInfoRow(
                             'insurance.accident.address'.tr(),
                             widget.formData['address'] ?? '',
                             isDark: isDark,
                             subtitleColor: subtitleColor,
+                            textColor: textColor,
                           ),
                         ],
                       ),
@@ -186,24 +202,28 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
                         title: 'insurance.accident.payment.insurance_info'.tr(),
                         isDark: isDark,
                         cardColor: cardColor,
+                        textColor: textColor,
                         children: [
                           _buildInfoRow(
                             'insurance.accident.payment.tariff'.tr(),
                             widget.selectedTariff,
                             isDark: isDark,
                             subtitleColor: subtitleColor,
+                            textColor: textColor,
                           ),
                           _buildInfoRow(
                             'insurance.accident.start_date'.tr(),
                             widget.formData['startDate'] ?? '',
                             isDark: isDark,
                             subtitleColor: subtitleColor,
+                            textColor: textColor,
                           ),
                           _buildInfoRow(
                             'insurance.accident.end_date'.tr(),
                             widget.formData['endDate'] ?? '',
                             isDark: isDark,
                             subtitleColor: subtitleColor,
+                            textColor: textColor,
                           ),
                         ],
                       ),
@@ -212,11 +232,8 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
                       // Payment Method Selection
                       Text(
                         'insurance.accident.payment.select_payment_method'.tr(),
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w600,
-                          color: textColor,
-                        ),
+                        style: AppTypography.titleLarge(context)
+                            .copyWith(color: textColor),
                       ),
                       SizedBox(height: 12.h),
 
@@ -224,9 +241,10 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
                       _buildPaymentMethodCard(
                         value: 'payme',
                         title: 'insurance.accident.payment.payme'.tr(),
-                        logo: _buildPaymeLogo(isDark),
+                        logo: _buildPaymeLogo(isDark, textColor),
                         isDark: isDark,
                         cardColor: cardColor,
+                        textColor: textColor,
                       ),
                       SizedBox(height: 12.h),
 
@@ -237,6 +255,7 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
                         logo: _buildClickLogo(isDark),
                         isDark: isDark,
                         cardColor: cardColor,
+                        textColor: textColor,
                       ),
                     ],
                   ),
@@ -250,7 +269,7 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
                   color: cardColor,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                      color: AppColors.black.withOpacity(isDark ? 0.3 : 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, -5),
                     ),
@@ -266,19 +285,13 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
                           children: [
                             Text(
                               'insurance.accident.payment.total_amount'.tr(),
-                              style: TextStyle(
-                                fontSize: 14.sp,
-                                color: subtitleColor,
-                              ),
+                              style: AppTypography.bodyMedium(context)
+                                  .copyWith(color: subtitleColor),
                             ),
                             SizedBox(height: 4.h),
                             Text(
                               '${widget.insuranceAmount} so\'m',
-                              style: TextStyle(
-                                fontSize: 20.sp,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFFFF9800),
-                              ),
+                              style: AppTypography.priceLarge(context),
                             ),
                           ],
                         ),
@@ -288,12 +301,18 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
                         width: 160.w,
                         height: 56.h,
                         child: ElevatedButton(
+                          // Payment functionality temporarily disabled for Play Market submission
+                          // TODO: Implement backend API integration before enabling
+                          onPressed:
+                              null, // Disabled until payment is fully implemented
+                          /*
                           onPressed: (_isLoading || _selectedPaymentMethod == null)
                               ? null
                               : _onPayPressed,
+                          */
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFF9800),
-                            foregroundColor: Colors.white,
+                            backgroundColor: AppColors.orangeWarning,
+                            foregroundColor: AppColors.white,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16.r),
@@ -305,17 +324,15 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
                                   height: 20.w,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: const AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                      AppColors.white,
                                     ),
                                   ),
                                 )
                               : Text(
                                   'insurance.accident.payment.pay'.tr(),
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                  style: AppTypography.buttonLarge(context),
                                 ),
                         ),
                       ),
@@ -328,11 +345,11 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
           if (_isLoading)
             Positioned.fill(
               child: ColoredBox(
-                color: Colors.black.withOpacity(isDark ? 0.7 : 0.38),
+                color: AppColors.black.withOpacity(isDark ? 0.7 : 0.38),
                 child: Center(
                   child: CircularProgressIndicator(
                     valueColor: const AlwaysStoppedAnimation<Color>(
-                      Color(0xFFFF9800),
+                      AppColors.orangeWarning,
                     ),
                   ),
                 ),
@@ -347,6 +364,7 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
     required String title,
     required bool isDark,
     required Color cardColor,
+    required Color textColor,
     required List<Widget> children,
   }) {
     return Container(
@@ -355,7 +373,7 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
         color: cardColor,
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
-          color: isDark ? Colors.grey[700]! : const Color(0xFFE0E0E0),
+          color: AppColors.getBorderColor(isDark),
           width: 1,
         ),
       ),
@@ -364,11 +382,7 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
         children: [
           Text(
             title,
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : const Color(0xFF222222),
-            ),
+            style: AppTypography.headingS(context).copyWith(color: textColor),
           ),
           SizedBox(height: 12.h),
           ...children,
@@ -382,6 +396,7 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
     String value, {
     required bool isDark,
     required Color? subtitleColor,
+    required Color textColor,
   }) {
     return Padding(
       padding: EdgeInsets.only(bottom: 12.h),
@@ -392,9 +407,8 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
             flex: 2,
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: subtitleColor ?? (isDark ? Colors.grey[400] : const Color(0xFF666666)),
+              style: AppTypography.bodyMedium(context).copyWith(
+                color: subtitleColor ?? AppColors.getSubtitleColor(isDark),
               ),
             ),
           ),
@@ -403,10 +417,8 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
             flex: 3,
             child: Text(
               value,
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white : Colors.black,
+              style: AppTypography.subtitle(context).copyWith(
+                color: textColor,
               ),
               textAlign: TextAlign.right,
             ),
@@ -422,14 +434,25 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
     required Widget logo,
     required bool isDark,
     required Color cardColor,
+    required Color textColor,
   }) {
     final isSelected = _selectedPaymentMethod == value;
 
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _selectedPaymentMethod = value;
-        });
+        try {
+          setState(() {
+            _selectedPaymentMethod = value;
+          });
+        } catch (e) {
+          if (mounted) {
+            GlobalErrorHandler.showErrorSnackBar(
+              context,
+              e,
+              duration: const Duration(seconds: 3),
+            );
+          }
+        }
       },
       child: Container(
         padding: EdgeInsets.all(16.w),
@@ -438,8 +461,8 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFFFF9800)
-                : (isDark ? Colors.grey[700]! : const Color(0xFFE0E0E0)),
+                ? AppColors.orangeWarning
+                : AppColors.getBorderColor(isDark),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -451,7 +474,7 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
               height: 50.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isDark ? cardColor : Colors.white,
+                color: cardColor,
               ),
               child: logo,
             ),
@@ -459,10 +482,9 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
             Expanded(
               child: Text(
                 title,
-                style: TextStyle(
-                  fontSize: 16.sp,
+                style: AppTypography.bodyLarge(context).copyWith(
                   fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white : Colors.black,
+                  color: textColor,
                 ),
               ),
             ),
@@ -474,17 +496,18 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFFFF9800)
-                      : (isDark ? Colors.grey[600]! : Colors.grey[400]!),
+                      ? AppColors.orangeWarning
+                      : AppColors.getPlaceholderColor(isDark),
                   width: 2,
                 ),
-                color: isSelected ? const Color(0xFFFF9800) : Colors.transparent,
+                color:
+                    isSelected ? AppColors.orangeWarning : Colors.transparent,
               ),
               child: isSelected
                   ? Icon(
                       Icons.check,
                       size: 16.sp,
-                      color: Colors.white,
+                      color: AppColors.white,
                     )
                   : null,
             ),
@@ -494,24 +517,22 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
     );
   }
 
-  Widget _buildPaymeLogo(bool isDark) {
+  Widget _buildPaymeLogo(bool isDark, Color textColor) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             'pay',
-            style: TextStyle(
-              color: isDark ? Colors.white : Colors.black,
-              fontSize: 12.sp,
+            style: AppTypography.caption(context).copyWith(
+              color: textColor,
               fontWeight: FontWeight.bold,
             ),
           ),
           Text(
             'me',
-            style: TextStyle(
-              color: const Color(0xFF00D4AA),
-              fontSize: 12.sp,
+            style: AppTypography.caption(context).copyWith(
+              color: AppColors.accentCyan,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -524,7 +545,7 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: const Color(0xFF0066FF),
+        color: AppColors.primaryBlue,
       ),
       child: Center(
         child: Container(
@@ -532,7 +553,7 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
           height: 20.w,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            color: AppColors.getCardBg(isDark),
           ),
           child: Center(
             child: Container(
@@ -540,7 +561,7 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
               height: 12.w,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0xFF0066FF),
+                color: AppColors.primaryBlue,
               ),
             ),
           ),
@@ -549,69 +570,56 @@ class _AccidentPaymentScreenState extends State<AccidentPaymentScreen> {
     );
   }
 
+  // Payment functionality temporarily disabled for Play Market submission
+  // TODO: Implement backend API integration before enabling
+  /*
   Future<void> _onPayPressed() async {
-    if (_selectedPaymentMethod == null) {
-      SnackbarHelper.showError(
-        context,
-        'insurance.accident.payment.select_payment_method'.tr(),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    // TODO: API call to create payment link
-    await Future.delayed(const Duration(seconds: 1));
-
-    // Mock payment URL
-    final paymentUrl = _selectedPaymentMethod == 'payme'
-        ? 'https://payme.uz/checkout/test'
-        : 'https://click.uz/checkout/test';
-
-    if (!mounted) return;
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    // Open payment URL
     try {
-      final uri = Uri.parse(paymentUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        // Fallback to app deep link
-        final appUrl = _getPaymentAppUrl(_selectedPaymentMethod!);
-        if (appUrl != null) {
-          await launchUrlString(appUrl, mode: LaunchMode.externalApplication);
-        } else {
-          if (mounted) {
-            SnackbarHelper.showError(
-              context,
-              'insurance.accident.payment.payment_link_error'.tr(),
-            );
-          }
-        }
+      if (_selectedPaymentMethod == null) {
+        SnackbarHelper.showError(
+          context,
+          'insurance.accident.payment.select_payment_method'.tr(),
+        );
+        return;
       }
-    } catch (e) {
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      if (!mounted) return;
+
+      // Payment functionality is not yet implemented
+      // This feature requires backend API integration
+      
+      // Simulate payment processing
+      await Future.delayed(const Duration(seconds: 1));
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
       if (mounted) {
         SnackbarHelper.showError(
           context,
-          'insurance.accident.payment.payment_link_error'.tr(),
+          'common.errors.server_error'.tr(),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        GlobalErrorHandler.showErrorSnackBar(
+          context,
+          e,
+          duration: const Duration(seconds: 4),
         );
       }
     }
   }
-
-  String? _getPaymentAppUrl(String paymentMethod) {
-    if (paymentMethod == 'payme') {
-      return Platform.isAndroid || Platform.isIOS ? 'payme://' : null;
-    } else if (paymentMethod == 'click') {
-      return Platform.isAndroid || Platform.isIOS ? 'clickuz://' : null;
-    }
-    return null;
-  }
+  */
 }
-

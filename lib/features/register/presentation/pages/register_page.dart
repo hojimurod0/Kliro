@@ -9,13 +9,11 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_input_decoration.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../../../core/constants/constants.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
 import '../../../../core/utils/snackbar_helper.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/services/auth/auth_service.dart';
-import '../../../../core/services/google/google_sign_in_service.dart';
-import '../../domain/entities/google_auth_redirect.dart';
 import '../../domain/params/auth_params.dart';
 import '../bloc/register_bloc.dart';
 import '../bloc/register_event.dart';
@@ -25,6 +23,7 @@ import '../widgets/auth_mode_toggle.dart';
 import '../widgets/auth_primary_button.dart';
 import '../widgets/auth_social_button.dart';
 import '../widgets/common_back_button.dart';
+import 'google_oauth_webview_page.dart';
 
 @RoutePage()
 class RegisterPage extends StatefulWidget implements AutoRouteWrapper {
@@ -58,8 +57,10 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  void _showSnackBar(String message, {Color background = Colors.red}) {
-    if (background == Colors.green) {
+  void _showSnackBar(String message, {Color? background}) {
+    final theme = Theme.of(context);
+    if (background == theme.colorScheme.primary || 
+        background == AppColors.accentGreen) {
       SnackbarHelper.showSuccess(context, message);
     } else {
       SnackbarHelper.showError(context, message);
@@ -105,61 +106,17 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Future<void> _handleGoogleSignIn() async {
     try {
-      final googleAccount = await GoogleSignInService.instance.signIn();
-      if (googleAccount == null) {
-        _showSnackBar('Google login bekor qilindi yoki sozlama xato');
-        return;
-      }
-
-      final email = googleAccount.email;
-      if (email.isEmpty) {
-        _showSnackBar('Google akkaunt email topilmadi');
-        return;
-      }
-
-      final redirectUrl = 'https://kliro.uz/auth/google/callback';
+      // Backend API orqali Google OAuth URL ni olish
       context.read<RegisterBloc>().add(
-        GoogleRedirectRequested(redirectUrl),
+        GoogleRedirectRequested(ApiPaths.googleOAuthRedirectUrl),
       );
     } catch (e) {
-      _showSnackBar('Google login xatolik: ${e.toString()}');
+      if (mounted) {
+        _showSnackBar('Google sign-in xatolik: ${e.toString()}');
+      }
     }
   }
 
-  Future<void> _handleGoogleRedirect(GoogleAuthRedirect redirect) async {
-    try {
-      final googleAccount = GoogleSignInService.instance.currentUser;
-      if (googleAccount == null) {
-        _showSnackBar('Google akkaunt topilmadi');
-        return;
-      }
-
-      final displayName = googleAccount.displayName ?? '';
-      final nameParts = displayName.split(' ');
-      final firstName = nameParts.isNotEmpty ? nameParts.first : '';
-      final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
-
-      if (redirect.sessionId != null && redirect.sessionId!.isNotEmpty) {
-        context.read<RegisterBloc>().add(
-          CompleteGoogleRegistrationRequested(
-            GoogleCompleteParams(
-              sessionId: redirect.sessionId!,
-              regionId: 1,
-              firstName: firstName,
-              lastName: lastName,
-            ),
-          ),
-        );
-      } else {
-        final url = Uri.parse(redirect.url);
-        if (await canLaunchUrl(url)) {
-          await launchUrl(url, mode: LaunchMode.externalApplication);
-        }
-      }
-    } catch (e) {
-      _showSnackBar('Google redirect xatolik: ${e.toString()}');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -173,7 +130,7 @@ class _RegisterPageState extends State<RegisterPage> {
             if (contact != null) {
               _showSnackBar(
                 state.message ?? 'OTP yuborildi',
-                background: Colors.green,
+                background: Theme.of(context).colorScheme.primary,
               );
               context.router.push(
                 RegisterVerificationRoute(contactInfo: contact),
@@ -182,10 +139,19 @@ class _RegisterPageState extends State<RegisterPage> {
             }
           }
         } else if (state.flow == RegisterFlow.googleRedirect) {
+          // Google OAuth redirect URL olingan
           if (state.status == RegisterStatus.success && state.googleRedirect != null) {
-            _handleGoogleRedirect(state.googleRedirect!);
+            if (mounted) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => GoogleOAuthWebViewPage(
+                    initialUrl: state.googleRedirect!.url,
+                  ),
+                ),
+              );
+            }
           } else if (state.status == RegisterStatus.failure) {
-            _showSnackBar(state.error ?? 'Google redirect xatolik');
+            _showSnackBar(state.error ?? 'Google sign-in xatolik');
           }
         } else if (state.flow == RegisterFlow.googleComplete) {
           if (state.status == RegisterStatus.failure) {
@@ -196,150 +162,148 @@ class _RegisterPageState extends State<RegisterPage> {
         }
       },
       builder: (context, state) {
-        final isLoading = state.isLoading &&
-            state.flow == RegisterFlow.registerSendOtp;
+        final isLoading =
+            state.isLoading && state.flow == RegisterFlow.registerSendOtp;
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: AppSpacing.screenPadding,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: AppSpacing.sm),
-              const CommonBackButton(),
-              SizedBox(height: AppSpacing.lg),
-              Text('auth.register.title'.tr(), style: AppTypography.headingXL.copyWith(color: isDark ? AppColors.white : AppColors.black)),
-              SizedBox(height: AppSpacing.xs),
-              Text(
-                'auth.register.subtitle'.tr(),
-                style: AppTypography.bodyPrimary,
-              ),
-              SizedBox(height: AppSpacing.lg),
-              AuthModeToggle(
-                first: AuthModeOption(
-                  label: 'auth.tab.phone'.tr(),
-                  icon: Icons.phone,
-                  gradient: AppColors.phoneGradient,
-                ),
-                second: AuthModeOption(
-                  label: 'auth.tab.email'.tr(),
-                  icon: Icons.email_outlined,
-                  gradient: AppColors.phoneGradient,
-                ),
-                isFirstSelected: isPhoneMode,
-                onChanged: (value) {
-                  setState(() {
-                    isPhoneMode = value;
-                    _phoneOrEmailController.clear();
-                  });
-                },
-              ),
-              SizedBox(height: AppSpacing.lg),
-              Padding(
-                padding: EdgeInsets.only(left: 2.w),
-                child: Text(
-                  isPhoneMode
-                      ? 'auth.field.phone_label'.tr()
-                      : 'auth.field.email_label'.tr(),
-                  style: AppTypography.labelSmall,
-                ),
-              ),
-              SizedBox(height: AppSpacing.xs),
-              TextFormField(
-                controller: _phoneOrEmailController,
-                keyboardType: isPhoneMode
-                    ? TextInputType.phone
-                    : TextInputType.emailAddress,
-                inputFormatters: isPhoneMode
-                    ? [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(9), // Faqat 9 ta raqam
-                      ]
-                    : null,
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: isDark ? AppColors.white : AppColors.black,
-                ),
-                decoration: AppInputDecoration.outline(
-                  fillColor: isDark ? AppColors.darkCardBg : AppColors.white,
-                  borderColor: isDark ? AppColors.darkBorder : null,
-                  hintColor: isDark ? AppColors.grayText : null,
-                  prefixIconColor: isDark ? AppColors.grayText : null,
-                  hint: isPhoneMode
-                      ? '_____'
-                      : 'auth.field.email_hint'.tr(),
-                  prefix: isPhoneMode
-                      ? Padding(
-                          padding: EdgeInsets.only(left: 16.w, right: 8.w),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.phone,
-                                color: AppColors.primaryBlue,
-                                size: 20.sp,
-                              ),
-                              SizedBox(width: 8.w),
-                              Text(
-                                '+998',
-                                  style: TextStyle(
-                                    color: isDark ? AppColors.grayText : AppColors.grayText,
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : null,
-                  prefixIcon: isPhoneMode ? null : Icons.email_outlined,
-                ),
-              ),
-              SizedBox(height: AppSpacing.lg),
-              AuthPrimaryButton(
-                label: 'auth.common.cta'.tr(),
-                onPressed: _submit,
-                isLoading: isLoading,
-              ),
-              SizedBox(height: AppSpacing.md),
-              AuthDivider(text: 'auth.common.divider'.tr()),
-              SizedBox(height: AppSpacing.md),
-              AuthSocialButton(
-                label: 'auth.common.google'.tr(),
-                iconUrl:
-                    'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/768px-Google_%22G%22_logo.svg.png',
-                onPressed: _handleGoogleSignIn,
-              ),
-              SizedBox(height: AppSpacing.lg),
-              Center(
-                child: GestureDetector(
-                  onTap: () {
-                    context.router.maybePop();
-                  },
-                  child: RichText(
-                    text: TextSpan(
-                      style: AppTypography.bodySecondary,
-                      children: [
-                        TextSpan(text: 'auth.register.have_account'.tr()),
-                        TextSpan(
-                          text: 'auth.register.login'.tr(),
-                          style: AppTypography.buttonLink,
-                        ),
-                      ],
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: AppSpacing.screenPadding,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: AppSpacing.sm),
+                  const CommonBackButton(),
+                  SizedBox(height: AppSpacing.lg),
+                  Text('auth.register.title'.tr(),
+                      style: AppTypography.headingXL(context)),
+                  SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'auth.register.subtitle'.tr(),
+                    style: AppTypography.bodyPrimary(context),
+                  ),
+                  SizedBox(height: AppSpacing.lg),
+                  AuthModeToggle(
+                    first: AuthModeOption(
+                      label: 'auth.tab.phone'.tr(),
+                      icon: Icons.phone,
+                      gradient: AppColors.phoneGradient,
+                    ),
+                    second: AuthModeOption(
+                      label: 'auth.tab.email'.tr(),
+                      icon: Icons.email_outlined,
+                      gradient: AppColors.phoneGradient,
+                    ),
+                    isFirstSelected: isPhoneMode,
+                    onChanged: (value) {
+                      setState(() {
+                        isPhoneMode = value;
+                        _phoneOrEmailController.clear();
+                      });
+                    },
+                  ),
+                  SizedBox(height: AppSpacing.lg),
+                  Padding(
+                    padding: EdgeInsets.only(left: 2.w),
+                    child: Text(
+                      isPhoneMode
+                          ? 'auth.field.phone_label'.tr()
+                          : 'auth.field.email_label'.tr(),
+                      style: AppTypography.labelSmall(context),
                     ),
                   ),
-                ),
+                  SizedBox(height: AppSpacing.xs),
+                  TextFormField(
+                    controller: _phoneOrEmailController,
+                    keyboardType: isPhoneMode
+                        ? TextInputType.phone
+                        : TextInputType.emailAddress,
+                    inputFormatters: isPhoneMode
+                        ? [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(
+                                9), // Faqat 9 ta raqam
+                          ]
+                        : null,
+                    style: AppTypography.bodyLarge(context),
+                    decoration: AppInputDecoration.outline(
+                      fillColor:
+                          isDark ? AppColors.darkCardBg : AppColors.white,
+                      borderColor: isDark ? AppColors.darkBorder : null,
+                      hintColor: isDark ? AppColors.grayText : null,
+                      prefixIconColor: isDark ? AppColors.grayText : null,
+                      hint:
+                          isPhoneMode ? '_____' : 'auth.field.email_hint'.tr(),
+                      prefix: isPhoneMode
+                          ? Padding(
+                              padding: EdgeInsets.only(left: 16.w, right: 8.w),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.phone,
+                                    color: AppColors.primaryBlue,
+                                    size: 20.sp,
+                                  ),
+                                  SizedBox(width: 8.w),
+                                  Text(
+                                    '+998',
+                                    style: AppTypography.bodyLarge(context).copyWith(
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : null,
+                      prefixIcon: isPhoneMode ? null : Icons.email_outlined,
+                    ),
+                  ),
+                  SizedBox(height: AppSpacing.lg),
+                  AuthPrimaryButton(
+                    label: 'auth.common.cta'.tr(),
+                    onPressed: _submit,
+                    isLoading: isLoading,
+                  ),
+                  SizedBox(height: AppSpacing.lg),
+                  SizedBox(height: AppSpacing.md),
+                  AuthDivider(text: 'auth.common.divider'.tr()),
+                  SizedBox(height: AppSpacing.md),
+                  AuthSocialButton(
+                    label: 'auth.common.google'.tr(),
+                    iconUrl:
+                        'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/768px-Google_%22G%22_logo.svg.png',
+                    onPressed: _handleGoogleSignIn,
+                  ),
+                  SizedBox(height: AppSpacing.lg),
+                  Center(
+                    child: GestureDetector(
+                      onTap: () {
+                        context.router.maybePop();
+                      },
+                      child: RichText(
+                        text: TextSpan(
+                          style: AppTypography.bodySecondary(context),
+                          children: [
+                            TextSpan(text: 'auth.register.have_account'.tr()),
+                            TextSpan(
+                              text: 'auth.register.login'.tr(),
+                              style: AppTypography.buttonLink(context),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                ],
               ),
-              SizedBox(height: 16.h),
-            ],
+            ),
           ),
-        ),
-      ),
         );
       },
     );
   }
 }
-

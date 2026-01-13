@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/utils/snackbar_helper.dart';
+import '../../../../core/utils/input_formatters.dart';
 import '../pages/insurance_form_page.dart';
 import '../bloc/accident_bloc.dart';
 import '../bloc/accident_event.dart';
@@ -518,6 +519,7 @@ class _AccidentPersonalDataScreenState
                             isDark: isDark,
                             cardColor: cardColor,
                             keyboardType: TextInputType.phone,
+                            inputFormatters: [PhoneFormatter()],
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'insurance.accident.errors.enter_phone'
@@ -803,6 +805,7 @@ class _AccidentPersonalDataScreenState
     int maxLines = 1,
     bool required = true,
     String? Function(String?)? validator,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -822,6 +825,7 @@ class _AccidentPersonalDataScreenState
           textCapitalization: textCapitalization,
           maxLength: maxLength,
           maxLines: maxLines,
+          inputFormatters: inputFormatters,
           style: TextStyle(
             color: isDark ? Colors.white : Colors.black,
             fontSize: 16.sp,

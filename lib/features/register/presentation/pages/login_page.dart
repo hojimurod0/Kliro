@@ -9,12 +9,13 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_input_decoration.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../../../core/constants/constants.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
 import '../../../../core/utils/snackbar_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/services/auth/auth_service.dart';
-import '../../domain/entities/google_auth_redirect.dart';
+import '../../../profile/presentation/widgets/language_modal.dart';
 import '../../domain/params/auth_params.dart';
 import '../bloc/register_bloc.dart';
 import '../bloc/register_event.dart';
@@ -23,6 +24,7 @@ import '../widgets/auth_divider.dart';
 import '../widgets/auth_mode_toggle.dart';
 import '../widgets/auth_primary_button.dart';
 import '../widgets/auth_social_button.dart';
+import 'google_oauth_webview_page.dart';
 
 @RoutePage()
 class LoginPage extends StatefulWidget implements AutoRouteWrapper {
@@ -48,10 +50,27 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
 
   String? _lastContactForOtp;
+  Locale? _currentLocale;
 
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Locale o'zgarganda sahifani yangilash
+    final currentLocale = context.locale;
+    if (_currentLocale != currentLocale) {
+      _currentLocale = currentLocale;
+      // Locale o'zgarganda sahifani yangilash
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+    }
   }
 
   @override
@@ -168,72 +187,16 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _handleGoogleSignIn() async {
-    // Backend API orqali Google Login URL ni ochamiz
-    // Bu yerda Dio ishlatilmaydi, to'g'ridan-to'g'ri brauzerga yo'naltiriladi
-
-    final redirectUrl =
-        Uri.encodeComponent('https://kliro.uz/auth/google/callback');
-    final url =
-        Uri.parse('https://api.kliro.uz/auth/google?redirect_url=$redirectUrl');
-
     try {
-      // canLaunchUrl ba'zida Android 11+ da noto'g'ri false qaytarishi mumkin.
-      // Shuning uchun to'g'ridan-to'g'ri launchUrl ni chaqiramiz.
-      await launchUrl(
-        url,
-        mode: LaunchMode.externalApplication,
-      );
+      // Backend API orqali Google OAuth URL ni olish
+      context.read<RegisterBloc>().add(
+            GoogleRedirectRequested(ApiPaths.googleOAuthRedirectUrl),
+          );
     } catch (e) {
       if (mounted) {
-        // Agar launchUrl ham xato bersa
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Xatolik: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _handleGoogleRedirect(GoogleAuthRedirect redirect) async {
-    try {
-      // Native SDK ishlatilmayotgani uchun currentUser'ni tekshirish shart emas.
-      // Backenddan kelgan URL ni ochamiz.
-
-      String firstName = '';
-      String lastName = '';
-
-      // Agar oldingi urinishdan qolgan ma'lumotlar bo'lsa (bu qismi o'zgarishi mumkin)
-      // Hozirda URL flow bo'lgani uchun brauzerdan qaytganda token bilan qaytadi deb umid qilamiz
-      // yoki deep link orqali logic bo'lishi kerak.
-
-      if (redirect.sessionId != null && redirect.sessionId!.isNotEmpty) {
-        if (mounted) {
-          context.read<RegisterBloc>().add(
-                CompleteGoogleRegistrationRequested(
-                  GoogleCompleteParams(
-                    sessionId: redirect.sessionId!,
-                    regionId: 1,
-                    firstName: firstName,
-                    lastName: lastName,
-                  ),
-                ),
-              );
-        }
-      } else {
-        final url = Uri.parse(redirect.url);
-        if (await canLaunchUrl(url)) {
-          await launchUrl(url, mode: LaunchMode.externalApplication);
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Google redirect xatolik: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+        SnackbarHelper.showError(
+          context,
+          'Google sign-in xatolik: ${e.toString()}',
         );
       }
     }
@@ -241,9 +204,6 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final topPadding = MediaQuery.of(context).padding.top;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return BlocConsumer<RegisterBloc, RegisterState>(
       listener: (context, state) {
         if (state.flow == RegisterFlow.login) {
@@ -254,8 +214,19 @@ class _LoginPageState extends State<LoginPage> {
             String errorMessage;
             final errorLower = rawError.toLowerCase().trim();
 
+            // User topilmadi xatosi - backend'dan kelgan xatoni to'g'ridan-to'g'ri ko'rsatish
+            // chunki u allaqachon tushunarli va to'g'ri tilda
+            if (errorLower.contains('пользователь не найден') ||
+                errorLower.contains('пользователя не найден') ||
+                errorLower.contains('user not found') ||
+                errorLower.contains('foydalanuvchi topilmadi') ||
+                errorLower.contains('user topilmadi') ||
+                errorLower.contains('не найден')) {
+              // Backend'dan kelgan xatoni to'g'ridan-to'g'ri ko'rsatish
+              errorMessage = rawError;
+            }
             // Parol xatosi - API'dan kelgan error'ni detect qilish
-            if (errorLower.contains('пароль') ||
+            else if (errorLower.contains('пароль') ||
                 errorLower.contains('password') ||
                 errorLower.contains('неверный') ||
                 errorLower.contains('неверен') ||
@@ -285,7 +256,10 @@ class _LoginPageState extends State<LoginPage> {
             // Boshqa xatolar
             else {
               // Tanlangan tilda ko'rsatish
-              errorMessage = 'auth.login.error_credentials_detail'.tr();
+              // Agar backend'dan kelgan xato boshqa tilda bo'lsa, uni to'g'ridan-to'g'ri ko'rsatamiz
+              errorMessage = rawError.isNotEmpty
+                  ? rawError
+                  : 'auth.login.error_credentials_detail'.tr();
             }
 
             SnackbarHelper.showError(
@@ -294,7 +268,7 @@ class _LoginPageState extends State<LoginPage> {
               duration: const Duration(seconds: 3),
               action: SnackBarAction(
                 label: 'auth.login.forgot'.tr(),
-                textColor: Colors.white,
+                textColor: Theme.of(context).colorScheme.onPrimary,
                 onPressed: () {
                   context.router.push(const LoginForgotPasswordRoute());
                 },
@@ -324,7 +298,10 @@ class _LoginPageState extends State<LoginPage> {
             if (error.isNotEmpty) {
               // Xatoni chiqaramiz
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(error), backgroundColor: Colors.red),
+                SnackBar(
+                  content: Text(error),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
               );
 
               // Agar xato bo'lsa ham, verificationga o'tamiz (balki user kodni biladi? Yo'q, kod bormaydi).
@@ -332,24 +309,29 @@ class _LoginPageState extends State<LoginPage> {
             }
           }
         } else if (state.flow == RegisterFlow.googleRedirect) {
+          // Google OAuth redirect URL olingan
           if (state.status == RegisterStatus.success &&
               state.googleRedirect != null) {
-            _handleGoogleRedirect(state.googleRedirect!);
+            if (mounted) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => GoogleOAuthWebViewPage(
+                    initialUrl: state.googleRedirect!.url,
+                  ),
+                ),
+              );
+            }
           } else if (state.status == RegisterStatus.failure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.error ?? 'Google redirect xatolik'),
-                backgroundColor: Colors.red,
-              ),
+            SnackbarHelper.showError(
+              context,
+              state.error ?? 'Google sign-in xatolik',
             );
           }
         } else if (state.flow == RegisterFlow.googleComplete) {
           if (state.status == RegisterStatus.failure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.error ?? 'Google login xatolik'),
-                backgroundColor: Colors.red,
-              ),
+            SnackbarHelper.showError(
+              context,
+              state.error ?? 'Google login xatolik',
             );
           } else if (state.status == RegisterStatus.success) {
             context.router.replace(HomeRoute());
@@ -357,6 +339,8 @@ class _LoginPageState extends State<LoginPage> {
         }
       },
       builder: (context, state) {
+        final topPadding = MediaQuery.of(context).padding.top;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         final isLoading = state.isLoading &&
             (state.flow == RegisterFlow.login ||
                 state.flow == RegisterFlow.registerSendOtp);
@@ -441,17 +425,49 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                       ),
-                      SizedBox(width: 48.w),
+                      GestureDetector(
+                        onTap: () async {
+                          await showLanguageModal(context);
+                          // Til o'zgarganda sahifani yangilash
+                          // Locale o'zgarishini didChangeDependencies avtomatik kuzatadi
+                        },
+                        child: Container(
+                          width: 48.w,
+                          height: 48.h,
+                          decoration: BoxDecoration(
+                            color:
+                                isDark ? AppColors.darkCardBg : AppColors.white,
+                            border: Border.all(
+                              color: isDark
+                                  ? AppColors.darkBorder
+                                  : AppColors.grayBorder,
+                              width: 1.w,
+                            ),
+                            borderRadius: BorderRadius.circular(15.r),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.black.withOpacity(0.05),
+                                spreadRadius: 1.r,
+                                blurRadius: 5.r,
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.language,
+                            color: isDark ? AppColors.white : AppColors.black,
+                            size: 22.sp,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   SizedBox(height: AppSpacing.lg),
                   Text('auth.login.title'.tr(),
-                      style: AppTypography.headingXL.copyWith(
-                          color: isDark ? AppColors.white : AppColors.black)),
+                      style: AppTypography.headingXL(context)),
                   SizedBox(height: AppSpacing.xs),
                   Text(
                     'auth.login.subtitle'.tr(),
-                    style: AppTypography.bodyPrimary,
+                    style: AppTypography.bodyPrimary(context),
                   ),
                   SizedBox(height: AppSpacing.lg),
                   AuthModeToggle(
@@ -498,9 +514,7 @@ class _LoginPageState extends State<LoginPage> {
                             required isFocused,
                             maxLength}) =>
                         null,
-                    style: TextStyle(
-                        fontSize: 16.sp,
-                        color: isDark ? AppColors.white : AppColors.black),
+                    style: AppTypography.bodyLarge(context),
                     decoration: AppInputDecoration.outline(
                       fillColor:
                           isDark ? AppColors.darkCardBg : AppColors.white,
@@ -523,13 +537,7 @@ class _LoginPageState extends State<LoginPage> {
                                   SizedBox(width: 8.w),
                                   Text(
                                     '+998',
-                                    style: TextStyle(
-                                      color: isDark
-                                          ? AppColors.white
-                                          : AppColors.black,
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.w400,
-                                    ),
+                                    style: AppTypography.bodyLarge(context),
                                   ),
                                 ],
                               ),
@@ -542,8 +550,7 @@ class _LoginPageState extends State<LoginPage> {
                   _buildLabel('auth.field.password_label'.tr()),
                   SizedBox(height: AppSpacing.xs),
                   TextFormField(
-                    style: TextStyle(
-                        color: isDark ? AppColors.white : Colors.blueGrey),
+                    style: AppTypography.bodyLarge(context),
                     controller: _passwordController,
                     obscureText: !_isPasswordVisible,
                     decoration: AppInputDecoration.outline(
@@ -582,9 +589,8 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           child: Text(
                             "auth.login.login_with_otp".tr(),
-                            style: AppTypography.buttonLink.copyWith(
+                            style: AppTypography.buttonLink(context).copyWith(
                               decoration: TextDecoration.none,
-                              color: AppColors.primaryBlue,
                             ),
                           ),
                         ),
@@ -600,7 +606,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           child: Text(
                             'auth.login.forgot'.tr(),
-                            style: AppTypography.buttonLink.copyWith(
+                            style: AppTypography.buttonLink(context).copyWith(
                               decoration: TextDecoration.none,
                             ),
                           ),
@@ -632,7 +638,7 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       Text(
                         'auth.login.no_account'.tr(),
-                        style: AppTypography.bodySecondary,
+                        style: AppTypography.bodySecondary(context),
                       ),
                       TextButton(
                         onPressed: () {
@@ -645,7 +651,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         child: Text(
                           'auth.login.register'.tr(),
-                          style: AppTypography.buttonLink,
+                          style: AppTypography.buttonLink(context),
                         ),
                       ),
                     ],
@@ -663,13 +669,13 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildLabel(String text) {
     return Padding(
       padding: EdgeInsets.only(left: 2.w),
-      child: Text(text, style: AppTypography.labelSmall),
+      child: Text(text, style: AppTypography.labelSmall(context)),
     );
   }
 
   Widget _buildAgreementCheckboxes(BuildContext context, bool isDark) {
     const documentUrl =
-        'https://docs.google.com/document/d/1UcdZv5QTRs2AheZlvroe0d86Dk2oILYB4R41Rp2pocE/edit?usp=sharing';
+        'https://docs.google.com/document/d/1UcdZv5QTRs2AheZlvroe0d86Dk2oILYB4R41Rp2pocE/view';
 
     return CheckboxListTile(
       value: _agreedToTermsAndPrivacy,
@@ -686,9 +692,8 @@ class _LoginPageState extends State<LoginPage> {
           Expanded(
             child: RichText(
               text: TextSpan(
-                style: AppTypography.bodySecondary.copyWith(
+                style: AppTypography.bodySecondary(context).copyWith(
                   fontSize: 12.sp,
-                  color: isDark ? AppColors.grayText : AppColors.bodyText,
                 ),
                 children: [
                   TextSpan(
@@ -721,7 +726,7 @@ class _LoginPageState extends State<LoginPage> {
                       },
                       child: Text(
                         'auth.login.agree_to_terms_and_privacy_link'.tr(),
-                        style: AppTypography.bodySecondary.copyWith(
+                        style: AppTypography.bodySecondary(context).copyWith(
                           fontSize: 12.sp,
                           color: AppColors.primaryBlue,
                           decoration: TextDecoration.underline,

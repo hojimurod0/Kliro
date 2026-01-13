@@ -47,6 +47,7 @@ import '../../features/register/presentation/pages/onboarding_page.dart';
 import '../../features/register/presentation/pages/register_page.dart';
 import '../../features/register/presentation/pages/register_verification_screen.dart';
 import '../../features/register/presentation/pages/user_details_screen.dart';
+import '../../features/register/presentation/pages/google_complete_form_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../features/transfer_apps/presentation/pages/transfer_apps_page.dart';
 import '../../features/avichiptalar/avichiptalar_module.dart';
@@ -85,6 +86,7 @@ class AppRouter extends _$AppRouter {
         AutoRoute(page: RegisterRoute.page),
         AutoRoute(page: RegisterVerificationRoute.page),
         AutoRoute(page: UserDetailsRoute.page),
+        AutoRoute(page: GoogleCompleteFormRoute.page),
         AutoRoute(page: HomeRoute.page),
         AutoRoute(page: BankServicesRoute.page),
         AutoRoute(page: CurrencyRatesRoute.page),

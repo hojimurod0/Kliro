@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -245,7 +246,7 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
           SnackBar(
             content: Text(
                 'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -258,9 +259,9 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
     final priceValue = double.tryParse(cleanPrice) ?? 0.0;
 
     // Debug log
-    print('💰 BOOKING_SUCCESS_PAGE: Original price: $priceString');
-    print('💰 BOOKING_SUCCESS_PAGE: Clean price: $cleanPrice');
-    print('💰 BOOKING_SUCCESS_PAGE: Price value: $priceValue');
+    debugPrint('💰 BOOKING_SUCCESS_PAGE: Original price: $priceString');
+    debugPrint('💰 BOOKING_SUCCESS_PAGE: Clean price: $cleanPrice');
+    debugPrint('💰 BOOKING_SUCCESS_PAGE: Price value: $priceValue');
 
     // API eng kichik birlikda amount kutadi (masalan, 500000)
     // UZS uchun: 5000 UZS = 500000 (100 ga ko'paytiriladi)
@@ -270,8 +271,8 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
     final amount = (priceValue * 1.10 * 100).toInt();
     
     // Debug log
-    print('💰 BOOKING_SUCCESS_PAGE: Amount without commission: $amountWithoutCommission');
-    print('💰 BOOKING_SUCCESS_PAGE: Amount with 10% commission: $amount');
+      debugPrint('💰 BOOKING_SUCCESS_PAGE: Amount without commission: $amountWithoutCommission');
+      debugPrint('💰 BOOKING_SUCCESS_PAGE: Amount with 10% commission: $amount');
 
     // Amount musbat bo'lishi kerak (backend talabi)
     if (amount <= 0) {
@@ -529,13 +530,13 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('PDF saqlandi'),
+        title: Text('avia.booking_success.pdf.saved'.tr()),
         content:
-            Text('PDF fayl muvaffaqiyatli saqlandi. Ulashishni xohlaysizmi?'),
+            Text('avia.booking_success.pdf.saved_message'.tr()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Yopish'),
+            child: Text('avia.booking_success.pdf.close'.tr()),
           ),
           TextButton(
             onPressed: () async {
@@ -544,11 +545,11 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
                 await Share.shareXFiles([XFile(filePath)]);
               } catch (e) {
                 if (mounted) {
-                  SnackbarHelper.showError(context, 'Ulashishda xatolik');
+                  SnackbarHelper.showError(context, 'avia.booking_success.pdf.share_error'.tr());
                 }
               }
             },
-            child: Text('Ulashish'),
+            child: Text('avia.booking_success.pdf.share'.tr()),
           ),
         ],
       ),
@@ -1056,7 +1057,9 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
       ],
       child: BlocBuilder<AviaBloc, AviaState>(
         builder: (context, state) {
-          final isLoading = state is AviaLoading && _booking == null;
+          final isLoading = (state is AviaBookingInfoLoading || 
+                             state is AviaCancelUnpaidLoading || 
+                             state is AviaVoidLoading) && _booking == null;
           final isFailure = state is AviaBookingInfoFailure && _booking == null;
 
           return Scaffold(
@@ -1133,7 +1136,7 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
                                       child: Text(
                                         'common.retry'.tr(),
                                         style: TextStyle(
-                                          color: Colors.white,
+                                          color: AppColors.white,
                                           fontWeight: FontWeight.w800,
                                           fontSize: 13.sp,
                                         ),
@@ -2046,7 +2049,7 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
                                         strokeWidth: 2,
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
+                                          AppColors.white,
                                         ),
                                       ),
                                     )
@@ -2057,7 +2060,7 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
                                       style: TextStyle(
                                         fontSize: 14.sp,
                                         fontWeight: FontWeight.w800,
-                                        color: Colors.white,
+                                        color: AppColors.white,
                                       ),
                                     ),
                             ),

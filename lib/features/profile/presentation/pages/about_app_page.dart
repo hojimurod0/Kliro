@@ -33,7 +33,7 @@ class AboutAppPage extends StatelessWidget {
         centerTitle: true,
         title: Text(
           tr('about_app.title'),
-          style: AppTypography.headingL.copyWith(
+          style: AppTypography.headingL(context).copyWith(
             fontSize: 18.sp,
             color: Theme.of(context).textTheme.titleLarge?.color,
           ),
@@ -58,7 +58,7 @@ class AboutAppPage extends StatelessWidget {
             SizedBox(height: 10.h),
             Text(
               tr('about_app.description'),
-              style: AppTypography.bodyPrimary.copyWith(
+              style: AppTypography.bodyPrimary(context).copyWith(
                 fontSize: 16.sp,
                 color:
                     Theme.of(context).textTheme.bodyLarge?.color ??
@@ -88,7 +88,7 @@ class AboutAppPage extends StatelessWidget {
           BlendMode.srcIn,
         ),
         placeholderBuilder: (context) {
-          final TextStyle baseStyle = AppTypography.headingL.copyWith(
+          final TextStyle baseStyle = AppTypography.headingL(context).copyWith(
             fontSize: 48.sp,
             letterSpacing: -1,
             fontWeight: FontWeight.w800,
@@ -163,7 +163,7 @@ class AboutAppPage extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: AppTypography.bodyPrimary.copyWith(
+                  style: AppTypography.bodyPrimary(context).copyWith(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w600,
                     color:

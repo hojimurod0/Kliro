@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -234,9 +235,9 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
     final priceValue = double.tryParse(cleanPrice) ?? 0.0;
 
     // Debug log
-    print('💰 BOOKING_PAGE: Original price: $priceString');
-    print('💰 BOOKING_PAGE: Clean price: $cleanPrice');
-    print('💰 BOOKING_PAGE: Price value: $priceValue');
+    debugPrint('💰 BOOKING_PAGE: Original price: $priceString');
+    debugPrint('💰 BOOKING_PAGE: Clean price: $cleanPrice');
+    debugPrint('💰 BOOKING_PAGE: Price value: $priceValue');
 
     // API eng kichik birlikda amount kutadi (masalan, 500000)
     // UZS uchun: 5000 UZS = 500000 (100 ga ko'paytiriladi)
@@ -246,8 +247,8 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
     final amount = (priceValue * 1.10 * 100).toInt();
     
     // Debug log
-    print('💰 BOOKING_PAGE: Amount without commission: $amountWithoutCommission');
-    print('💰 BOOKING_PAGE: Amount with 10% commission: $amount');
+    debugPrint('💰 BOOKING_PAGE: Amount without commission: $amountWithoutCommission');
+    debugPrint('💰 BOOKING_PAGE: Amount with 10% commission: $amount');
 
     // Amount musbat bo'lishi kerak (backend talabi)
     if (amount <= 0) {
@@ -462,7 +463,7 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
       ],
       child: BlocBuilder<AviaBloc, AviaState>(
         builder: (context, state) {
-          if (state is AviaLoading) {
+          if (state is AviaBookingLoading) {
             return Scaffold(
               appBar: AppBar(title: Text('avia.formalization.title'.tr())),
               body: const Center(child: CircularProgressIndicator()),
@@ -592,7 +593,7 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
                     const SizedBox(height: 24),
                     BlocBuilder<AviaBloc, AviaState>(
                       builder: (context, state) {
-                        final isLoading = state is AviaLoading;
+                        final isLoading = state is AviaBookingLoading;
                         return PrimaryButton(
                           text: 'avia.details.book'.tr(),
                           isLoading: isLoading,

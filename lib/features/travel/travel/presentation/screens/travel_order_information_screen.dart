@@ -92,7 +92,7 @@ class _TravelOrderInformationScreenState
             state.errorMessage ?? "travel.order_info.error".tr(),
             action: SnackBarAction(
               label: "travel.order_info.retry".tr(),
-              textColor: Colors.white,
+              textColor: AppColors.white,
               onPressed: () {
                 // Xatolikdan keyin qayta urinish
                 if (state.calcResponse == null) {
@@ -197,8 +197,8 @@ class _TravelOrderInformationScreenState
                     boxShadow: [
                       BoxShadow(
                         color: isDark
-                            ? Colors.black.withOpacity(0.3)
-                            : Colors.grey.withOpacity(0.2),
+                            ? AppColors.black.withOpacity(0.3)
+                            : AppColors.gray500.withOpacity(0.2),
                         blurRadius: 10,
                         offset: const Offset(0, -2),
                       ),
@@ -305,8 +305,8 @@ class _TravelOrderInformationScreenState
                         style: ElevatedButton.styleFrom(
                           backgroundColor: state is TravelCreateSuccess
                               ? Colors.green
-                              : const Color(0xFF1976D2),
-                          foregroundColor: Colors.white,
+                              : AppColors.primaryBlue,
+                          foregroundColor: AppColors.white,
                           padding: EdgeInsets.symmetric(
                             horizontal: 32.w,
                             vertical: 16.h,
@@ -322,7 +322,7 @@ class _TravelOrderInformationScreenState
                                 child: const CircularProgressIndicator(
                                   strokeWidth: 2,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
+                                    AppColors.white,
                                   ),
                                 ),
                               )
@@ -353,7 +353,7 @@ class _TravelOrderInformationScreenState
     Color textColor,
     Color subtitleColor,
   ) {
-    final cardBg = isDark ? const Color(0xFF1E3A5C) : const Color(0xFFE3F2FD);
+    final cardBg = isDark ? AppColors.travelLightBlueBgDark : AppColors.blueBgLight;
 
     return Container(
       padding: EdgeInsets.all(20.w),
@@ -361,7 +361,7 @@ class _TravelOrderInformationScreenState
         color: cardBg,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: isDark ? Colors.grey[700]! : Colors.grey.shade200,
+          color: isDark ? AppColors.darkBorder : AppColors.grayBorder,
           width: 1,
         ),
       ),
@@ -372,7 +372,7 @@ class _TravelOrderInformationScreenState
             children: [
               Icon(
                 Icons.info_outline,
-                color: const Color(0xFF42A5F5),
+                color: AppColors.primaryBlue,
                 size: 24.sp,
               ),
               SizedBox(width: 8.w),
@@ -491,7 +491,7 @@ class _TravelOrderInformationScreenState
     Color textColor,
     Color subtitleColor,
   ) {
-    final cardBg = isDark ? const Color(0xFF1E3A5C) : const Color(0xFFE3F2FD);
+    final cardBg = isDark ? AppColors.travelLightBlueBgDark : AppColors.blueBgLight;
 
     return Container(
       padding: EdgeInsets.all(20.w),
@@ -499,7 +499,7 @@ class _TravelOrderInformationScreenState
         color: cardBg,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: isDark ? Colors.grey[700]! : Colors.grey.shade200,
+          color: isDark ? AppColors.darkBorder : AppColors.grayBorder,
           width: 1,
         ),
       ),
@@ -510,7 +510,7 @@ class _TravelOrderInformationScreenState
             children: [
               Icon(
                 Icons.people_outline,
-                color: const Color(0xFF42A5F5),
+                color: AppColors.primaryBlue,
                 size: 24.sp,
               ),
               SizedBox(width: 8.w),
@@ -549,7 +549,7 @@ class _TravelOrderInformationScreenState
                     padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 12.w),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? Colors.grey[800]!.withOpacity(0.3)
+                          ? AppColors.darkSubtitle.withOpacity(0.3)
                           : Colors.white.withOpacity(0.5),
                       borderRadius: BorderRadius.circular(8.r),
                     ),
@@ -558,7 +558,7 @@ class _TravelOrderInformationScreenState
                         Icon(
                           Icons.person,
                           size: 18.sp,
-                          color: const Color(0xFF42A5F5),
+                          color: AppColors.primaryBlue,
                         ),
                         SizedBox(width: 8.w),
                         Expanded(
@@ -617,7 +617,7 @@ class _TravelOrderInformationScreenState
     Color textColor,
     Color subtitleColor,
   ) {
-    final cardBg = isDark ? const Color(0xFF1E3A5C) : const Color(0xFFE3F2FD);
+    final cardBg = isDark ? AppColors.travelLightBlueBgDark : AppColors.blueBgLight;
     final paymentMethod = state.paymentMethod ?? 'click';
 
     return Container(

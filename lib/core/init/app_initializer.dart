@@ -93,6 +93,18 @@ class AppInitializer {
       // Initialize AuthService and ServiceLocator synchronously
       await _initAuthAndServiceLocator(sharedPreferences, stopwatch);
 
+      // Initialize ThemeController BEFORE runApp() to ensure theme is ready on first run
+      final themeStart = stopwatch.elapsedMilliseconds;
+      await ThemeController.instance.init().catchError((e) {
+        AppLogger.warning('ThemeController init error: $e');
+        return null;
+      });
+      _logIfDebug(
+        'ThemeController initialized',
+        stopwatch.elapsedMilliseconds - themeStart,
+        isSuccess: true,
+      );
+
       final totalTime = stopwatch.elapsedMilliseconds - criticalInitStart;
       AppLogger.success('✅ Critical services initialized in ${totalTime}ms');
     } catch (e, stackTrace) {
@@ -144,7 +156,7 @@ class AppInitializer {
   static Future<void> _initializeNonCriticalServices(Stopwatch stopwatch) async {
       await Future.wait([
         RootService().init().catchError((e) => null),
-        ThemeController.instance.init().catchError((e) => null),
+        // ThemeController is now initialized in critical services
         initializeDateFormatting().catchError((e) => null),
       ]);
       

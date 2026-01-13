@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/utils/snackbar_helper.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../../domain/entities/hotel_filter.dart';
 import '../../domain/entities/city.dart';
 import '../bloc/hotel_bloc.dart';
 import '../widgets/city_input.dart';
 import 'hotel_results_page.dart'; // Import Results page
 import 'hotel_loading_page.dart'; // Import Loading page
-import '../widgets/guest_selector_dialog.dart';
+import 'guest_selector_page.dart';
 
 class HotelSearchPage extends StatefulWidget {
   const HotelSearchPage({Key? key}) : super(key: key);
@@ -83,7 +84,7 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
       final occupancies = [
         Occupancy(
           adults: _adults,
-          childrenAges: List.generate(_children, (index) => 10),
+          childrenAges: [],
         ),
       ];
 
@@ -97,7 +98,7 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
         residence: 'uz',
         isResident: false,
         city: _cityController.text,
-        guests: _adults + _children,
+        guests: _adults,
       );
       context.read<HotelBloc>().add(SearchHotelsRequested(filter));
       return;
@@ -149,8 +150,7 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
               // Let's stick to 1 occupancy with total adults/children for now unless API requires distinct rooms.
               // Actually, HotelFilter has 'rooms' and 'guests' legacy fields, and 'occupancies'.
               // Let's create `_rooms` number of occupancies.
-              childrenAges:
-                  index == 0 ? List.generate(_children, (_) => 10) : [],
+              childrenAges: [],
             ));
 
     // Better Logic: Just 1 occupancy with all people, as UI doesn't split them.
@@ -168,7 +168,7 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
       isResident: false,
       // Legacy support
       city: _cityController.text,
-      guests: _adults + _children,
+      guests: _adults,
       rooms: _rooms,
     );
     context.read<HotelBloc>().add(SearchHotelsRequested(filter));
@@ -176,12 +176,13 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
   }
 
   void _showGuestSelector() async {
-    final result = await showDialog<Map<String, int>>(
-      context: context,
-      builder: (context) => GuestSelectorDialog(
-        initialAdults: _adults,
-        initialChildren: _children,
-        initialRooms: _rooms,
+    final result = await Navigator.of(context).push<Map<String, int>>(
+      MaterialPageRoute(
+        builder: (context) => GuestSelectorPage(
+          initialAdults: _adults,
+          initialChildren: _children,
+          initialRooms: _rooms,
+        ),
       ),
     );
 
@@ -208,18 +209,18 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: isDark
-                ? const ColorScheme.dark(
-                    primary: Colors.blue,
-                    onPrimary: Colors.white,
-                    onSurface: Colors.white,
+                ? ColorScheme.dark(
+                    primary: AppColors.primaryBlue,
+                    onPrimary: AppColors.white,
+                    onSurface: AppColors.white,
                   )
-                : const ColorScheme.light(
-                    primary: Colors.blue,
-                    onPrimary: Colors.white,
-                    onSurface: Colors.black,
+                : ColorScheme.light(
+                    primary: AppColors.primaryBlue,
+                    onPrimary: AppColors.white,
+                    onSurface: AppColors.black,
                   ),
             dialogBackgroundColor:
-                isDark ? const Color(0xFF252525) : Colors.white,
+                isDark ? AppColors.darkCardBg : AppColors.white,
           ),
           child: child!,
         );
@@ -257,18 +258,18 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: isDark
-                ? const ColorScheme.dark(
-                    primary: Colors.blue,
-                    onPrimary: Colors.white,
-                    onSurface: Colors.white,
+                ? ColorScheme.dark(
+                    primary: AppColors.primaryBlue,
+                    onPrimary: AppColors.white,
+                    onSurface: AppColors.white,
                   )
-                : const ColorScheme.light(
-                    primary: Colors.blue,
-                    onPrimary: Colors.white,
-                    onSurface: Colors.black,
+                : ColorScheme.light(
+                    primary: AppColors.primaryBlue,
+                    onPrimary: AppColors.white,
+                    onSurface: AppColors.black,
                   ),
             dialogBackgroundColor:
-                isDark ? const Color(0xFF252525) : Colors.white,
+                isDark ? AppColors.darkCardBg : AppColors.white,
           ),
           child: child!,
         );
@@ -312,12 +313,18 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                 ),
               );
             } else if (state is HotelSearchSuccess) {
-              // Close Loading Page (if it was open)
-              Navigator.of(context).pop();
-
+              // Close Loading Page (if it was open) and remove it from stack
+              // Then navigate to Results Page
               final hotelBloc = context.read<HotelBloc>();
 
-              // Proceed to Results Page
+              // Remove loading page and navigate to results
+              // This ensures that when user goes back from results, they go to search page, not loading page
+              // First, pop the loading page if it exists
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+
+              // Then push results page
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => BlocProvider.value(
@@ -327,7 +334,7 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                       city: _cityController.text,
                       checkInDate: _checkInDate,
                       checkOutDate: _checkOutDate,
-                      guests: _adults + _children,
+                      guests: _adults,
                       filter: null,
                     ),
                   ),
@@ -336,7 +343,8 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
             } else if (state is HotelSearchFailure) {
               // Close Loading Page
               Navigator.of(context).pop();
-              SnackbarHelper.showError(context, state.message);
+              // Show error with retry option
+              _showSearchErrorDialog(context, state.message, state.filter);
             }
           },
           child: SingleChildScrollView(
@@ -352,7 +360,7 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                     borderRadius: BorderRadius.circular(16.r),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: AppColors.black.withOpacity(0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -362,7 +370,7 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                     children: [
                       // City Input with list of cities
                       CityInput(
-                        label: 'hotel.search.city'.tr(),
+                        label: 'hotel.search.city_or_hotel'.tr(),
                         hint: 'hotel.search.city_hint'.tr(),
                         icon: Icons.location_on,
                         controller: _cityController,
@@ -371,35 +379,11 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                             _selectedCityId = city.id;
                             _selectedHotelId = null;
                           });
-                          // Auto search when dates selected
-                          if (_checkInDate != null && _checkOutDate != null) {
-                            _onSearch();
-                          } else {
-                            SnackbarHelper.showError(
-                              context,
-                              'hotel.search.select_dates'.tr(),
-                            );
-                          }
                         },
                         onHotelSelected: (hotel) {
                           setState(() {
                             _selectedCityId = null;
                             _selectedHotelId = hotel.hotelId;
-                          });
-                          // Auto search when dates selected
-                          if (_checkInDate != null && _checkOutDate != null) {
-                            _onSearch();
-                          } else {
-                            SnackbarHelper.showError(
-                              context,
-                              'hotel.search.select_dates'.tr(),
-                            );
-                          }
-                        },
-                        onClear: () {
-                          setState(() {
-                            _selectedCityId = null;
-                            _selectedHotelId = null;
                           });
                         },
                       ),
@@ -435,7 +419,7 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                                         Icon(
                                           Icons.calendar_today,
                                           size: 20.sp,
-                                          color: Colors.blue,
+                                          color: AppColors.primaryBlue,
                                         ),
                                         SizedBox(width: 8.w),
                                         Text(
@@ -451,7 +435,7 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                                                       .textTheme
                                                       .bodyLarge
                                                       ?.color
-                                                  : Colors.grey),
+                                                  : AppColors.grayText),
                                         ),
                                       ],
                                     ),
@@ -488,7 +472,7 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                                         Icon(
                                           Icons.calendar_today,
                                           size: 20.sp,
-                                          color: Colors.blue,
+                                          color: AppColors.primaryBlue,
                                         ),
                                         SizedBox(width: 8.w),
                                         Text(
@@ -504,7 +488,7 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                                                       .textTheme
                                                       .bodyLarge
                                                       ?.color
-                                                  : Colors.grey),
+                                                  : AppColors.grayText),
                                         ),
                                       ],
                                     ),
@@ -538,11 +522,11 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                               child: Row(
                                 children: [
                                   const Icon(Icons.person_outline,
-                                      color: Colors.blue),
+                                      color: AppColors.primaryBlue),
                                   SizedBox(width: 8.w),
                                   Flexible(
                                     child: Text(
-                                      '${_adults + _children} ${"hotel.search.person".tr()}',
+                                      '$_adults ${"hotel.search.person".tr()}',
                                       style: TextStyle(
                                         color: Theme.of(context)
                                             .textTheme
@@ -557,10 +541,11 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                                   Container(
                                       width: 1,
                                       height: 16.h,
-                                      color: Colors.grey.withOpacity(0.3)),
+                                      color:
+                                          AppColors.gray500.withOpacity(0.3)),
                                   SizedBox(width: 12.w),
                                   const Icon(Icons.bed_outlined,
-                                      color: Colors.blue),
+                                      color: AppColors.primaryBlue),
                                   SizedBox(width: 8.w),
                                   Flexible(
                                     child: Text(
@@ -577,7 +562,7 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                                   ),
                                   const Spacer(),
                                   const Icon(Icons.keyboard_arrow_down,
-                                      color: Colors.grey),
+                                      color: AppColors.gray500),
                                 ],
                               ),
                             ),
@@ -593,7 +578,7 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                         child: ElevatedButton(
                           onPressed: _onSearch,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
+                            backgroundColor: AppColors.primaryBlue,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12.r),
                             ),
@@ -602,12 +587,12 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.search, color: Colors.white),
+                              Icon(Icons.search, color: AppColors.white),
                               SizedBox(width: 8.w),
                               Text(
                                 'hotel.common.search'.tr(),
                                 style: TextStyle(
-                                    color: Colors.white,
+                                    color: AppColors.white,
                                     fontSize: 16.sp,
                                     fontWeight: FontWeight.bold),
                               ),
@@ -639,7 +624,8 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
       style: TextStyle(
         fontSize: 14.sp,
         fontWeight: FontWeight.w500,
-        color: Colors.grey[600],
+        color:
+            Theme.of(context).textTheme.bodySmall?.color ?? AppColors.grayText,
       ),
     );
   }
@@ -667,7 +653,7 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Colors.black.withOpacity(0.7),
+                    AppColors.black.withOpacity(0.7),
                   ],
                 ),
               ),
@@ -679,18 +665,19 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
                   Text(
                     'Hyatt Regency Tashkent',
                     style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.white,
                         fontSize: 16.sp,
                         fontWeight: FontWeight.bold),
                   ),
                   Row(
                     children: [
-                      const Icon(Icons.location_on,
-                          color: Colors.white70, size: 14),
+                      Icon(Icons.location_on,
+                          color: AppColors.white.withOpacity(0.7), size: 14),
                       Text(
                         'Tashkent, Uzbekistan',
-                        style:
-                            TextStyle(color: Colors.white70, fontSize: 12.sp),
+                        style: TextStyle(
+                            color: AppColors.white.withOpacity(0.7),
+                            fontSize: 12.sp),
                       ),
                     ],
                   ),
@@ -699,6 +686,32 @@ class _HotelSearchPageState extends State<HotelSearchPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Show error dialog with retry option
+  void _showSearchErrorDialog(
+      BuildContext context, String message, HotelFilter? filter) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('hotel.search.error_title'.tr()),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('hotel.common.close'.tr()),
+          ),
+          if (filter != null)
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                context.read<HotelBloc>().add(SearchHotelsRequested(filter));
+              },
+              child: Text('hotel.common.retry'.tr()),
+            ),
+        ],
       ),
     );
   }

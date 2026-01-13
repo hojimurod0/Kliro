@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../../core/services/auth/auth_service.dart';
 
 /// Interceptor для автоматического добавления токена авторизации
@@ -62,11 +63,11 @@ class AviaAuthInterceptor extends Interceptor {
               final decoded = utf8.decode(base64.decode(normalizedPayload));
               final payloadMap = json.decode(decoded) as Map<String, dynamic>;
               final userId = payloadMap['user_id'] ?? payloadMap['userId'] ?? payloadMap['sub'];
-              print('🔍 DEBUG: /user/humans request - Token user_id: $userId');
-              print('🔍 DEBUG: Token payload keys: ${payloadMap.keys.toList()}');
+              debugPrint('🔍 DEBUG: /user/humans request - Token user_id: $userId');
+              debugPrint('🔍 DEBUG: Token payload keys: ${payloadMap.keys.toList()}');
             }
           } catch (e) {
-            print('⚠️ DEBUG: Could not decode token: $e');
+            debugPrint('⚠️ DEBUG: Could not decode token: $e');
           }
         }
       } catch (e) {
@@ -147,41 +148,41 @@ class AviaAuthInterceptor extends Interceptor {
 class AviaLoggingInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    print('🚀 REQUEST[${options.method}] => PATH: ${options.path}');
+    debugPrint('🚀 REQUEST[${options.method}] => PATH: ${options.path}');
     if (options.queryParameters.isNotEmpty) {
-      print('Query: ${options.queryParameters}');
+      debugPrint('Query: ${options.queryParameters}');
     }
     if (options.data != null) {
-      print('Data: ${options.data}');
+      debugPrint('Data: ${options.data}');
     }
     handler.next(options);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    print(
+    debugPrint(
       '✅ RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}',
     );
     
     // Payment-permission va check-price endpoint'lari uchun to'liq response'ni log qilish
     final path = response.requestOptions.path;
     if (path.contains('payment-permission') || path.contains('check-price')) {
-      print('📋 Response Data: ${response.data}');
+      debugPrint('📋 Response Data: ${response.data}');
       
       // Payment permission uchun alohida log
       if (path.contains('payment-permission')) {
         if (response.data is Map<String, dynamic>) {
           final data = response.data as Map<String, dynamic>;
-          print('🔍 Payment Permission Details:');
-          print('   - can_pay: ${data['can_pay']}');
-          print('   - allowed: ${data['allowed']}');
-          print('   - reason: ${data['reason']}');
+          debugPrint('🔍 Payment Permission Details:');
+          debugPrint('   - can_pay: ${data['can_pay']}');
+          debugPrint('   - allowed: ${data['allowed']}');
+          debugPrint('   - reason: ${data['reason']}');
           // Agar data ichida bo'lsa
           if (data.containsKey('data') && data['data'] is Map<String, dynamic>) {
             final innerData = data['data'] as Map<String, dynamic>;
-            print('   - data.can_pay: ${innerData['can_pay']}');
-            print('   - data.allowed: ${innerData['allowed']}');
-            print('   - data.reason: ${innerData['reason']}');
+            debugPrint('   - data.can_pay: ${innerData['can_pay']}');
+            debugPrint('   - data.allowed: ${innerData['allowed']}');
+            debugPrint('   - data.reason: ${innerData['reason']}');
           }
         }
       }
@@ -190,18 +191,18 @@ class AviaLoggingInterceptor extends Interceptor {
       if (path.contains('check-price')) {
         if (response.data is Map<String, dynamic>) {
           final data = response.data as Map<String, dynamic>;
-          print('🔍 Price Check Details:');
-          print('   - price: ${data['price']}');
-          print('   - currency: ${data['currency']}');
-          print('   - price_changed: ${data['price_changed']}');
-          print('   - old_price: ${data['old_price']}');
+          debugPrint('🔍 Price Check Details:');
+          debugPrint('   - price: ${data['price']}');
+          debugPrint('   - currency: ${data['currency']}');
+          debugPrint('   - price_changed: ${data['price_changed']}');
+          debugPrint('   - old_price: ${data['old_price']}');
           // Agar data ichida bo'lsa
           if (data.containsKey('data') && data['data'] is Map<String, dynamic>) {
             final innerData = data['data'] as Map<String, dynamic>;
-            print('   - data.price: ${innerData['price']}');
-            print('   - data.currency: ${innerData['currency']}');
-            print('   - data.price_changed: ${innerData['price_changed']}');
-            print('   - data.old_price: ${innerData['old_price']}');
+            debugPrint('   - data.price: ${innerData['price']}');
+            debugPrint('   - data.currency: ${innerData['currency']}');
+            debugPrint('   - data.price_changed: ${innerData['price_changed']}');
+            debugPrint('   - data.old_price: ${innerData['old_price']}');
           }
         }
       }
@@ -212,13 +213,13 @@ class AviaLoggingInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    print(
+    debugPrint(
       '❌ ERROR[${err.response?.statusCode}] => PATH: ${err.requestOptions.path}',
     );
-    print('Error: ${err.message}');
+    debugPrint('Error: ${err.message}');
     // Log response body to see server error details
     if (err.response?.data != null) {
-      print('❌ Response Body: ${err.response?.data}');
+      debugPrint('❌ Response Body: ${err.response?.data}');
     }
     handler.next(err);
   }

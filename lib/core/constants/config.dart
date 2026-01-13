@@ -1,11 +1,14 @@
 /// Конфигурация приложения для Travel Insurance модуля
 class AppConfig {
   /// Базовый URL API
-  /// По умолчанию: http://localhost:8080
+  /// По умолчанию: https://api.kliro.uz
   /// Можно переопределить через переменные окружения
   static String get baseUrl {
-    const String? envUrl = String.fromEnvironment('API_BASE_URL');
-    return envUrl ?? 'http://localhost:8080';
+    const envUrl = String.fromEnvironment('API_BASE_URL');
+    if (envUrl.isNotEmpty) {
+      return envUrl;
+    }
+    return 'https://api.kliro.uz';
   }
 
   /// Включить логирование HTTP запросов

@@ -13,6 +13,16 @@ class HotelSearchScreen extends StatelessWidget {
     return BlocListener<HotelBloc, HotelState>(
       listener: (context, state) {
         if (state is HotelSearchSuccess) {
+          if (state.result.hotels.isEmpty) {
+            final messenger = ScaffoldMessenger.of(context);
+            messenger.clearSnackBars();
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text('hotel.results.empty_title'.tr()),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => BlocProvider.value(

@@ -92,14 +92,28 @@ class ServicesPage extends StatelessWidget {
     IconData icon,
     VoidCallback onTap,
   ) {
+    final theme = Theme.of(context);
+    
     return Card(
+      color: theme.cardColor,
       child: ListTile(
-        leading: Icon(icon, size: 28.sp),
+        leading: Icon(
+          icon, 
+          size: 28.sp,
+          color: theme.iconTheme.color,
+        ),
         title: Text(
           title,
-          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 16.sp, 
+            fontWeight: FontWeight.w600,
+            color: theme.textTheme.titleMedium?.color,
+          ),
         ),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: Icon(
+          Icons.chevron_right,
+          color: theme.iconTheme.color,
+        ),
         onTap: onTap,
       ),
     );

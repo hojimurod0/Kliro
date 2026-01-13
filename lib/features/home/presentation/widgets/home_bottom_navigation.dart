@@ -58,7 +58,7 @@ class _ActiveNavButton extends StatelessWidget {
           SizedBox(width: 8.w),
           Text(
             'home.home'.tr(),
-            style: AppTypography.bodyPrimary.copyWith(
+            style: AppTypography.bodyPrimary(context).copyWith(
               color: Theme.of(context).colorScheme.onPrimary,
               fontSize: 14.sp,
               fontWeight: FontWeight.w600,

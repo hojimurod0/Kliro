@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -18,7 +19,14 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
   final HotelRepository repository;
 
   // Cache full hotel details to enrich search results
+  // Limit cache size to prevent memory leaks
+  static const int _maxCacheSize = 100;
   List<Hotel> _cachedHotels = [];
+  
+  // Quote cache - cache quotes by optionRefIds
+  final Map<String, HotelQuote> _quoteCache = {};
+  static const Duration _quoteCacheExpiry = Duration(minutes: 5);
+  final Map<String, DateTime> _quoteCacheTimestamps = {};
 
   HotelBloc({required this.repository}) : super(HotelInitial()) {
     // Search
@@ -76,17 +84,12 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
         cityId: event.cityId,
       );
 
-      // Update cache
-      _cachedHotels = hotels;
-
-      debugPrint('✅ Get Hotels List Success: Loaded ${hotels.length} hotels');
+      // Update cache with size limit
+      _updateCache(hotels);
 
       // Check if we are currently displaying search results
       if (state is HotelSearchSuccess) {
         final currentSearchState = state as HotelSearchSuccess;
-        debugPrint(
-            '🔄 HotelBloc: Enriching current search results with new hotel list data');
-
         final enrichedResult = currentSearchState.result.copyWith(
           hotels: _enrichSearchResults(currentSearchState.result.hotels),
         );
@@ -102,7 +105,7 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
       }
     } catch (e) {
       if (state is! HotelSearchSuccess) {
-        emit(HotelHotelsListFailure('Noma\'lum xatolik yuz berdi'));
+        emit(HotelHotelsListFailure('hotel.error.unknown'.tr()));
       }
     }
   }
@@ -114,40 +117,29 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
   ) async {
     emit(HotelSearchLoading(event.filter));
     try {
-      final startTime = DateTime.now();
       final result = await repository.searchHotels(filter: event.filter);
 
       // Merge search results with cached hotel details
       final enrichedHotels = _enrichSearchResults(result.hotels);
       final enrichedResult = result.copyWith(hotels: enrichedHotels);
 
-      // Calculate delay needed to reach 2.5 seconds minimum
-      final elapsed = DateTime.now().difference(startTime);
-      final remaining = const Duration(milliseconds: 2500) - elapsed;
-      if (remaining > Duration.zero) {
-        await Future.delayed(remaining);
-      }
-
-      debugPrint(
-          '✅ Search Hotels Success: Found ${enrichedResult.hotels.length} hotels');
-      if (enrichedResult.hotels.isNotEmpty) {
-        debugPrint(
-            '🔍 First hotel in result: ${enrichedResult.hotels.first.name}');
-        debugPrint('🔍 First hotel ID: ${enrichedResult.hotels.first.id}');
-      } else {
-        debugPrint('⚠️ WARNING: result.hotels is EMPTY!');
-      }
       emit(HotelSearchSuccess(enrichedResult, filter: event.filter));
     } on AppException catch (e) {
-      debugPrint('❌ Search Hotels Error: ${ErrorMessageHelper.getMessage(e)}');
+      // If backend returns 404 (no hotels for selected dates/filters), show empty state instead of error
+      if (e is ServerException && e.statusCode == 404) {
+        emit(HotelSearchSuccess(
+          const HotelSearchResult(hotels: []),
+          filter: event.filter,
+        ));
+        return;
+      }
       emit(HotelSearchFailure(
         ErrorMessageHelper.getMessage(e),
         filter: event.filter,
       ));
     } catch (e) {
-      debugPrint('❌ Search Hotels Error: $e');
       emit(HotelSearchFailure(
-        'Noma\'lum xatolik yuz berdi',
+        'hotel.search.error.unknown'.tr(),
         filter: event.filter,
       ));
     }
@@ -187,7 +179,59 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     HotelStateReset event,
     Emitter<HotelState> emit,
   ) async {
+    // Clear cache on reset
+    _cachedHotels.clear();
+    _quoteCache.clear();
+    _quoteCacheTimestamps.clear();
     emit(HotelInitial());
+  }
+  
+  /// Clean expired quote cache entries
+  void _cleanExpiredQuoteCache() {
+    final now = DateTime.now();
+    final expiredKeys = <String>[];
+    
+    for (final entry in _quoteCacheTimestamps.entries) {
+      final age = now.difference(entry.value);
+      if (age >= _quoteCacheExpiry) {
+        expiredKeys.add(entry.key);
+      }
+    }
+    
+    for (final key in expiredKeys) {
+      _quoteCache.remove(key);
+      _quoteCacheTimestamps.remove(key);
+    }
+    
+    if (kDebugMode && expiredKeys.isNotEmpty) {
+      debugPrint('🧹 Cleaned ${expiredKeys.length} expired quote cache entries');
+    }
+  }
+
+  /// Updates cache with new hotels, maintaining max size
+  void _updateCache(List<Hotel> newHotels) {
+    // Create a map for quick lookup
+    final hotelMap = <int, Hotel>{};
+    
+    // Add existing cached hotels
+    for (final hotel in _cachedHotels) {
+      hotelMap[hotel.hotelId] = hotel;
+    }
+    
+    // Update with new hotels (newer data takes precedence)
+    for (final hotel in newHotels) {
+      hotelMap[hotel.hotelId] = hotel;
+    }
+    
+    // Convert back to list and limit size
+    _cachedHotels = hotelMap.values.toList();
+    
+    // If cache exceeds max size, keep only the most recent ones
+    if (_cachedHotels.length > _maxCacheSize) {
+      _cachedHotels = _cachedHotels.sublist(
+        _cachedHotels.length - _maxCacheSize,
+      );
+    }
   }
 
   // Hotel Details
@@ -202,7 +246,9 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     } on AppException catch (e) {
       emit(HotelDetailsFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      emit(HotelDetailsFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelDetailsFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -222,7 +268,9 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     } on AppException catch (e) {
       emit(HotelCitiesFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      emit(HotelCitiesFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelCitiesFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -230,24 +278,22 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     GetCitiesWithIdsRequested event,
     Emitter<HotelState> emit,
   ) async {
-    debugPrint(
-        '🔍 _onGetCitiesWithIdsRequested: countryId = ${event.countryId}');
+    debugPrint('🔍 HotelBloc: _onGetCitiesWithIdsRequested called with countryId: ${event.countryId}');
     try {
       final cities =
           await repository.getCitiesWithIds(countryId: event.countryId);
-      debugPrint('✅ GetCitiesWithIds Success: Loaded ${cities.length} cities');
+      debugPrint('✅ HotelBloc: Successfully loaded ${cities.length} cities');
       if (cities.isNotEmpty) {
-        debugPrint(
-            '🔍 First city: ${cities.first.name} (id: ${cities.first.id})');
+        debugPrint('🔍 First 5 cities: ${cities.take(5).map((c) => '${c.name} (id: ${c.id})').toList()}');
       }
       emit(HotelCitiesWithIdsSuccess(cities));
     } on AppException catch (e) {
-      debugPrint(
-          '❌ GetCitiesWithIds Error: ${ErrorMessageHelper.getMessage(e)}');
+      debugPrint('❌ HotelBloc: Failed to load cities - AppException: ${e.message}');
       emit(HotelCitiesWithIdsFailure(ErrorMessageHelper.getMessage(e)));
-    } catch (e) {
-      debugPrint('❌ GetCitiesWithIds Error: $e');
-      emit(HotelCitiesWithIdsFailure('Noma\'lum xatolik yuz berdi'));
+    } catch (e, stackTrace) {
+      debugPrint('❌ HotelBloc: Failed to load cities - Exception: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
+      emit(HotelCitiesWithIdsFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -256,14 +302,50 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     GetQuoteRequested event,
     Emitter<HotelState> emit,
   ) async {
+    // Clean expired cache entries periodically
+    _cleanExpiredQuoteCache();
+    
+    // Check cache first
+    final cacheKey = event.optionRefIds.join(',');
+    final cachedQuote = _quoteCache[cacheKey];
+    final cacheTimestamp = _quoteCacheTimestamps[cacheKey];
+    
+    if (cachedQuote != null && cacheTimestamp != null) {
+      final cacheAge = DateTime.now().difference(cacheTimestamp);
+      if (cacheAge < _quoteCacheExpiry) {
+        if (kDebugMode) {
+          debugPrint('✅ Using cached quote for: $cacheKey');
+        }
+        emit(HotelQuoteSuccess(cachedQuote));
+        return;
+      } else {
+        // Cache expired, remove it
+        _quoteCache.remove(cacheKey);
+        _quoteCacheTimestamps.remove(cacheKey);
+      }
+    }
+    
     emit(HotelLoading());
     try {
       final quote = await repository.getQuote(optionRefIds: event.optionRefIds);
+      
+      // Cache the quote
+      _quoteCache[cacheKey] = quote;
+      _quoteCacheTimestamps[cacheKey] = DateTime.now();
+      
       emit(HotelQuoteSuccess(quote));
     } on AppException catch (e) {
-      emit(HotelQuoteFailure(ErrorMessageHelper.getMessage(e)));
-    } catch (e) {
-      emit(HotelQuoteFailure('Noma\'lum xatolik yuz berdi'));
+      final errorMessage = ErrorMessageHelper.getMessage(e);
+      if (kDebugMode) {
+        debugPrint('❌ GetQuote error: $errorMessage');
+      }
+      emit(HotelQuoteFailure(errorMessage));
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('❌ GetQuote unknown error: $e');
+        debugPrint('❌ Stack trace: $stackTrace');
+      }
+      emit(HotelQuoteFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -272,13 +354,62 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     Emitter<HotelState> emit,
   ) async {
     emit(HotelLoading());
-    try {
-      final booking = await repository.createBooking(request: event.request);
-      emit(HotelBookingCreateSuccess(booking));
-    } on AppException catch (e) {
-      emit(HotelBookingCreateFailure(ErrorMessageHelper.getMessage(e)));
-    } catch (e) {
-      emit(HotelBookingCreateFailure('Noma\'lum xatolik yuz berdi'));
+    
+    // Retry mechanism for parsing errors
+    int retryCount = 0;
+    const maxRetries = 2;
+    
+    while (retryCount <= maxRetries) {
+      try {
+        final booking = await repository.createBooking(request: event.request);
+        emit(HotelBookingCreateSuccess(booking));
+        return; // Success, exit retry loop
+      } on ParsingException catch (e) {
+        if (retryCount < maxRetries) {
+          retryCount++;
+          if (kDebugMode) {
+            debugPrint('⚠️ Parsing error, retrying ($retryCount/$maxRetries): ${e.message}');
+          }
+          // Wait before retry
+          await Future.delayed(Duration(milliseconds: 500 * retryCount));
+          continue;
+        } else {
+          // Max retries reached
+          final errorMessage = ErrorMessageHelper.getMessage(e);
+          if (kDebugMode) {
+            debugPrint('❌ HotelBookingCreateFailure after $maxRetries retries: $errorMessage');
+          }
+          emit(HotelBookingCreateFailure(errorMessage));
+          return;
+        }
+      } on AppException catch (e) {
+        final errorMessage = ErrorMessageHelper.getMessage(e);
+        if (kDebugMode) {
+          debugPrint('❌ HotelBookingCreateFailure: $errorMessage');
+        }
+        emit(HotelBookingCreateFailure(errorMessage));
+        return;
+      } catch (e, stackTrace) {
+        if (kDebugMode) {
+          debugPrint('❌ HotelBookingCreateFailure (unknown): $e');
+          debugPrint('❌ Stack trace: $stackTrace');
+        }
+        // Check if it's a parsing error
+        if (e.toString().toLowerCase().contains('parsing') || 
+            e.toString().toLowerCase().contains('format')) {
+          if (retryCount < maxRetries) {
+            retryCount++;
+            await Future.delayed(Duration(milliseconds: 500 * retryCount));
+            continue;
+          } else {
+            emit(HotelBookingCreateFailure('error.parsing'.tr()));
+            return;
+          }
+        } else {
+          emit(HotelBookingCreateFailure('hotel.error.unknown'.tr()));
+          return;
+        }
+      }
     }
   }
 
@@ -296,7 +427,9 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     } on AppException catch (e) {
       emit(HotelBookingConfirmFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      emit(HotelBookingConfirmFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelBookingConfirmFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -314,7 +447,9 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     } on AppException catch (e) {
       emit(HotelBookingCancelFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      emit(HotelBookingCancelFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelBookingCancelFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -329,7 +464,9 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     } on AppException catch (e) {
       emit(HotelBookingReadFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      emit(HotelBookingReadFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelBookingReadFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -345,7 +482,9 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     } on AppException catch (e) {
       emit(HotelUserBookingsFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      emit(HotelUserBookingsFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelUserBookingsFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -357,15 +496,15 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     emit(HotelCountriesLoading());
     try {
       final countries = await repository.getCountries();
-      debugPrint(
-          '✅ Get Countries Success: Found ${countries.length} countries');
       emit(HotelCountriesSuccess(countries));
     } on AppException catch (e) {
-      debugPrint('❌ Get Countries Error: ${ErrorMessageHelper.getMessage(e)}');
+      if (kDebugMode) {
+      }
       emit(HotelCountriesFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      debugPrint('❌ Get Countries Error: $e');
-      emit(HotelCountriesFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelCountriesFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -376,14 +515,17 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     emit(HotelRegionsLoading());
     try {
       final regions = await repository.getRegions(countryId: event.countryId);
-      debugPrint('✅ Get Regions Success: Found ${regions.length} regions');
+      if (kDebugMode) {
+      }
       emit(HotelRegionsSuccess(regions));
     } on AppException catch (e) {
-      debugPrint('❌ Get Regions Error: ${ErrorMessageHelper.getMessage(e)}');
+      if (kDebugMode) {
+      }
       emit(HotelRegionsFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      debugPrint('❌ Get Regions Error: $e');
-      emit(HotelRegionsFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelRegionsFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -394,15 +536,15 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     emit(HotelTypesLoading());
     try {
       final types = await repository.getHotelTypes();
-      debugPrint('✅ Get Hotel Types Success: Found ${types.length} types');
+      if (kDebugMode) {
+      }
       emit(HotelTypesSuccess(types));
     } on AppException catch (e) {
-      debugPrint(
-          '❌ Get Hotel Types Error: ${ErrorMessageHelper.getMessage(e)}');
       emit(HotelTypesFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      debugPrint('❌ Get Hotel Types Error: $e');
-      emit(HotelTypesFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelTypesFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -413,15 +555,15 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     emit(HotelFacilitiesLoading());
     try {
       final facilities = await repository.getFacilities();
-      debugPrint(
-          '✅ Get Facilities Success: Found ${facilities.length} facilities');
       emit(HotelFacilitiesSuccess(facilities));
     } on AppException catch (e) {
-      debugPrint('❌ Get Facilities Error: ${ErrorMessageHelper.getMessage(e)}');
+      if (kDebugMode) {
+      }
       emit(HotelFacilitiesFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      debugPrint('❌ Get Facilities Error: $e');
-      emit(HotelFacilitiesFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelFacilitiesFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -433,16 +575,13 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     try {
       final facilities =
           await repository.getHotelFacilities(hotelId: event.hotelId);
-      debugPrint(
-          '✅ Get Hotel Facilities Success: Found ${facilities.length} facilities');
       emit(HotelHotelFacilitiesSuccess(facilities));
     } on AppException catch (e) {
-      debugPrint(
-          '❌ Get Hotel Facilities Error: ${ErrorMessageHelper.getMessage(e)}');
       emit(HotelHotelFacilitiesFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      debugPrint('❌ Get Hotel Facilities Error: $e');
-      emit(HotelHotelFacilitiesFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelHotelFacilitiesFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -453,15 +592,15 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     emit(HotelEquipmentLoading());
     try {
       final equipment = await repository.getEquipment();
-      debugPrint(
-          '✅ Get Equipment Success: Found ${equipment.length} equipment');
       emit(HotelEquipmentSuccess(equipment));
     } on AppException catch (e) {
-      debugPrint('❌ Get Equipment Error: ${ErrorMessageHelper.getMessage(e)}');
+      if (kDebugMode) {
+      }
       emit(HotelEquipmentFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      debugPrint('❌ Get Equipment Error: $e');
-      emit(HotelEquipmentFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelEquipmentFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -473,16 +612,21 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     try {
       final equipment =
           await repository.getRoomTypeEquipment(roomTypeId: event.roomTypeId);
-      debugPrint(
-          '✅ Get Room Type Equipment Success: Found ${equipment.length} equipment');
+      if (kDebugMode) {
+        debugPrint(
+            '✅ Get Room Type Equipment Success: Found ${equipment.length} equipment');
+      }
       emit(HotelRoomTypeEquipmentSuccess(equipment));
     } on AppException catch (e) {
-      debugPrint(
-          '❌ Get Room Type Equipment Error: ${ErrorMessageHelper.getMessage(e)}');
+      if (kDebugMode) {
+        debugPrint(
+            '❌ Get Room Type Equipment Error: ${ErrorMessageHelper.getMessage(e)}');
+      }
       emit(HotelRoomTypeEquipmentFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      debugPrint('❌ Get Room Type Equipment Error: $e');
-      emit(HotelRoomTypeEquipmentFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelRoomTypeEquipmentFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -493,15 +637,19 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     emit(HotelCurrenciesLoading());
     try {
       final currencies = await repository.getCurrencies();
-      debugPrint(
-          '✅ Get Currencies Success: Found ${currencies.length} currencies');
+      if (kDebugMode) {
+        debugPrint(
+            '✅ Get Currencies Success: Found ${currencies.length} currencies');
+      }
       emit(HotelCurrenciesSuccess(currencies));
     } on AppException catch (e) {
-      debugPrint('❌ Get Currencies Error: ${ErrorMessageHelper.getMessage(e)}');
+      if (kDebugMode) {
+      }
       emit(HotelCurrenciesFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      debugPrint('❌ Get Currencies Error: $e');
-      emit(HotelCurrenciesFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelCurrenciesFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -512,14 +660,17 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     emit(HotelStarsLoading());
     try {
       final stars = await repository.getStars();
-      debugPrint('✅ Get Stars Success: Found ${stars.length} stars');
+      if (kDebugMode) {
+      }
       emit(HotelStarsSuccess(stars));
     } on AppException catch (e) {
-      debugPrint('❌ Get Stars Error: ${ErrorMessageHelper.getMessage(e)}');
+      if (kDebugMode) {
+      }
       emit(HotelStarsFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      debugPrint('❌ Get Stars Error: $e');
-      emit(HotelStarsFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelStarsFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -564,12 +715,15 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
 
       emit(HotelPhotosSuccess(photos));
     } on AppException catch (e) {
-      debugPrint(
-          '❌ Get Hotel Photos Error: ${ErrorMessageHelper.getMessage(e)}');
+      if (kDebugMode) {
+        debugPrint(
+            '❌ Get Hotel Photos Error: ${ErrorMessageHelper.getMessage(e)}');
+      }
       emit(HotelPhotosFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      debugPrint('❌ Get Hotel Photos Error: $e');
-      emit(HotelPhotosFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelPhotosFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -581,16 +735,28 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     try {
       final roomTypes =
           await repository.getHotelRoomTypes(hotelId: event.hotelId);
-      debugPrint(
-          '✅ Get Hotel Room Types Success: Found ${roomTypes.length} room types');
+      if (kDebugMode) {
+        debugPrint(
+            '✅ Get Hotel Room Types Success: Found ${roomTypes.length} room types');
+      }
       emit(HotelRoomTypesSuccess(roomTypes));
     } on AppException catch (e) {
-      debugPrint(
-          '❌ Get Hotel Room Types Error: ${ErrorMessageHelper.getMessage(e)}');
-      emit(HotelRoomTypesFailure(ErrorMessageHelper.getMessage(e)));
+      if (kDebugMode) {
+        debugPrint(
+            '❌ Get Hotel Room Types Error: ${ErrorMessageHelper.getMessage(e)}');
+      }
+      // Check if it's a 404 error for room types - this means hotel is not available
+      String errorMessage;
+      if (e is ServerException && e.statusCode == 404) {
+        errorMessage = 'error.hotel_not_available'.tr();
+      } else {
+        errorMessage = ErrorMessageHelper.getMessage(e);
+      }
+      emit(HotelRoomTypesFailure(errorMessage));
     } catch (e) {
-      debugPrint('❌ Get Hotel Room Types Error: $e');
-      emit(HotelRoomTypesFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelRoomTypesFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -604,16 +770,21 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
         hotelId: event.hotelId,
         roomTypeId: event.roomTypeId,
       );
-      debugPrint(
-          '✅ Get Hotel Room Photos Success: Found ${photos.length} photos');
+      if (kDebugMode) {
+        debugPrint(
+            '✅ Get Hotel Room Photos Success: Found ${photos.length} photos');
+      }
       emit(HotelRoomPhotosSuccess(photos));
     } on AppException catch (e) {
-      debugPrint(
-          '❌ Get Hotel Room Photos Error: ${ErrorMessageHelper.getMessage(e)}');
+      if (kDebugMode) {
+        debugPrint(
+            '❌ Get Hotel Room Photos Error: ${ErrorMessageHelper.getMessage(e)}');
+      }
       emit(HotelRoomPhotosFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      debugPrint('❌ Get Hotel Room Photos Error: $e');
-      emit(HotelRoomPhotosFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+      }
+      emit(HotelRoomPhotosFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -624,16 +795,22 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     emit(HotelPriceRangeLoading());
     try {
       final priceRange = await repository.getPriceRange();
-      debugPrint(
-          '✅ Get Price Range Success: ${priceRange.minPrice} - ${priceRange.maxPrice}');
+      if (kDebugMode) {
+        debugPrint(
+            '✅ Get Price Range Success: ${priceRange.minPrice} - ${priceRange.maxPrice}');
+      }
       emit(HotelPriceRangeSuccess(priceRange));
     } on AppException catch (e) {
-      debugPrint(
-          '❌ Get Price Range Error: ${ErrorMessageHelper.getMessage(e)}');
+      if (kDebugMode) {
+        debugPrint(
+            '❌ Get Price Range Error: ${ErrorMessageHelper.getMessage(e)}');
+      }
       emit(HotelPriceRangeFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      debugPrint('❌ Get Price Range Error: $e');
-      emit(HotelPriceRangeFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+        debugPrint('❌ Get Price Range Error: $e');
+      }
+      emit(HotelPriceRangeFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -644,16 +821,22 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     emit(HotelNearbyPlacesTypesLoading());
     try {
       final types = await repository.getNearbyPlacesTypes();
-      debugPrint(
-          '✅ Get Nearby Places Types Success: Found ${types.length} types');
+      if (kDebugMode) {
+        debugPrint(
+            '✅ Get Nearby Places Types Success: Found ${types.length} types');
+      }
       emit(HotelNearbyPlacesTypesSuccess(types));
     } on AppException catch (e) {
-      debugPrint(
-          '❌ Get Nearby Places Types Error: ${ErrorMessageHelper.getMessage(e)}');
+      if (kDebugMode) {
+        debugPrint(
+            '❌ Get Nearby Places Types Error: ${ErrorMessageHelper.getMessage(e)}');
+      }
       emit(HotelNearbyPlacesTypesFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      debugPrint('❌ Get Nearby Places Types Error: $e');
-      emit(HotelNearbyPlacesTypesFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+        debugPrint('❌ Get Nearby Places Types Error: $e');
+      }
+      emit(HotelNearbyPlacesTypesFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -665,16 +848,22 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     try {
       final places =
           await repository.getHotelNearbyPlaces(hotelId: event.hotelId);
-      debugPrint(
-          '✅ Get Hotel Nearby Places Success: Found ${places.length} places');
+      if (kDebugMode) {
+        debugPrint(
+            '✅ Get Hotel Nearby Places Success: Found ${places.length} places');
+      }
       emit(HotelNearbyPlacesSuccess(places));
     } on AppException catch (e) {
-      debugPrint(
-          '❌ Get Hotel Nearby Places Error: ${ErrorMessageHelper.getMessage(e)}');
+      if (kDebugMode) {
+        debugPrint(
+            '❌ Get Hotel Nearby Places Error: ${ErrorMessageHelper.getMessage(e)}');
+      }
       emit(HotelNearbyPlacesFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      debugPrint('❌ Get Hotel Nearby Places Error: $e');
-      emit(HotelNearbyPlacesFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+        debugPrint('❌ Get Hotel Nearby Places Error: $e');
+      }
+      emit(HotelNearbyPlacesFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -685,16 +874,22 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     emit(HotelServicesInRoomLoading());
     try {
       final services = await repository.getServicesInRoom();
-      debugPrint(
-          '✅ Get Services In Room Success: Found ${services.length} services');
+      if (kDebugMode) {
+        debugPrint(
+            '✅ Get Services In Room Success: Found ${services.length} services');
+      }
       emit(HotelServicesInRoomSuccess(services));
     } on AppException catch (e) {
-      debugPrint(
-          '❌ Get Services In Room Error: ${ErrorMessageHelper.getMessage(e)}');
+      if (kDebugMode) {
+        debugPrint(
+            '❌ Get Services In Room Error: ${ErrorMessageHelper.getMessage(e)}');
+      }
       emit(HotelServicesInRoomFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      debugPrint('❌ Get Services In Room Error: $e');
-      emit(HotelServicesInRoomFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+        debugPrint('❌ Get Services In Room Error: $e');
+      }
+      emit(HotelServicesInRoomFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -702,20 +897,36 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     GetHotelServicesInRoomRequested event,
     Emitter<HotelState> emit,
   ) async {
+    if (kDebugMode) {
+      debugPrint('🔍 BLoC: GetHotelServicesInRoomRequested for hotelId=${event.hotelId}');
+    }
     emit(HotelHotelServicesInRoomLoading());
     try {
+      if (kDebugMode) {
+        debugPrint('🔍 BLoC: Calling repository.getHotelServicesInRoom...');
+      }
       final services =
           await repository.getHotelServicesInRoom(hotelId: event.hotelId);
-      debugPrint(
-          '✅ Get Hotel Services In Room Success: Found ${services.length} services');
+      if (kDebugMode) {
+        debugPrint(
+            '✅ BLoC: Get Hotel Services In Room Success: Found ${services.length} services');
+        if (services.isNotEmpty) {
+          debugPrint('✅ BLoC: Services IDs: ${services.map((s) => s.id).toList()}');
+        }
+      }
       emit(HotelHotelServicesInRoomSuccess(services));
     } on AppException catch (e) {
-      debugPrint(
-          '❌ Get Hotel Services In Room Error: ${ErrorMessageHelper.getMessage(e)}');
+      if (kDebugMode) {
+        debugPrint(
+            '❌ BLoC: Get Hotel Services In Room Error: ${ErrorMessageHelper.getMessage(e)}');
+      }
       emit(HotelHotelServicesInRoomFailure(ErrorMessageHelper.getMessage(e)));
-    } catch (e) {
-      debugPrint('❌ Get Hotel Services In Room Error: $e');
-      emit(HotelHotelServicesInRoomFailure('Noma\'lum xatolik yuz berdi'));
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('❌ BLoC: Get Hotel Services In Room Error: $e');
+        debugPrint('❌ BLoC: StackTrace: $stackTrace');
+      }
+      emit(HotelHotelServicesInRoomFailure('hotel.error.unknown'.tr()));
     }
   }
 
@@ -726,14 +937,20 @@ class HotelBloc extends Bloc<HotelEvent, HotelState> {
     emit(HotelBedTypesLoading());
     try {
       final bedTypes = await repository.getBedTypes();
-      debugPrint('✅ Get Bed Types Success: Found ${bedTypes.length} bed types');
+      if (kDebugMode) {
+        debugPrint('✅ Get Bed Types Success: Found ${bedTypes.length} bed types');
+      }
       emit(HotelBedTypesSuccess(bedTypes));
     } on AppException catch (e) {
-      debugPrint('❌ Get Bed Types Error: ${ErrorMessageHelper.getMessage(e)}');
+      if (kDebugMode) {
+        debugPrint('❌ Get Bed Types Error: ${ErrorMessageHelper.getMessage(e)}');
+      }
       emit(HotelBedTypesFailure(ErrorMessageHelper.getMessage(e)));
     } catch (e) {
-      debugPrint('❌ Get Bed Types Error: $e');
-      emit(HotelBedTypesFailure('Noma\'lum xatolik yuz berdi'));
+      if (kDebugMode) {
+        debugPrint('❌ Get Bed Types Error: $e');
+      }
+      emit(HotelBedTypesFailure('hotel.error.unknown'.tr()));
     }
   }
 }

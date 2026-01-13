@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/models/login_request_model.dart';
 import '../../data/models/login_response_model.dart';
@@ -70,25 +71,25 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
 
     // Airport Hints
     on<AirportHintsRequested>(_onAirportHintsRequested);
-    
+
     // PDF Receipt
     on<PdfReceiptRequested>(_onPdfReceiptRequested);
-    
+
     // Schedule
     on<ScheduleRequested>(_onScheduleRequested);
-    
+
     // Visa Types
     on<VisaTypesRequested>(_onVisaTypesRequested);
-    
+
     // Service Classes
     on<ServiceClassesRequested>(_onServiceClassesRequested);
-    
+
     // Passenger Types
     on<PassengerTypesRequested>(_onPassengerTypesRequested);
-    
+
     // Health
     on<HealthRequested>(_onHealthRequested);
-    
+
     // User Humans
     on<CreateHumanRequested>(_onCreateHumanRequested);
     on<GetHumansRequested>(_onGetHumansRequested);
@@ -102,18 +103,23 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     LoginRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaLoginLoading(previousState: currentState));
     final result = await repository.login(event.request);
     result.fold(
-      (failure) =>
-          emit(AviaLoginFailure(ErrorMessageHelper.getMessage(failure))),
+      (failure) => emit(
+        AviaLoginFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
       (response) {
         // DioClient'da token'ni yangilash (agar mavjud bo'lsa)
         final token = response.accessToken ?? response.token;
         if (token != null && token.isNotEmpty && dioClient != null) {
           dioClient!.updateToken(token);
         }
-        emit(AviaLoginSuccess(response));
+        emit(AviaLoginSuccess(response, previousState: currentState));
       },
     );
   }
@@ -123,12 +129,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     CheckBalanceRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaBalanceLoading(previousState: currentState));
     final result = await repository.checkBalance();
     result.fold(
-      (failure) =>
-          emit(AviaBalanceFailure(ErrorMessageHelper.getMessage(failure))),
-      (response) => emit(AviaBalanceSuccess(response)),
+      (failure) => emit(
+        AviaBalanceFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (response) => emit(
+        AviaBalanceSuccess(response, previousState: currentState),
+      ),
     );
   }
 
@@ -137,22 +150,54 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     SearchOffersRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaSearchLoading(event.request));
+    final currentState = state;
+    // Preserve previous offers if available
+    List<OfferModel>? previousOffers;
+    if (currentState is AviaSearchSuccess) {
+      previousOffers = currentState.offers;
+    } else if (currentState is AviaSearchFailure) {
+      previousOffers = currentState.cachedOffers;
+    }
+
+    emit(AviaSearchLoading(event.request, previousState: currentState));
     final result = await repository.searchOffers(event.request);
     result.fold(
       (failure) {
-        AppLogger.error('Search Offers Error: ${ErrorMessageHelper.getMessage(failure)}');
-        emit(AviaSearchFailure(ErrorMessageHelper.getMessage(failure)));
+        AppLogger.error(
+            'Search Offers Error: ${ErrorMessageHelper.getMessage(failure)}');
+        emit(
+          AviaSearchFailure(
+            ErrorMessageHelper.getMessage(failure),
+            cachedOffers: previousOffers,
+            previousState: currentState,
+          ),
+        );
       },
       (response) {
         final offers = response.offers ?? [];
-        AppLogger.success('Search Offers Success: Found ${offers.length} offers');
-        if (offers.isEmpty) {
-          AppLogger.warning('Search Offers: Offers list is empty');
-        } else {
-          AppLogger.debug('Search Offers: First offer ID: ${offers.first.id}');
+        if (kDebugMode) {
+          AppLogger.success(
+              'Search Offers Success: Found ${offers.length} offers');
+          if (offers.isEmpty) {
+            AppLogger.warning('Search Offers: Offers list is empty');
+          } else {
+            AppLogger.debug(
+                'Search Offers: First offer ID: ${offers.first.id}');
+          }
+          AppLogger.debug('AviaBloc: AviaSearchSuccess emit qilmoqda...');
+          AppLogger.debug('AviaBloc: Offers soni: ${offers.length}');
+          AppLogger.debug('🔥 EMIT bloc hash: ${hashCode}');
         }
-        emit(AviaSearchSuccess(offers, searchRequest: event.request));
+        emit(
+          AviaSearchSuccess(
+            offers,
+            searchRequest: event.request,
+            previousState: currentState,
+          ),
+        );
+        if (kDebugMode) {
+          AppLogger.debug('AviaBloc: AviaSearchSuccess emit qilindi');
+        }
       },
     );
   }
@@ -161,7 +206,8 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     AviaStateReset event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaInitial());
+    // Aniq previousState: null qilish - state'ni to'liq reset qilish
+    emit(const AviaInitial(previousState: null));
   }
 
   // Offer Detail
@@ -169,12 +215,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     OfferDetailRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaOfferDetailLoading(previousState: currentState));
     final result = await repository.checkOffer(event.offerId);
     result.fold(
-      (failure) =>
-          emit(AviaOfferDetailFailure(ErrorMessageHelper.getMessage(failure))),
-      (offer) => emit(AviaOfferDetailSuccess(offer)),
+      (failure) => emit(
+        AviaOfferDetailFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (offer) => emit(
+        AviaOfferDetailSuccess(offer, previousState: currentState),
+      ),
     );
   }
 
@@ -182,12 +235,22 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     FareFamilyRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaFareFamilyLoading(previousState: currentState));
     final result = await repository.fareFamily(event.offerId);
     result.fold(
-      (failure) =>
-          emit(AviaFareFamilyFailure(ErrorMessageHelper.getMessage(failure))),
-      (response) => emit(AviaFareFamilySuccess(response.families ?? [])),
+      (failure) => emit(
+        AviaFareFamilyFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (response) => emit(
+        AviaFareFamilySuccess(
+          response.families ?? [],
+          previousState: currentState,
+        ),
+      ),
     );
   }
 
@@ -195,12 +258,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     FareRulesRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaFareRulesLoading(previousState: currentState));
     final result = await repository.fareRules(event.offerId);
     result.fold(
-      (failure) =>
-          emit(AviaFareRulesFailure(ErrorMessageHelper.getMessage(failure))),
-      (rules) => emit(AviaFareRulesSuccess(rules)),
+      (failure) => emit(
+        AviaFareRulesFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (rules) => emit(
+        AviaFareRulesSuccess(rules, previousState: currentState),
+      ),
     );
   }
 
@@ -209,13 +279,14 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     CreateBookingRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaBookingLoading(previousState: currentState));
     final result = await repository.createBooking(event.offerId, event.request);
     result.fold(
       (failure) {
         final errorMessage = ErrorMessageHelper.getMessage(failure);
         AppLogger.error('Booking creation failed: $errorMessage', failure);
-        
+
         // Extract existing_booking_id from exception details if present
         String? existingBookingId;
         if (failure.details is Map) {
@@ -225,15 +296,20 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
             AppLogger.debug('Found existing booking ID: $existingBookingId');
           }
         }
-        
-        emit(AviaCreateBookingFailure(
-          errorMessage,
-          existingBookingId: existingBookingId,
-        ));
+
+        emit(
+          AviaCreateBookingFailure(
+            errorMessage,
+            existingBookingId: existingBookingId,
+            previousState: currentState,
+          ),
+        );
       },
       (booking) {
         AppLogger.success('Booking created successfully: ${booking.id}');
-        emit(AviaCreateBookingSuccess(booking));
+        emit(
+          AviaCreateBookingSuccess(booking, previousState: currentState),
+        );
       },
     );
   }
@@ -242,12 +318,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     BookingInfoRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaBookingInfoLoading(previousState: currentState));
     final result = await repository.getBooking(event.bookingId);
     result.fold(
-      (failure) =>
-          emit(AviaBookingInfoFailure(ErrorMessageHelper.getMessage(failure))),
-      (booking) => emit(AviaBookingInfoSuccess(booking)),
+      (failure) => emit(
+        AviaBookingInfoFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (booking) => emit(
+        AviaBookingInfoSuccess(booking, previousState: currentState),
+      ),
     );
   }
 
@@ -255,12 +338,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     BookingRulesRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaBookingRulesLoading(previousState: currentState));
     final result = await repository.bookingRules(event.bookingId);
     result.fold(
-      (failure) =>
-          emit(AviaBookingRulesFailure(ErrorMessageHelper.getMessage(failure))),
-      (rules) => emit(AviaBookingRulesSuccess(rules)),
+      (failure) => emit(
+        AviaBookingRulesFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (rules) => emit(
+        AviaBookingRulesSuccess(rules, previousState: currentState),
+      ),
     );
   }
 
@@ -269,12 +359,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     CheckPriceRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaCheckPriceLoading(previousState: currentState));
     final result = await repository.checkPrice(event.bookingId);
     result.fold(
-      (failure) =>
-          emit(AviaCheckPriceFailure(ErrorMessageHelper.getMessage(failure))),
-      (priceCheck) => emit(AviaCheckPriceSuccess(priceCheck)),
+      (failure) => emit(
+        AviaCheckPriceFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (priceCheck) => emit(
+        AviaCheckPriceSuccess(priceCheck, previousState: currentState),
+      ),
     );
   }
 
@@ -282,13 +379,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     PaymentPermissionRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaPaymentPermissionLoading(previousState: currentState));
     final result = await repository.paymentPermission(event.bookingId);
     result.fold(
       (failure) => emit(
-        AviaPaymentPermissionFailure(ErrorMessageHelper.getMessage(failure)),
+        AviaPaymentPermissionFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
       ),
-      (permission) => emit(AviaPaymentPermissionSuccess(permission)),
+      (permission) => emit(
+        AviaPaymentPermissionSuccess(permission, previousState: currentState),
+      ),
     );
   }
 
@@ -296,12 +399,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     PaymentRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaPaymentLoading(previousState: currentState));
     final result = await repository.payBooking(event.bookingId);
     result.fold(
-      (failure) =>
-          emit(AviaPaymentFailure(ErrorMessageHelper.getMessage(failure))),
-      (response) => emit(AviaPaymentSuccess(response)),
+      (failure) => emit(
+        AviaPaymentFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (response) => emit(
+        AviaPaymentSuccess(response, previousState: currentState),
+      ),
     );
   }
 
@@ -310,12 +420,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     CancelUnpaidRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaCancelUnpaidLoading(previousState: currentState));
     final result = await repository.cancelUnpaid(event.bookingId);
     result.fold(
-      (failure) =>
-          emit(AviaCancelUnpaidFailure(ErrorMessageHelper.getMessage(failure))),
-      (response) => emit(AviaCancelUnpaidSuccess(response)),
+      (failure) => emit(
+        AviaCancelUnpaidFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (response) => emit(
+        AviaCancelUnpaidSuccess(response, previousState: currentState),
+      ),
     );
   }
 
@@ -323,12 +440,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     VoidTicketRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaVoidLoading(previousState: currentState));
     final result = await repository.voidTicket(event.bookingId);
     result.fold(
-      (failure) =>
-          emit(AviaVoidFailure(ErrorMessageHelper.getMessage(failure))),
-      (response) => emit(AviaVoidSuccess(response)),
+      (failure) => emit(
+        AviaVoidFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (response) => emit(
+        AviaVoidSuccess(response, previousState: currentState),
+      ),
     );
   }
 
@@ -337,13 +461,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     RefundAmountsRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaRefundAmountsLoading(previousState: currentState));
     final result = await repository.getRefundAmounts(event.bookingId);
     result.fold(
       (failure) => emit(
-        AviaRefundAmountsFailure(ErrorMessageHelper.getMessage(failure)),
+        AviaRefundAmountsFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
       ),
-      (amounts) => emit(AviaRefundAmountsSuccess(amounts)),
+      (amounts) => emit(
+        AviaRefundAmountsSuccess(amounts, previousState: currentState),
+      ),
     );
   }
 
@@ -351,12 +481,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     AutoCancelRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaAutoCancelLoading(previousState: currentState));
     final result = await repository.autoCancel(event.bookingId);
     result.fold(
-      (failure) =>
-          emit(AviaAutoCancelFailure(ErrorMessageHelper.getMessage(failure))),
-      (response) => emit(AviaAutoCancelSuccess(response)),
+      (failure) => emit(
+        AviaAutoCancelFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (response) => emit(
+        AviaAutoCancelSuccess(response, previousState: currentState),
+      ),
     );
   }
 
@@ -364,12 +501,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     ManualRefundRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaManualRefundLoading(previousState: currentState));
     final result = await repository.manualRefund(event.bookingId);
     result.fold(
-      (failure) =>
-          emit(AviaManualRefundFailure(ErrorMessageHelper.getMessage(failure))),
-      (response) => emit(AviaManualRefundSuccess(response)),
+      (failure) => emit(
+        AviaManualRefundFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (response) => emit(
+        AviaManualRefundSuccess(response, previousState: currentState),
+      ),
     );
   }
 
@@ -378,8 +522,9 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     AirportHintsRequested event,
     Emitter<AviaState> emit,
   ) async {
+    final currentState = state;
     if (event.phrase.isEmpty) {
-      emit(AviaAirportHintsSuccess([]));
+      emit(AviaAirportHintsSuccess([], previousState: currentState));
       return;
     }
 
@@ -389,9 +534,14 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     );
     result.fold(
       (failure) => emit(
-        AviaAirportHintsFailure(ErrorMessageHelper.getMessage(failure)),
+        AviaAirportHintsFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
       ),
-      (airports) => emit(AviaAirportHintsSuccess(airports)),
+      (airports) => emit(
+        AviaAirportHintsSuccess(airports, previousState: currentState),
+      ),
     );
   }
 
@@ -400,13 +550,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     PdfReceiptRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaPdfReceiptLoading(previousState: currentState));
     final result = await repository.getPdfReceipt(event.bookingId);
     result.fold(
       (failure) => emit(
-        AviaPdfReceiptFailure(ErrorMessageHelper.getMessage(failure)),
+        AviaPdfReceiptFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
       ),
-      (pdfUrl) => emit(AviaPdfReceiptSuccess(pdfUrl)),
+      (pdfUrl) => emit(
+        AviaPdfReceiptSuccess(pdfUrl, previousState: currentState),
+      ),
     );
   }
 
@@ -415,7 +571,8 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     ScheduleRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaScheduleLoading(previousState: currentState));
     final result = await repository.getSchedule(
       departureFrom: event.departureFrom,
       departureTo: event.departureTo,
@@ -423,9 +580,14 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     );
     result.fold(
       (failure) => emit(
-        AviaScheduleFailure(ErrorMessageHelper.getMessage(failure)),
+        AviaScheduleFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
       ),
-      (schedules) => emit(AviaScheduleSuccess(schedules)),
+      (schedules) => emit(
+        AviaScheduleSuccess(schedules, previousState: currentState),
+      ),
     );
   }
 
@@ -434,15 +596,21 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     VisaTypesRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaVisaTypesLoading(previousState: currentState));
     final result = await repository.getVisaTypes(
       countries: event.countries,
     );
     result.fold(
       (failure) => emit(
-        AviaVisaTypesFailure(ErrorMessageHelper.getMessage(failure)),
+        AviaVisaTypesFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
       ),
-      (visaTypes) => emit(AviaVisaTypesSuccess(visaTypes)),
+      (visaTypes) => emit(
+        AviaVisaTypesSuccess(visaTypes, previousState: currentState),
+      ),
     );
   }
 
@@ -451,13 +619,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     ServiceClassesRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaServiceClassesLoading(previousState: currentState));
     final result = await repository.getServiceClasses();
     result.fold(
       (failure) => emit(
-        AviaServiceClassesFailure(ErrorMessageHelper.getMessage(failure)),
+        AviaServiceClassesFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
       ),
-      (serviceClasses) => emit(AviaServiceClassesSuccess(serviceClasses)),
+      (serviceClasses) => emit(
+        AviaServiceClassesSuccess(serviceClasses, previousState: currentState),
+      ),
     );
   }
 
@@ -466,13 +640,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     PassengerTypesRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaPassengerTypesLoading(previousState: currentState));
     final result = await repository.getPassengerTypes();
     result.fold(
       (failure) => emit(
-        AviaPassengerTypesFailure(ErrorMessageHelper.getMessage(failure)),
+        AviaPassengerTypesFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
       ),
-      (passengerTypes) => emit(AviaPassengerTypesSuccess(passengerTypes)),
+      (passengerTypes) => emit(
+        AviaPassengerTypesSuccess(passengerTypes, previousState: currentState),
+      ),
     );
   }
 
@@ -481,26 +661,40 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     HealthRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaHealthLoading(previousState: currentState));
     final result = await repository.getHealth();
     result.fold(
       (failure) => emit(
-        AviaHealthFailure(ErrorMessageHelper.getMessage(failure)),
+        AviaHealthFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
       ),
-      (health) => emit(AviaHealthSuccess(health)),
+      (health) => emit(
+        AviaHealthSuccess(health, previousState: currentState),
+      ),
     );
   }
+
   // User Humans Handlers
   Future<void> _onCreateHumanRequested(
     CreateHumanRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaCreateHumanLoading(previousState: currentState));
     final result = await repository.createHuman(event.human);
     result.fold(
-      (failure) =>
-          emit(CreateHumanFailure(ErrorMessageHelper.getMessage(failure))),
-      (human) => emit(CreateHumanSuccess(human)),
+      (failure) => emit(
+        AviaCreateHumanFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (human) => emit(
+        AviaCreateHumanSuccess(human, previousState: currentState),
+      ),
     );
   }
 
@@ -508,12 +702,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     GetHumansRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaGetHumansLoading(previousState: currentState));
     final result = await repository.getHumans();
     result.fold(
-      (failure) =>
-          emit(GetHumansFailure(ErrorMessageHelper.getMessage(failure))),
-      (humans) => emit(GetHumansSuccess(humans)),
+      (failure) => emit(
+        AviaGetHumansFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (humans) => emit(
+        AviaGetHumansSuccess(humans, previousState: currentState),
+      ),
     );
   }
 
@@ -521,12 +722,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     SearchHumansRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaSearchHumansLoading(previousState: currentState));
     final result = await repository.searchHumans(name: event.name);
     result.fold(
-      (failure) =>
-          emit(SearchHumansFailure(ErrorMessageHelper.getMessage(failure))),
-      (humans) => emit(SearchHumansSuccess(humans)),
+      (failure) => emit(
+        AviaSearchHumansFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (humans) => emit(
+        AviaSearchHumansSuccess(humans, previousState: currentState),
+      ),
     );
   }
 
@@ -534,12 +742,19 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     UpdateHumanRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaUpdateHumanLoading(previousState: currentState));
     final result = await repository.updateHuman(event.id, event.human);
     result.fold(
-      (failure) =>
-          emit(UpdateHumanFailure(ErrorMessageHelper.getMessage(failure))),
-      (human) => emit(UpdateHumanSuccess(human)),
+      (failure) => emit(
+        AviaUpdateHumanFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (human) => emit(
+        AviaUpdateHumanSuccess(human, previousState: currentState),
+      ),
     );
   }
 
@@ -547,12 +762,20 @@ class AviaBloc extends Bloc<AviaEvent, AviaState> {
     DeleteHumanRequested event,
     Emitter<AviaState> emit,
   ) async {
-    emit(AviaLoading());
+    final currentState = state;
+    emit(AviaDeleteHumanLoading(previousState: currentState));
     final result = await repository.deleteHuman(event.id);
     result.fold(
-      (failure) =>
-          emit(DeleteHumanFailure(ErrorMessageHelper.getMessage(failure))),
-      (_) => emit(const DeleteHumanSuccess()),
+      (failure) => emit(
+        AviaDeleteHumanFailure(
+          ErrorMessageHelper.getMessage(failure),
+          previousState: currentState,
+        ),
+      ),
+      (_) => emit(
+        // currentState ni previousState sifatida berish - boshqa success state'lar bilan mos kelishi uchun
+        AviaDeleteHumanSuccess(previousState: currentState),
+      ),
     );
   }
 }

@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../domain/entities/hotel.dart';
 import '../bloc/hotel_bloc.dart';
+import '../../../../core/constants/app_colors.dart';
 
 class HotelInput extends StatefulWidget {
   final String label;
@@ -139,7 +139,9 @@ class _HotelInputState extends State<HotelInput> {
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(
+                  color: Theme.of(context).dividerColor,
+                ),
               ),
               child: ListView.builder(
                 shrinkWrap: true,
@@ -158,15 +160,31 @@ class _HotelInputState extends State<HotelInput> {
                       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                       child: Row(
                         children: [
-                          Icon(Icons.hotel, size: 20.sp, color: Colors.blue),
+                          Icon(
+                            Icons.hotel, 
+                            size: 20.sp, 
+                            color: AppColors.primaryBlue,
+                          ),
                           SizedBox(width: 12.w),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(hotel.name, style: TextStyle(fontSize: 14.sp)),
+                                Text(
+                                  hotel.name, 
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                                  ),
+                                ),
                                 if (hotel.city.isNotEmpty)
-                                  Text(hotel.city, style: TextStyle(fontSize: 12.sp, color: Colors.grey)),
+                                  Text(
+                                    hotel.city, 
+                                    style: TextStyle(
+                                      fontSize: 12.sp, 
+                                      color: Theme.of(context).textTheme.bodySmall?.color ?? AppColors.grayText,
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -215,7 +233,7 @@ class _HotelInputState extends State<HotelInput> {
               style: TextStyle(
                 fontSize: 14.sp,
                 fontWeight: FontWeight.w500,
-                color: Colors.grey[600],
+                color: Theme.of(context).textTheme.bodySmall?.color ?? AppColors.grayText,
               ),
             ),
             SizedBox(height: 8.h),
@@ -224,7 +242,10 @@ class _HotelInputState extends State<HotelInput> {
               focusNode: _focusNode,
               decoration: InputDecoration(
                 hintText: widget.hint,
-                prefixIcon: Icon(widget.icon, color: Colors.blue),
+                prefixIcon: Icon(
+                  widget.icon, 
+                  color: AppColors.primaryBlue,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
                   borderSide: BorderSide.none,

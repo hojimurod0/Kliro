@@ -43,7 +43,9 @@ class KaskoSuccessPage extends StatelessWidget {
     required Color textColor,
     required Color subtitleColor,
   }) {
-    final iconColor = isDark ? Colors.grey[400]! : const Color(0xFF9AA6AC);
+    final iconColor = isDark 
+        ? AppColors.gray500 
+        : AppColors.grayText;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -104,7 +106,7 @@ class KaskoSuccessPage extends StatelessWidget {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('insurance.kasko.success.no_policy_url'.tr()),
-                  backgroundColor: Colors.orange,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                 ),
               );
               return;
@@ -120,7 +122,7 @@ class KaskoSuccessPage extends StatelessWidget {
                   SnackBar(
                     content:
                         Text('insurance.kasko.success.pdf_open_error'.tr()),
-                    backgroundColor: Colors.red,
+                    backgroundColor: Theme.of(context).colorScheme.error,
                   ),
                 );
               }
@@ -147,7 +149,7 @@ class KaskoSuccessPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(14.r),
           ),
           backgroundColor: cardBg,
-          overlayColor: Colors.grey.shade100,
+          overlayColor: Theme.of(context).colorScheme.surface.withOpacity(0.1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -248,12 +250,12 @@ class KaskoSuccessPage extends StatelessWidget {
                           height: 40.w,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 3),
+                            border: Border.all(color: AppColors.white, width: 3),
                           ),
                           child: Center(
                             child: Icon(
                               Icons.check,
-                              color: Colors.white,
+                              color: AppColors.white,
                               size: 24.sp,
                               weight: 50,
                             ),
@@ -424,7 +426,7 @@ class KaskoSuccessPage extends StatelessWidget {
                         child: Text(
                           'insurance.kasko.success.close'.tr(),
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AppColors.white,
                             fontWeight: FontWeight.w700,
                             fontSize: 16.sp,
                           ),

@@ -12,7 +12,7 @@ class PrivacyPolicyPage extends StatelessWidget {
   const PrivacyPolicyPage({super.key});
 
   static const String privacyPolicyUrl =
-      'https://docs.google.com/document/d/1UcdZv5QTRs2AheZlvroe0d86Dk2oILYB4R41Rp2pocE/edit?usp=sharing';
+      'https://docs.google.com/document/d/1UcdZv5QTRs2AheZlvroe0d86Dk2oILYB4R41Rp2pocE/view';
 
   Future<void> _openPrivacyPolicy(BuildContext context) async {
     try {
@@ -62,7 +62,7 @@ class PrivacyPolicyPage extends StatelessWidget {
         centerTitle: true,
         title: Text(
           tr('about_app.privacy'),
-          style: AppTypography.headingL.copyWith(
+          style: AppTypography.headingL(context).copyWith(
             fontSize: 18.sp,
             color: Theme.of(context).textTheme.titleLarge?.color,
           ),
@@ -94,7 +94,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                   SizedBox(height: 16.h),
                   Text(
                     tr('auth.privacy.title'),
-                    style: AppTypography.headingL.copyWith(
+                    style: AppTypography.headingL(context).copyWith(
                       fontSize: 20.sp,
                       color: isDark ? AppColors.white : AppColors.black,
                     ),
@@ -102,7 +102,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                   SizedBox(height: 12.h),
                   Text(
                     tr('auth.privacy.description'),
-                    style: AppTypography.bodyPrimary.copyWith(
+                    style: AppTypography.bodyPrimary(context).copyWith(
                       fontSize: 14.sp,
                       color: isDark ? AppColors.grayText : AppColors.bodyText,
                       height: 1.5,
@@ -128,7 +128,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                           SizedBox(width: 8.w),
                           Text(
                             tr('auth.privacy.open_document'),
-                            style: AppTypography.buttonPrimary.copyWith(
+                            style: AppTypography.buttonPrimary(context).copyWith(
                               fontSize: 16.sp,
                             ),
                           ),
@@ -142,7 +142,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             SizedBox(height: 24.h),
             Text(
               tr('auth.privacy.note'),
-              style: AppTypography.bodySecondary.copyWith(
+              style: AppTypography.bodySecondary(context).copyWith(
                 fontSize: 12.sp,
                 color: isDark ? AppColors.grayText : AppColors.labelText,
                 fontStyle: FontStyle.italic,

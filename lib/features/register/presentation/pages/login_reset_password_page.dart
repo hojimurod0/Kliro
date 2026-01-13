@@ -20,7 +20,8 @@ import '../widgets/common_back_button.dart';
 import '../widgets/otp_input_box.dart';
 
 @RoutePage()
-class LoginResetPasswordPage extends StatefulWidget implements AutoRouteWrapper {
+class LoginResetPasswordPage extends StatefulWidget
+    implements AutoRouteWrapper {
   final String contactInfo;
 
   const LoginResetPasswordPage({
@@ -144,13 +145,13 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
       final contact = widget.contactInfo;
       final isEmail = contact.contains('@');
       context.read<RegisterBloc>().add(
-        ForgotPasswordOtpRequested(
-          ForgotPasswordParams(
-            email: isEmail ? contact : null,
-            phone: isEmail ? null : contact,
-          ),
-        ),
-      );
+            ForgotPasswordOtpRequested(
+              ForgotPasswordParams(
+                email: isEmail ? contact : null,
+                phone: isEmail ? null : contact,
+              ),
+            ),
+          );
     }
   }
 
@@ -176,150 +177,152 @@ class _LoginResetPasswordPageState extends State<LoginResetPasswordPage> {
       },
       builder: (context, state) {
         return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Padding(
-          padding: AppSpacing.screenPadding,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: AppSpacing.sm),
-              // Orqaga qaytish tugmasi
-              const CommonBackButton(),
-              SizedBox(height: AppSpacing.xl),
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          body: SafeArea(
+            child: Padding(
+              padding: AppSpacing.screenPadding,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: AppSpacing.sm),
+                  // Orqaga qaytish tugmasi
+                  const CommonBackButton(),
+                  SizedBox(height: AppSpacing.xl),
 
-              // Sarlavha
-              Text(
-                'auth.verification.title_reset'.tr(),
-                style: AppTypography.headingXL.copyWith(
-                  color: isDark ? AppColors.white : AppColors.black,
-                ),
-              ),
-              SizedBox(height: AppSpacing.xs),
-
-              // Izoh matni (Dinamik - Email yoki raqam ko'rsatiladi)
-              Builder(
-                builder: (_) {
-                  final contact = _formatContactInfo(widget.contactInfo);
-                  final before = 'auth.verification.subtitle_before'.tr();
-                  final after = 'auth.verification.subtitle_after'.tr();
-                  return RichText(
-                    text: TextSpan(
-                      style: AppTypography.bodyPrimary.copyWith(fontSize: 14.sp),
-                      children: [
-                        if (before.isNotEmpty)
-                          TextSpan(
-                            text: before,
-                          ),
-                        TextSpan(
-                          text: contact,
-                          style: AppTypography.bodyPrimary.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? AppColors.white : AppColors.black,
-                          ),
-                        ),
-                        if (after.isNotEmpty)
-                          TextSpan(
-                            text: after,
-                          ),
-                      ],
+                  // Sarlavha
+                  Text(
+                    'auth.verification.title_reset'.tr(),
+                    style: AppTypography.headingXL(context).copyWith(
+                      color: isDark ? AppColors.white : AppColors.black,
                     ),
-                  );
-                },
-              ),
-              SizedBox(height: AppSpacing.xxl),
+                  ),
+                  SizedBox(height: AppSpacing.xs),
 
-              // Kod kiritish maydonchalari (6 ta katak)
-              SizedBox(
-                height: 60.w,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final spacing = 8.w;
-                    final totalSpacing = spacing * (_otpLength - 1);
-                    final boxSize = ((constraints.maxWidth - totalSpacing) /
-                            _otpLength)
-                        .clamp(40.w, 54.w);
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(
-                        _otpLength,
-                        (index) => Padding(
-                          padding: EdgeInsets.only(
-                            right: index == _otpLength - 1 ? 0 : spacing,
-                          ),
-                          child: SizedBox(
-                            width: boxSize,
-                            height: boxSize,
-                            child: OtpInputBox(
-                              controller: _controllers[index],
-                              focusNode: _focusNodes[index],
-                              boxSize: boxSize,
-                              onChanged: (value) =>
-                                  _onCodeChanged(index, value),
-                              onTap: () {
-                                if (_controllers[index].text.isEmpty) {
-                                  for (int i = 0; i < index; i++) {
-                                    if (_controllers[i].text.isEmpty) {
-                                      _focusNodes[i].requestFocus();
-                                      return;
+                  // Izoh matni (Dinamik - Email yoki raqam ko'rsatiladi)
+                  Builder(
+                    builder: (_) {
+                      final contact = _formatContactInfo(widget.contactInfo);
+                      final before = 'auth.verification.subtitle_before'.tr();
+                      final after = 'auth.verification.subtitle_after'.tr();
+                      return RichText(
+                        text: TextSpan(
+                          style: AppTypography.bodyPrimary(context)
+                              .copyWith(fontSize: 14.sp),
+                          children: [
+                            if (before.isNotEmpty)
+                              TextSpan(
+                                text: before,
+                              ),
+                            TextSpan(
+                              text: contact,
+                              style:
+                                  AppTypography.bodyPrimary(context).copyWith(
+                                fontWeight: FontWeight.w600,
+                                color:
+                                    isDark ? AppColors.white : AppColors.black,
+                              ),
+                            ),
+                            if (after.isNotEmpty)
+                              TextSpan(
+                                text: after,
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  SizedBox(height: AppSpacing.xxl),
+
+                  // Kod kiritish maydonchalari (6 ta katak)
+                  SizedBox(
+                    height: 60.w,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final spacing = 8.w;
+                        final totalSpacing = spacing * (_otpLength - 1);
+                        final boxSize =
+                            ((constraints.maxWidth - totalSpacing) / _otpLength)
+                                .clamp(40.w, 54.w);
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            _otpLength,
+                            (index) => Padding(
+                              padding: EdgeInsets.only(
+                                right: index == _otpLength - 1 ? 0 : spacing,
+                              ),
+                              child: SizedBox(
+                                width: boxSize,
+                                height: boxSize,
+                                child: OtpInputBox(
+                                  controller: _controllers[index],
+                                  focusNode: _focusNodes[index],
+                                  boxSize: boxSize,
+                                  onChanged: (value) =>
+                                      _onCodeChanged(index, value),
+                                  onTap: () {
+                                    if (_controllers[index].text.isEmpty) {
+                                      for (int i = 0; i < index; i++) {
+                                        if (_controllers[i].text.isEmpty) {
+                                          _focusNodes[i].requestFocus();
+                                          return;
+                                        }
+                                      }
                                     }
-                                  }
-                                }
-                              },
+                                  },
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              SizedBox(height: AppSpacing.lg),
-
-              // Timer va qayta yuborish matni
-              Center(
-                child: Column(
-                  children: [
-                    if (!_canResend)
-                      Text(
-                        '00:${_remainingSeconds.toString().padLeft(2, '0')}',
-                        style: TextStyle(
-                          color: AppColors.primaryBlue,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14.sp,
-                        ),
-                      )
-                    else
-                      SizedBox(height: AppSpacing.lg),
-                    SizedBox(height: AppSpacing.xs),
-                    GestureDetector(
-                      onTap: _canResend ? _resendCode : null,
-                      child: Text(
-                        'auth.verification.resend'.tr(),
-                        style: AppTypography.caption,
-                      ),
+                        );
+                      },
                     ),
-                  ],
-                ),
-              ),
+                  ),
 
-              SizedBox(height: AppSpacing.xxl),
+                  SizedBox(height: AppSpacing.lg),
 
-              // Tasdiqlash tugmasi (Och moviy fon)
-              AuthPrimaryButton(
-                label: 'auth.verification.cta'.tr(),
-                onPressed: _verifyCode,
-                backgroundColor: AppColors.lightBlue.withOpacity(0.2),
-                textColor: AppColors.primaryBlue,
+                  // Timer va qayta yuborish matni
+                  Center(
+                    child: Column(
+                      children: [
+                        if (!_canResend)
+                          Text(
+                            '00:${_remainingSeconds.toString().padLeft(2, '0')}',
+                            style: TextStyle(
+                              color: AppColors.primaryBlue,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14.sp,
+                            ),
+                          )
+                        else
+                          SizedBox(height: AppSpacing.lg),
+                        SizedBox(height: AppSpacing.xs),
+                        GestureDetector(
+                          onTap: _canResend ? _resendCode : null,
+                          child: Text(
+                            'auth.verification.resend'.tr(),
+                            style: AppTypography.caption(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: AppSpacing.xxl),
+
+                  // Tasdiqlash tugmasi (Och moviy fon)
+                  AuthPrimaryButton(
+                    label: 'auth.verification.cta'.tr(),
+                    onPressed: _verifyCode,
+                    backgroundColor: AppColors.lightBlue.withOpacity(0.2),
+                    textColor: AppColors.primaryBlue,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
         );
       },
     );
   }
 }
-

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/hotel_booking.dart';
 import '../bloc/hotel_bloc.dart';
+import 'cancel_booking_confirm_page.dart';
 
 class HotelBookingDetailsPage extends StatefulWidget {
   final HotelBooking booking;
@@ -21,10 +22,23 @@ class HotelBookingDetailsPage extends StatefulWidget {
 
 class _HotelBookingDetailsPageState extends State<HotelBookingDetailsPage> {
   bool _isCancelling = false;
+  HotelBooking? _currentBooking;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentBooking = widget.booking;
+    // Load fresh booking data from server
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HotelBloc>().add(
+        ReadBookingRequested(widget.booking.bookingId),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final booking = widget.booking;
+    final booking = _currentBooking ?? widget.booking;
     final hotelName = booking.hotelInfo?['name'] as String? ?? 'Unknown Hotel';
     final hotelAddress = booking.hotelInfo?['address'] as String?;
     final checkIn = booking.dates?['check_in'] as String?;
@@ -51,7 +65,14 @@ class _HotelBookingDetailsPageState extends State<HotelBookingDetailsPage> {
       ),
       body: BlocListener<HotelBloc, HotelState>(
         listener: (context, state) {
-          if (state is HotelBookingCancelSuccess) {
+          if (state is HotelBookingReadSuccess) {
+            setState(() {
+              _currentBooking = state.booking;
+            });
+          } else if (state is HotelBookingReadFailure) {
+            // If read fails, continue with existing booking data
+            // Don't show error to user as we already have booking data
+          } else if (state is HotelBookingCancelSuccess) {
             setState(() => _isCancelling = false);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -290,7 +311,8 @@ class _HotelBookingDetailsPageState extends State<HotelBookingDetailsPage> {
                     subtitle,
                     style: TextStyle(
                       fontSize: 14.sp,
-                      color: Colors.grey[600],
+                      color: Theme.of(context).textTheme.bodySmall?.color ??
+                          Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                     ),
                   ),
                 ],
@@ -314,7 +336,8 @@ class _HotelBookingDetailsPageState extends State<HotelBookingDetailsPage> {
               label,
               style: TextStyle(
                 fontSize: 14.sp,
-                color: Colors.grey[600],
+                color: Theme.of(context).textTheme.bodySmall?.color ??
+                    Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
               ),
             ),
           ),
@@ -365,24 +388,9 @@ class _HotelBookingDetailsPageState extends State<HotelBookingDetailsPage> {
   }
 
   Future<void> _cancelBooking() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('hotel.booking_details.cancel_confirm_title'.tr()),
-        content: Text('hotel.booking_details.cancel_confirm_message'.tr()),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text('hotel.common.cancel'.tr()),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(
-              'hotel.booking_details.cancel'.tr(),
-              style: const TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
+    final confirmed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => const CancelBookingConfirmPage(),
       ),
     );
 
@@ -391,7 +399,7 @@ class _HotelBookingDetailsPageState extends State<HotelBookingDetailsPage> {
       context.read<HotelBloc>().add(
             CancelBookingRequested(
               bookingId: widget.booking.bookingId,
-              cancellationReason: 'User cancelled',
+              cancellationReason: 'hotel.booking_details.user_cancelled'.tr(),
             ),
           );
     }

@@ -1,5 +1,7 @@
 import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
+
 import '../../../../core/errors/app_exception.dart';
 import '../../domain/entities/deposit_filter.dart';
 import '../../domain/entities/deposit_page.dart';
@@ -24,9 +26,9 @@ class DepositRepositoryImpl implements DepositRepository {
     required int size,
     DepositFilter filter = DepositFilter.empty,
   }) async {
-    print('[DepositRepository] Fetching deposits:');
-    print('  - Page: $page, Size: $size');
-    print('  - Filter: ${filter.toQueryParameters()}');
+    debugPrint('[DepositRepository] Fetching deposits:');
+    debugPrint('  - Page: $page, Size: $size');
+    debugPrint('  - Filter: ${filter.toQueryParameters()}');
     
     developer.log(
       'Repository fetching page=$page size=$size filter=${filter.toQueryParameters()}',
@@ -39,14 +41,14 @@ class DepositRepositoryImpl implements DepositRepository {
         filter: filter,
       );
       
-      print('[DepositRepository] API response received:');
-      print('  - Items count: ${result.content.length}');
-      print('  - Page number: ${result.number}');
-      print('  - Total pages: ${result.totalPages}');
-      print('  - Is last: ${result.last}');
+      debugPrint('[DepositRepository] API response received:');
+      debugPrint('  - Items count: ${result.content.length}');
+      debugPrint('  - Page number: ${result.number}');
+      debugPrint('  - Total pages: ${result.totalPages}');
+      debugPrint('  - Is last: ${result.last}');
       
       if (result.content.isNotEmpty) {
-        print('[DepositRepository] First item: ${result.content.first.bankName}');
+        debugPrint('[DepositRepository] First item: ${result.content.first.bankName}');
       }
       
       developer.log(
@@ -57,7 +59,7 @@ class DepositRepositoryImpl implements DepositRepository {
       developer.log('Repository returning fresh data', name: 'DepositRepository');
       
       final entity = result.toEntity();
-      print('[DepositRepository] Converted to entity: ${entity.items.length} items');
+      debugPrint('[DepositRepository] Converted to entity: ${entity.items.length} items');
       return entity;
     } on AppException catch (error) {
       developer.log(

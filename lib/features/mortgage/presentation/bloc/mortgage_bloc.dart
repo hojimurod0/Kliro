@@ -19,10 +19,12 @@ class MortgageEvent with _$MortgageEvent {
   const factory MortgageEvent.refreshRequested({Completer<void>? completer}) =
       MortgageRefreshRequested;
   const factory MortgageEvent.loadMoreRequested() = MortgageLoadMoreRequested;
-  const factory MortgageEvent.searchChanged(String query) = MortgageSearchChanged;
+  const factory MortgageEvent.searchChanged(String query) =
+      MortgageSearchChanged;
   const factory MortgageEvent.filterApplied(MortgageFilter filter) =
       MortgageFilterApplied;
-  const factory MortgageEvent.pageSizeChanged(int size) = MortgagePageSizeChanged;
+  const factory MortgageEvent.pageSizeChanged(int size) =
+      MortgagePageSizeChanged;
 }
 
 @freezed
@@ -43,24 +45,24 @@ class MortgageState with _$MortgageState {
   const MortgageState._();
 
   factory MortgageState.initial() => MortgageState(
-    items: const <MortgageEntity>[],
-    filter: MortgageFilter.empty.copyWith(
-      sort: 'rate',
-      direction: 'asc', // Самый низкий процент сверху
-    ),
-    status: MortgageViewStatus.initial,
-    isInitialLoading: true,
-    isPaginating: false,
-    hasMore: true,
-    page: 0,
-    pageSize: 10,
-  );
+        items: const <MortgageEntity>[],
+        filter: MortgageFilter.empty.copyWith(
+          sort: 'rate',
+          direction: 'asc', // Самый низкий процент сверху
+        ),
+        status: MortgageViewStatus.initial,
+        isInitialLoading: true,
+        isPaginating: false,
+        hasMore: true,
+        page: 0,
+        pageSize: 10,
+      );
 }
 
 class MortgageBloc extends Bloc<MortgageEvent, MortgageState> {
   MortgageBloc({required GetMortgages getMortgages})
-    : _getMortgages = getMortgages,
-      super(MortgageState.initial()) {
+      : _getMortgages = getMortgages,
+        super(MortgageState.initial()) {
     on<MortgageStarted>(_onStarted);
     on<MortgageRefreshRequested>(_onRefreshRequested);
     on<MortgageLoadMoreRequested>(_onLoadMoreRequested);
@@ -160,9 +162,8 @@ class MortgageBloc extends Bloc<MortgageEvent, MortgageState> {
     required bool showFullScreenLoader,
   }) async {
     final effectivePageSize = pageSize ?? state.pageSize;
-    final preservedItems = showFullScreenLoader
-        ? const <MortgageEntity>[]
-        : state.items;
+    final preservedItems =
+        showFullScreenLoader ? const <MortgageEntity>[] : state.items;
     debugPrint(
       '[MortgageBloc] Reload triggered -> pageSize=$effectivePageSize, '
       'showFullScreenLoader=$showFullScreenLoader, preservedItems=${preservedItems.length}',
@@ -206,10 +207,10 @@ class MortgageBloc extends Bloc<MortgageEvent, MortgageState> {
     );
 
     try {
-      print('[MortgageBloc] Calling _getMortgages:');
-      print('  - Page: $page');
-      print('  - Size: ${state.pageSize}');
-      print('  - Filter: ${effectiveFilter.toQueryParameters()}');
+      debugPrint('[MortgageBloc] Calling _getMortgages:');
+      debugPrint('  - Page: $page');
+      debugPrint('  - Size: ${state.pageSize}');
+      debugPrint('  - Filter: ${effectiveFilter.toQueryParameters()}');
 
       final result = await _getMortgages(
         page: page,
@@ -217,15 +218,15 @@ class MortgageBloc extends Bloc<MortgageEvent, MortgageState> {
         filter: effectiveFilter,
       );
 
-      print('[MortgageBloc] _getMortgages returned:');
-      print('  - Items count: ${result.items.length}');
-      print('  - Page number: ${result.pageNumber}');
-      print('  - Total pages: ${result.totalPages}');
-      print('  - Total elements: ${result.totalElements}');
-      print('  - Is last: ${result.isLast}');
+      debugPrint('[MortgageBloc] _getMortgages returned:');
+      debugPrint('  - Items count: ${result.items.length}');
+      debugPrint('  - Page number: ${result.pageNumber}');
+      debugPrint('  - Total pages: ${result.totalPages}');
+      debugPrint('  - Total elements: ${result.totalElements}');
+      debugPrint('  - Is last: ${result.isLast}');
 
       if (result.items.isNotEmpty) {
-        print(
+        debugPrint(
           '[MortgageBloc] First item: ${result.items.first.bankName} - ${result.items.first.description}',
         );
       }
@@ -242,10 +243,10 @@ class MortgageBloc extends Bloc<MortgageEvent, MortgageState> {
         append: append,
       );
 
-      print('[MortgageBloc] Updated items list:');
-      print('  - Previous items: ${state.items.length}');
-      print('  - New items: ${result.items.length}');
-      print(
+      debugPrint('[MortgageBloc] Updated items list:');
+      debugPrint('  - Previous items: ${state.items.length}');
+      debugPrint('  - New items: ${result.items.length}');
+      debugPrint(
         '  - Total after ${append ? "append" : "replace"}: ${sortedItems.length}',
       );
 
@@ -277,10 +278,10 @@ class MortgageBloc extends Bloc<MortgageEvent, MortgageState> {
 
       debugPrint('[MortgageBloc] State emitted successfully!');
     } catch (error, stackTrace) {
-      print('[MortgageBloc] ERROR loading page:');
-      print('  - Error type: ${error.runtimeType}');
-      print('  - Error message: $error');
-      print('  - Stack trace: $stackTrace');
+      debugPrint('[MortgageBloc] ERROR loading page:');
+      debugPrint('  - Error type: ${error.runtimeType}');
+      debugPrint('  - Error message: $error');
+      debugPrint('  - Stack trace: $stackTrace');
       debugPrint('[MortgageBloc] Error loading page: $error');
       addError(error, stackTrace);
       final message = _mapError(error);
@@ -299,7 +300,8 @@ class MortgageBloc extends Bloc<MortgageEvent, MortgageState> {
       }
     } finally {
       completer?.complete();
-      debugPrint('[MortgageBloc] Completed _loadPage page=$page append=$append');
+      debugPrint(
+          '[MortgageBloc] Completed _loadPage page=$page append=$append');
     }
   }
 
@@ -309,7 +311,6 @@ class MortgageBloc extends Bloc<MortgageEvent, MortgageState> {
     }
     return error.toString();
   }
-
 }
 
 Future<List<MortgageEntity>> _processMortgagesForUi({
@@ -402,12 +403,10 @@ List<MortgageEntity> _applyMortgageFilters(
   if (filter.interestRateFrom != null || filter.interestRateTo != null) {
     filtered = filtered.where((item) {
       final rateValue = _extractMortgageNumber(item.interestRate);
-      final meetsMin =
-          filter.interestRateFrom == null ||
+      final meetsMin = filter.interestRateFrom == null ||
           rateValue >= filter.interestRateFrom!;
       final meetsMax =
-          filter.interestRateTo == null ||
-          rateValue <= filter.interestRateTo!;
+          filter.interestRateTo == null || rateValue <= filter.interestRateTo!;
       return meetsMin && meetsMax;
     }).toList();
   }
@@ -416,11 +415,9 @@ List<MortgageEntity> _applyMortgageFilters(
     filtered = filtered.where((item) {
       final termValue = _extractMortgageNumber(item.term);
       final meetsMin =
-          filter.termMonthsFrom == null ||
-          termValue >= filter.termMonthsFrom!;
+          filter.termMonthsFrom == null || termValue >= filter.termMonthsFrom!;
       final meetsMax =
-          filter.termMonthsTo == null ||
-          termValue <= filter.termMonthsTo!;
+          filter.termMonthsTo == null || termValue <= filter.termMonthsTo!;
       return meetsMin && meetsMax;
     }).toList();
   }
@@ -429,11 +426,9 @@ List<MortgageEntity> _applyMortgageFilters(
     filtered = filtered.where((item) {
       final amountValue = _extractMortgageNumber(item.maxSum);
       final meetsMin =
-          filter.maxSumFrom == null ||
-          amountValue >= filter.maxSumFrom!;
+          filter.maxSumFrom == null || amountValue >= filter.maxSumFrom!;
       final meetsMax =
-          filter.maxSumTo == null ||
-          amountValue <= filter.maxSumTo!;
+          filter.maxSumTo == null || amountValue <= filter.maxSumTo!;
       return meetsMin && meetsMax;
     }).toList();
   }
@@ -447,4 +442,3 @@ double _extractMortgageNumber(String value) {
   final normalized = match.group(0)!.replaceAll(' ', '').replaceAll(',', '.');
   return double.tryParse(normalized) ?? double.infinity;
 }
-

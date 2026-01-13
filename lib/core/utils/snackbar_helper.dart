@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../constants/app_colors.dart';
+import '../constants/app_typography.dart';
 
 /// Snackbar helper - tepadan chiqadigan snackbar'lar uchun
 class SnackbarHelper {
@@ -47,7 +48,7 @@ class SnackbarHelper {
 
     // Theme-aware shadow color
     final shadowColor =
-        isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.25);
+        AppColors.black.withOpacity(isDark ? 0.5 : 0.25);
 
     overlayEntry = OverlayEntry(
       builder: (context) {
@@ -94,12 +95,12 @@ class SnackbarHelper {
                           Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: AppColors.white.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
                               icon,
-                              color: Colors.white,
+                              color: AppColors.white,
                               size: 20,
                             ),
                           ),
@@ -107,9 +108,8 @@ class SnackbarHelper {
                           Expanded(
                             child: Text(
                               message,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
+                              style: AppTypography.bodyMedium(context).copyWith(
+                                color: AppColors.white,
                                 fontWeight: FontWeight.w600,
                                 height: 1.4,
                                 letterSpacing: 0.2,
@@ -133,16 +133,15 @@ class SnackbarHelper {
                                   tapTargetSize:
                                       MaterialTapTargetSize.shrinkWrap,
                                   backgroundColor:
-                                      Colors.white.withOpacity(0.2),
+                                      AppColors.white.withOpacity(0.2),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
                                 child: Text(
                                   action.label,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 13,
+                                  style: AppTypography.bodyPrimary(context).copyWith(
+                                    color: AppColors.white,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -164,16 +163,15 @@ class SnackbarHelper {
                                   tapTargetSize:
                                       MaterialTapTargetSize.shrinkWrap,
                                   backgroundColor:
-                                      Colors.white.withOpacity(0.2),
+                                      AppColors.white.withOpacity(0.2),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
                                 child: Text(
                                   'common.close'.tr(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 13,
+                                  style: AppTypography.bodyPrimary(context).copyWith(
+                                    color: AppColors.white,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -216,8 +214,8 @@ class SnackbarHelper {
 
     // Dark mode uchun yanada yorug' va kontrastli rang - qizil
     final errorColor = isDark
-        ? const Color(0xFFD32F2F) // To'q qizil - dark mode uchun
-        : const Color(0xFFF44336); // Yorug' qizil - light mode uchun
+        ? AppColors.errorRedDark // To'q qizil - dark mode uchun
+        : AppColors.errorRedLight; // Yorug' qizil - light mode uchun
 
     _showTopSnackbar(
       context,
@@ -241,8 +239,8 @@ class SnackbarHelper {
 
     // Dark mode uchun yanada yorug' yashil rang
     final successColor = isDark
-        ? const Color(0xFF28A745) // To'q yashil - dark mode uchun
-        : const Color(0xFF34C759); // Yorug' yashil - light mode uchun
+        ? AppColors.successGreenDark // To'q yashil - dark mode uchun
+        : AppColors.successGreenLight; // Yorug' yashil - light mode uchun
 
     _showTopSnackbar(
       context,
@@ -267,7 +265,7 @@ class SnackbarHelper {
     // Dark mode uchun yanada yorug' ko'k rang
     final infoColor = isDark
         ? AppColors.primaryBlue // Dark mode uchun asosiy ko'k
-        : const Color(0xFF0D6EFD); // Light mode uchun yorug' ko'k
+        : AppColors.infoBlueLight; // Light mode uchun yorug' ko'k
 
     _showTopSnackbar(
       context,
@@ -291,8 +289,8 @@ class SnackbarHelper {
 
     // Dark mode uchun yanada yorug' sariq rang
     final warningColor = isDark
-        ? const Color(0xFFFF9800) // To'q sariq - dark mode uchun
-        : const Color(0xFFFFB800); // Yorug' sariq - light mode uchun
+        ? AppColors.orangeWarning // To'q sariq - dark mode uchun
+        : AppColors.warningOrangeLight; // Yorug' sariq - light mode uchun
 
     _showTopSnackbar(
       context,
@@ -318,7 +316,7 @@ class SnackbarHelper {
 
     // Default rang - theme-aware
     final defaultColor = backgroundColor ??
-        (isDark ? const Color(0xFF424242) : const Color(0xFF6C757D));
+        (isDark ? AppColors.defaultGrayDark : AppColors.defaultGrayLight);
 
     _showTopSnackbar(
       context,

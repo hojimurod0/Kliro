@@ -69,7 +69,7 @@ class KaskoSuccessPage extends StatelessWidget {
       child: OutlinedButton(
         onPressed: () {
           // TODO: Polisni yuklab olish yoki ulashish logikasi
-          print('$text bosildi');
+          debugPrint('$text bosildi');
         },
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: borderColor, width: 1.5),

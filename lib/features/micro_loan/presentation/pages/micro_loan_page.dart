@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -134,14 +135,16 @@ class _MicroLoanPageState extends State<MicroLoanPage> {
             Expanded(
               child: BlocListener<MicrocreditBloc, MicrocreditState>(
                 listener: (context, state) {
-                  debugPrint('[MicroLoanPage] BlocListener: State changed!');
-                  debugPrint('  - Status: ${state.status}');
-                  debugPrint('  - Items: ${state.items.length}');
-                  debugPrint('  - isInitialLoading: ${state.isInitialLoading}');
-                  debugPrint('  - isPaginating: ${state.isPaginating}');
-                  debugPrint('  - hasMore: ${state.hasMore}');
-                  if (state.items.isNotEmpty) {
-                    debugPrint('  - First item: ${state.items.first.bankName}');
+                  if (kDebugMode) {
+                    debugPrint('[MicroLoanPage] BlocListener: State changed!');
+                    debugPrint('  - Status: ${state.status}');
+                    debugPrint('  - Items: ${state.items.length}');
+                    debugPrint('  - isInitialLoading: ${state.isInitialLoading}');
+                    debugPrint('  - isPaginating: ${state.isPaginating}');
+                    debugPrint('  - hasMore: ${state.hasMore}');
+                    if (state.items.isNotEmpty) {
+                      debugPrint('  - First item: ${state.items.first.bankName}');
+                    }
                   }
                 },
                 child: BlocBuilder<MicrocreditBloc, MicrocreditState>(
@@ -155,16 +158,20 @@ class _MicroLoanPageState extends State<MicroLoanPage> {
                   },
                   builder: (context, state) {
                     if (state.isInitialLoading) {
-                      debugPrint('[MicroLoanPage] Showing initial loader');
+                      if (kDebugMode) {
+                        debugPrint('[MicroLoanPage] Showing initial loader');
+                      }
                       return const _CenteredLoader();
                     }
 
                     // Agar error bo'lsa ham, items bo'sh bo'lmasa list ko'rsatish
                     if (state.status == MicrocreditViewStatus.failure &&
                         state.items.isEmpty) {
-                      debugPrint(
-                        '[MicroLoanPage] Showing error state: ${state.errorMessage}',
-                      );
+                      if (kDebugMode) {
+                        debugPrint(
+                          '[MicroLoanPage] Showing error state: ${state.errorMessage}',
+                        );
+                      }
                       return _StateMessage(
                         icon: Icons.error_outline,
                         title: tr('common.error'),
@@ -261,14 +268,16 @@ class _MicrocreditList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('[MicrocreditList] Building list widget');
-    debugPrint('[MicrocreditList] State items: ${state.items.length}');
-    debugPrint('[MicrocreditList] State status: ${state.status}');
-    debugPrint('[MicrocreditList] State hasMore: ${state.hasMore}');
-    debugPrint(
-      '[MicrocreditList] State isInitialLoading: ${state.isInitialLoading}',
-    );
-    debugPrint('[MicrocreditList] State isPaginating: ${state.isPaginating}');
+    if (kDebugMode) {
+      debugPrint('[MicrocreditList] Building list widget');
+      debugPrint('[MicrocreditList] State items: ${state.items.length}');
+      debugPrint('[MicrocreditList] State status: ${state.status}');
+      debugPrint('[MicrocreditList] State hasMore: ${state.hasMore}');
+      debugPrint(
+        '[MicrocreditList] State isInitialLoading: ${state.isInitialLoading}',
+      );
+      debugPrint('[MicrocreditList] State isPaginating: ${state.isPaginating}');
+    }
 
     // Uzum Bankni ro'yxatdan chiqaramiz
     final filteredItems = state.items.where((item) => 
@@ -279,9 +288,11 @@ class _MicrocreditList extends StatelessWidget {
     final extraSlots = (state.hasMore ? 1 : 0) + (hasPaginationError ? 1 : 0);
     final itemCount = filteredItems.length + extraSlots;
 
-    debugPrint(
-      '[MicrocreditList] Item count: $itemCount (items: ${filteredItems.length}, extra: $extraSlots)',
-    );
+    if (kDebugMode) {
+      debugPrint(
+        '[MicrocreditList] Item count: $itemCount (items: ${filteredItems.length}, extra: $extraSlots)',
+      );
+    }
 
     return ListView.separated(
       padding: EdgeInsets.all(20.w),
@@ -289,10 +300,14 @@ class _MicrocreditList extends StatelessWidget {
       itemCount: itemCount,
       separatorBuilder: (_, __) => SizedBox(height: 16.h),
       itemBuilder: (context, index) {
-        debugPrint('[MicrocreditList] Building item at index: $index');
+        if (kDebugMode) {
+          debugPrint('[MicrocreditList] Building item at index: $index');
+        }
 
         if (hasPaginationError && index == 0) {
-          debugPrint('[MicrocreditList] Showing pagination error banner');
+          if (kDebugMode) {
+            debugPrint('[MicrocreditList] Showing pagination error banner');
+          }
           return _PaginationErrorBanner(
             message: state.paginationErrorMessage ?? '',
             onRetry: onRetryPagination,

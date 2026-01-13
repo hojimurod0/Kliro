@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -7,7 +8,6 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../core/utils/snackbar_helper.dart';
-import '../../../../core/dio/singletons/service_locator.dart';
 import '../bloc/avia_bloc.dart';
 import '../widgets/custom_input.dart';
 import '../widgets/airport_input.dart';
@@ -43,13 +43,10 @@ class _FlightSearchScreenState extends State<FlightSearchScreen> {
   @override
   void initState() {
     super.initState();
-    // ServiceLocator dan AviaBloc ni olish yoki context dan olish
-    try {
-      _aviaBloc = context.read<AviaBloc>();
-    } catch (e) {
-      // Agar context dan topilmasa, ServiceLocator dan olish
-      _aviaBloc = ServiceLocator.resolve<AviaBloc>();
-    }
+    // ALWAYS use bloc from widget tree (provided by AvichiptalarModule)
+    // DO NOT create a new instance from ServiceLocator
+    // This ensures we use the SAME bloc instance throughout the flow
+    _aviaBloc = context.read<AviaBloc>();
   }
 
   @override
@@ -143,17 +140,8 @@ class _FlightSearchScreenState extends State<FlightSearchScreen> {
       ],
     );
 
-    // Search bosilganda darhol page ga o'tish
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => BlocProvider.value(
-          value: _aviaBloc,
-          child: const FlightResultsScreen(),
-        ),
-      ),
-    );
-
-    // Keyin search event yuborish
+    // Event yuborish - navigation BlocListener orqali qilinadi
+    // Bu hotel qismidagi kabi ishlaydi - state o'zgarganda navigation qilinadi
     _aviaBloc.add(SearchOffersRequested(request));
   }
 
@@ -197,11 +185,29 @@ class _FlightSearchScreenState extends State<FlightSearchScreen> {
         bloc: _aviaBloc,
         listener: (context, state) {
           if (!mounted) return;
-          // Search success yoki failure holatida faqat error ko'rsatish
-          // (Page ga o'tish allaqachon _searchFlights da qilingan)
-          if (state is AviaSearchFailure) {
-            AppLogger.error(
-                'FlightSearchScreen: AviaSearchFailure - ${state.message}');
+
+          if (state is AviaSearchLoading) {
+            // Loading holatida results screen'ga o'tish
+            if (kDebugMode) {
+              AppLogger.debug(
+                  'FlightSearchScreen: AviaSearchLoading - navigating to results');
+              AppLogger.debug('🔥 Navigation bloc hash: ${_aviaBloc.hashCode}');
+            }
+            // Use Navigator.push with MaterialPageRoute to preserve bloc instance
+            // Auto_route doesn't support passing BlocProvider.value directly
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => BlocProvider.value(
+                  value: _aviaBloc,
+                  child: const FlightResultsScreen(),
+                ),
+              ),
+            );
+          } else if (state is AviaSearchFailure) {
+            if (kDebugMode) {
+              AppLogger.error(
+                  'FlightSearchScreen: AviaSearchFailure - ${state.message}');
+            }
             SnackbarHelper.showError(
               context,
               '${'avia.common.error'.tr()}: ${state.message}',
@@ -213,7 +219,7 @@ class _FlightSearchScreenState extends State<FlightSearchScreen> {
           appBar: AppBar(
             title: Text(
               'avia.title'.tr(),
-              style: AppTypography.headingL.copyWith(
+              style: AppTypography.headingL(context).copyWith(
                 fontSize: 20.sp,
                 fontWeight: FontWeight.w700,
                 color: theme.textTheme.titleLarge?.color,
@@ -442,8 +448,9 @@ class _FlightSearchScreenState extends State<FlightSearchScreen> {
                     builder: (context, state) {
                       return PrimaryButton(
                         text: 'avia.search.search_button'.tr(),
-                        isLoading: state is AviaLoading,
-                        onPressed: state is AviaLoading ? null : _searchFlights,
+                        isLoading: state is AviaSearchLoading,
+                        onPressed:
+                            state is AviaSearchLoading ? null : _searchFlights,
                       );
                     },
                   ),

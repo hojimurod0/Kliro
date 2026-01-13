@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../../core/services/auth/auth_service.dart';
 
 /// Interceptor для автоматического добавления токена авторизации
@@ -46,19 +47,19 @@ class HotelAuthInterceptor extends Interceptor {
 class HotelLoggingInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    print('🚀 REQUEST[${options.method}] => PATH: ${options.path}');
+    debugPrint('🚀 REQUEST[${options.method}] => PATH: ${options.path}');
     if (options.queryParameters.isNotEmpty) {
-      print('Query: ${options.queryParameters}');
+      debugPrint('Query: ${options.queryParameters}');
     }
     if (options.data != null) {
-      print('Data: ${options.data}');
+      debugPrint('Data: ${options.data}');
     }
     handler.next(options);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    print(
+    debugPrint(
       '✅ RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}',
     );
     handler.next(response);
@@ -66,10 +67,10 @@ class HotelLoggingInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    print(
+    debugPrint(
       '❌ ERROR[${err.response?.statusCode}] => PATH: ${err.requestOptions.path}',
     );
-    print('Error: ${err.message}');
+    debugPrint('Error: ${err.message}');
     handler.next(err);
   }
 }
