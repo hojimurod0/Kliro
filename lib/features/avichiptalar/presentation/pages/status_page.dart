@@ -14,6 +14,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:open_file/open_file.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_typography.dart';
+import '../../../../core/constants/constants.dart';
 import '../../../../core/utils/snackbar_helper.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../bloc/avia_bloc.dart';
@@ -27,6 +28,8 @@ import '../../data/models/booking_model.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../../../core/widgets/base_stateful_widget.dart';
 import '../../../../core/services/auth/auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../data/datasources/avia_orders_local_data_source.dart';
 
 @RoutePage(name: 'StatusRoute')
 class StatusPage extends StatefulWidget {
@@ -46,6 +49,7 @@ class StatusPage extends StatefulWidget {
 class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindingObserver {
   bool _hasLoaded = false;
   // bool _isRefundLoading = false; // reserved for future UX improvements
+  bool _bookingDetailsExpanded = true;
   
   // Payment related
   PaymentBloc? _paymentBloc;
@@ -57,6 +61,7 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
   // Payment status polling
   String? _currentInvoiceUuid;
   bool _urlLaunched = false;
+  int _pdfRetryCount = 0;
 
   PaymentBloc get paymentBloc {
     _paymentBloc ??= ServiceLocator.resolve<PaymentBloc>();
@@ -64,7 +69,9 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
   }
 
   void _handlePdfDownload() {
-    if ((_booking?.status ?? '').toLowerCase().isNotEmpty) {
+    final bookingStatus = (_booking?.status ?? widget.status).toLowerCase();
+    final isPaid = ['success', 'paid', 'confirmed', 'ticketed'].contains(bookingStatus);
+    if (isPaid) {
       context.read<AviaBloc>().add(PdfReceiptRequested(widget.bookingId));
     } else {
       SnackbarHelper.showError(context, 'PDF faqat to\'langan bronlar uchun mavjud');
@@ -72,6 +79,7 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
   }
 
   Future<void> _launchPdfUrl(String pdfUrl) async {
+    pdfUrl = _normalizePdfUrl(pdfUrl);
     // Loading dialog ko'rsatish
     if (mounted) {
       showDialog(
@@ -286,6 +294,27 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
     }
   }
 
+  String _normalizePdfUrl(String url) {
+    final raw = url.trim();
+    if (raw.startsWith('/')) return '${ApiConstants.effectiveBaseUrl}$raw';
+    if (raw.startsWith('storage/') || raw.startsWith('uploads/')) {
+      return '${ApiConstants.effectiveBaseUrl}/$raw';
+    }
+    return raw;
+  }
+
+  Future<void> _saveOrderId(String bookingId) async {
+    try {
+      final id = bookingId.trim();
+      if (id.isEmpty) return;
+      final prefs = ServiceLocator.resolve<SharedPreferences>();
+      final local = AviaOrdersLocalDataSource(prefs);
+      await local.addOrder(id);
+    } catch (_) {
+      // ignore
+    }
+  }
+
   void _showPdfShareDialog(String filePath) {
     showDialog(
       context: context,
@@ -318,6 +347,7 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _paymentBloc = ServiceLocator.resolve<PaymentBloc>();
+    _saveOrderId(widget.bookingId);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_hasLoaded) {
         _hasLoaded = true;
@@ -442,7 +472,17 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
                   SnackbarHelper.showError(context, 'PDF topilmadi');
                 }
               } else if (state is AviaPdfReceiptFailure) {
-                _showError(context, state.message);
+                final bookingStatus = (_booking?.status ?? widget.status).toLowerCase();
+                final isPaid = ['success', 'paid', 'confirmed', 'ticketed'].contains(bookingStatus);
+                if (isPaid && _pdfRetryCount < 3) {
+                  _pdfRetryCount++;
+                  Future.delayed(Duration(seconds: 2 * _pdfRetryCount), () {
+                    if (!mounted) return;
+                    context.read<AviaBloc>().add(PdfReceiptRequested(widget.bookingId));
+                  });
+                } else {
+                  _showError(context, state.message);
+                }
               } else if (state is AviaCheckPriceSuccess && _isLoadingPayment) {
                 _priceCheck = state.priceCheck;
                 // Ikkalasi ham kelganda invoice yaratish
@@ -968,7 +1008,7 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
     return StatefulBuilder(
       builder: (context, setState) {
         // Use a local state variable that can be toggled
-        var isExpanded = true;
+        final isExpanded = _bookingDetailsExpanded;
         
         return Container(
           decoration: BoxDecoration(
@@ -983,7 +1023,8 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
             children: [
               // Header with title and expand/collapse icon
               InkWell(
-                onTap: () => setState(() => isExpanded = !isExpanded),
+                onTap: () =>
+                    setState(() => _bookingDetailsExpanded = !_bookingDetailsExpanded),
                 child: Padding(
                   padding: EdgeInsets.all(16.w),
                   child: Row(
@@ -1223,8 +1264,8 @@ class _StatusPageState extends BaseStatefulWidget<StatusPage> with WidgetsBindin
       amount: amount,
       invoiceId: invoiceId,
       lang: EasyLocalization.of(context)!.locale.languageCode,
-      returnUrl: 'https://kliro.uz',
-      callbackUrl: 'https://api.kliro.uz/payment/callback/success',
+      returnUrl: ApiPaths.paymentReturnUrl,
+      callbackUrl: ApiPaths.paymentCallbackSuccessUrl,
     );
 
     paymentBloc.add(CreateInvoiceRequested(request));

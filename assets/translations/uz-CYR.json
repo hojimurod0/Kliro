@@ -198,6 +198,12 @@
         "title": "Ҳимоя ва хафсизлик",
         "subtitle": "КАСКО, ОСАГО ва саёҳат суғуртаси",
         "book": "Кўриш"
+      },
+      "hotel": {
+        "label": "МЕҲМОНХОНАЛАР",
+        "title": "Қулай меҳмонхонани топинг",
+        "subtitle": "Энг яхши нархларда брон қилинг",
+        "book": "Қидириш"
       }
     }
   },
@@ -1558,6 +1564,45 @@
       "room_types": "Хона турлари",
       "equipment": "Жиҳозлар"
     },
+    "summary": {
+      "title": "Брон хулоса",
+      "hotel_info": "Меҳмонхона маълумотлари",
+      "guest_info": "Меҳмон маълумотлари",
+      "booking_summary": "Брон хулоса",
+      "important_notes": "Муҳим эслатмалар",
+      "room_type": "Хона тури:",
+      "number_of_guests": "Кишилар сони:",
+      "adult": "катта",
+      "adults": "катталар",
+      "check_in": "Кириш:",
+      "check_out": "Чиқиш:",
+      "from_to": "дан",
+      "nights": "Кечалар:",
+      "night": "Кеча",
+      "nights_plural": "Кечалар",
+      "rooms": "Хоналар:",
+      "room": "Хона",
+      "rooms_plural": "Хоналар",
+      "total_amount": "Жами сумма:",
+      "tourist_tax": "Турист солиғи:",
+      "included": "киритилган",
+      "meal_plan": "Овқат режаси:",
+      "room_only": "Фақат хона",
+      "cancellation_policy": "Бекор қилиш сиёсати:",
+      "applies": "Қўлланилади",
+      "cancellation_policy_applies": "Бекор қилиш сиёсати қўлланилади:",
+      "free_cancellation": "Бепул бекор қилиш",
+      "main_guest": "Асосий меҳмон",
+      "contact_info": "Алоқа маълумотлари",
+      "edit": "Таҳрирлаш",
+      "go_back": "Орқага қайтиш",
+      "make_payment": "Тўлов қилиш",
+      "not_specified": "Кўрсатилмаган",
+      "note_checkin_time": "Кириш вақтини кузатиш керак",
+      "note_passport_required": "Паспорт ёки ID талаб қилинади",
+      "note_cancellation_policy": "Бекор қилиш сиёсати қўлланилади",
+      "note_contact_hotel": "Саволлар учун меҳмонхонага мурожаат қилинг"
+    },
     "success": {
       "title": "Брон қилинди",
       "subtitle": "Маълумотлар эмаилингизга юборилди",
@@ -1727,7 +1772,14 @@
       "babies": "чақалоқ",
       "passenger_count": "йўловчи",
       "flight": "Парвоз",
-      "economy": "Эконом"
+      "economy": "Эконом",
+      "flight_info": "Парвоз маълумотлари",
+      "total_passengers": "Жами йўловчилар",
+      "important_notes": "Муҳим эслатмалар",
+      "note_passport": "Парвоздан олдин паспорт маълумотларини текширинг",
+      "note_checkin": "Онлайн check-in 24 соат олдин мавжуд",
+      "note_cancellation": "Бекор қилиш шартлари тарифга боглик",
+      "no_passengers": "Йўловчилар йўқ"
     },
     "formalization": {
       "title": "Расмийлаштириш",

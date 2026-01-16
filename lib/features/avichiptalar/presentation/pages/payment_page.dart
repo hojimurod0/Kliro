@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/constants/constants.dart';
 import '../../../../core/navigation/app_router.dart';
 import '../bloc/avia_bloc.dart';
 import '../widgets/primary_button.dart';
@@ -482,9 +483,9 @@ class _PaymentPageState extends BaseStatefulWidget<PaymentPage>
                                       lang: EasyLocalization.of(context)!
                                           .locale
                                           .languageCode,
-                                      returnUrl: 'https://kliro.uz',
+                                      returnUrl: ApiPaths.paymentReturnUrl,
                                       callbackUrl:
-                                          'https://api.kliro.uz/payment/callback/success',
+                                          ApiPaths.paymentCallbackSuccessUrl,
                                     );
 
                                     _paymentBloc.add(

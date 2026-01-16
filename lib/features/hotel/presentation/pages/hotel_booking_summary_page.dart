@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/utils/snackbar_helper.dart';
+import '../../../../core/constants/constants.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../features/avichiptalar/presentation/bloc/payment_bloc.dart';
 import '../../../../features/avichiptalar/data/models/invoice_request_model.dart';
@@ -19,7 +20,7 @@ class HotelBookingSummaryPage extends StatefulWidget {
   final Hotel hotel;
   final HotelOption? selectedOption;
   final String? quoteId;
-  
+
   // Guest Information
   final String? personTitle;
   final String? firstName;
@@ -29,7 +30,8 @@ class HotelBookingSummaryPage extends StatefulWidget {
   final String? contactEmail;
   final String? contactPhone;
   final int adultCount;
-  
+  final int roomCount; // Tanlangan xona soni
+
   // Special Requests
   final String? comment;
 
@@ -46,26 +48,29 @@ class HotelBookingSummaryPage extends StatefulWidget {
     this.contactEmail,
     this.contactPhone,
     this.adultCount = 1,
+    this.roomCount = 1,
     this.comment,
   }) : super(key: key);
 
   @override
-  State<HotelBookingSummaryPage> createState() => _HotelBookingSummaryPageState();
+  State<HotelBookingSummaryPage> createState() =>
+      _HotelBookingSummaryPageState();
 }
 
-class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with WidgetsBindingObserver {
+class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage>
+    with WidgetsBindingObserver {
   bool _isLoading = false;
   List<RoomType> _roomTypes = [];
-  
+
   // Payment related
   late PaymentBloc _paymentBloc;
   HotelBooking? _currentBooking;
-  
+
   // Payment status polling
   String? _currentInvoiceUuid;
   bool _urlLaunched = false;
   Timer? _statusPollingTimer;
-  
+
   // Card expansion states
   bool _isHotelInfoExpanded = true;
   bool _isGuestInfoExpanded = true;
@@ -78,7 +83,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
     WidgetsBinding.instance.addObserver(this);
     // PaymentBloc ni ServiceLocator dan olish
     _paymentBloc = ServiceLocator.resolve<PaymentBloc>();
-    
+
     // Load room types for displaying room type name
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context
@@ -120,7 +125,9 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
   }
 
   int _calculateNights() {
-    return widget.hotel.checkOutDate.difference(widget.hotel.checkInDate).inDays;
+    return widget.hotel.checkOutDate
+        .difference(widget.hotel.checkInDate)
+        .inDays;
   }
 
   String _getRoomTypeName() {
@@ -170,11 +177,11 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
   }
 
   String _getMealPlan() {
-    if (widget.selectedOption?.includedMealOptions != null && 
+    if (widget.selectedOption?.includedMealOptions != null &&
         widget.selectedOption!.includedMealOptions!.isNotEmpty) {
       return widget.selectedOption!.includedMealOptions!.first;
     }
-    return 'Room Only';
+    return 'hotel.summary.room_only'.tr();
   }
 
   String _getCancellationPolicy() {
@@ -183,15 +190,16 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
       if (policy['free_cancellation'] == true) {
         return 'hotel.summary.free_cancellation'.tr();
       }
-      return 'hotel.summary.cancellation_policy_applies'.tr();
+      return 'hotel.summary.applies'.tr();
     }
-    return 'hotel.summary.cancellation_policy_applies'.tr();
+    return 'hotel.summary.applies'.tr();
   }
 
   @override
   Widget build(BuildContext context) {
     final nights = _calculateNights();
-    final totalAmount = widget.selectedOption?.price ?? widget.hotel.price ?? 0;
+    final basePrice = widget.selectedOption?.price ?? widget.hotel.price ?? 0;
+    final totalAmount = basePrice * widget.roomCount * nights;
     final currency = widget.selectedOption?.currency ?? 'uzs';
     final roomTypeName = _getRoomTypeName();
     final mealPlan = _getMealPlan();
@@ -205,6 +213,13 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
               setState(() {
                 _roomTypes = state.roomTypes;
               });
+            } else if (state is HotelBookingCreateSuccess) {
+              // Booking yaratilgandan keyin invoice yaratib paymentga o'tamiz
+              if (!mounted) return;
+              setState(() {
+                _currentBooking = state.booking;
+              });
+              _createInvoiceAndLaunch(state.booking);
             } else if (state is HotelBookingCreateFailure) {
               setState(() => _isLoading = false);
               // Show error with retry option
@@ -214,7 +229,8 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
               // To'lov muvaffaqiyatli bo'lganda success page'ga o'tish
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(
-                  builder: (context) => HotelSuccessPage(booking: state.booking),
+                  builder: (context) =>
+                      HotelSuccessPage(booking: state.booking),
                 ),
                 (route) => route.isFirst,
               );
@@ -243,6 +259,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                 setState(() {
                   _currentInvoiceUuid = state.invoice.uuid;
                   _urlLaunched = false;
+                  _isLoading = false;
                 });
                 _launchPaymentUrl(state.invoice.checkoutUrl);
               }
@@ -258,7 +275,8 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                     _urlLaunched = false;
                   });
                 }
-              } else if (state.status == 'failed' || state.status == 'canceled') {
+              } else if (state.status == 'failed' ||
+                  state.status == 'canceled') {
                 _stopStatusPolling();
                 if (mounted) {
                   SnackbarHelper.showError(
@@ -268,6 +286,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                   setState(() {
                     _currentInvoiceUuid = null;
                     _urlLaunched = false;
+                    _isLoading = false;
                   });
                 }
               }
@@ -280,7 +299,8 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
           },
         ),
       ],
-      child: _buildContent(context, nights, totalAmount, currency, roomTypeName, mealPlan, cancellationPolicy),
+      child: _buildContent(context, nights, totalAmount, currency, roomTypeName,
+          mealPlan, cancellationPolicy),
     );
   }
 
@@ -293,6 +313,11 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
     String mealPlan,
     String cancellationPolicy,
   ) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final shadowColor = theme.shadowColor.withOpacity(
+      theme.brightness == Brightness.dark ? 0.25 : 0.05,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -338,7 +363,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
           color: Theme.of(context).cardColor,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: shadowColor,
               blurRadius: 10,
               offset: const Offset(0, -4),
             ),
@@ -351,8 +376,10 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                 child: OutlinedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 8.w),
-                    side: BorderSide(color: Colors.grey.shade300),
+                    padding:
+                        EdgeInsets.symmetric(vertical: 14.h, horizontal: 8.w),
+                    side:
+                        BorderSide(color: theme.dividerColor.withOpacity(0.6)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12.r),
                     ),
@@ -368,20 +395,23 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
               SizedBox(width: 12.w),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: _isLoading ? null : () => _proceedToPayment(context),
+                  onPressed:
+                      _isLoading ? null : () => _proceedToPayment(context),
                   icon: _isLoading
                       ? SizedBox(
                           width: 20.w,
                           height: 20.h,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(cs.onPrimary),
                           ),
                         )
                       : Icon(Icons.payment, size: 18.sp),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 8.w),
+                    backgroundColor: cs.primary,
+                    padding:
+                        EdgeInsets.symmetric(vertical: 14.h, horizontal: 8.w),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12.r),
                     ),
@@ -390,7 +420,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                     'hotel.summary.make_payment'.tr(),
                     style: TextStyle(
                         fontSize: 14.sp,
-                        color: Colors.white,
+                        color: cs.onPrimary,
                         fontWeight: FontWeight.bold),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
@@ -405,9 +435,22 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
   }
 
   Widget _buildHotelInfoCard(BuildContext context, String roomTypeName) {
-    final checkInDate = DateFormat('dd MMM yyyy').format(widget.hotel.checkInDate);
-    final checkOutDate = DateFormat('dd MMM yyyy').format(widget.hotel.checkOutDate);
-    
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final secondaryTextColor = cs.onSurface
+        .withOpacity(theme.brightness == Brightness.dark ? 0.78 : 0.65);
+    final mutedIconColor = cs.onSurface
+        .withOpacity(theme.brightness == Brightness.dark ? 0.75 : 0.6);
+    final dividerColor = theme.dividerColor.withOpacity(0.35);
+    final shadowColor = theme.shadowColor.withOpacity(
+      theme.brightness == Brightness.dark ? 0.25 : 0.05,
+    );
+
+    final checkInDate =
+        DateFormat('dd MMM yyyy').format(widget.hotel.checkInDate);
+    final checkOutDate =
+        DateFormat('dd MMM yyyy').format(widget.hotel.checkOutDate);
+
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
@@ -418,7 +461,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: shadowColor,
             blurRadius: 10,
             offset: Offset(0, 2),
           ),
@@ -444,10 +487,11 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                         Container(
                           padding: EdgeInsets.all(8.w),
                           decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
+                            color: cs.primary.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(10.r),
                           ),
-                          child: Icon(Icons.location_on, color: Colors.blue, size: 22.sp),
+                          child: Icon(Icons.location_on,
+                              color: cs.primary, size: 22.sp),
                         ),
                         SizedBox(width: 12.w),
                         Expanded(
@@ -467,7 +511,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                                   widget.hotel.name,
                                   style: TextStyle(
                                     fontSize: 13.sp,
-                                    color: Colors.grey.shade600,
+                                    color: secondaryTextColor,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -480,8 +524,10 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                     ),
                   ),
                   Icon(
-                    _isHotelInfoExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                    color: Colors.grey.shade600,
+                    _isHotelInfoExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: mutedIconColor,
                     size: 24.sp,
                   ),
                 ],
@@ -489,7 +535,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
             ),
           ),
           if (_isHotelInfoExpanded) ...[
-            Divider(height: 1, color: Colors.grey.shade200, thickness: 1),
+            Divider(height: 1, color: dividerColor, thickness: 1),
             Padding(
               padding: EdgeInsets.all(18.w),
               child: Column(
@@ -507,14 +553,16 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.place, size: 16.sp, color: Colors.grey.shade600),
+                      Icon(Icons.place, size: 16.sp, color: mutedIconColor),
                       SizedBox(width: 6.w),
                       Expanded(
                         child: Text(
                           widget.hotel.address,
                           style: TextStyle(
                             fontSize: 14.sp,
-                            color: Colors.grey.shade700,
+                            color: cs.onSurface.withOpacity(
+                              theme.brightness == Brightness.dark ? 0.90 : 0.80,
+                            ),
                             height: 1.4,
                           ),
                         ),
@@ -523,12 +571,14 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                   ),
                   SizedBox(height: 20.h),
                   _buildInfoRowWithIcon(
+                    context,
                     Icons.hotel,
                     'hotel.summary.room_type'.tr(),
                     roomTypeName,
                   ),
                   SizedBox(height: 14.h),
                   _buildInfoRowWithIcon(
+                    context,
                     Icons.people,
                     'hotel.summary.number_of_guests'.tr(),
                     '${widget.adultCount} ${widget.adultCount == 1 ? 'hotel.summary.adult'.tr() : 'hotel.summary.adults'.tr()}',
@@ -537,25 +587,29 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                   Container(
                     padding: EdgeInsets.all(14.w),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.05),
+                      color: cs.primary.withOpacity(0.06),
                       borderRadius: BorderRadius.circular(12.r),
                       border: Border.all(
-                        color: Colors.blue.withOpacity(0.2),
+                        color: cs.primary.withOpacity(0.2),
                         width: 1,
                       ),
                     ),
                     child: Column(
                       children: [
                         _buildDateRow(
+                          context,
                           Icons.login,
                           'hotel.summary.check_in'.tr(),
                           checkInDate,
                           '14:00',
                         ),
                         SizedBox(height: 12.h),
-                        Divider(height: 1, color: Colors.grey.shade300),
+                        Divider(
+                            height: 1,
+                            color: theme.dividerColor.withOpacity(0.4)),
                         SizedBox(height: 12.h),
                         _buildDateRow(
+                          context,
                           Icons.logout,
                           'hotel.summary.check_out'.tr(),
                           checkOutDate,
@@ -574,7 +628,20 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
   }
 
   Widget _buildGuestInfoCard(BuildContext context) {
-    final guestName = widget.personTitle != null && widget.firstName != null && widget.lastName != null
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final secondaryTextColor = cs.onSurface
+        .withOpacity(theme.brightness == Brightness.dark ? 0.78 : 0.65);
+    final mutedIconColor = cs.onSurface
+        .withOpacity(theme.brightness == Brightness.dark ? 0.75 : 0.6);
+    final dividerColor = theme.dividerColor.withOpacity(0.35);
+    final shadowColor = theme.shadowColor.withOpacity(
+      theme.brightness == Brightness.dark ? 0.25 : 0.05,
+    );
+
+    final guestName = widget.personTitle != null &&
+            widget.firstName != null &&
+            widget.lastName != null
         ? '${widget.personTitle} ${widget.firstName} ${widget.lastName}'
         : 'hotel.summary.not_specified'.tr();
 
@@ -588,7 +655,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: shadowColor,
             blurRadius: 10,
             offset: Offset(0, 2),
           ),
@@ -614,10 +681,11 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                         Container(
                           padding: EdgeInsets.all(8.w),
                           decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.1),
+                            color: cs.primary.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(10.r),
                           ),
-                          child: Icon(Icons.person, color: Colors.green, size: 22.sp),
+                          child: Icon(Icons.person,
+                              color: cs.primary, size: 22.sp),
                         ),
                         SizedBox(width: 12.w),
                         Expanded(
@@ -631,13 +699,15 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              if (!_isGuestInfoExpanded && guestName != 'hotel.summary.not_specified'.tr()) ...[
+                              if (!_isGuestInfoExpanded &&
+                                  guestName !=
+                                      'hotel.summary.not_specified'.tr()) ...[
                                 SizedBox(height: 4.h),
                                 Text(
                                   guestName,
                                   style: TextStyle(
                                     fontSize: 13.sp,
-                                    color: Colors.grey.shade600,
+                                    color: secondaryTextColor,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -650,8 +720,10 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                     ),
                   ),
                   Icon(
-                    _isGuestInfoExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                    color: Colors.grey.shade600,
+                    _isGuestInfoExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: mutedIconColor,
                     size: 24.sp,
                   ),
                 ],
@@ -659,7 +731,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
             ),
           ),
           if (_isGuestInfoExpanded) ...[
-            Divider(height: 1, color: Colors.grey.shade200, thickness: 1),
+            Divider(height: 1, color: dividerColor, thickness: 1),
             Padding(
               padding: EdgeInsets.all(18.w),
               child: Column(
@@ -668,7 +740,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                   Container(
                     padding: EdgeInsets.all(14.w),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.05),
+                      color: cs.primary.withOpacity(0.06),
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: Column(
@@ -676,14 +748,19 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.person_outline, size: 16.sp, color: Colors.blue),
+                            Icon(Icons.person_outline,
+                                size: 16.sp, color: cs.primary),
                             SizedBox(width: 8.w),
                             Text(
                               'hotel.summary.main_guest'.tr(),
                               style: TextStyle(
                                 fontSize: 13.sp,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.grey.shade700,
+                                color: cs.onSurface.withOpacity(
+                                  theme.brightness == Brightness.dark
+                                      ? 0.90
+                                      : 0.80,
+                                ),
                               ),
                             ),
                           ],
@@ -699,26 +776,35 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                       ],
                     ),
                   ),
-                  if (widget.contactName != null || widget.contactEmail != null || widget.contactPhone != null) ...[
+                  if (widget.contactName != null ||
+                      widget.contactEmail != null ||
+                      widget.contactPhone != null) ...[
                     SizedBox(height: 16.h),
                     Text(
                       'hotel.summary.contact_info'.tr(),
                       style: TextStyle(
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade700,
+                        color: cs.onSurface.withOpacity(
+                          theme.brightness == Brightness.dark ? 0.95 : 0.85,
+                        ),
                       ),
                     ),
                     SizedBox(height: 12.h),
                     if (widget.contactName != null)
-                      _buildContactRow(Icons.badge, widget.contactName!),
+                      _buildContactRow(
+                          context, Icons.badge, widget.contactName!),
                     if (widget.contactEmail != null) ...[
                       if (widget.contactName != null) SizedBox(height: 10.h),
-                      _buildContactRow(Icons.email, widget.contactEmail!),
+                      _buildContactRow(
+                          context, Icons.email, widget.contactEmail!),
                     ],
                     if (widget.contactPhone != null) ...[
-                      if (widget.contactName != null || widget.contactEmail != null) SizedBox(height: 10.h),
-                      _buildContactRow(Icons.phone, widget.contactPhone!),
+                      if (widget.contactName != null ||
+                          widget.contactEmail != null)
+                        SizedBox(height: 10.h),
+                      _buildContactRow(
+                          context, Icons.phone, widget.contactPhone!),
                     ],
                   ],
                 ],
@@ -738,6 +824,17 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
     required String mealPlan,
     required String cancellationPolicy,
   }) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final secondaryTextColor = cs.onSurface
+        .withOpacity(theme.brightness == Brightness.dark ? 0.78 : 0.65);
+    final mutedIconColor = cs.onSurface
+        .withOpacity(theme.brightness == Brightness.dark ? 0.75 : 0.6);
+    final dividerColor = theme.dividerColor.withOpacity(0.35);
+    final shadowColor = theme.shadowColor.withOpacity(
+      theme.brightness == Brightness.dark ? 0.25 : 0.05,
+    );
+
     final formattedAmount = NumberFormat.currency(
       locale: 'uz_UZ',
       symbol: currency == 'uzs' ? 'so\'m' : currency.toUpperCase(),
@@ -754,7 +851,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: shadowColor,
             blurRadius: 10,
             offset: Offset(0, 2),
           ),
@@ -780,10 +877,11 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                         Container(
                           padding: EdgeInsets.all(8.w),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
+                            color: cs.primary.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(10.r),
                           ),
-                          child: Icon(Icons.receipt_long, color: Colors.orange, size: 22.sp),
+                          child: Icon(Icons.receipt_long,
+                              color: cs.primary, size: 22.sp),
                         ),
                         SizedBox(width: 12.w),
                         Expanded(
@@ -803,7 +901,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                                   formattedAmount,
                                   style: TextStyle(
                                     fontSize: 13.sp,
-                                    color: Colors.grey.shade600,
+                                    color: secondaryTextColor,
                                     fontWeight: FontWeight.w500,
                                   ),
                                   maxLines: 1,
@@ -817,8 +915,10 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                     ),
                   ),
                   Icon(
-                    _isBookingSummaryExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                    color: Colors.grey.shade600,
+                    _isBookingSummaryExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: mutedIconColor,
                     size: 24.sp,
                   ),
                 ],
@@ -826,31 +926,35 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
             ),
           ),
           if (_isBookingSummaryExpanded) ...[
-            Divider(height: 1, color: Colors.grey.shade200, thickness: 1),
+            Divider(height: 1, color: dividerColor, thickness: 1),
             Padding(
               padding: EdgeInsets.all(18.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildInfoRowWithIcon(
+                    context,
                     Icons.bed,
                     'hotel.summary.nights'.tr(),
                     '$nights ${nights == 1 ? 'hotel.summary.night'.tr() : 'hotel.summary.nights_plural'.tr()}',
                   ),
                   SizedBox(height: 14.h),
                   _buildInfoRowWithIcon(
+                    context,
                     Icons.hotel,
                     'hotel.summary.rooms'.tr(),
-                    '1 ${'hotel.summary.rooms_plural'.tr()}',
+                    '${widget.roomCount} ${widget.roomCount == 1 ? 'hotel.summary.room'.tr() : 'hotel.summary.rooms_plural'.tr()}',
                   ),
                   SizedBox(height: 20.h),
                   Container(
                     padding: EdgeInsets.all(16.w),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.08),
+                      color: cs.primary.withOpacity(
+                          theme.brightness == Brightness.dark ? 0.12 : 0.06),
                       borderRadius: BorderRadius.circular(12.r),
                       border: Border.all(
-                        color: Colors.green.withOpacity(0.3),
+                        color: cs.primary.withOpacity(
+                            theme.brightness == Brightness.dark ? 0.35 : 0.25),
                         width: 1.5,
                       ),
                     ),
@@ -862,7 +966,9 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                           style: TextStyle(
                             fontSize: 17.sp,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade800,
+                            color: cs.onSurface.withOpacity(
+                              theme.brightness == Brightness.dark ? 0.90 : 0.80,
+                            ),
                           ),
                         ),
                         Text(
@@ -870,7 +976,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                           style: TextStyle(
                             fontSize: 20.sp,
                             fontWeight: FontWeight.bold,
-                            color: Colors.green.shade700,
+                            color: cs.primary,
                           ),
                         ),
                       ],
@@ -878,20 +984,26 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                   ),
                   SizedBox(height: 20.h),
                   _buildInfoRowWithIcon(
+                    context,
                     Icons.account_balance_wallet,
                     'hotel.summary.tourist_tax'.tr(),
                     'hotel.summary.included'.tr(),
+                    iconColor: cs.primary,
+                    valueColor: cs.primary,
+                    valueFontWeight: FontWeight.w600,
                   ),
                   SizedBox(height: 14.h),
                   _buildInfoRowWithIcon(
+                    context,
                     Icons.restaurant,
                     'hotel.summary.meal_plan'.tr(),
                     mealPlan,
                   ),
                   SizedBox(height: 14.h),
                   _buildInfoRowWithIcon(
+                    context,
                     Icons.cancel_outlined,
-                    'hotel.summary.cancellation_policy_applies'.tr(),
+                    'hotel.summary.cancellation_policy'.tr(),
                     cancellationPolicy,
                   ),
                 ],
@@ -904,6 +1016,15 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
   }
 
   Widget _buildImportantNotesCard(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final mutedIconColor = cs.onSurface
+        .withOpacity(theme.brightness == Brightness.dark ? 0.75 : 0.6);
+    final dividerColor = theme.dividerColor.withOpacity(0.35);
+    final shadowColor = theme.shadowColor.withOpacity(
+      theme.brightness == Brightness.dark ? 0.25 : 0.05,
+    );
+
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
@@ -914,7 +1035,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: shadowColor,
             blurRadius: 10,
             offset: Offset(0, 2),
           ),
@@ -940,10 +1061,11 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                         Container(
                           padding: EdgeInsets.all(8.w),
                           decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.1),
+                            color: cs.primary.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(10.r),
                           ),
-                          child: Icon(Icons.info_outline, color: Colors.amber.shade700, size: 22.sp),
+                          child: Icon(Icons.info_outline,
+                              color: cs.primary, size: 22.sp),
                         ),
                         SizedBox(width: 12.w),
                         Expanded(
@@ -959,8 +1081,10 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                     ),
                   ),
                   Icon(
-                    _isImportantNotesExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                    color: Colors.grey.shade600,
+                    _isImportantNotesExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: mutedIconColor,
                     size: 24.sp,
                   ),
                 ],
@@ -968,19 +1092,23 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
             ),
           ),
           if (_isImportantNotesExpanded) ...[
-            Divider(height: 1, color: Colors.grey.shade200, thickness: 1),
+            Divider(height: 1, color: dividerColor, thickness: 1),
             Padding(
               padding: EdgeInsets.all(18.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildNoteItem(Icons.access_time, 'hotel.summary.note_checkin_time'.tr()),
+                  _buildNoteItem(context, Icons.access_time,
+                      'hotel.summary.note_checkin_time'.tr()),
                   SizedBox(height: 14.h),
-                  _buildNoteItem(Icons.credit_card, 'hotel.summary.note_passport_required'.tr()),
+                  _buildNoteItem(context, Icons.credit_card,
+                      'hotel.summary.note_passport_required'.tr()),
                   SizedBox(height: 14.h),
-                  _buildNoteItem(Icons.cancel_presentation, 'hotel.summary.note_cancellation_policy'.tr()),
+                  _buildNoteItem(context, Icons.cancel_presentation,
+                      'hotel.summary.note_cancellation_policy'.tr()),
                   SizedBox(height: 14.h),
-                  _buildNoteItem(Icons.phone_in_talk, 'hotel.summary.note_contact_hotel'.tr()),
+                  _buildNoteItem(context, Icons.phone_in_talk,
+                      'hotel.summary.note_contact_hotel'.tr()),
                 ],
               ),
             ),
@@ -990,40 +1118,24 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Flexible(
-          flex: 2,
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade600),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        SizedBox(width: 8.w),
-        Flexible(
-          flex: 3,
-          child: Text(
-            value,
-            style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
-            textAlign: TextAlign.end,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoRowWithIcon(IconData icon, String label, String value) {
+  Widget _buildInfoRowWithIcon(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value, {
+    Color? iconColor,
+    Color? labelColor,
+    Color? valueColor,
+    FontWeight valueFontWeight = FontWeight.w500,
+  }) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final secondaryTextColor = cs.onSurface
+        .withOpacity(theme.brightness == Brightness.dark ? 0.78 : 0.65);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18.sp, color: Colors.grey.shade600),
+        Icon(icon, size: 18.sp, color: iconColor ?? secondaryTextColor),
         SizedBox(width: 12.w),
         Expanded(
           child: Row(
@@ -1034,7 +1146,10 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                 flex: 2,
                 child: Text(
                   label,
-                  style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade600),
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    color: labelColor ?? secondaryTextColor,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1046,8 +1161,8 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                   value,
                   style: TextStyle(
                     fontSize: 14.sp,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade800,
+                    fontWeight: valueFontWeight,
+                    color: valueColor ?? cs.onSurface,
                   ),
                   textAlign: TextAlign.end,
                   maxLines: 2,
@@ -1061,11 +1176,16 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
     );
   }
 
-  Widget _buildDateRow(IconData icon, String label, String date, String time) {
+  Widget _buildDateRow(BuildContext context, IconData icon, String label,
+      String date, String time) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final secondaryTextColor = cs.onSurface
+        .withOpacity(theme.brightness == Brightness.dark ? 0.78 : 0.65);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18.sp, color: Colors.blue),
+        Icon(icon, size: 18.sp, color: cs.primary),
         SizedBox(width: 12.w),
         Expanded(
           child: Column(
@@ -1075,7 +1195,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                 label,
                 style: TextStyle(
                   fontSize: 13.sp,
-                  color: Colors.grey.shade600,
+                  color: secondaryTextColor,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1085,7 +1205,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                 style: TextStyle(
                   fontSize: 15.sp,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade800,
+                  color: cs.onSurface,
                 ),
               ),
               SizedBox(height: 2.h),
@@ -1093,7 +1213,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
                 time,
                 style: TextStyle(
                   fontSize: 13.sp,
-                  color: Colors.grey.shade600,
+                  color: secondaryTextColor,
                 ),
               ),
             ],
@@ -1103,10 +1223,14 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
     );
   }
 
-  Widget _buildContactRow(IconData icon, String value) {
+  Widget _buildContactRow(BuildContext context, IconData icon, String value) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final secondaryTextColor = cs.onSurface
+        .withOpacity(theme.brightness == Brightness.dark ? 0.78 : 0.65);
     return Row(
       children: [
-        Icon(icon, size: 18.sp, color: Colors.grey.shade600),
+        Icon(icon, size: 18.sp, color: secondaryTextColor),
         SizedBox(width: 12.w),
         Expanded(
           child: Text(
@@ -1114,6 +1238,7 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
             style: TextStyle(
               fontSize: 14.sp,
               fontWeight: FontWeight.w500,
+              color: cs.onSurface,
             ),
           ),
         ),
@@ -1121,7 +1246,9 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
     );
   }
 
-  Widget _buildNoteItem(IconData icon, String text) {
+  Widget _buildNoteItem(BuildContext context, IconData icon, String text) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1129,10 +1256,10 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
           margin: EdgeInsets.only(top: 4.h, right: 12.w),
           padding: EdgeInsets.all(6.w),
           decoration: BoxDecoration(
-            color: Colors.amber.withOpacity(0.1),
+            color: cs.primary.withOpacity(0.12),
             borderRadius: BorderRadius.circular(8.r),
           ),
-          child: Icon(icon, size: 16.sp, color: Colors.amber.shade700),
+          child: Icon(icon, size: 16.sp, color: cs.primary),
         ),
         Expanded(
           child: Padding(
@@ -1142,7 +1269,9 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
               style: TextStyle(
                 fontSize: 14.sp,
                 height: 1.4,
-                color: Colors.grey.shade700,
+                color: cs.onSurface.withOpacity(
+                  theme.brightness == Brightness.dark ? 0.90 : 0.80,
+                ),
               ),
             ),
           ),
@@ -1150,7 +1279,6 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
       ],
     );
   }
-
 
   void _proceedToPayment(BuildContext context) {
     if (widget.quoteId == null) {
@@ -1161,77 +1289,76 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
       return;
     }
 
+    if (widget.selectedOption == null) {
+      SnackbarHelper.showError(context, 'hotel.booking.option_not_found'.tr());
+      return;
+    }
+
+    if (widget.personTitle == null ||
+        widget.firstName == null ||
+        widget.lastName == null ||
+        widget.nationality == null) {
+      SnackbarHelper.showError(
+        context,
+        'hotel.guest_details.fill_all_fields'.tr(),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
-    // To'g'ridan-to'g'ri invoice yaratish va multicardga o'tish (booking yaratmasdan)
-    _createInvoiceAndLaunchDirectly();
-  }
+    final option = widget.selectedOption!;
+    final basePrice = option.price ?? widget.hotel.price ?? 0.0;
 
-  /// Create invoice directly without creating booking first
-  Future<void> _createInvoiceAndLaunchDirectly() async {
-    // Narxni selectedOption yoki hotel price'dan olish
-    final totalAmount = widget.selectedOption?.price ?? widget.hotel.price ?? 0.0;
-    
-    if (totalAmount <= 0) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        SnackbarHelper.showError(
-          context,
-          'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.',
-        );
-      }
+    if (basePrice <= 0) {
+      setState(() => _isLoading = false);
+      SnackbarHelper.showError(
+        context,
+        'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.',
+      );
       return;
     }
 
-    // API eng kichik birlikda amount kutadi (masalan, 500000)
-    // UZS uchun: 5000 UZS = 500000 (100 ga ko'paytiriladi)
-    // Boshqa valyutalar uchun ham 100 ga ko'paytiriladi (cents uchun)
-    // Narxga API'dan kelgan chegirma allaqachon qo'llangan, shuning uchun qo'shimcha komissiya qo'shmaslik
-    final amount = (totalAmount * 100).toInt();
-
-    // Amount musbat bo'lishi kerak (backend talabi)
-    if (amount <= 0) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        SnackbarHelper.showError(
-          context,
-          'Narx mavjud emas. Iltimos, keyinroq qayta urinib ko\'ring.',
-        );
-      }
-      return;
-    }
-
-    // Invoice ID formatini Postman collection bo'yicha yaratish
+    // external_id: internal unique booking id
     final random = DateTime.now().millisecondsSinceEpoch % 10000000;
-    final invoiceId = 'hotel${random.toString().padLeft(7, '0')}';
+    final externalId = 'hotel${random.toString().padLeft(7, '0')}';
 
-    if (!mounted || _paymentBloc.isClosed) {
-      return;
-    }
-
-    final request = InvoiceRequestModel(
-      amount: amount,
-      invoiceId: invoiceId,
-      lang: context.locale.languageCode,
-      returnUrl: 'https://kliro.uz',
-      callbackUrl: 'https://api.kliro.uz/payment/callback/success',
+    final guest = BookingGuest(
+      personTitle: widget.personTitle!,
+      firstName: widget.firstName!,
+      lastName: widget.lastName!,
+      nationality: widget.nationality!,
     );
 
-    _paymentBloc.add(CreateInvoiceRequested(request));
+    final roomsCount = widget.roomCount > 0 ? widget.roomCount : 1;
+    final bookingRooms = List.generate(
+      roomsCount,
+      (_) => BookingRoom(
+        optionRefId: option.optionRefId,
+        guests: [guest],
+        price: basePrice,
+      ),
+    );
+
+    final request = CreateHotelBookingRequest(
+      quoteId: widget.quoteId!,
+      externalId: externalId,
+      bookingRooms: bookingRooms,
+      comment: widget.comment,
+    );
+
+    context.read<HotelBloc>().add(CreateBookingRequested(request));
   }
 
   /// Create invoice and launch payment URL (similar to avia)
   /// This method is used when booking is already created
   Future<void> _createInvoiceAndLaunch(HotelBooking booking) async {
     // Narxni booking model'dan olish
-    final totalAmount = booking.totalAmount ?? 
-                       widget.selectedOption?.price ?? 
-                       widget.hotel.price ?? 0.0;
-    
+    final totalAmount = booking.totalAmount ??
+        widget.selectedOption?.price ??
+        widget.hotel.price ??
+        0.0;
+
     if (totalAmount <= 0) {
       if (mounted) {
         setState(() {
@@ -1277,8 +1404,8 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
       amount: amount,
       invoiceId: invoiceId,
       lang: context.locale.languageCode,
-      returnUrl: 'https://kliro.uz',
-      callbackUrl: 'https://api.kliro.uz/payment/callback/success',
+      returnUrl: ApiPaths.paymentReturnUrl,
+      callbackUrl: ApiPaths.paymentCallbackSuccessUrl,
     );
 
     _paymentBloc.add(CreateInvoiceRequested(request));
@@ -1376,22 +1503,21 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
   void _confirmBooking(String bookingId) {
     // Invoice UUID ni transactionId sifatida ishlatish (avia kabi)
     // Agar invoice UUID bo'lmasa, fallback ID yaratish
-    final transactionId = _currentInvoiceUuid ?? 
+    final transactionId = _currentInvoiceUuid ??
         'hotel${DateTime.now().millisecondsSinceEpoch % 10000000}';
-    
+
     final paymentInfo = PaymentInfo(
       paymentMethod: 'multicard', // Multicard to'lov tizimi (avia kabi)
       transactionId: transactionId,
     );
 
     context.read<HotelBloc>().add(
-      ConfirmBookingRequested(
-        bookingId: bookingId,
-        paymentInfo: paymentInfo,
-      ),
-    );
+          ConfirmBookingRequested(
+            bookingId: bookingId,
+            paymentInfo: paymentInfo,
+          ),
+        );
   }
-
 
   /// Show error dialog with retry option for booking failures
   void _showBookingErrorDialog(BuildContext context, String message) {
@@ -1420,4 +1546,3 @@ class _HotelBookingSummaryPageState extends State<HotelBookingSummaryPage> with 
     );
   }
 }
-

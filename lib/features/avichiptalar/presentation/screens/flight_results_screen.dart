@@ -114,7 +114,10 @@ class FlightResultsScreen extends StatelessWidget {
               // Get passenger counts from search request
               final adults = searchRequest?.adults ?? 1;
               final childrenCount = searchRequest?.children ?? 0;
-              final babies = searchRequest?.infants ?? 0;
+              final infants = searchRequest?.infants ?? 0;
+              final infantsWithSeat = searchRequest?.infantsWithSeat ?? 0;
+              // For backward compatibility, combine infants
+              final babies = infants + infantsWithSeat;
 
               // Navigate to confirmation page
               context.router.push(
@@ -321,23 +324,30 @@ class _FlightAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     if (searchRequest != null && searchRequest!.directions.isNotEmpty) {
       final first = searchRequest!.directions.first;
-      // Route: Toshkent в‡„ Dubay
+      // Route: Toshkent ↔ Dubay or → for one-way
       if (searchRequest!.directions.length > 1) {
-        title = '${first.departureAirport} в‡„ ${first.arrivalAirport}';
+        title = '${first.departureAirport} ↔ ${first.arrivalAirport}';
       } else {
-        title = '${first.departureAirport} в†’ ${first.arrivalAirport}';
+        title = '${first.departureAirport} → ${first.arrivalAirport}';
       }
 
-      // Subtitle: Date вЂў Passengers вЂў Class
+      // Subtitle: Date • Passengers • Class
       final date = _formatDate(first.date);
       final passengers = searchRequest!.adults +
           searchRequest!.children +
           searchRequest!.infants;
-      final cabin = searchRequest!.serviceClass;
+      final rawCabin = (searchRequest!.serviceClass ?? '').trim().toLowerCase();
+      final cabin = ['economy', 'eco', 'y', 'e'].contains(rawCabin)
+          ? 'avia.filter.service_economy'.tr()
+          : ['business', 'biz', 'j', 'c'].contains(rawCabin)
+              ? 'avia.filter.service_business'.tr()
+              : ['first', 'f'].contains(rawCabin)
+                  ? 'avia.filter.service_first'.tr()
+                  : (searchRequest!.serviceClass ?? '');
       // Localization for cabin can be added if needed, e.g. 'avia.class.$cabin'.tr()
 
       subtitle =
-          '$date вЂў $passengers ${'avia.search.passengers'.tr()} вЂў $cabin';
+          '$date • $passengers ${'avia.search.passengers'.tr()} • $cabin';
     }
 
     return AppBar(
@@ -358,6 +368,8 @@ class _FlightAppBar extends StatelessWidget implements PreferredSizeWidget {
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           if (subtitle.isNotEmpty)
             Text(
@@ -367,6 +379,8 @@ class _FlightAppBar extends StatelessWidget implements PreferredSizeWidget {
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w500,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
         ],
       ),
@@ -1553,7 +1567,7 @@ class _TicketCardContentState extends State<_TicketCardContent> {
         ),
         SizedBox(width: 12.w),
         TapBubbleTooltip(
-          message: "Р‘Р°РіР°Р¶ РѕТ“РёСЂР»РёРіРё вЂ“ $bagKg РєРі.",
+          message: "${'avia.results.baggage'.tr()}: $bagKg kg",
           child: _buildActionIcon(
             icon: Icons.luggage_outlined,
             label: '$bagKg',
@@ -1564,7 +1578,7 @@ class _TicketCardContentState extends State<_TicketCardContent> {
         ),
         SizedBox(width: 12.w),
         TapBubbleTooltip(
-          message: "Р‘РёР»РµС‚ Р°Р»РјР°С€С‚РёСЂРёС€: $exchangeText",
+          message: "${'avia.results.ticket_exchange'.tr()}: $exchangeText",
           child: _buildActionIcon(
             icon: Icons.swap_horiz_rounded,
             isDark: isDark,
@@ -1573,7 +1587,7 @@ class _TicketCardContentState extends State<_TicketCardContent> {
         ),
         SizedBox(width: 12.w),
         TapBubbleTooltip(
-          message: "Р‘РёР»РµС‚ Т›Р°Р№С‚Р°СЂРёС€: $refundText",
+          message: "${'avia.filter.return_change'.tr()}: $refundText",
           child: _buildActionIcon(
             icon: Icons.close_rounded,
             isDark: isDark,
@@ -1644,7 +1658,7 @@ class _TicketCardContentState extends State<_TicketCardContent> {
   }
 
   String _formatDurationReadable(String duration) {
-    // Supports strings like: "2 h 35 m", "2h 35m", "2С‡ 35Рј"
+    // Supports strings like: "2 h 35 m", "2h 35m"
     final nums = RegExp(r'\d+')
         .allMatches(duration)
         .map((m) => int.parse(m.group(0)!))
@@ -1652,9 +1666,10 @@ class _TicketCardContentState extends State<_TicketCardContent> {
     if (nums.isEmpty) return duration;
     final h = nums.isNotEmpty ? nums[0] : 0;
     final m = nums.length > 1 ? nums[1] : 0;
-    if (h > 0 && m > 0) return '$h СЃРѕР°С‚ $m РґР°Т›';
-    if (h > 0) return '$h СЃРѕР°С‚';
-    if (m > 0) return '$m РґР°Т›';
+    // Use ASCII units to avoid mojibake; label is prefixed elsewhere with a localized key
+    if (h > 0 && m > 0) return '$h h $m m';
+    if (h > 0) return '$h h';
+    if (m > 0) return '$m m';
     return duration;
   }
 
@@ -1663,10 +1678,10 @@ class _TicketCardContentState extends State<_TicketCardContent> {
     if (raw.isEmpty) return '';
     final normalized = raw.toLowerCase();
     if (['economy', 'eco', 'y', 'e'].contains(normalized))
-      return 'Р­РєРѕРЅРѕРј';
+      return 'avia.filter.service_economy'.tr();
     if (['business', 'biz', 'j', 'c'].contains(normalized))
-      return 'Р‘РёР·РЅРµСЃ';
-    if (['first', 'f'].contains(normalized)) return 'First';
+      return 'avia.filter.service_business'.tr();
+    if (['first', 'f'].contains(normalized)) return 'avia.filter.service_first'.tr();
     return raw;
   }
 
@@ -2173,7 +2188,7 @@ class _TicketCardContentState extends State<_TicketCardContent> {
     // Prefer cabin class from segments; selected fare name can be confusing/duplicated.
     final cabin = cabinFallback.isNotEmpty ? cabinFallback : selectedFareName;
     if (cabin.trim().isNotEmpty) metaParts.add(cabin.trim());
-    final metaLine = metaParts.join(' вЂў ');
+    final metaLine = metaParts.join(' • ');
 
     return Container(
       margin:
@@ -2345,7 +2360,8 @@ class _TicketCardContentState extends State<_TicketCardContent> {
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.2,
                 ),
-                maxLines: 1,
+                maxLines: 2,
+                softWrap: true,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
@@ -2592,13 +2608,9 @@ class _TicketCardContentState extends State<_TicketCardContent> {
                 subtitleColor: subtitleColor,
               ),
             ],
-            // Give space between expanded details (incl. tariff cards) and the selected tariff row.
-            if (renderExpandedDetails &&
-                _isExpanded &&
-                renderBottomControls &&
-                (!isWrapped || isFirst))
+            // Space above bottom controls to avoid sticking to the route chips (e.g., "Direct")
+            if (renderBottomControls && (!isWrapped || isFirst)) ...[
               SizedBox(height: AppSpacing.md),
-            if (renderBottomControls && (!isWrapped || isFirst))
               _buildBottomControls(
                 context: context,
                 isDark: isDark,
@@ -2606,6 +2618,7 @@ class _TicketCardContentState extends State<_TicketCardContent> {
                 offer: offer,
                 onTap: onTap,
               ),
+            ],
           ],
         ),
       ),
@@ -3004,14 +3017,15 @@ class _TicketCardContentState extends State<_TicketCardContent> {
                             ? ''
                             : '${_formatPrice(price)} ${currency.isEmpty ? 'avia.results.sum'.tr() : currency}',
                         handText: hand == null
-                            ? '${'avia.results.hand_luggage'.tr()}: вЂ" ${'avia.results.sum'.tr()}'
+                            ? '${'avia.results.hand_luggage'.tr()}: — ${'avia.results.sum'.tr()}'
                             : '${'avia.results.hand_luggage'.tr()}: $hand ${'avia.results.sum'.tr()}',
                         bagText: bag == null
-                            ? '${'avia.results.baggage'.tr()}: вЂ" ${'avia.results.sum'.tr()}'
+                            ? '${'avia.results.baggage'.tr()}: — ${'avia.results.sum'.tr()}'
                             : '${'avia.results.baggage'.tr()}: $bag ${'avia.results.sum'.tr()}',
                         exchangeText:
                             '${'avia.results.ticket_exchange'.tr()}: $ex',
-                        refundText: 'Р‘РёР»РµС‚ Т›Р°Р№С‚Р°СЂРёС€: $rf',
+                        refundText:
+                            '${'avia.results.ticket_refund'.tr()}: $rf',
                         details: details,
                       );
                     },
@@ -3093,7 +3107,8 @@ class _TicketCardContentState extends State<_TicketCardContent> {
                               SizedBox(height: 3.h),
                               _tariffLine(
                                 icon: Icons.luggage_outlined,
-                                text: 'Р‘Р°РіР°Р¶: $bag РєРі',
+                                text:
+                                    "${'avia.results.baggage'.tr()}: $bag ${'avia.results.kg'.tr()}",
                                 color: subtitleColor,
                                 maxLines: 1,
                               ),
@@ -3101,14 +3116,16 @@ class _TicketCardContentState extends State<_TicketCardContent> {
                             SizedBox(height: 3.h),
                             _tariffLine(
                               icon: Icons.swap_horiz_rounded,
-                              text: 'Р‘РёР»РµС‚ Р°Р»РјР°С€С‚РёСЂРёС€: $ex',
+                              text:
+                                  "${'avia.results.ticket_exchange'.tr()}: $ex",
                               color: subtitleColor,
                               maxLines: 1,
                             ),
                             SizedBox(height: 3.h),
                             _tariffLine(
                               icon: Icons.close_rounded,
-                              text: 'Р‘РёР»РµС‚ Т›Р°Р№С‚Р°СЂРёС€: $rf',
+                              text:
+                                  "${'avia.filter.return_change'.tr()}: $rf",
                               color: subtitleColor,
                               maxLines: 1,
                             ),
@@ -3194,7 +3211,7 @@ class _TicketCardContentState extends State<_TicketCardContent> {
       children: [
         if (_formatTime(segment.departureTime) != '--:--') ...[
           Text(
-            "${'avia.results.departure_local_time'.tr()}\n${_formatTime(segment.departureTime)} вЂў ${_formatDateOnlyForCard(segment.departureTime)}",
+            "${'avia.results.departure_local_time'.tr()}\n${_formatTime(segment.departureTime)} • ${_formatDateOnlyForCard(segment.departureTime)}",
             style: TextStyle(
               fontSize: 12.sp,
               color: subtitleColor,
@@ -3213,7 +3230,7 @@ class _TicketCardContentState extends State<_TicketCardContent> {
               if ((segment.aircraft ?? '').trim().isNotEmpty)
                 (segment.aircraft ?? '').trim(),
               cabin,
-            ].where((e) => e.trim().isNotEmpty).join(' вЂў '),
+            ].where((e) => e.trim().isNotEmpty).join(' • '),
             style: TextStyle(
               fontSize: 11.sp,
               fontWeight: FontWeight.w500,
@@ -3350,7 +3367,7 @@ class _TicketCardContentState extends State<_TicketCardContent> {
         SizedBox(height: 12.h),
         if (_formatTime(segment.arrivalTime) != '--:--')
           Text(
-            "Р•С‚РёР± РєРµР»РёС€ (РјР°ТіР°Р»Р»РёР№ РІР°Т›С‚)\n${_formatTime(segment.arrivalTime)} вЂў ${_formatDateOnlyForCard(segment.arrivalTime)}\nР™СћР»РґР°: ${_formatDurationReadable(duration)}",
+            "${'avia.results.arrival'.tr()}\n${_formatTime(segment.arrivalTime)} • ${_formatDateOnlyForCard(segment.arrivalTime)}\n${'avia.results.duration'.tr()}: ${_formatDurationReadable(duration)}",
             style: TextStyle(
               fontSize: 12.sp,
               color: subtitleColor,
@@ -3666,13 +3683,10 @@ class _TicketCardContentState extends State<_TicketCardContent> {
     );
   }
 
-  // Narxni formatlash funksiyasi (milyonlar uchun bo'shliq qo'shish) + 10% komissiya
+  // Narxni formatlash funksiyasi (faqat formatlash, komissiya qo'shmaydi)
   String _formatPrice(String price) {
-    // Return formatted price with 10% markup
     final v = FlightUtils.parsePriceValue(price);
     if (v == null) return FlightUtils.formatPriceHuman(price);
-    // Add 10% commission
-    final withCommission = v * 1.10;
-    return FlightUtils.formatPriceHuman(withCommission.toString());
+    return FlightUtils.formatPriceHuman(v.toString());
   }
 }

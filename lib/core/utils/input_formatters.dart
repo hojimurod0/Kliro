@@ -103,6 +103,68 @@ class PhoneFormatter extends TextInputFormatter {
   }
 }
 
+/// Uzbekistan phone formatter (spaces only):
+/// 998940090356 -> +998 94 009 03 56
+/// Limits to 12 digits (998 + 9 digits).
+class UzPhoneSpaceFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digits.isEmpty) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
+
+    // If user types local 9 digits without 998, prepend it for display.
+    String normalizedDigits = digits;
+    if (!normalizedDigits.startsWith('998') && normalizedDigits.length <= 9) {
+      normalizedDigits = '998$normalizedDigits';
+    }
+
+    // Limit to 12 digits maximum (998 + 9 digits)
+    final limited =
+        normalizedDigits.length > 12 ? normalizedDigits.substring(0, 12) : normalizedDigits;
+
+    String formatted = '+';
+
+    // country code (998)
+    if (limited.isNotEmpty) {
+      formatted += limited.substring(0, limited.length > 3 ? 3 : limited.length);
+    }
+
+    // operator (94)
+    if (limited.length > 3) {
+      formatted += ' ${limited.substring(3, limited.length > 5 ? 5 : limited.length)}';
+    }
+
+    // part 1 (009)
+    if (limited.length > 5) {
+      formatted += ' ${limited.substring(5, limited.length > 8 ? 8 : limited.length)}';
+    }
+
+    // part 2 (03)
+    if (limited.length > 8) {
+      formatted += ' ${limited.substring(8, limited.length > 10 ? 10 : limited.length)}';
+    }
+
+    // part 3 (56)
+    if (limited.length > 10) {
+      formatted += ' ${limited.substring(10, limited.length > 12 ? 12 : limited.length)}';
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
 /// Date formatter: 16122000 -> 16/12/2000
 class DateFormatter extends TextInputFormatter {
   @override

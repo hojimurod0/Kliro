@@ -58,6 +58,17 @@
                     android:host="api.kliro.uz"
                     android:pathPrefix="/auth/google/callback" />
             </intent-filter>
+            <!-- Payment callback deep link - App Links -->
+            <!-- Note: Domain verification requires https://api.kliro.uz/.well-known/assetlinks.json -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="api.kliro.uz"
+                    android:pathPrefix="/payment/callback" />
+            </intent-filter>
             <!-- App scheme deep link -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

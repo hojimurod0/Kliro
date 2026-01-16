@@ -3,10 +3,15 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/utils/snackbar_helper.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/navigation/app_router.dart';
 import '../bloc/avia_bloc.dart';
+import '../bloc/avia_orders_cubit.dart';
+import '../../data/datasources/avia_orders_local_data_source.dart';
+import '../../domain/repositories/avichiptalar_repository.dart';
 import '../../data/models/login_request_model.dart';
 
 @RoutePage(name: 'AviaMyOrdersRoute')
@@ -19,6 +24,7 @@ class AviaMyOrdersPage extends StatefulWidget {
 
 class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
   late AviaBloc _aviaBloc;
+  late AviaOrdersCubit _ordersCubit;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _scheduleFromController = TextEditingController();
@@ -36,7 +42,12 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
   void initState() {
     super.initState();
     _aviaBloc = ServiceLocator.resolve<AviaBloc>();
-    _loadOrders();
+    final prefs = ServiceLocator.resolve<SharedPreferences>();
+    final local = AviaOrdersLocalDataSource(prefs);
+    _ordersCubit = AviaOrdersCubit(
+      repository: ServiceLocator.resolve<AvichiptalarRepository>(),
+      local: local,
+    )..load();
   }
 
   @override
@@ -47,14 +58,206 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
     _scheduleToController.dispose();
     _scheduleAirportController.dispose();
     _aviaBloc.close();
+    _ordersCubit.close();
     super.dispose();
   }
 
-  void _loadOrders() {
-    // API da ro'yxatni olish metodi hozircha yo'q, lekin biz booking info orqali olishimiz mumkin
-    // Yoki vaqtincha local storage dan o'qish mumkin.
-    // Hozirgi API da faqat bitta booking olish bor (getBooking).
-    // Shuning uchun bu yerda faqat UI skeletini qilaman, keyinroq API ga bog'laymiz.
+  void _openOrder(AviaOrderItem item) {
+    final bookingId = item.ref.bookingId;
+    final status = (item.booking?.status ?? 'pending').toString();
+    context.router.push(StatusRoute(bookingId: bookingId, status: status));
+  }
+
+  Widget _buildOrdersSection(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return BlocBuilder<AviaOrdersCubit, AviaOrdersState>(
+      bloc: _ordersCubit,
+      builder: (context, state) {
+        if (state is AviaOrdersLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (state is AviaOrdersFailure) {
+          return Card(
+            color: theme.cardColor,
+            child: Padding(
+              padding: EdgeInsets.all(16.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    state.message,
+                    style: TextStyle(
+                      color: theme.colorScheme.error,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 12.h),
+                  ElevatedButton(
+                    onPressed: () => _ordersCubit.load(),
+                    child: const Text('Qayta yuklash'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final items =
+            state is AviaOrdersLoaded ? state.items : const <AviaOrderItem>[];
+
+        if (items.isEmpty) {
+          return Card(
+            color: theme.cardColor,
+            child: Padding(
+              padding: EdgeInsets.all(24.w),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.airplane_ticket_outlined,
+                    size: 64.sp,
+                    color: theme.iconTheme.color?.withOpacity(0.6) ??
+                        AppColors.grayText,
+                  ),
+                  SizedBox(height: 16.h),
+                  Text(
+                    'avia.orders.empty_title'.tr(),
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w600,
+                      color: theme.textTheme.bodyLarge?.color?.withOpacity(0.7) ??
+                          AppColors.grayText,
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    'avia.orders.empty_subtitle'.tr(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6) ??
+                          AppColors.grayText,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Card(
+          color: theme.cardColor,
+          child: Padding(
+            padding: EdgeInsets.all(12.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Mening buyurtmalarim',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                          color: theme.textTheme.titleLarge?.color,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Yangilash',
+                      onPressed: () => _ordersCubit.load(),
+                      icon: const Icon(Icons.refresh),
+                    ),
+                    PopupMenuButton<String>(
+                      onSelected: (v) async {
+                        if (v == 'clear') {
+                          await _ordersCubit.clear();
+                        }
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(value: 'clear', child: Text('Tozalash')),
+                      ],
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8.h),
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => SizedBox(height: 8.h),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    final b = item.booking;
+                    final status = (b?.status ?? '...').toString();
+                    final price = b?.price;
+                    final currency = b?.currency;
+
+                    final subtitle = item.error != null
+                        ? 'Xatolik: ${item.error}'
+                        : [
+                            'Status: $status',
+                            if (price != null && price.isNotEmpty)
+                              'Narx: $price ${currency ?? ''}'.trim(),
+                          ].join(' • ');
+
+                    final Color statusColor;
+                    final s = status.toLowerCase();
+                    if (['paid', 'success', 'confirmed', 'ticketed'].contains(s)) {
+                      statusColor = Colors.green;
+                    } else if (['failed', 'canceled', 'cancelled'].contains(s)) {
+                      statusColor = theme.colorScheme.error;
+                    } else {
+                      statusColor =
+                          isDark ? AppColors.grayText : AppColors.bodyText;
+                    }
+
+                    return ListTile(
+                      onTap: () => _openOrder(item),
+                      title: Text(
+                        item.ref.bookingId,
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w700,
+                          color: theme.textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      subtitle: Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: statusColor.withOpacity(0.9),
+                        ),
+                      ),
+                      trailing: PopupMenuButton<String>(
+                        onSelected: (v) async {
+                          if (v == 'open') {
+                            _openOrder(item);
+                          } else if (v == 'remove') {
+                            await _ordersCubit.remove(item.ref.bookingId);
+                          }
+                        },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(value: 'open', child: Text('Ochish')),
+                          PopupMenuItem(
+                            value: 'remove',
+                            child: Text('Ro\'yxatdan olib tashlash'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _handleLogin() {
@@ -148,8 +351,11 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
         backgroundColor: theme.appBarTheme.backgroundColor,
         foregroundColor: theme.appBarTheme.foregroundColor,
       ),
-      body: BlocProvider.value(
-        value: _aviaBloc,
+      body: MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: _aviaBloc),
+          BlocProvider.value(value: _ordersCubit),
+        ],
         child: MultiBlocListener(
           listeners: [
             BlocListener<AviaBloc, AviaState>(
@@ -265,6 +471,9 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Real orders list (local + fetch booking details)
+                    _buildOrdersSection(context),
+                    SizedBox(height: 16.h),
                     // Login Section
                     Card(
                       color: theme.cardColor,
@@ -568,44 +777,6 @@ class _AviaMyOrdersPageState extends State<AviaMyOrdersPage> {
                                       ),
                                     )
                                   : Text('avia.orders.health_check'.tr()),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 16.h),
-                    // Orders Section
-                    Card(
-                      color: theme.cardColor,
-                      child: Padding(
-                        padding: EdgeInsets.all(24.w),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.airplane_ticket_outlined,
-                              size: 64.sp,
-                              color: theme.iconTheme.color?.withOpacity(0.6) ??
-                                  AppColors.grayText,
-                            ),
-                            SizedBox(height: 16.h),
-                            Text(
-                              'avia.orders.empty_title'.tr(),
-                              style: TextStyle(
-                                fontSize: 18.sp,
-                                fontWeight: FontWeight.w600,
-                                color: theme.textTheme.bodyLarge?.color?.withOpacity(0.7) ??
-                                    AppColors.grayText,
-                              ),
-                            ),
-                            SizedBox(height: 8.h),
-                            Text(
-                              'avia.orders.empty_subtitle'.tr(),
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6) ??
-                                    AppColors.grayText,
-                              ),
                             ),
                           ],
                         ),

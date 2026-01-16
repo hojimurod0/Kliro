@@ -30,7 +30,12 @@ class OnboardingSlide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryTextColor =
+        (textTheme.bodyMedium?.color ?? (isDark ? Colors.white : Colors.black))
+            .withOpacity(0.75);
 
     return Column(
       children: [
@@ -53,14 +58,16 @@ class OnboardingSlide extends StatelessWidget {
             width: double.infinity,
             padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: theme.colorScheme.surface,
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(36.r),
                 topRight: Radius.circular(36.r),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black12,
+                  color: isDark
+                      ? Colors.black.withOpacity(0.35)
+                      : Colors.black12,
                   blurRadius: 16.r,
                   offset: Offset(0, -4.h),
                 ),
@@ -80,7 +87,6 @@ class OnboardingSlide extends StatelessWidget {
                         style: textTheme.titleLarge?.copyWith(
                           fontSize: 22.sp,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF1C1C1E),
                         ),
                       ),
                       SizedBox(height: 10.h),
@@ -89,7 +95,7 @@ class OnboardingSlide extends StatelessWidget {
                         style: textTheme.bodyMedium?.copyWith(
                           fontSize: 14.sp,
                           height: 1.45,
-                          color: const Color(0xFF6B6B6B),
+                          color: secondaryTextColor,
                         ),
                       ),
                     ],
@@ -122,7 +128,7 @@ class OnboardingSlide extends StatelessWidget {
                     "Skip",
                     style: TextStyle(
                       fontSize: 14.sp,
-                      color: const Color(0xFF6F7783),
+                      color: theme.colorScheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -149,6 +155,8 @@ class _SlideDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final inactive = theme.dividerColor.withOpacity(0.55);
     return Row(
       children: List.generate(count, (i) {
         final isActive = i == activeIndex;
@@ -158,7 +166,7 @@ class _SlideDots extends StatelessWidget {
           height: 8.h,
           width: isActive ? 22.w : 10.w,
           decoration: BoxDecoration(
-            color: isActive ? accentColor : const Color(0xFFD9E0EA),
+            color: isActive ? accentColor : inactive,
             borderRadius: BorderRadius.circular(999),
           ),
         );
@@ -180,7 +188,9 @@ class _ProgressArrowButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final size = 62.r;
+    final ringBg = theme.dividerColor.withOpacity(0.6);
 
     return GestureDetector(
       onTap: onTap,
@@ -192,19 +202,23 @@ class _ProgressArrowButton extends StatelessWidget {
           children: [
             CustomPaint(
               size: Size(size, size),
-              painter: _RingPainter(progress: progress, accent: accent),
+              painter: _RingPainter(
+                progress: progress,
+                accent: accent,
+                bg: ringBg,
+              ),
             ),
             Container(
               width: 48.r,
               height: 48.r,
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.chevron_right,
                 size: 26.sp,
-                color: Colors.black,
+                color: theme.colorScheme.onSurface,
               ),
             ),
           ],
@@ -215,10 +229,15 @@ class _ProgressArrowButton extends StatelessWidget {
 }
 
 class _RingPainter extends CustomPainter {
-  const _RingPainter({required this.progress, required this.accent});
+  const _RingPainter({
+    required this.progress,
+    required this.accent,
+    required this.bg,
+  });
 
   final double progress;
   final Color accent;
+  final Color bg;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -227,7 +246,7 @@ class _RingPainter extends CustomPainter {
     final radius = (size.shortestSide - stroke) / 2;
 
     final bg = Paint()
-      ..color = const Color(0xFFE4E8F0)
+      ..color = this.bg
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke;
 
@@ -253,6 +272,6 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _RingPainter oldDelegate) {
-    return oldDelegate.progress != progress;
+    return oldDelegate.progress != progress || oldDelegate.bg != bg;
   }
 }

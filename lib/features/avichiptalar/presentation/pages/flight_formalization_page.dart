@@ -20,6 +20,8 @@ import '../../../../core/utils/input_formatters.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../core/utils/snackbar_helper.dart';
 import '../../../../core/services/auth/auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../data/datasources/avia_orders_local_data_source.dart';
 
 @RoutePage(name: 'FlightFormalizationRoute')
 class FlightFormalizationPage extends StatefulWidget
@@ -96,6 +98,18 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
   bool _isValidUzPhone(String raw) {
     final digitsOnly = raw.replaceAll(RegExp(r'[^0-9]'), '');
     return digitsOnly.length == 12 && digitsOnly.startsWith('998');
+  }
+
+  Future<void> _saveOrderId(String bookingId) async {
+    try {
+      final id = bookingId.trim();
+      if (id.isEmpty) return;
+      final prefs = ServiceLocator.resolve<SharedPreferences>();
+      final local = AviaOrdersLocalDataSource(prefs);
+      await local.addOrder(id);
+    } catch (_) {
+      // ignore - local caching should not break UX
+    }
   }
 
   String _normalizePhoneForApi(String raw) {
@@ -269,10 +283,10 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
       _passengers.add(PassengerData(passengerType: 'baby', gender: 'Erkak'));
     }
 
-    // Initialize save preference to true (default) for each passenger
+    // Initialize save preference to false (default) for each passenger
     _savePassengerInfo.clear();
     for (int i = 0; i < _passengers.length; i++) {
-      _savePassengerInfo.add(true);
+      _savePassengerInfo.add(false);
     }
   }
 
@@ -421,50 +435,22 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
     }
   }
 
-  // Рассчитать цену для конкретного пассажира пропорционально
-  // widget.totalPrice уже включает оба рейса (borib-kelish) и рассчитана для всех пассажиров
+  // Рассчитать цену для конкретного пассажира
+  // API dan kelgan narx barcha yo'lovchilar uchun hisoblangan
+  // Har bir yo'lovchi uchun teng taqsimlaymiz (API narxlarini ishlatamiz)
   double _getPassengerPrice(String passengerType) {
     final totalPrice = _getTotalPriceValue();
     if (totalPrice == 0) return 0;
 
-    // Рассчитываем коэффициенты для каждого типа пассажира
-    double adultCoeff = 1.0;
-    double childCoeff = 0.75; // 75% от цены взрослого
-    double babyCoeff = 0.1; // 10% от цены взрослого
+    // API dan kelgan narx barcha yo'lovchilar uchun hisoblangan
+    // Har bir yo'lovchi uchun teng taqsimlaymiz
+    // API narxlarini to'g'ridan-to'g'ri ishlatamiz, hardcoded coefficients emas
+    final totalPassengers = _passengers.length;
+    if (totalPassengers == 0) return 0;
 
-    // Считаем общий коэффициент для всех пассажиров
-    double totalCoeff = 0;
-    for (var passenger in _passengers) {
-      switch (passenger.passengerType) {
-        case 'adult':
-          totalCoeff += adultCoeff;
-          break;
-        case 'child':
-          totalCoeff += childCoeff;
-          break;
-        case 'baby':
-          totalCoeff += babyCoeff;
-          break;
-      }
-    }
-
-    if (totalCoeff == 0) return 0;
-
-    // Базовая цена за одного взрослого (рассчитываем обратно из общей суммы)
-    // totalPrice уже рассчитана в flight_confirmation_page с учетом всех пассажиров и обоих рейсов
-    final basePrice = totalPrice / totalCoeff;
-
-    // Цена для конкретного типа пассажира
-    switch (passengerType) {
-      case 'adult':
-        return basePrice * adultCoeff;
-      case 'child':
-        return basePrice * childCoeff;
-      case 'baby':
-        return basePrice * babyCoeff;
-      default:
-        return basePrice;
-    }
+    // Har bir yo'lovchi uchun teng taqsimlash
+    // API dan kelgan narx allaqachon barcha yo'lovchilar uchun hisoblangan
+    return totalPrice / totalPassengers;
   }
 
   // Форматировать цену
@@ -719,8 +705,7 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                           keyboardType: TextInputType.emailAddress,
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
-                              // Email bo'sh bo'lishi mumkin, agar telefon to'ldirilgan bo'lsa
-                              return null;
+                              return "Email kiritish majburiy";
                             }
                             final emailRegex = RegExp(
                                 r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
@@ -877,48 +862,43 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                                         return;
                                       }
 
-                                      // Telefon raqamini tozalash va tekshirish
+                                      // Email majburiy + format validatsiyasi
+                                      if (customerEmail.isEmpty) {
+                                        SnackbarHelper.showWarning(
+                                          context,
+                                          'Iltimos, email kiriting',
+                                        );
+                                        return;
+                                      }
+
+                                      final emailRegex = RegExp(
+                                          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                                      if (!emailRegex.hasMatch(customerEmail)) {
+                                        SnackbarHelper.showWarning(
+                                          context,
+                                          "Email noto'g'ri formatda. Misol: example@email.com",
+                                        );
+                                        return;
+                                      }
+
+                                      // Telefon ixtiyoriy: faqat to'ldirilgan bo'lsa tekshiramiz
                                       final phoneDigits = customerPhone
                                           .replaceAll(RegExp(r'[^0-9]'), '');
-                                      // Agar telefon faqat "998" (default prefix) yoki bo'sh bo'lsa, uni bo'sh deb hisoblash
                                       final isPhoneEmpty =
                                           phoneDigits.isEmpty ||
                                               phoneDigits == '998' ||
                                               customerPhone.trim() == '+998';
-
-                                      // Email validatsiyasi
-                                      final emailRegex = RegExp(
-                                          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-                                      final hasValidEmail = customerEmail
-                                              .isNotEmpty &&
-                                          emailRegex.hasMatch(customerEmail);
-
-                                      // Telefon validatsiyasi (faqat to'ldirilgan bo'lsa)
-                                      final hasValidPhone = !isPhoneEmpty &&
-                                          phoneDigits.length == 12 &&
-                                          phoneDigits.startsWith('998');
-
-                                      // Email yoki telefon kamida bittasi to'g'ri bo'lishi kerak
-                                      if (!hasValidEmail && !hasValidPhone) {
-                                        if (customerEmail.isNotEmpty &&
-                                            !hasValidEmail) {
-                                          SnackbarHelper.showWarning(
-                                            context,
-                                            "Email noto'g'ri formatda. Misol: example@email.com",
-                                          );
-                                        } else if (!isPhoneEmpty &&
-                                            !hasValidPhone) {
+                                      if (!isPhoneEmpty) {
+                                        final hasValidPhone =
+                                            phoneDigits.length == 12 &&
+                                                phoneDigits.startsWith('998');
+                                        if (!hasValidPhone) {
                                           SnackbarHelper.showWarning(
                                             context,
                                             "Telefon raqami noto'g'ri. Misol: +998 90 123-45-67",
                                           );
-                                        } else {
-                                          SnackbarHelper.showWarning(
-                                            context,
-                                            'Iltimos, email yoki telefon raqamini to\'g\'ri kiriting',
-                                          );
+                                          return;
                                         }
-                                        return;
                                       }
 
                                       // Validate passenger phone numbers to prevent backend 422 (passengers.*.tel invalid)
@@ -1622,39 +1602,35 @@ class _FlightFormalizationPageState extends State<FlightFormalizationPage> {
                     inputFormatters: [PhoneFormatter()],
                   ),
                   SizedBox(height: AppSpacing.md),
-                  // Save passenger info toggle
-                  Container(
-                    decoration: BoxDecoration(
-                      color:
-                          isDark ? AppColors.darkCardBg : AppColors.grayLight,
-                      borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(
-                        color: AppColors.getBorderColor(isDark),
-                        width: 1,
+                  // Save passenger info checkbox (matches hotel style)
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _savePassengerInfo[index],
+                        onChanged: (value) {
+                          setState(() {
+                            _savePassengerInfo[index] = value ?? false;
+                          });
+                        },
+                        activeColor: AppColors.primaryBlue,
                       ),
-                    ),
-                    child: SwitchListTile(
-                      value: _savePassengerInfo[index],
-                      onChanged: (value) {
-                        setState(() {
-                          _savePassengerInfo[index] = value;
-                        });
-                      },
-                      title: Text(
-                        'avia.formalization.save_passenger_info'.tr(),
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.getTextColor(isDark),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _savePassengerInfo[index] = !_savePassengerInfo[index];
+                            });
+                          },
+                          child: Text(
+                            'avia.formalization.save_passenger_info'.tr(),
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              color: AppColors.getTextColor(isDark),
+                            ),
+                          ),
                         ),
                       ),
-                      activeColor: AppColors.primaryBlue,
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                    ),
+                    ],
                   ),
                 ],
               ),

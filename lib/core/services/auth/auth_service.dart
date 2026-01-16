@@ -50,6 +50,9 @@ class AuthService {
   static const _keyPhone = 'auth_phone';
   static const _keyAccessToken = 'auth_access_token';
   static const _keyRefreshToken = 'auth_refresh_token';
+  static const _keyBirthDate = 'auth_birth_date';
+  static const _keyAddress = 'auth_address';
+  static const _keyPendingEmail = 'auth_pending_email';
 
   SharedPreferences? _prefs;
 
@@ -184,6 +187,9 @@ class AuthService {
     await prefs.remove(_keyRegion);
     await prefs.remove(_keyEmail);
     await prefs.remove(_keyPhone);
+    await prefs.remove(_keyBirthDate);
+    await prefs.remove(_keyAddress);
+    await prefs.remove(_keyPendingEmail);
   }
 
   Future<void> clearSession() => logout();
@@ -248,6 +254,41 @@ class AuthService {
       email: email,
       phone: phone,
     );
+  }
+
+  Future<void> saveLocalExtras({String? birthDate, String? address}) async {
+    final prefs = _preferences;
+    if (birthDate != null && birthDate.isNotEmpty) {
+      await prefs.setString(_keyBirthDate, birthDate);
+    } else {
+      await prefs.remove(_keyBirthDate);
+    }
+    if (address != null && address.isNotEmpty) {
+      await prefs.setString(_keyAddress, address);
+    } else {
+      await prefs.remove(_keyAddress);
+    }
+  }
+
+  Future<String?> getLocalBirthDate() async {
+    return _preferences.getString(_keyBirthDate);
+  }
+
+  Future<String?> getLocalAddress() async {
+    return _preferences.getString(_keyAddress);
+  }
+
+  Future<void> savePendingEmail(String? email) async {
+    final prefs = _preferences;
+    if (email != null && email.isNotEmpty) {
+      await prefs.setString(_keyPendingEmail, email);
+    } else {
+      await prefs.remove(_keyPendingEmail);
+    }
+  }
+
+  Future<String?> getPendingEmail() async {
+    return _preferences.getString(_keyPendingEmail);
   }
   Future<String?> refreshToken() async {
     final prefs = _preferences;

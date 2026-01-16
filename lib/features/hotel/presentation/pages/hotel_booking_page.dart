@@ -491,7 +491,8 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
                         controller: _contactEmailController,
                         hint: 'hotel.guest_details.email_hint'.tr(),
                         keyboardType: TextInputType.emailAddress,
-                        isRequired: false,
+                        isRequired: true,
+                        requiredMessage: 'Emailni to‘ldiring',
                       ),
                       SizedBox(height: 12.h),
                       _buildPhoneTextField(
@@ -648,6 +649,8 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
                     controller: _commentsController,
                     hint: 'hotel.guest_details.comments_hint'.tr(),
                     maxLength: 500,
+                    isRequired: true,
+                    requiredMessage: 'Fikringizni bildiring, bu biz uchun muhim',
                   ),
                   isSmall: true,
                 ),
@@ -915,6 +918,19 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
       return;
     }
 
+    // Require email + comment per UX requirement
+    if (_contactEmailController.text.trim().isEmpty) {
+      SnackbarHelper.showError(context, 'Emailni to‘ldiring');
+      return;
+    }
+    if (_commentsController.text.trim().isEmpty) {
+      SnackbarHelper.showError(
+        context,
+        'Fikringizni bildiring, bu biz uchun muhim',
+      );
+      return;
+    }
+
     // Save guest information if checkbox is checked
     if (_saveGuestInfo) {
       _saveGuestToMyList();
@@ -954,6 +970,7 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
             contactEmail: _contactEmailController.text.trim(),
             contactPhone: _contactPhoneController.text.trim(),
             adultCount: _adultCount,
+            roomCount: widget.roomCount,
             comment: _commentsController.text.trim(),
           ),
         ),
@@ -1082,6 +1099,7 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
     bool isRequired = false,
+    String? requiredMessage,
   }) {
     return TextFormField(
       controller: controller,
@@ -1109,7 +1127,8 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
       validator: isRequired
           ? (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'hotel.guest_details.fill_all_fields'.tr();
+                return requiredMessage ??
+                    'hotel.guest_details.fill_all_fields'.tr();
               }
               return null;
             }
@@ -1233,22 +1252,30 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
     required ValueChanged<String?> onChanged,
     bool isRequired = false,
   }) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final fieldFillColor = cs.surface; // adapts for light/dark
+    final borderColor = theme.dividerColor.withOpacity(isDark ? 0.35 : 0.5);
     return Align(
       alignment: Alignment.centerLeft,
       child: SizedBox(
-        width: MediaQuery.of(context).size.width * 0.75,
+        width: double.infinity,
         child: DropdownButtonFormField<String>(
           value: value,
           isExpanded: true,
           style: TextStyle(
             fontSize: 13.sp,
-            color: value != null ? Colors.blue.shade700 : Theme.of(context).textTheme.bodyLarge?.color,
+            color: value != null
+                ? cs.primary
+                : theme.textTheme.bodyLarge?.color ?? cs.onSurface,
             fontWeight: value != null ? FontWeight.w600 : FontWeight.normal,
           ),
-          dropdownColor: Colors.white,
+          dropdownColor: fieldFillColor,
           icon: Icon(
             Icons.arrow_drop_down,
-            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+            color: theme.iconTheme.color?.withOpacity(0.8) ??
+                cs.onSurface.withOpacity(0.7),
             size: 20.sp,
           ),
           menuMaxHeight: 300.h,
@@ -1257,33 +1284,30 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
             labelText: label + (isRequired ? ' *' : ''),
             labelStyle: TextStyle(
               fontSize: 13.sp,
-              color: Theme.of(context).textTheme.bodyMedium?.color,
+              color: theme.textTheme.bodyMedium?.color ?? cs.onSurface,
             ),
             hintText: hint,
             hintStyle: TextStyle(
               fontSize: 13.sp,
-              color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
-            ),
-            prefixIcon: Icon(
-              Icons.arrow_drop_down,
-              color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
-              size: 20.sp,
+              color: (theme.textTheme.bodyMedium?.color ?? cs.onSurface)
+                  .withOpacity(0.6),
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: BorderSide(color: Colors.grey.shade300),
+              borderSide: BorderSide(color: borderColor),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: BorderSide(color: Colors.grey.shade300),
+              borderSide: BorderSide(color: borderColor),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: BorderSide(color: Colors.blue.shade300, width: 2),
+              borderSide: BorderSide(color: cs.primary, width: 2),
             ),
             filled: true,
-            fillColor: Colors.white,
-            contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
+            fillColor: fieldFillColor,
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
           ),
           selectedItemBuilder: (BuildContext context) {
             return items.map<Widget>((DropdownMenuItem<String> item) {
@@ -1298,7 +1322,7 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
                 itemText,
                 style: TextStyle(
                   fontSize: 13.sp,
-                  color: Colors.blue.shade700,
+                  color: cs.primary,
                   fontWeight: FontWeight.w600,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -1321,10 +1345,12 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                 margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.blue.shade50 : Colors.transparent,
+                  color: isSelected
+                      ? cs.primary.withOpacity(isDark ? 0.18 : 0.08)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(10.r),
                   border: isSelected
-                      ? Border.all(color: Colors.blue.shade300, width: 2)
+                      ? Border.all(color: cs.primary.withOpacity(0.85), width: 2)
                       : Border.all(color: Colors.transparent, width: 2),
                 ),
                 child: Row(
@@ -1336,8 +1362,9 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
                         style: TextStyle(
                           fontSize: 14.sp,
                           color: isSelected
-                              ? Colors.blue.shade700
-                              : Theme.of(context).textTheme.bodyLarge?.color,
+                              ? cs.primary
+                              : theme.textTheme.bodyLarge?.color ??
+                                  cs.onSurface,
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                         ),
                       ),
@@ -1346,7 +1373,7 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
                       Container(
                         padding: EdgeInsets.all(4.w),
                         decoration: BoxDecoration(
-                          color: Colors.blue.shade600,
+                          color: cs.primary,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -1378,6 +1405,8 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
     required TextEditingController controller,
     required String hint,
     int maxLength = 500,
+    bool isRequired = false,
+    String? requiredMessage,
   }) {
     return TextFormField(
       controller: controller,
@@ -1402,8 +1431,15 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
         counterText: '${controller.text.length}/$maxLength',
         counterStyle: TextStyle(fontSize: 11.sp),
       ),
-      // Comments maydoni ixtiyoriy
-      validator: null,
+      validator: isRequired
+          ? (value) {
+              if (value == null || value.trim().isEmpty) {
+                return requiredMessage ??
+                    'hotel.guest_details.fill_all_fields'.tr();
+              }
+              return null;
+            }
+          : null,
     );
   }
 
@@ -1552,17 +1588,10 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
       };
       _nationality = citizenshipMap[human.citizenship.toUpperCase()] ?? 'uz';
       
-      // Automatically check save guest info checkbox when selecting from list
-      _saveGuestInfo = true;
+      // Do not auto-enable saving; user decides explicitly via checkbox
+      _saveGuestInfo = false;
     });
-    
-    // Automatically save the selected passenger info
-    // Use a small delay to ensure state is updated
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) {
-        _saveGuestToMyList();
-      }
-    });
+    // Do not auto-save selected person; saving is user-controlled via checkbox
   }
 
   /// Save guest information to saved list

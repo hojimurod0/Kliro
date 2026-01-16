@@ -52,6 +52,12 @@
         "title": "Защита и безопасность",
         "subtitle": "КАСКО, ОСАГО и туристическая страховка",
         "book": "Посмотреть"
+      },
+      "hotel": {
+        "label": "ОТЕЛИ",
+        "title": "Найдите идеальный отель",
+        "subtitle": "Бронируйте по лучшим ценам",
+        "book": "Искать"
       }
     }
   },
@@ -1593,11 +1599,15 @@
       "night": "Ночь",
       "nights_plural": "Ночей",
       "rooms": "Номера:",
+      "room": "Номер",
       "rooms_plural": "Номера",
       "total_amount": "Общая сумма:",
       "tourist_tax": "Туристический налог:",
       "included": "включено",
       "meal_plan": "План питания:",
+      "room_only": "Только номер",
+      "cancellation_policy": "Политика отмены:",
+      "applies": "Применяется",
       "cancellation_policy_applies": "Применяется политика отмены:",
       "free_cancellation": "Бесплатная отмена",
       "main_guest": "Основной гость",
@@ -1745,7 +1755,14 @@
       "babies": "младенцев",
       "passenger_count": "пассажир",
       "flight": "Рейс",
-      "economy": "Эконом"
+      "economy": "Эконом",
+      "flight_info": "Информация о рейсе",
+      "total_passengers": "Всего пассажиров",
+      "important_notes": "Важные примечания",
+      "note_passport": "Проверьте данные паспорта перед вылетом",
+      "note_checkin": "Онлайн регистрация доступна за 24 часа",
+      "note_cancellation": "Условия отмены зависят от тарифа",
+      "no_passengers": "Нет пассажиров"
     },
     "formalization": {
       "title": "Оформление",

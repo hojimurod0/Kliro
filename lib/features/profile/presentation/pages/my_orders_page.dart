@@ -1,7 +1,16 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/navigation/app_router.dart';
+import '../../../avichiptalar/presentation/bloc/avia_orders_cubit.dart';
+import '../../../avichiptalar/data/datasources/avia_orders_local_data_source.dart';
+import '../../../avichiptalar/domain/repositories/avichiptalar_repository.dart';
+import '../../../hotel/domain/entities/hotel_booking.dart';
+import '../../../hotel/domain/repositories/hotel_repository.dart';
+import '../../../hotel/presentation/pages/hotel_booking_details_page.dart';
 
 // Ranglar
 const Color kPrimaryBlue = Color(0xFF007AFF); // Moviy (ko'k) rang
@@ -25,14 +34,16 @@ class MyOrdersPage extends StatefulWidget {
 class _MyOrdersPageState extends State<MyOrdersPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late AviaOrdersCubit _aviaOrdersCubit;
+  List<HotelBooking> _hotelBookings = const [];
+  bool _loadingHotels = true;
+  String? _hotelError;
 
-  // Tablar ro'yxati: Nomi va elementlar soni
+  // Tablar ro'yxati: Nomi va kalitlari (sonlar dinamik hisoblanadi)
   final List<Map<String, dynamic>> _tabs = [
-    {'title': 'All', 'count': 8, 'key': 'all'},
-    {'title': 'Flights', 'count': 2, 'key': 'flights'},
-    {'title': 'Hotels', 'count': 2, 'key': 'hotels'},
-    {'title': 'Banking', 'count': 1, 'key': 'banking'},
-    {'title': 'Insu', 'count': 0, 'key': 'insurance'},
+    {'title': 'All', 'key': 'all'},
+    {'title': 'Flights', 'key': 'flights'},
+    {'title': 'Hotels', 'key': 'hotels'},
   ];
 
   @override
@@ -44,11 +55,48 @@ class _MyOrdersPageState extends State<MyOrdersPage>
         // Tab o'zgarganda UI yangilanadi
       });
     });
+
+    // Avia buyurtmalarini yuklash
+    final prefs = ServiceLocator.resolve<SharedPreferences>();
+    final local = AviaOrdersLocalDataSource(prefs);
+    _aviaOrdersCubit = AviaOrdersCubit(
+      repository: ServiceLocator.resolve<AvichiptalarRepository>(),
+      local: local,
+    )..load();
+
+    // Hotel buyurtmalarini yuklash
+    final hotelRepository = ServiceLocator.resolve<HotelRepository>();
+    hotelRepository.getUserBookings().then((value) {
+      if (!mounted) return;
+      setState(() {
+        _hotelBookings = value;
+        _loadingHotels = false;
+      });
+    }).catchError((e) {
+      if (!mounted) return;
+      final msg = e.toString();
+      // Agar 404 bo'lsa (yoki Not Found kabi), bu foydalanuvchida buyurtmalar yo'qligini bildirsin
+      final lower = msg.toLowerCase();
+      final isNotFound = lower.contains('404') || lower.contains('not found') || lower.contains('page not found');
+      if (isNotFound) {
+        setState(() {
+          _hotelBookings = const [];
+          _hotelError = null;
+          _loadingHotels = false;
+        });
+      } else {
+        setState(() {
+          _hotelError = msg;
+          _loadingHotels = false;
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _aviaOrdersCubit.close();
     super.dispose();
   }
 
@@ -102,9 +150,16 @@ class _MyOrdersPageState extends State<MyOrdersPage>
                 final index = entry.key;
                 final tab = entry.value;
                 final isSelected = _tabController.index == index;
+                final counts = _computeCounts(context);
+                final key = tab['key'] as String;
+                final count = key == 'all'
+                    ? counts['all']!
+                    : key == 'flights'
+                        ? counts['flights']!
+                        : counts['hotels']!;
                 return _buildTab(
                   tab['title'],
-                  tab['count'],
+                  count,
                   isSelected: isSelected,
                 );
               }).toList(),
@@ -113,12 +168,73 @@ class _MyOrdersPageState extends State<MyOrdersPage>
         ),
       ),
       // Body qismida TabBarView
-      body: TabBarView(
-        controller: _tabController,
-        children: _tabs.map((tab) {
-          // Har bir tab uchun kontent
-          return _buildTabContent(context, tab['key']);
-        }).toList(),
+      body: BlocBuilder<AviaOrdersCubit, AviaOrdersState>(
+        bloc: _aviaOrdersCubit,
+        builder: (context, aviaState) {
+          return TabBarView(
+            controller: _tabController,
+            children: _tabs.map((tab) {
+              // Har bir tab uchun kontent
+              return _buildTabContent(context, tab['key'], aviaState);
+            }).toList(),
+          );
+        },
+      ),
+    );
+  }
+
+  Map<String, int> _computeCounts(BuildContext context) {
+    // Avia: faqat to'langanlar
+    final aviaState = _aviaOrdersCubit.state;
+    final paidStatuses = {'paid', 'success', 'confirmed', 'ticketed'};
+    final aviaCount = aviaState is AviaOrdersLoaded
+        ? aviaState.items
+            .where((i) => paidStatuses.contains((i.booking?.status ?? '').toString().toLowerCase()))
+            .length
+        : 0;
+
+    // Hotel: faqat to'langanlar
+    final hotelsCount = _hotelBookings
+        .where((b) => b.status.toLowerCase() == 'paid' || b.status.toLowerCase() == 'confirmed' || (b.paymentStatus ?? '').toLowerCase() == 'paid')
+        .length;
+
+    return {
+      'all': aviaCount + hotelsCount,
+      'flights': aviaCount,
+      'hotels': hotelsCount,
+    };
+  }
+
+  Widget _buildSectionLoader(String title) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 12.h),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 18.w,
+            height: 18.w,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          SizedBox(width: 12.w),
+          Text('$title loading...'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionError(String title, String message) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 12.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.error, color: Colors.red),
+          SizedBox(width: 8.w),
+          Expanded(child: Text('$title: $message')),
+        ],
       ),
     );
   }
@@ -158,73 +274,120 @@ class _MyOrdersPageState extends State<MyOrdersPage>
     );
   }
 
-  // Har bir Tab uchun kontentni yaratish uchun yordamchi widget
-  Widget _buildTabContent(BuildContext context, String tabKey) {
+  // Har bir Tab uchun kontentni yaratish (faqat to'langan/yakunlangan buyurtmalar)
+  Widget _buildTabContent(BuildContext context, String tabKey, AviaOrdersState aviaState) {
     // Eng pastki qismdagi padding
     EdgeInsets contentPadding = EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 16.h);
 
-    // Barcha buyurtmalar (rasmdagi)
-    if (tabKey == 'all' || tabKey == 'flights' || tabKey == 'hotels') {
-      return SingleChildScrollView(
-        padding: contentPadding,
-        child: Column(
-          children: [
-            // Mehmonxona buyurtmasi
-            if (tabKey == 'all' || tabKey == 'hotels') ...[
-              OrderCardHotel(
-                title: 'Hyatt Regency Tashkent',
-                duration: '3 kecha • 2 mehmon',
-                dates: '15-18 Dec 2024',
-                price: '1,200,000 UZS',
+    // Avia holati
+    final aviaItemsAll = aviaState is AviaOrdersLoaded ? aviaState.items : <AviaOrderItem>[];
+    final isAviaLoading = aviaState is AviaOrdersLoading;
+
+    // Faqat to'langan/yakunlangan avia buyurtmalar
+    final paidStatuses = {'paid', 'success', 'confirmed', 'ticketed'};
+    final aviaItems = aviaItemsAll.where((i) {
+      final s = (i.booking?.status ?? '').toString().toLowerCase();
+      return paidStatuses.contains(s);
+    }).toList();
+
+    // Faqat to'langan/yakunlangan hotel buyurtmalar
+    final hotelPaid = _hotelBookings.where((b) {
+      final s = b.status.toLowerCase();
+      final ps = (b.paymentStatus ?? '').toLowerCase();
+      return s == 'paid' || s == 'confirmed' || ps == 'paid';
+    }).toList();
+
+    // Tanlangan tab
+    final showFlights = tabKey == 'all' || tabKey == 'flights';
+    final showHotels = tabKey == 'all' || tabKey == 'hotels';
+
+    final children = <Widget>[];
+
+    if (showHotels) {
+      if (_loadingHotels) {
+        children.add(_buildSectionLoader('Hotels'));
+      } else if (_hotelError != null) {
+        children.add(_buildSectionError('Hotels', _hotelError!));
+      } else {
+        for (final booking in hotelPaid) {
+          children.add(
+            Card(
+              child: ListTile(
                 onTap: () {
-                  context.router.push(const BookingDetailsRoute());
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => HotelBookingDetailsPage(booking: booking),
+                    ),
+                  );
                 },
+                leading: const Icon(Icons.hotel),
+                title: Text(booking.hotelInfo?['name']?.toString() ?? booking.bookingId),
+                subtitle: Text(
+                  [
+                    'Status: ${booking.status}',
+                    if (booking.totalAmount != null)
+                      'Total: ${booking.totalAmount!.toStringAsFixed(0)} ${booking.currency?.toUpperCase() ?? ''}'.trim(),
+                  ].join(' • '),
+                ),
               ),
-              SizedBox(height: 12.h),
-            ],
-            // Avia chipta buyurtmasi (To'g'ridan-to'g'ri reys)
-            if (tabKey == 'all' || tabKey == 'flights') ...[
-              OrderCardFlight(
-                route: 'Toshkent (TAS) — Istanbul (IST)',
-                dateTime: '20 Dec 2024, 10:00',
-                statusInfo: 'To\'g\'ridan-to\'g\'ri',
-                duration: '4 soat 30 minut',
-                classType: 'Ekonom',
-                airline: 'Turkish Airlines',
-                code: 'TK36820241220ABC',
-                price: '3,500,000 UZS',
-                isExchange: false,
-                onTap: () {
-                  context.router.push(const BookingDetailsRoute());
-                },
-              ),
-              SizedBox(height: 12.h),
-            ],
-            // Avia chipta buyurtmasi (Reys almashtirish)
-            if (tabKey == 'all' || tabKey == 'flights') ...[
-              OrderCardFlight(
-                route: 'Toshkent (TAS) — Istanbul (IST)',
-                dateTime: '20 Dec 2024, 10:00',
-                statusInfo: 'Reys almashtirish',
-                duration: '4 soat 30 minut',
-                classType: 'Ekonom',
-                airline: 'Turkish Airlines',
-                code: 'TK36820241220ABC',
-                price: '3,500,000 UZS',
-                isExchange: true,
-                onTap: () {
-                  context.router.push(const BookingDetailsRoute());
-                },
-              ),
-              SizedBox(height: 12.h),
-            ],
-          ],
-        ),
-      );
+            ),
+          );
+        }
+      }
     }
 
-    // Boshqa tablar uchun Loading va Hech narsa yo'q holati
-    return _buildEmptyContent();
+    if (showFlights) {
+      if (isAviaLoading) {
+        children.add(_buildSectionLoader('Flights'));
+      } else if (aviaState is AviaOrdersFailure) {
+        children.add(_buildSectionError('Flights', aviaState.message));
+      } else {
+        for (final item in aviaItems) {
+          final b = item.booking;
+          final status = (b?.status ?? '...').toString();
+          final price = b?.price;
+          final currency = b?.currency;
+
+          final subtitle = item.error != null
+              ? 'Xatolik: ${item.error}'
+              : [
+                  'Status: $status',
+                  if (price != null && price.isNotEmpty)
+                    'Narx: $price ${currency ?? ''}'.trim(),
+                ].join(' • ');
+
+          children.add(
+            Card(
+              child: ListTile(
+                onTap: () {
+                  final bookingId = item.ref.bookingId;
+                  final s = (item.booking?.status ?? 'pending').toString();
+                  context.router.push(StatusRoute(bookingId: bookingId, status: s));
+                },
+                leading: const Icon(Icons.airplane_ticket),
+                title: Text(item.ref.bookingId),
+                subtitle: Text(subtitle),
+                trailing: item.error != null ? const Icon(Icons.error, color: Colors.red) : null,
+              ),
+            ),
+          );
+        }
+      }
+    }
+
+    if (children.isEmpty) {
+      return _buildEmptyContent();
+    }
+
+    return SingleChildScrollView(
+      padding: contentPadding,
+      child: Column(
+        children: [
+          ...children,
+          SizedBox(height: 16.h),
+        ],
+      ),
+    );
   }
 
   // Loading va Hech narsa yo'q holatini ko'rsatuvchi yordamchi widget
@@ -233,17 +396,10 @@ class _MyOrdersPageState extends State<MyOrdersPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 30.w,
-            height: 30.w,
-            child:             CircularProgressIndicator(
-              strokeWidth: 2,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
+          Icon(Icons.inbox_outlined, size: 36, color: Theme.of(context).hintColor),
           SizedBox(height: 16.h),
           Text(
-            "Buyurtmalar hozircha mavjud emas",
+            "Sizda hozircha buyurtmalar mavjud emas",
             style: TextStyle(
               color: Theme.of(context).textTheme.bodyMedium?.color ?? kHintColor,
               fontSize: 16.sp,

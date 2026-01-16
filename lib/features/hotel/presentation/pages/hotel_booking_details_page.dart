@@ -1,12 +1,16 @@
+import 'dart:io';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
 import '../../domain/entities/hotel_booking.dart';
 import '../bloc/hotel_bloc.dart';
 import 'cancel_booking_confirm_page.dart';
+import '../services/hotel_voucher_pdf_builder.dart';
 
 class HotelBookingDetailsPage extends StatefulWidget {
   final HotelBooking booking;
@@ -23,6 +27,7 @@ class HotelBookingDetailsPage extends StatefulWidget {
 class _HotelBookingDetailsPageState extends State<HotelBookingDetailsPage> {
   bool _isCancelling = false;
   HotelBooking? _currentBooking;
+  bool _isGenerating = false;
 
   @override
   void initState() {
@@ -194,6 +199,29 @@ class _HotelBookingDetailsPageState extends State<HotelBookingDetailsPage> {
                 ),
                 SizedBox(height: 16.h),
               ],
+
+              // Generate custom voucher (always available)
+              OutlinedButton.icon(
+                onPressed: _isGenerating ? null : () => _generateCustomVoucher(booking),
+                icon: _isGenerating
+                    ? SizedBox(
+                        width: 20.w,
+                        height: 20.h,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.picture_as_pdf),
+                label: Text(
+                  _isGenerating
+                      ? 'hotel.success.downloading'.tr()
+                      : 'Generate Custom Voucher',
+                ),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: Size(double.infinity, 50.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -429,6 +457,32 @@ class _HotelBookingDetailsPageState extends State<HotelBookingDetailsPage> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _generateCustomVoucher(HotelBooking booking) async {
+    setState(() => _isGenerating = true);
+    try {
+      final bytes = await HotelVoucherPdfBuilder.generate(booking);
+      final directory = await getApplicationDocumentsDirectory();
+      final fileName = 'hotel_voucher_custom_${booking.bookingId}.pdf';
+      final filePath = '${directory.path}/$fileName';
+      final file = File(filePath);
+      await file.writeAsBytes(bytes);
+      if (mounted) {
+        await OpenFile.open(filePath);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('hotel.success.download_error'.tr()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGenerating = false);
     }
   }
 }

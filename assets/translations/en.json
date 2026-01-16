@@ -52,6 +52,12 @@
         "title": "Protection and security",
         "subtitle": "KASKO, OSAGO and travel insurance",
         "book": "View"
+      },
+      "hotel": {
+        "label": "HOTELS",
+        "title": "Find your perfect hotel",
+        "subtitle": "Book at the best prices",
+        "book": "Search"
       }
     }
   },
@@ -1467,7 +1473,14 @@
       "babies": "babies",
       "passenger_count": "passenger",
       "flight": "Flight",
-      "economy": "Economy"
+      "economy": "Economy",
+      "flight_info": "Flight Information",
+      "total_passengers": "Total Passengers",
+      "important_notes": "Important Notes",
+      "note_passport": "Check passport details before departure",
+      "note_checkin": "Online check-in available 24 hours before",
+      "note_cancellation": "Cancellation terms depend on fare",
+      "no_passengers": "No passengers"
     },
     "formalization": {
       "title": "Formalization",
@@ -1817,11 +1830,15 @@
       "night": "Night",
       "nights_plural": "Nights",
       "rooms": "Rooms:",
+      "room": "Room",
       "rooms_plural": "Rooms",
       "total_amount": "Total amount:",
       "tourist_tax": "Tourist tax:",
       "included": "included",
       "meal_plan": "Meal plan:",
+      "room_only": "Room only",
+      "cancellation_policy": "Cancellation policy:",
+      "applies": "Applies",
       "cancellation_policy_applies": "Cancellation policy applies:",
       "free_cancellation": "Free cancellation",
       "main_guest": "Main guest",

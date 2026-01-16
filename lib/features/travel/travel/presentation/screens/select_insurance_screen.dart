@@ -5,7 +5,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:intl/intl.dart';
 import '../../../../../core/constants/app_colors.dart';
-import '../../../../../core/constants/app_typography.dart';
 import '../../../../../core/utils/snackbar_helper.dart';
 import 'personal_data_screen.dart';
 import '../logic/bloc/travel_bloc.dart';
@@ -450,12 +449,9 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
 
                         // DetailsSubmitted event yuborish
                         if (existingPersons.isNotEmpty) {
+                          // Backend (Postman) expects DD-MM-YYYY format for /travel/details
                           final travelersBirthdates = existingPersons
-                              .map(
-                                (p) => DateFormat(
-                                  'dd.MM.yyyy',
-                                ).format(p.birthDate),
-                              )
+                              .map((p) => DateFormat('dd-MM-yyyy').format(p.birthDate))
                               .toList();
 
                           // ✅ sessionId allaqachon olingan
@@ -463,10 +459,10 @@ class _SelectInsuranceScreenState extends State<SelectInsuranceScreen> {
                             DetailsSubmitted(
                               sessionId: sessionId,
                               startDate: DateFormat(
-                                'dd.MM.yyyy',
+                                'dd-MM-yyyy',
                               ).format(existingInsurance.startDate),
                               endDate: DateFormat(
-                                'dd.MM.yyyy',
+                                'dd-MM-yyyy',
                               ).format(existingInsurance.endDate),
                               travelersBirthdates: travelersBirthdates,
                               annualPolicy: widget.annualPolicy,

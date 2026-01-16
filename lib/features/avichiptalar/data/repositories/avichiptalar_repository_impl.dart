@@ -4,6 +4,7 @@ import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/constants/avia_endpoints.dart';
+import '../../../../core/constants/constants.dart';
 import '../../../../core/network/avia/avia_dio_client.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../core/utils/retry_helper.dart';
@@ -839,7 +840,14 @@ class AvichiptalarRepositoryImpl implements AvichiptalarRepository {
                       data['data']?['pdf_url'] ??
                       data['data']?['receipt_url'];
           if (url != null && url.toString().isNotEmpty) {
-            return Right(url.toString());
+            final raw = url.toString().trim();
+            if (raw.startsWith('/')) {
+              return Right('${ApiConstants.effectiveBaseUrl}$raw');
+            }
+            if (raw.startsWith('storage/') || raw.startsWith('uploads/')) {
+              return Right('${ApiConstants.effectiveBaseUrl}/$raw');
+            }
+            return Right(raw);
           }
           
           // Base64 field tekshirish

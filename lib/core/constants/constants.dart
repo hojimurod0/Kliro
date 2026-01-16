@@ -1,11 +1,17 @@
 class ApiConstants {
   ApiConstants._();
 
-  // Production server base URL (can be overridden by --dart-define=HOTEL_BASE_URL)
+  // Production server base URL (can be overridden by --dart-define).
   static String get baseUrl {
-    const envBase =
+    // Preferred: API_BASE_URL (used across the app)
+    const apiBase = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (apiBase.isNotEmpty) return apiBase;
+
+    // Legacy: HOTEL_BASE_URL (kept for backward compatibility)
+    const legacyHotelBase =
         String.fromEnvironment('HOTEL_BASE_URL', defaultValue: '');
-    if (envBase.isNotEmpty) return envBase;
+    if (legacyHotelBase.isNotEmpty) return legacyHotelBase;
+
     return 'https://api.kliro.uz';
   }
 
@@ -125,6 +131,31 @@ class ApiPaths {
   /// Google OAuth callback URL (to'liq URL)
   static String get googleCallbackUrl {
     return '${ApiConstants.effectiveBaseUrl}$googleCallback';
+  }
+
+  /// Payment callback URL (to'liq URL).
+  ///
+  /// Bu URL payment provider tomonidan "return_url" va backend uchun "callback_url"
+  /// sifatida ishlatiladi.
+  ///
+  /// App Links / Universal Links to'g'ri sozlangan bo'lsa, payment tugagach
+  /// foydalanuvchi to'g'ridan-to'g'ri ilovaga qaytadi.
+  static String get paymentCallbackSuccessUrl {
+    return '${ApiConstants.effectiveBaseUrl}/payment/callback/success';
+  }
+
+  /// Payment return URL (to'liq URL).
+  ///
+  /// **MUHIM:** Return URL brauzerda ochiladi (GET), shuning uchun u real sahifa bo'lishi kerak.
+  /// Aks holda `GET /payment/callback/success` kabi endpoint'ga tushib 404 bo'lishi mumkin.
+  ///
+  /// Default: KLiRO saytiga qaytaradi. Kerak bo'lsa build vaqtida override qiling:
+  /// --dart-define=PAYMENT_RETURN_URL=https://kliro.uz
+  static String get paymentReturnUrl {
+    const envReturnUrl =
+        String.fromEnvironment('PAYMENT_RETURN_URL', defaultValue: '');
+    if (envReturnUrl.isNotEmpty) return envReturnUrl;
+    return 'https://kliro.uz';
   }
 
   /// Google OAuth direct login URL (KLiRO sayti orqali)

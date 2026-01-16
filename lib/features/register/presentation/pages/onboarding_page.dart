@@ -223,6 +223,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     // Locale o'zgarishini kuzatish uchun context.locale ni ishlatamiz
     final currentLocale = context.locale;
 
@@ -241,7 +244,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       key: ValueKey(
         currentLocale.toString(),
       ), // Locale o'zgarganda rebuild qilish uchun
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
         children: [
           /// ---------------- Rasm Qismi (60%) ----------------
@@ -266,8 +269,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     _data[index].image,
                     fit: BoxFit.cover,
                     alignment: Alignment.topCenter,
-                    errorBuilder: (ctx, err, stack) => const Center(
-                      child: Icon(Icons.broken_image, color: Colors.grey),
+                    errorBuilder: (ctx, err, stack) => Center(
+                      child: Icon(
+                        Icons.broken_image,
+                        color: theme.iconTheme.color ?? Colors.grey,
+                      ),
                     ),
                   );
                 },
@@ -283,11 +289,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
               margin: EdgeInsets.only(top: 15),
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.shade300,
+                    color: isDark
+                        ? Colors.black.withOpacity(0.35)
+                        : Colors.grey.shade300,
                     blurRadius: 20,
                     blurStyle: BlurStyle.normal,
                     spreadRadius: 1,
@@ -320,7 +328,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                 ?.copyWith(
                                   fontSize: 24.sp,
                                   fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF1C1C1E),
                                 ),
                           ),
                           SizedBox(height: 12.h),
@@ -333,7 +340,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                 ?.copyWith(
                                   fontSize: 15.sp,
                                   height: 1.5,
-                                  color: const Color(0xFF6B6B6B),
+                                  color: (Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.color ??
+                                          (isDark
+                                              ? Colors.white
+                                              : Colors.black))
+                                      .withOpacity(0.75),
                                 ),
                           ),
                         ],
@@ -387,7 +401,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             minimumSize: const Size(50, 30),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             alignment: Alignment.centerLeft, // Chapga tekislash
-                            foregroundColor: const Color(0xFF6F7783),
+                              foregroundColor: theme.colorScheme.primary,
                           ),
                           child: Text(
                             'auth.onboarding.skip'.tr(),
@@ -426,6 +440,8 @@ class _SlideDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final inactive = theme.dividerColor.withOpacity(0.55);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(count, (i) {
@@ -438,7 +454,7 @@ class _SlideDots extends StatelessWidget {
           // Aktiv bo'lsa uzunroq
           width: isActive ? 24.w : 8.w,
           decoration: BoxDecoration(
-            color: isActive ? accentColor : const Color(0xFFD9E0EA),
+            color: isActive ? accentColor : inactive,
             borderRadius: BorderRadius.circular(100),
           ),
         );
@@ -460,6 +476,8 @@ class _ProgressArrowButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final size = 62.r;
 
     return GestureDetector(
@@ -476,7 +494,10 @@ class _ProgressArrowButton extends StatelessWidget {
               height: size,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFE4E8F0), width: 4.w),
+                border: Border.all(
+                  color: theme.dividerColor.withOpacity(0.6),
+                  width: 4.w,
+                ),
               ),
             ),
             // Progress
@@ -494,21 +515,23 @@ class _ProgressArrowButton extends StatelessWidget {
             Container(
               width: 48.r,
               height: 48.r,
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
+                boxShadow: isDark
+                    ? null
+                    : const [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
               ),
               child: Icon(
                 Icons.chevron_right_rounded,
                 size: 30.sp,
-                color: Colors.black,
+                color: theme.colorScheme.onSurface,
               ),
             ),
           ],

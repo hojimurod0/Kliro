@@ -3,10 +3,13 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart';
+import 'package:open_file/open_file.dart';
+import 'package:auto_route/auto_route.dart';
+import '../../../../core/navigation/app_router.dart';
 import '../../domain/entities/hotel_booking.dart';
+import '../services/hotel_voucher_pdf_builder.dart';
 
 class HotelSuccessPage extends StatefulWidget {
   final HotelBooking? booking;
@@ -20,6 +23,44 @@ class HotelSuccessPage extends StatefulWidget {
 class _HotelSuccessPageState extends State<HotelSuccessPage> {
   bool _isDownloading = false;
   bool _isSharing = false;
+  bool _autoTried = false;
+  bool _isGenerating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.booking?.voucherUrl?.isNotEmpty == true && !_autoTried) {
+      _autoTried = true;
+      Future.microtask(() => _downloadVoucher());
+    }
+  }
+
+  Future<void> _generateCustomVoucher() async {
+    if (widget.booking == null) return;
+    setState(() => _isGenerating = true);
+    try {
+      final bytes = await HotelVoucherPdfBuilder.generate(widget.booking!);
+      final directory = await getApplicationDocumentsDirectory();
+      final fileName = 'hotel_voucher_custom_${widget.booking!.bookingId}.pdf';
+      final filePath = '${directory.path}/$fileName';
+      final file = File(filePath);
+      await file.writeAsBytes(bytes);
+      if (mounted) {
+        await OpenFile.open(filePath);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('hotel.success.download_error'.tr()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGenerating = false);
+    }
+  }
 
   Future<void> _downloadVoucher() async {
     if (widget.booking?.voucherUrl == null || widget.booking!.voucherUrl!.isEmpty) {
@@ -56,10 +97,9 @@ class _HotelSuccessPageState extends State<HotelSuccessPage> {
             action: SnackBarAction(
               label: 'hotel.success.open'.tr(),
               onPressed: () async {
-                final uri = Uri.file(filePath);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri);
-                }
+                // url_launcher file:// ba'zi qurilmalarda ishlamaydi,
+                // OpenFile esa ko'proq barqaror.
+                await OpenFile.open(filePath);
               },
             ),
           ),
@@ -196,6 +236,31 @@ class _HotelSuccessPageState extends State<HotelSuccessPage> {
                 width: double.infinity,
                 height: 50.h,
                 child: OutlinedButton.icon(
+                  onPressed: _isGenerating ? null : _generateCustomVoucher,
+                  icon: _isGenerating
+                      ? SizedBox(
+                          width: 20.w,
+                          height: 20.h,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.picture_as_pdf),
+                  label: Text(
+                    _isGenerating
+                        ? 'hotel.success.downloading'.tr()
+                        : 'Generate Custom Voucher',
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16.h),
+              SizedBox(
+                width: double.infinity,
+                height: 50.h,
+                child: OutlinedButton.icon(
                   onPressed: _isSharing ? null : _shareBooking,
                   icon: _isSharing
                       ? SizedBox(
@@ -220,7 +285,11 @@ class _HotelSuccessPageState extends State<HotelSuccessPage> {
                 height: 50.h,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.of(context).popUntil((route) => route.isFirst);
+                    try {
+                      AutoRouter.of(context).replaceAll([HomeRoute()]);
+                    } catch (_) {
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,

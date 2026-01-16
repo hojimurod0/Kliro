@@ -83,10 +83,6 @@ class AboutAppPage extends StatelessWidget {
       child: SvgPicture.asset(
         'assets/images/klero_logo.svg',
         fit: BoxFit.contain,
-        colorFilter: ColorFilter.mode(
-          Theme.of(context).textTheme.titleLarge?.color ?? AppColors.black,
-          BlendMode.srcIn,
-        ),
         placeholderBuilder: (context) {
           final TextStyle baseStyle = AppTypography.headingL(context).copyWith(
             fontSize: 48.sp,

@@ -48,12 +48,15 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   }
 
   @override
-  Future<UserProfileModel> updateProfile(UpdateProfileParams params) {
-    return _postData<UserProfileModel>(
+  Future<UserProfileModel> updateProfile(UpdateProfileParams params) async {
+    // Update profile API returns {status: "profile updated"} instead of full profile
+    // So we need to update first, then fetch the updated profile
+    await _postVoid(
       ApiPaths.updateProfile,
       data: {'first_name': params.firstName, 'last_name': params.lastName},
-      parser: (json) => UserProfileModel.fromJson(json as Map<String, dynamic>),
     );
+    // Fetch the updated profile after successful update
+    return getProfile();
   }
 
   @override

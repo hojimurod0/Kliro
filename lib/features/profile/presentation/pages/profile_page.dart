@@ -186,7 +186,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _handleMyOrdersTap(BuildContext context) {
-    _showComingSoonDialog(context);
+    context.router.push(const MyOrdersRoute());
   }
 
   void _showComingSoonDialog(BuildContext context) {
@@ -644,11 +644,10 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildUserInfoCard(AuthUser user) {
-    final displayName = user.fullName.isNotEmpty
-        ? user.fullName
-        : user.contact.isNotEmpty
-            ? user.contact
-            : tr('profile.user');
+    // Keep only name/surname on top. Do not fall back to contact here,
+    // because `contact` can be a phone number and should not be shown on this screen.
+    final displayName =
+        user.fullName.isNotEmpty ? user.fullName : tr('profile.user');
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -706,32 +705,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       ],
                     ),
                   ),
-                if (user.phone != null && user.phone!.isNotEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(top: 4.h),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.phone_outlined,
-                          size: 14.sp,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        SizedBox(width: 6.w),
-                        Expanded(
-                          child: Text(
-                            user.phone!,
-                            style: AppTypography.bodyPrimary(context).copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontSize: 12.sp,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 if ((user.email == null || user.email!.isEmpty) &&
-                    (user.phone == null || user.phone!.isEmpty) &&
-                    user.contact.isNotEmpty)
+                    user.contact.isNotEmpty &&
+                    user.contact.contains('@'))
                   Padding(
                     padding: EdgeInsets.only(top: 4.h),
                     child: Text(

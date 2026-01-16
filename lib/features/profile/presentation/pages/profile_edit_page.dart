@@ -9,6 +9,7 @@ import '../../../../core/constants/app_typography.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/services/auth/auth_service.dart';
 import '../../../../core/utils/input_formatters.dart';
+import '../../../../core/utils/snackbar_helper.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../register/domain/params/auth_params.dart';
 import '../../../register/domain/usecases/get_profile.dart';
@@ -27,15 +28,44 @@ class ProfileEditPage extends StatefulWidget {
 
 class _ProfileEditPageState extends State<ProfileEditPage> {
   static const double _buttonHeight = 50.0;
-  
+
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _birthDateController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  
+
   bool _isLoading = false;
+
+  String _formatUzPhoneForDisplay(String raw) {
+    final normalized = AuthService.normalizeContact(raw);
+    if (normalized.isEmpty) return '';
+    if (normalized.contains('@')) return normalized;
+    final digits = normalized.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) return '';
+    // Expecting 998 + 9 digits; fall back gracefully for partials.
+    final limited = digits.length > 12 ? digits.substring(0, 12) : digits;
+    String out = '+';
+    out += limited.substring(0, limited.length > 3 ? 3 : limited.length);
+    if (limited.length > 3) {
+      out +=
+          ' ${limited.substring(3, limited.length > 5 ? 5 : limited.length)}';
+    }
+    if (limited.length > 5) {
+      out +=
+          ' ${limited.substring(5, limited.length > 8 ? 8 : limited.length)}';
+    }
+    if (limited.length > 8) {
+      out +=
+          ' ${limited.substring(8, limited.length > 10 ? 10 : limited.length)}';
+    }
+    if (limited.length > 10) {
+      out +=
+          ' ${limited.substring(10, limited.length > 12 ? 12 : limited.length)}';
+    }
+    return out;
+  }
 
   String _trOrFallback(String key, String fallback) {
     final value = tr(key);
@@ -62,12 +92,19 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         // Profile yuklanmasa, faqat user.contact ishlatish
       }
 
+      // Local extra fields (birth date, address)
+      final birth = await AuthService.instance.getLocalBirthDate();
+      final address = await AuthService.instance.getLocalAddress();
+      final pendingEmail = await AuthService.instance.getPendingEmail();
+
       setState(() {
         _firstNameController.text = user.firstName;
         _lastNameController.text = user.lastName;
 
         // Email va telefon alohida olish (user.email va user.phone birinchi o'ringa)
-        if (user.email != null && user.email!.isNotEmpty) {
+        if (pendingEmail != null && pendingEmail.isNotEmpty) {
+          _emailController.text = pendingEmail;
+        } else if (user.email != null && user.email!.isNotEmpty) {
           _emailController.text = user.email!;
         } else if (profile?.email != null && profile!.email!.isNotEmpty) {
           _emailController.text = profile.email!;
@@ -76,23 +113,28 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         }
 
         if (user.phone != null && user.phone!.isNotEmpty) {
-          final normalizedPhone = AuthService.normalizeContact(user.phone!);
-          _phoneController.text = normalizedPhone;
+          _phoneController.text = _formatUzPhoneForDisplay(user.phone!);
         } else if (profile?.phone != null && profile!.phone!.isNotEmpty) {
-          final normalizedPhone = AuthService.normalizeContact(profile.phone!);
-          _phoneController.text = normalizedPhone;
+          _phoneController.text = _formatUzPhoneForDisplay(profile.phone!);
         } else if (!user.contact.contains('@')) {
-          final normalizedPhone = AuthService.normalizeContact(user.contact);
-          _phoneController.text = normalizedPhone;
+          _phoneController.text = _formatUzPhoneForDisplay(user.contact);
         } else {
           _phoneController.text = '+998';
+        }
+
+        // Prefill local-only fields
+        if (birth != null && birth.isNotEmpty) {
+          _birthDateController.text = birth;
+        }
+        if (address != null && address.isNotEmpty) {
+          _addressController.text = address;
         }
       });
     } catch (_) {
       // Ignore – profile can still be edited manually.
     }
   }
-  
+
   @override
   void dispose() {
     _firstNameController.dispose();
@@ -103,75 +145,114 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     _addressController.dispose();
     super.dispose();
   }
-  
+
   Future<void> _saveProfile() async {
-    if (_firstNameController.text.trim().isEmpty || 
+    if (_firstNameController.text.trim().isEmpty ||
         _lastNameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('profile_edit.fill_required_fields')),
-          backgroundColor: Colors.red,
-        ),
+      SnackbarHelper.showError(
+        context,
+        tr('profile_edit.fill_required_fields'),
       );
       return;
     }
-    
-    setState(() {
-      _isLoading = true;
-    });
-    
+
     try {
+      // Compare local-only fields before save to detect changes
+      final prevBirth = await AuthService.instance.getLocalBirthDate();
+      final prevAddress = await AuthService.instance.getLocalAddress();
+      final newBirth = _birthDateController.text.trim();
+      final newAddress = _addressController.text.trim();
+
+      // Always persist local-only fields
+      await AuthService.instance.saveLocalExtras(
+        birthDate: newBirth,
+        address: newAddress,
+      );
+
       final user = await AuthService.instance.fetchActiveUser();
       final getProfile = ServiceLocator.resolve<GetProfile>();
       final profile = await getProfile();
-      
+
       final email = _emailController.text.trim();
-      final phone = _phoneController.text.trim();
-      
+      final phoneInput = _phoneController.text.trim();
+      final phone = AuthService.normalizeContact(phoneInput);
+
       // Email yoki telefon o'zgarganda UpdateContact API'ni chaqirish
-      final emailChanged = email.isNotEmpty && 
-                          profile.email != email && 
-                          email != user?.contact;
-      final phoneChanged = phone.isNotEmpty && 
-                          phone != '+998' && 
-                          profile.phone != phone && 
-                          phone != user?.contact;
-      
+      final emailChanged =
+          email.isNotEmpty && profile.email != email && email != user?.contact;
+      final profilePhoneNormalized =
+          AuthService.normalizeContact(profile.phone ?? '');
+      final userContactNormalized =
+          AuthService.normalizeContact(user?.contact ?? '');
+      final phoneChanged = phone.isNotEmpty &&
+          phone != '+998' &&
+          profilePhoneNormalized != phone &&
+          phone != userContactNormalized;
+
       if (emailChanged || phoneChanged) {
         // OTP yuborish
-        context.read<RegisterBloc>().add(
-          ContactUpdateRequested(
-            UpdateContactParams(
-              email: email.isNotEmpty && email.contains('@') ? email : null,
-              phone: phone.isNotEmpty && phone != '+998' ? phone : null,
-            ),
-          ),
-        );
         setState(() {
-          _isLoading = false;
+          _isLoading = true;
         });
+        if (emailChanged) {
+          await AuthService.instance.savePendingEmail(email);
+        }
+        context.read<RegisterBloc>().add(
+              ContactUpdateRequested(
+                UpdateContactParams(
+                  email: emailChanged ? email : null,
+                  phone: phoneChanged ? phone : null,
+                ),
+              ),
+            );
         return;
       }
-      
+
       // Faqat ism o'zgarganda UpdateProfile API'ni chaqirish
+      // Ism o'zgarmagan bo'lsa ham saqlash kerak
+      final firstName = _firstNameController.text.trim();
+      final lastName = _lastNameController.text.trim();
+
+      if (firstName == profile.firstName && lastName == profile.lastName) {
+        // No server-side name change. If local-only fields changed, show success and pop.
+        final localChanged =
+            (prevBirth ?? '') != newBirth || (prevAddress ?? '') != newAddress;
+        if (mounted) {
+          if (localChanged) {
+            SnackbarHelper.showSuccess(
+              context,
+              tr('profile_edit.saved_successfully'),
+            );
+            Navigator.pop(context);
+          } else {
+            SnackbarHelper.showInfo(
+              context,
+              tr('profile_edit.no_changes'),
+            );
+          }
+        }
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+      });
       context.read<RegisterBloc>().add(
-        ProfileUpdated(
-          UpdateProfileParams(
-            firstName: _firstNameController.text.trim(),
-            lastName: _lastNameController.text.trim(),
-          ),
-        ),
-      );
+            ProfileUpdated(
+              UpdateProfileParams(
+                firstName: firstName,
+                lastName: lastName,
+              ),
+            ),
+          );
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Xatolik: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+        SnackbarHelper.showError(
+          context,
+          'Xatolik: ${e.toString()}',
         );
       }
     }
@@ -179,7 +260,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
   void _showOtpVerificationDialog() {
     final otpController = TextEditingController();
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -206,12 +287,12 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             onPressed: () {
               if (otpController.text.trim().length == 6) {
                 context.read<RegisterBloc>().add(
-                  ContactUpdateConfirmed(
-                    ConfirmUpdateContactParams(
-                      otp: otpController.text.trim(),
-                    ),
-                  ),
-                );
+                      ContactUpdateConfirmed(
+                        ConfirmUpdateContactParams(
+                          otp: otpController.text.trim(),
+                        ),
+                      ),
+                    );
                 otpController.dispose();
                 Navigator.pop(context);
               }
@@ -229,55 +310,80 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       create: (context) => ServiceLocator.resolve<RegisterBloc>(),
       child: BlocListener<RegisterBloc, RegisterState>(
         listener: (context, state) {
-          // Loading state ni har doim yangilash
-          if (state.status == RegisterStatus.loading) {
-            setState(() {
-              _isLoading = true;
-            });
-          } else {
-            setState(() {
-              _isLoading = false;
-            });
-          }
-
-          if (state.status == RegisterStatus.success) {
-            if (state.flow == RegisterFlow.contactUpdate) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(tr('profile_edit.otp_sent')),
-                  backgroundColor: Colors.blue,
-                ),
-              );
-              // OTP verification dialog ochish
-              _showOtpVerificationDialog();
-            } else if (state.flow == RegisterFlow.contactConfirm) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(tr('profile_edit.contact_updated')),
-                  backgroundColor: Colors.green,
-                ),
-              );
-              Navigator.pop(context);
-            } else if (state.flow == RegisterFlow.profileUpdate) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(tr('profile_edit.saved_successfully')),
-                  backgroundColor: Colors.green,
-                ),
-              );
-              Navigator.pop(context);
+          if (state.flow == RegisterFlow.profileUpdate) {
+            if (state.status == RegisterStatus.success) {
+              // Loading state ni false qilish
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                });
+                SnackbarHelper.showSuccess(
+                  context,
+                  tr('profile_edit.saved_successfully'),
+                );
+                Navigator.pop(context);
+              }
+            } else if (state.status == RegisterStatus.failure) {
+              // Xatolik holatida ham loading state ni false qilish
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                });
+                SnackbarHelper.showError(
+                  context,
+                  state.error ?? tr('profile_edit.update_failed'),
+                );
+              }
             }
-          } else if (state.status == RegisterStatus.failure) {
-            // Xatolik holatida ham loading state ni false qilish
-            setState(() {
-              _isLoading = false;
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.error ?? tr('profile_edit.update_failed')),
-                backgroundColor: Colors.red,
-              ),
-            );
+          } else if (state.flow == RegisterFlow.contactUpdate) {
+            if (state.status == RegisterStatus.success) {
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                });
+                SnackbarHelper.showInfo(
+                  context,
+                  tr('profile_edit.otp_sent'),
+                );
+                // OTP verification dialog ochish
+                _showOtpVerificationDialog();
+              }
+            } else if (state.status == RegisterStatus.failure) {
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                });
+                SnackbarHelper.showError(
+                  context,
+                  state.error ?? tr('profile_edit.update_failed'),
+                );
+              }
+            }
+          } else if (state.flow == RegisterFlow.contactConfirm) {
+            if (state.status == RegisterStatus.success) {
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                });
+
+                AuthService.instance.savePendingEmail(null);
+                SnackbarHelper.showSuccess(
+                  context,
+                  tr('profile_edit.contact_updated'),
+                );
+                Navigator.pop(context);
+              }
+            } else if (state.status == RegisterStatus.failure) {
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                });
+                SnackbarHelper.showError(
+                  context,
+                  state.error ?? tr('profile_edit.update_failed'),
+                );
+              }
+            }
           }
         },
         child: _buildContent(context),
@@ -295,7 +401,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor ??
+            Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
@@ -352,7 +459,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                       controller: _lastNameController,
                       label: tr('profile_edit.last_name'),
                       icon: Icons.person_outline,
-                      hintText: _trOrFallback('profile_edit.last_name_hint', ''),
+                      hintText:
+                          _trOrFallback('profile_edit.last_name_hint', ''),
                       fillColor: bg,
                       borderColor: borderColor,
                       textColor: textColor,
@@ -380,7 +488,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 icon: Icons.call_outlined,
                 hintText: _trOrFallback('profile_edit.phone_hint', '+998'),
                 keyboardType: TextInputType.phone,
-                inputFormatters: [PhoneFormatter()],
+                inputFormatters: [UzPhoneSpaceFormatter()],
                 fillColor: bg,
                 borderColor: borderColor,
                 textColor: textColor,
@@ -421,9 +529,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                         onPressed: () => Navigator.pop(context),
                         icon: Icon(
                           Icons.close,
-                          color: Theme.of(context).iconTheme.color ?? 
-                              (Theme.of(context).brightness == Brightness.dark 
-                                  ? AppColors.white 
+                          color: Theme.of(context).iconTheme.color ??
+                              (Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.white
                                   : AppColors.black),
                         ),
                         style: OutlinedButton.styleFrom(
@@ -451,7 +559,10 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12.r),
                           gradient: LinearGradient(
-                            colors: [AppColors.primaryBlue, AppColors.accentCyan],
+                            colors: [
+                              AppColors.primaryBlue,
+                              AppColors.accentCyan
+                            ],
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
                           ),
@@ -472,7 +583,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
                                   ),
                                 )
                               : const Icon(
@@ -574,7 +686,8 @@ class _ProfileInputField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+              borderSide:
+                  const BorderSide(color: AppColors.primaryBlue, width: 1.5),
             ),
           ),
         ),

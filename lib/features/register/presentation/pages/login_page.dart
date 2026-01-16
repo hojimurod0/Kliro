@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -198,6 +199,23 @@ class _LoginPageState extends State<LoginPage> {
           context,
           'Google sign-in xatolik: ${e.toString()}',
         );
+      }
+    }
+  }
+
+  Future<void> _openExternalDocument(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          SnackbarHelper.showError(context, 'auth.terms.cannot_open'.tr());
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        SnackbarHelper.showError(context, 'auth.terms.error'.tr());
       }
     }
   }
@@ -575,6 +593,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ),
+                  SizedBox(height: 6.h),
                   Align(
                     alignment: Alignment.centerRight,
                     child: Row(
@@ -677,66 +696,49 @@ class _LoginPageState extends State<LoginPage> {
     const documentUrl =
         'https://docs.google.com/document/d/1UcdZv5QTRs2AheZlvroe0d86Dk2oILYB4R41Rp2pocE/view';
 
-    return CheckboxListTile(
-      value: _agreedToTermsAndPrivacy,
-      onChanged: (value) {
-        setState(() {
-          _agreedToTermsAndPrivacy = value ?? false;
-        });
-      },
-      activeColor: AppColors.primaryBlue,
-      contentPadding: EdgeInsets.zero,
-      dense: true,
-      title: Row(
+    final baseStyle = AppTypography.bodySecondary(context).copyWith(
+      fontSize: 12.sp,
+    );
+
+    final linkStyle = baseStyle.copyWith(
+      color: AppColors.primaryBlue,
+      decoration: TextDecoration.underline,
+    );
+
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 2.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: RichText(
               text: TextSpan(
-                style: AppTypography.bodySecondary(context).copyWith(
-                  fontSize: 12.sp,
-                ),
+                style: baseStyle,
                 children: [
                   TextSpan(
                     text: 'auth.login.agree_to_terms_and_privacy_prefix'.tr(),
                   ),
-                  WidgetSpan(
-                    child: GestureDetector(
-                      onTap: () async {
-                        try {
-                          final uri = Uri.parse(documentUrl);
-                          if (await canLaunchUrl(uri)) {
-                            await launchUrl(uri,
-                                mode: LaunchMode.externalApplication);
-                          } else {
-                            if (mounted) {
-                              SnackbarHelper.showError(
-                                context,
-                                'auth.terms.cannot_open'.tr(),
-                              );
-                            }
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            SnackbarHelper.showError(
-                              context,
-                              'auth.terms.error'.tr(),
-                            );
-                          }
-                        }
-                      },
-                      child: Text(
-                        'auth.login.agree_to_terms_and_privacy_link'.tr(),
-                        style: AppTypography.bodySecondary(context).copyWith(
-                          fontSize: 12.sp,
-                          color: AppColors.primaryBlue,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
+                  TextSpan(
+                    text: 'auth.login.agree_to_terms_and_privacy_link'.tr(),
+                    style: linkStyle,
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () => _openExternalDocument(documentUrl),
                   ),
                 ],
               ),
             ),
+          ),
+          SizedBox(width: 8.w),
+          Checkbox(
+            value: _agreedToTermsAndPrivacy,
+            onChanged: (value) {
+              setState(() {
+                _agreedToTermsAndPrivacy = value ?? false;
+              });
+            },
+            activeColor: AppColors.primaryBlue,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
           ),
         ],
       ),

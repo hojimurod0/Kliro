@@ -33,7 +33,8 @@ class _FlightSearchScreenState extends State<FlightSearchScreen> {
 
   int _adults = 1;
   int _children = 0;
-  int _babies = 0;
+  int _infants = 0;
+  int _infantsWithSeat = 0;
   bool _isRoundTrip = true;
 
   // Aeroport kodlarini saqlash
@@ -80,14 +81,16 @@ class _FlightSearchScreenState extends State<FlightSearchScreen> {
       builder: (_) => PassengerSelectorDialog(
         initialAdults: _adults,
         initialChildren: _children,
-        initialBabies: _babies,
+        initialInfants: _infants,
+        initialInfantsWithSeat: _infantsWithSeat,
       ),
     );
     if (result != null) {
       setState(() {
         _adults = result['adults'] ?? 1;
         _children = result['children'] ?? 0;
-        _babies = result['babies'] ?? 0;
+        _infants = result['infants'] ?? 0;
+        _infantsWithSeat = result['infantsWithSeat'] ?? 0;
       });
     }
   }
@@ -123,7 +126,8 @@ class _FlightSearchScreenState extends State<FlightSearchScreen> {
     final request = SearchOffersRequestModel(
       adults: _adults,
       children: _children,
-      infants: _babies,
+      infants: _infants,
+      infantsWithSeat: _infantsWithSeat,
       serviceClass: 'A',
       directions: [
         DirectionModel(
@@ -167,7 +171,7 @@ class _FlightSearchScreenState extends State<FlightSearchScreen> {
   }
 
   String _getPassengerText() {
-    final total = _adults + _children + _babies;
+    final total = _adults + _children + _infants + _infantsWithSeat;
     if (total == 1) {
       return '01 ${'avia.search.person'.tr()}';
     }

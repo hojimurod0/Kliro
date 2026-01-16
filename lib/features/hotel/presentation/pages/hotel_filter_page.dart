@@ -9,6 +9,9 @@ import '../../domain/entities/hotel.dart';
 import '../bloc/hotel_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/safe_network_image.dart';
+import 'hotel_map_page.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class HotelFilterPage extends StatefulWidget {
   final HotelFilter initialFilter;
@@ -98,7 +101,7 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
         title: Text(
           'hotel.filter.title'.tr(),
           style: TextStyle(
-            fontSize: 20.sp,
+            fontSize: 16.sp,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -205,15 +208,15 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                         icon: Icons.map,
                         title: 'hotel.filter.view_on_map'.tr(),
                         onTap: () {
-                          setState(() {
-                            _showMap = !_showMap;
-                          });
+                          final hotels = widget.hotels!.whereType<Hotel>().toList();
+                          if (hotels.isEmpty) return;
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => HotelMapPage(hotels: hotels),
+                            ),
+                          );
                         },
-                        trailing: Icon(
-                          _showMap
-                              ? Icons.keyboard_arrow_up
-                              : Icons.keyboard_arrow_down,
-                        ),
+                        trailing: const Icon(Icons.arrow_forward),
                       ),
                     // Search again
                     _buildActionItem(
@@ -230,29 +233,10 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                         widget.hotels != null &&
                         widget.hotels!.isNotEmpty) ...[
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20.w),
+                        padding: EdgeInsets.symmetric(horizontal: 16.w),
                         child: _buildMapPreview(),
                       ),
-                      SizedBox(height: 12.h),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20.w),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton.icon(
-                              onPressed: () {
-                                _openMapWithHotels();
-                              },
-                              icon: Icon(Icons.map, size: 16.sp),
-                              label: Text('hotel.filter.open_map'.tr()),
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 12.w, vertical: 8.h),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      SizedBox(height: 8.h),
                       Divider(height: 1),
                     ],
                   ],
@@ -260,7 +244,7 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                 // Content - Expandable Cards
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.all(20.w),
+                    padding: EdgeInsets.all(16.w),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -278,7 +262,7 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                               ? const Center(child: CircularProgressIndicator())
                               : Column(
                                   children: [
-                                    SizedBox(height: 16.h),
+                                    SizedBox(height: 10.h),
                                     RangeSlider(
                                       values: _priceRange,
                                       min: minPrice > 0 ? minPrice : 0,
@@ -311,13 +295,13 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                                         Text(
                                           _formatPrice(_priceRange.start),
                                           style: TextStyle(
-                                              fontSize: 12.sp,
+                                              fontSize: 11.sp,
                                               color: Theme.of(context).textTheme.bodySmall?.color ?? AppColors.grayText),
                                         ),
                                         Text(
                                           _formatPrice(_priceRange.end),
                                           style: TextStyle(
-                                              fontSize: 12.sp,
+                                              fontSize: 11.sp,
                                               color: Theme.of(context).textTheme.bodySmall?.color ?? AppColors.grayText),
                                         ),
                                       ],
@@ -325,7 +309,7 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                                   ],
                                 ),
                         ),
-                        SizedBox(height: 12.h),
+                        SizedBox(height: 10.h),
 
                         // Cancellation Policy Card
                         _buildExpandableCard(
@@ -339,10 +323,10 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                           },
                           child: Column(
                             children: [
-                              SizedBox(height: 16.h),
+                              SizedBox(height: 10.h),
                               Wrap(
-                                spacing: 12.w,
-                                runSpacing: 12.h,
+                                spacing: 8.w,
+                                runSpacing: 8.h,
                                 children: [
                                   _buildChoiceChip(
                                     'hotel.filter.refundable'.tr(),
@@ -365,7 +349,7 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                             ],
                           ),
                         ),
-                        SizedBox(height: 12.h),
+                        SizedBox(height: 10.h),
 
                         // Room Type Card
                         if (hotelTypes.isNotEmpty || _isLoadingHotelTypes)
@@ -383,10 +367,10 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                                     child: CircularProgressIndicator())
                                 : Column(
                                     children: [
-                                      SizedBox(height: 16.h),
+                                      SizedBox(height: 10.h),
                                       Wrap(
-                                        spacing: 12.w,
-                                        runSpacing: 12.h,
+                                        spacing: 8.w,
+                                        runSpacing: 8.h,
                                         children: hotelTypes.map((type) {
                                           final isSelected = _selectedHotelTypes
                                               .contains(type.id);
@@ -395,8 +379,10 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                                           final displayName =
                                               type.getDisplayName(locale);
                                           return FilterChip(
-                                            label: Text(displayName),
+                                            label: Text(displayName, style: TextStyle(fontSize: 12.sp)),
                                             selected: isSelected,
+                                            visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
+                                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                             onSelected: (selected) {
                                               setState(() {
                                                 if (selected) {
@@ -415,7 +401,7 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                                   ),
                           ),
                         if (hotelTypes.isNotEmpty || _isLoadingHotelTypes)
-                          SizedBox(height: 12.h),
+                          SizedBox(height: 10.h),
 
                         // Hotel Rating (Stars) Card
                         _buildExpandableCard(
@@ -431,10 +417,10 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                               ? const Center(child: CircularProgressIndicator())
                               : Column(
                                   children: [
-                                    SizedBox(height: 16.h),
+                                    SizedBox(height: 10.h),
                                     Wrap(
-                                      spacing: 12.w,
-                                      runSpacing: 12.h,
+                                      spacing: 8.w,
+                                      runSpacing: 8.h,
                                       children: availableStars
                                           .where((starValue) =>
                                               starValue > 0 && starValue <= 5)
@@ -458,13 +444,15 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
                                                   Icon(Icons.star,
-                                                      size: 16.sp,
+                                                      size: 14.sp,
                                                       color: Colors.amber),
                                                   SizedBox(width: 4.w),
-                                                  Text('$starValue'),
+                                                  Text('$starValue', style: TextStyle(fontSize: 12.sp)),
                                                 ],
                                               ),
                                               selected: isSelected,
+                                              visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
+                                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                               onSelected: (selected) {
                                                 if (index >= 0 &&
                                                     index <
@@ -484,7 +472,7 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                                   ],
                                 ),
                         ),
-                        SizedBox(height: 12.h),
+                        SizedBox(height: 10.h),
 
                         // Facilities Card
                         if (facilities.isNotEmpty || _isLoadingFacilities)
@@ -502,10 +490,10 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                                     child: CircularProgressIndicator())
                                 : Column(
                                     children: [
-                                      SizedBox(height: 16.h),
+                                      SizedBox(height: 10.h),
                                       Wrap(
-                                        spacing: 12.w,
-                                        runSpacing: 12.h,
+                                        spacing: 8.w,
+                                        runSpacing: 8.h,
                                         children:
                                             facilities.take(15).map((facility) {
                                           final isSelected = _selectedFacilities
@@ -515,8 +503,10 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                                           final displayName =
                                               facility.getDisplayName(locale);
                                           return FilterChip(
-                                            label: Text(displayName),
+                                            label: Text(displayName, style: TextStyle(fontSize: 12.sp)),
                                             selected: isSelected,
+                                            visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
+                                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                             onSelected: (selected) {
                                               setState(() {
                                                 if (selected) {
@@ -538,7 +528,7 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                                   ),
                           ),
                         if (facilities.isNotEmpty || _isLoadingFacilities)
-                          SizedBox(height: 12.h),
+                          SizedBox(height: 10.h),
 
                         // Equipment Card
                         if (equipment.isNotEmpty || _isLoadingEquipment)
@@ -556,10 +546,10 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                                     child: CircularProgressIndicator())
                                 : Column(
                                     children: [
-                                      SizedBox(height: 16.h),
+                                      SizedBox(height: 10.h),
                                       Wrap(
-                                        spacing: 12.w,
-                                        runSpacing: 12.h,
+                                        spacing: 8.w,
+                                        runSpacing: 8.h,
                                         children: equipment.take(15).map((eq) {
                                           final isSelected = _selectedEquipments
                                               .contains(eq.id);
@@ -568,8 +558,10 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                                           final displayName =
                                               eq.getDisplayName(locale);
                                           return FilterChip(
-                                            label: Text(displayName),
+                                            label: Text(displayName, style: TextStyle(fontSize: 12.sp)),
                                             selected: isSelected,
+                                            visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
+                                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                             onSelected: (selected) {
                                               setState(() {
                                                 if (selected) {
@@ -618,9 +610,9 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                             });
                           },
                           style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 14.h),
+                            padding: EdgeInsets.symmetric(vertical: 12.h),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.r),
+                              borderRadius: BorderRadius.circular(10.r),
                             ),
                           ),
                           child: Text('hotel.filter.reset'.tr()),
@@ -676,9 +668,9 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primaryBlue,
-                            padding: EdgeInsets.symmetric(vertical: 14.h),
+                            padding: EdgeInsets.symmetric(vertical: 12.h),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.r),
+                              borderRadius: BorderRadius.circular(10.r),
                             ),
                           ),
                           child: Text(
@@ -707,16 +699,16 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
         child: Row(
           children: [
-            Icon(icon, size: 20.sp),
+            Icon(icon, size: 18.sp),
             SizedBox(width: 12.w),
             Expanded(
               child: Text(
                 title,
                 style: TextStyle(
-                  fontSize: 16.sp,
+                  fontSize: 14.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -739,7 +731,7 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
       decoration: BoxDecoration(
         color: AppColors.getCardBg(
             Theme.of(context).brightness == Brightness.dark),
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(10.r),
         border: Border.all(
           color: AppColors.getBorderColor(
                   Theme.of(context).brightness == Brightness.dark)
@@ -750,18 +742,18 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
         children: [
           InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(12.r),
+            borderRadius: BorderRadius.circular(10.r),
             child: Padding(
-              padding: EdgeInsets.all(16.w),
+              padding: EdgeInsets.all(12.w),
               child: Row(
                 children: [
-                  Icon(icon, size: 20.sp),
+                  Icon(icon, size: 18.sp),
                   SizedBox(width: 12.w),
                   Expanded(
                     child: Text(
                       title,
                       style: TextStyle(
-                        fontSize: 16.sp,
+                        fontSize: 14.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -777,7 +769,7 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
           ),
           if (isExpanded)
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+              padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 12.h),
               child: child,
             ),
         ],
@@ -787,8 +779,10 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
 
   Widget _buildChoiceChip(String label, String value, bool selected) {
     return ChoiceChip(
-      label: Text(label),
+      label: Text(label, style: TextStyle(fontSize: 12.sp)),
       selected: selected,
+      visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       onSelected: (selected) {
         setState(() {
           _cancellationType = selected ? value : null;
@@ -811,145 +805,89 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
       return const SizedBox.shrink();
     }
 
-    try {
-      // Get first hotel for center
-      final firstHotel = widget.hotels!.first;
-      if (firstHotel is! Hotel) {
-        return const SizedBox.shrink();
-      }
+    final hotels = widget.hotels!.whereType<Hotel>().toList();
+    final withCoords = hotels
+        .where((h) => h.latitude != null && h.longitude != null)
+        .toList();
 
-      final centerQuery = '${firstHotel.name}, ${firstHotel.address}';
-      if (centerQuery.trim().isEmpty) {
-        return const SizedBox.shrink();
-      }
-
-      final encodedCenter = Uri.encodeComponent(centerQuery);
-
-      // Build markers for all hotels (limit to 10 for URL length)
-      final hotelsToShow = widget.hotels!.take(10).toList();
-
-      // Google Maps Static API format: markers=color:blue|address1|address2|address3
-      // Each address should be encoded separately
-      final markerAddresses = hotelsToShow
-          .where((h) => h is Hotel)
-          .map((h) {
-            final hotel = h as Hotel;
-            final hotelQuery = '${hotel.name}, ${hotel.address}';
-            return hotelQuery.trim().isNotEmpty
-                ? Uri.encodeComponent(hotelQuery)
-                : null;
-          })
-          .whereType<String>()
-          .join('|');
-
-      // Build markers parameter
-      final markersParam = markerAddresses.isNotEmpty
-          ? 'markers=color:blue|$markerAddresses'
-          : '';
-
-      const staticMapKey =
-          String.fromEnvironment('GOOGLE_MAPS_STATIC_KEY', defaultValue: '');
-      final staticMapUrl = staticMapKey.isNotEmpty
-          ? 'https://maps.googleapis.com/maps/api/staticmap?center=$encodedCenter&zoom=13&size=640x360&scale=2&$markersParam&language=${context.locale.languageCode}&region=uz&key=$staticMapKey'
-          : null;
-
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12.r),
+    if (withCoords.isEmpty) {
+      // No coordinates to show – fallback placeholder
+      return GestureDetector(
+        onTap: _openMapWithHotels,
         child: Container(
-          height: 300.h,
+          height: 200.h,
           width: double.infinity,
           decoration: BoxDecoration(
             color: AppColors.getCardBg(
                 Theme.of(context).brightness == Brightness.dark),
-            borderRadius: BorderRadius.circular(12.r),
+            borderRadius: BorderRadius.circular(10.r),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.map, size: 36.sp, color: AppColors.gray500),
+                SizedBox(height: 6.h),
+                Text(
+                  'hotel.filter.map_not_available'.tr(),
+                  style: TextStyle(color: AppColors.gray500),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final center = LatLng(withCoords.first.latitude!, withCoords.first.longitude!);
+    final markers = withCoords.take(20).map<Marker>((h) {
+      return Marker(
+        width: 28,
+        height: 28,
+        point: LatLng(h.latitude!, h.longitude!),
+        child: const Icon(Icons.location_on, color: Colors.redAccent, size: 24),
+      );
+    }).toList();
+
+    return GestureDetector(
+      onTap: _openMapWithHotels,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10.r),
+        child: Container(
+          height: 200.h,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppColors.getCardBg(
+                Theme.of(context).brightness == Brightness.dark),
+            borderRadius: BorderRadius.circular(10.r),
             border: Border.all(
               color: AppColors.getBorderColor(
                       Theme.of(context).brightness == Brightness.dark)
                   .withOpacity(0.3),
             ),
           ),
-          child: staticMapUrl != null
-              ? Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    SafeNetworkImage(
-                      imageUrl: staticMapUrl,
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                    // Mapbox logo overlay (if needed)
-                    Positioned(
-                      bottom: 8.h,
-                      left: 8.w,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 6.w, vertical: 4.h),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(4.r),
-                        ),
-                        child: Text(
-                          'mapbox',
-                          style: TextStyle(
-                            fontSize: 10.sp,
-                            color: Theme.of(context).textTheme.bodyLarge?.color ?? AppColors.black,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : Container(
-                  color: AppColors.getCardBg(
-                      Theme.of(context).brightness == Brightness.dark),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.map, 
-                          size: 48.sp, 
-                          color: Theme.of(context).iconTheme.color ?? AppColors.grayText,
-                        ),
-                        SizedBox(height: 8.h),
-                        Text(
-                          'hotel.filter.map_not_available'.tr(),
-                          style: TextStyle(
-                            color: Theme.of(context).textTheme.bodySmall?.color ?? AppColors.grayText,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-        ),
-      );
-    } catch (e) {
-      return Container(
-        height: 300.h,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: AppColors.getCardBg(
-              Theme.of(context).brightness == Brightness.dark),
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.map, size: 48.sp, color: AppColors.gray500),
-              SizedBox(height: 8.h),
-              Text(
-                'hotel.filter.map_not_available'.tr(),
-                style: TextStyle(color: AppColors.gray500),
+          child: FlutterMap(
+            options: MapOptions(
+              initialCenter: center,
+              initialZoom: 12,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.drag |
+                    InteractiveFlag.pinchZoom |
+                    InteractiveFlag.doubleTapZoom |
+                    InteractiveFlag.rotate,
               ),
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'uz.kliro.app',
+              ),
+              MarkerLayer(markers: markers),
             ],
           ),
         ),
-      );
-    }
+      ),
+    );
   }
 
   Future<void> _openMapWithHotels() async {
@@ -957,15 +895,21 @@ class _HotelFilterPageState extends State<HotelFilterPage> {
 
     try {
       // Open map with first hotel as center, but show all hotels
-      final firstHotel = widget.hotels!.first;
-      if (firstHotel is! Hotel) return;
+      final firstAny = widget.hotels!.first;
+      if (firstAny is! Hotel) return;
+      final firstHotel = firstAny as Hotel;
 
-      final query = '${firstHotel.name}, ${firstHotel.address}';
-      if (query.trim().isEmpty) return;
-
-      final encodedQuery = Uri.encodeComponent(query);
-      final url = Uri.parse(
-          'https://www.google.com/maps/search/?api=1&query=$encodedQuery');
+      // Prefer coordinates if present
+      Uri url;
+      if (firstHotel.latitude != null && firstHotel.longitude != null) {
+        final q = '${firstHotel.latitude},${firstHotel.longitude}';
+        url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$q');
+      } else {
+        final query = '${firstHotel.name}, ${firstHotel.address}';
+        if (query.trim().isEmpty) return;
+        final encodedQuery = Uri.encodeComponent(query);
+        url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedQuery');
+      }
 
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);

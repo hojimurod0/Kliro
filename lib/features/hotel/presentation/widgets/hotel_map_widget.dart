@@ -5,6 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 // Location service import olib tashlandi - hotel funksiyasi hozir ishlamayapti
 import '../../../../core/constants/app_colors.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 /// Google Map widget that shows hotel location and user location
 class HotelMapWidget extends StatefulWidget {
@@ -102,128 +104,67 @@ class _HotelMapWidgetState extends State<HotelMapWidget> {
         '&markers=color:red%7C${widget.hotelLatitude},${widget.hotelLongitude}'
         '&maptype=roadmap'
         '&scale=2';
+    // Interactive OpenStreetMap using flutter_map
+    final point = LatLng(widget.hotelLatitude, widget.hotelLongitude);
 
-    return GestureDetector(
-      onTap: () async {
-        // Open in external map app when tapped
-        try {
-          final query = '${widget.hotelName}, ${widget.hotelAddress}';
-          final encodedQuery = Uri.encodeComponent(query);
-          final url = Uri.parse(
-              'https://www.google.com/maps/search/?api=1&query=$encodedQuery');
-          if (await canLaunchUrl(url)) {
-            await launchUrl(url, mode: LaunchMode.externalApplication);
-          }
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint('Error opening map: $e');
-          }
-        }
-      },
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Static map image as background
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12.r),
-            child: CachedNetworkImage(
-              imageUrl: staticMapUrl,
-              fit: BoxFit.cover,
-              memCacheWidth: 800, // Optimize memory usage
-              memCacheHeight: 600,
-              placeholder: (context, url) => Container(
-                color: Colors.grey[200],
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primaryBlue,
-                  ),
-                ),
-              ),
-              errorWidget: (context, url, error) {
-                // If static map fails, show simple fallback UI
-                return _buildSimpleFallback(context);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        FlutterMap(
+          options: MapOptions(
+            initialCenter: point,
+            initialZoom: 15,
+            interactionOptions: const InteractionOptions(
+              flags: InteractiveFlag.drag |
+                  InteractiveFlag.pinchZoom |
+                  InteractiveFlag.doubleTapZoom |
+                  InteractiveFlag.flingAnimation |
+                  InteractiveFlag.pinchMove |
+                  InteractiveFlag.rotate,
+            ),
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'uz.kliro.app',
+            ),
+          ],
+        ),
+        // Marker overlay centered on the hotel
+        IgnorePointer(
+          ignoring: true,
+          child: Center(
+            child: Icon(
+              Icons.location_on,
+              color: Colors.redAccent,
+              size: 32,
+            ),
+          ),
+        ),
+        // Tap overlay to open external maps
+        Positioned.fill(
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () async {
+                try {
+                  final query = '${widget.hotelName}, ${widget.hotelAddress}';
+                  final encodedQuery = Uri.encodeComponent(query);
+                  final url = Uri.parse(
+                      'https://www.google.com/maps/search/?api=1&query=$encodedQuery');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                } catch (e) {
+                  if (kDebugMode) {
+                    debugPrint('Error opening map: $e');
+                  }
+                }
               },
             ),
           ),
-          // Overlay with hotel info and button
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.7),
-                  ],
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(12.r),
-                  bottomRight: Radius.circular(12.r),
-                ),
-              ),
-              padding: EdgeInsets.all(16.w),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.hotelName,
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (widget.hotelAddress.isNotEmpty) ...[
-                    SizedBox(height: 4.h),
-                    Text(
-                      widget.hotelAddress,
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  SizedBox(height: 12.h),
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      try {
-                        final query = '${widget.hotelName}, ${widget.hotelAddress}';
-                        final encodedQuery = Uri.encodeComponent(query);
-                        final url = Uri.parse(
-                            'https://www.google.com/maps/search/?api=1&query=$encodedQuery');
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(url, mode: LaunchMode.externalApplication);
-                        }
-                      } catch (e) {
-                        debugPrint('Error opening map: $e');
-                      }
-                    },
-                    icon: Icon(Icons.open_in_new, size: 16.sp),
-                    label: Text('Open in Maps'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

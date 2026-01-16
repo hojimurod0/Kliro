@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:auto_route/auto_route.dart';
 import '../../utils/logger.dart';
 import '../../constants/constants.dart';
+import '../../navigation/app_router.dart';
 
 /// Handler for Hotel Payment callback deeplinks
 class HotelPaymentDeeplinkHandler {
@@ -63,21 +65,7 @@ class HotelPaymentDeeplinkHandler {
                 '✅ Booking ID qabul qilindi, booking holatini yangilaymiz');
           }
 
-          // Close payment webview if it's open
-          try {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            }
-          } catch (e) {
-            if (kDebugMode) {
-              AppLogger.debug(
-                  '⚠️ Navigator pop xatosi (ehtimol sahifa ochilmagan): $e');
-            }
-          }
-
-          // Navigate to hotel booking details or success page
-          // Note: The actual navigation will depend on your app's routing structure
-          // For now, we'll just show a success message and let the app handle it
+          // User feedback
           if (status == 'success' || status == 'paid' || status == 'confirmed') {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -87,6 +75,14 @@ class HotelPaymentDeeplinkHandler {
                 ),
               );
             }
+          }
+
+          // Navigate to Home (clear stack) so user lands on main page after payment
+          try {
+            AutoRouter.of(context).replaceAll([HomeRoute()]);
+          } catch (_) {
+            // Fallback for contexts without AutoRoute scope
+            Navigator.of(context).popUntil((route) => route.isFirst);
           }
         } else {
           AppLogger.error(

@@ -197,6 +197,12 @@
         "title": "Himoya va xavfsizlik",
         "subtitle": "KASKO, OSAGO va sayohat sug'urtasi",
         "book": "Ko'rish"
+      },
+      "hotel": {
+        "label": "MEHMONXONALAR",
+        "title": "Qulay mehmonxonani toping",
+        "subtitle": "Eng yaxshi narxlarda bron qiling",
+        "book": "Qidirish"
       }
     }
   },
@@ -1468,7 +1474,14 @@
       "babies": "chaqaloq",
       "passenger_count": "yo'lovchi",
       "flight": "Parvoz",
-      "economy": "Ekonom"
+      "economy": "Ekonom",
+      "flight_info": "Parvoz ma'lumotlari",
+      "total_passengers": "Jami yo'lovchilar",
+      "important_notes": "Muhim eslatmalar",
+      "note_passport": "Parvozdan oldin pasport ma'lumotlarini tekshiring",
+      "note_checkin": "Online check-in 24 soat oldin mavjud",
+      "note_cancellation": "Bekor qilish shartlari tarifga bog'liq",
+      "no_passengers": "Yo'lovchilar yo'q"
     },
     "formalization": {
       "title": "Rasmiylashtirish",
@@ -1821,11 +1834,15 @@
       "night": "Kecha",
       "nights_plural": "Kechalar",
       "rooms": "Xonalar:",
+      "room": "Xona",
       "rooms_plural": "Xonalar",
       "total_amount": "Jami summa:",
-      "tourist_tax": "Tourist tax:",
-      "included": "included",
+      "tourist_tax": "Turist solig'i:",
+      "included": "kiritilgan",
       "meal_plan": "Ovqat rejasi:",
+      "room_only": "Faqat xona",
+      "cancellation_policy": "Bekor qilish siyosati:",
+      "applies": "Qo'llaniladi",
       "cancellation_policy_applies": "Bekor qilish siyosati qo'llaniladi:",
       "free_cancellation": "Bepul bekor qilish",
       "main_guest": "Asosiy mehmon",

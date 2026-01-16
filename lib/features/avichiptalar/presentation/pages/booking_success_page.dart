@@ -14,15 +14,18 @@ import 'package:share_plus/share_plus.dart';
 import 'package:open_file/open_file.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_spacing.dart';
+import '../../../../core/constants/constants.dart';
 import '../../../../core/navigation/app_router.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/utils/snackbar_helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/models/offer_model.dart';
 import '../../data/models/booking_model.dart';
 import '../../data/models/price_check_model.dart';
 import '../../data/models/payment_permission_model.dart';
 import '../../data/models/invoice_request_model.dart';
 import '../../data/models/fare_rules_model.dart';
+import '../../data/datasources/avia_orders_local_data_source.dart';
 import '../bloc/avia_bloc.dart';
 import '../bloc/payment_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -85,6 +88,8 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
   Timer? _statusCheckTimer;
   String? _currentInvoiceUuid;
   bool _urlLaunched = false;
+  bool _pdfRequested = false;
+  int _pdfRetryCount = 0;
 
   PaymentBloc get paymentBloc {
     _paymentBloc ??= ServiceLocator.resolve<PaymentBloc>();
@@ -100,12 +105,35 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
     final id = widget.bookingId.trim();
     if (id.isNotEmpty) {
       context.read<AviaBloc>().add(BookingInfoRequested(id));
+      // Save to local "My orders" immediately
+      _saveOrderId(id);
     }
     // Initially expand first card (payer info)
     _expandedCardIndex = 0;
 
     // Start countdown timer only if not paid
     _startCountdownTimer();
+  }
+
+  Future<void> _saveOrderId(String bookingId) async {
+    try {
+      final id = bookingId.trim();
+      if (id.isEmpty) return;
+      final prefs = ServiceLocator.resolve<SharedPreferences>();
+      final local = AviaOrdersLocalDataSource(prefs);
+      await local.addOrder(id);
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  String _normalizePdfUrl(String url) {
+    final raw = url.trim();
+    if (raw.startsWith('/')) return '${ApiConstants.effectiveBaseUrl}$raw';
+    if (raw.startsWith('storage/') || raw.startsWith('uploads/')) {
+      return '${ApiConstants.effectiveBaseUrl}/$raw';
+    }
+    return raw;
   }
 
   @override
@@ -303,14 +331,15 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
       amount: amount,
       invoiceId: invoiceId,
       lang: EasyLocalization.of(context)!.locale.languageCode,
-      returnUrl: 'https://kliro.uz',
-      callbackUrl: 'https://api.kliro.uz/payment/callback/success',
+      returnUrl: ApiPaths.paymentReturnUrl,
+      callbackUrl: ApiPaths.paymentCallbackSuccessUrl,
     );
 
     paymentBloc.add(CreateInvoiceRequested(request));
   }
 
   Future<void> _launchPdfUrl(String pdfUrl) async {
+    pdfUrl = _normalizePdfUrl(pdfUrl);
     // Loading dialog ko'rsatish
     if (mounted) {
       showDialog(
@@ -641,13 +670,13 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
     final isoParsed = DateTime.tryParse(value);
     if (isoParsed != null) {
       final d = isoParsed;
-      return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}, ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+      return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
     }
     // Try "yyyy-MM-dd HH:mm[:ss]" by converting space to 'T'
     final tParsed = DateTime.tryParse(value.replaceFirst(' ', 'T'));
     if (tParsed != null) {
       final d = tParsed;
-      return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}, ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+      return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
     }
     return value;
   }
@@ -932,12 +961,22 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
                   _startCountdownTimer();
                 }
               });
+              // Auto request PDF once when booking is paid
+              if (_isPaid && !_pdfRequested) {
+                _pdfRequested = true;
+                context.read<AviaBloc>().add(PdfReceiptRequested(widget.bookingId));
+              }
             } else if (state is AviaPaymentSuccess) {
               // To'lov muvaffaqiyatli bo'lganda booking info ni yangilash
               // Bu PDF card'ini ko'rsatish uchun kerak
               context
                   .read<AviaBloc>()
                   .add(BookingInfoRequested(widget.bookingId));
+              // Also trigger PDF request proactively (in case booking info already has paid status)
+              if (!_pdfRequested) {
+                _pdfRequested = true;
+                context.read<AviaBloc>().add(PdfReceiptRequested(widget.bookingId));
+              }
             } else if (state is AviaPdfReceiptSuccess) {
               // PDF URL olinganda, uni ochish
               final pdfUrl = state.pdfUrl;
@@ -947,7 +986,16 @@ class _BookingSuccessPageState extends State<BookingSuccessPage>
                 SnackbarHelper.showError(context, 'PDF topilmadi');
               }
             } else if (state is AviaPdfReceiptFailure) {
-              SnackbarHelper.showError(context, state.message);
+              // If paid, PDF might not be generated yet - retry a few times.
+              if (_isPaid && _pdfRetryCount < 3) {
+                _pdfRetryCount++;
+                Future.delayed(Duration(seconds: 2 * _pdfRetryCount), () {
+                  if (!mounted) return;
+                  context.read<AviaBloc>().add(PdfReceiptRequested(widget.bookingId));
+                });
+              } else {
+                SnackbarHelper.showError(context, state.message);
+              }
             } else if (state is AviaBookingRulesSuccess) {
               setState(() {
                 _bookingRules = state.rules;

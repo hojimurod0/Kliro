@@ -504,6 +504,22 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
       flow: RegisterFlow.contactConfirm,
       action: () async {
         await _confirmUpdateContact(event.params);
+        // After successful confirmation, refresh profile so UI sees updated email/phone.
+        try {
+          final profile = await _getProfile();
+          await _cacheProfile(profile);
+          emit(
+            state.copyWith(
+              status: RegisterStatus.success,
+              profile: profile,
+              message: 'Contact updated',
+              clearError: true,
+            ),
+          );
+          return;
+        } catch (_) {
+          // Ignore profile refresh errors; contact update is already done.
+        }
         emit(
           state.copyWith(
             status: RegisterStatus.success,

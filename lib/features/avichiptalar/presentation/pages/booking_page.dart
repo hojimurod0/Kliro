@@ -4,7 +4,9 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/constants/constants.dart';
 import '../../../../core/navigation/app_router.dart';
 import '../../data/models/create_booking_request_model.dart';
 import '../bloc/avia_bloc.dart';
@@ -18,6 +20,7 @@ import '../../data/models/booking_model.dart';
 import '../../../../core/dio/singletons/service_locator.dart';
 import '../../../../core/utils/snackbar_helper.dart';
 import '../../../../core/widgets/base_stateful_widget.dart';
+import '../../data/datasources/avia_orders_local_data_source.dart';
 
 @RoutePage(name: 'AviaBookingRoute')
 class BookingPage extends StatefulWidget {
@@ -55,6 +58,18 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
   PaymentPermissionModel? _permission;
   BookingModel? _booking;
   Timer? _priceCheckTimeout;
+
+  Future<void> _saveOrderId(String bookingId) async {
+    try {
+      final id = bookingId.trim();
+      if (id.isEmpty) return;
+      final prefs = ServiceLocator.resolve<SharedPreferences>();
+      final local = AviaOrdersLocalDataSource(prefs);
+      await local.addOrder(id);
+    } catch (_) {
+      // ignore
+    }
+  }
 
   @override
   void initState() {
@@ -147,7 +162,7 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
       // Android'da canLaunchUrl ba'zida false qaytaradi, lekin launchUrl ishlaydi
       // Shuning uchun to'g'ridan-to'g'ri launchUrl'ni chaqiramiz
       try {
-        final launched = await launchUrl(
+        await launchUrl(
           uri,
           mode: LaunchMode.externalApplication,
         );
@@ -278,8 +293,8 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
       amount: amount,
       invoiceId: invoiceId,
       lang: EasyLocalization.of(context)!.locale.languageCode,
-      returnUrl: 'https://kliro.uz',
-      callbackUrl: 'https://api.kliro.uz/payment/callback/success',
+      returnUrl: ApiPaths.paymentReturnUrl,
+      callbackUrl: ApiPaths.paymentCallbackSuccessUrl,
     );
 
     _paymentBloc.add(
@@ -297,6 +312,7 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
             if (state is AviaCreateBookingSuccess) {
               final bookingId = state.booking.id ?? '';
               _currentBookingId = bookingId;
+              _saveOrderId(bookingId);
               _booking = state.booking;
               _priceCheck = null;
               _permission = null;
@@ -364,6 +380,7 @@ class _BookingPageState extends BaseStatefulWidget<BookingPage>
             } else if (state is AviaCreateBookingFailure) {
               // Check if there's an existing booking ID (duplicate booking)
               if (state.existingBookingId != null) {
+                _saveOrderId(state.existingBookingId!);
                 // Navigate to the existing booking status page
                 context.router.replace(
                   StatusRoute(

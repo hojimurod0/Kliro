@@ -1828,7 +1828,58 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
             return descText;
           }
         } else if (parsed is List && parsed.isNotEmpty) {
-          final firstItem = parsed[0];
+          // Handle lists like: [{locale: 'ru', value: '...'}, {locale: 'en', value: '...'}]
+          try {
+            // Build a map of locale -> value
+            final Map<String, String> locMap = {};
+            for (final item in parsed) {
+              if (item is Map) {
+                // Accept multiple possible keys
+                final loc = (item['locale'] ?? item['lang'] ?? item['language'] ?? item['loc'])?.toString();
+                final val = (item['value'] ?? item['text'] ?? item['description'] ?? item['name'])?.toString();
+                if (loc != null && val != null && val.isNotEmpty) {
+                  locMap[loc] = val;
+                }
+              } else if (item is String && item.isNotEmpty) {
+                // If it's a list of strings, pick the first non-empty
+                return item;
+              }
+            }
+
+            if (locMap.isNotEmpty) {
+              final normalizedLocale = _normalizeLocale(context.locale);
+              final rawLocale = context.locale.toString();
+              final variants = <String>[];
+              final lowerRaw = rawLocale.toLowerCase();
+
+              variants.add(normalizedLocale);
+              variants.add(rawLocale);
+              if (lowerRaw == 'uz_cyr' || lowerRaw == 'uz-cyr') {
+                variants.addAll(['uz_CYR', 'uz-CYR', 'uz_cyr', 'uz-cyr']);
+              }
+              if (rawLocale.contains('-') || rawLocale.contains('_')) {
+                final base = rawLocale.split(RegExp(r'[-_]')).first;
+                if (base.isNotEmpty && base != normalizedLocale) variants.add(base);
+              }
+
+              for (final v in variants) {
+                if (locMap.containsKey(v)) {
+                  return locMap[v]!;
+                }
+              }
+
+              // Fallback preference order among four languages
+              return locMap['uz'] ??
+                     locMap['uz_CYR'] ??
+                     locMap['en'] ??
+                     locMap['ru'] ??
+                     locMap.values.first;
+            }
+          } catch (_) {
+            // ignore and fall through
+          }
+          // If not recognized, fallback to first stringifiable item
+          final firstItem = parsed.first;
           if (firstItem is Map) {
             return _getLocalizedDescription(context, jsonEncode(firstItem));
           } else if (firstItem is String) {
@@ -1840,8 +1891,79 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
       // Error parsing description - silently continue with fallback
     }
 
-    // Если не JSON, просто возвращаем как есть (HTML)
+    // Если не JSON, попробуем разобрать псевдо-список вида:
+    // [{locale: ru, value: ...}, {locale: en, value: ...}]
+    final pseudo = _extractFromPseudoLocaleList(context, description);
+    if (pseudo != null && pseudo.isNotEmpty) {
+      return pseudo;
+    }
+
+    // Если не распознали формат, просто возвращаем как есть (HTML)
     return description;
+  }
+
+  /// Пытается извлечь локализованный текст из неполноценного JSON формата
+  /// Например: [{locale: ru, value: '...'}, {locale: en, value: '...'}]
+  /// Возвращает подходящий по локали текст или null, если формат не распознан
+  String? _extractFromPseudoLocaleList(BuildContext context, String text) {
+    try {
+      // Быстрый фильтр, чтобы избежать лишней работы
+      if (!text.contains('locale:') || !text.contains('value:')) return null;
+
+      // Находим пары { locale: XX, value: <...> } (включая lang/language/loc и text/description/name)
+      final regex = RegExp(r"\{\s*(?:locale|lang|language|loc)\s*:\s*([^,\s\}]+)\s*,\s*(?:value|text|description|name)\s*:\s*(.*?)\}\s*",
+          dotAll: true, multiLine: true);
+
+      final matches = regex.allMatches(text).toList();
+      if (matches.isEmpty) return null;
+
+      final Map<String, String> locMap = {};
+      for (final m in matches) {
+        final loc = m.group(1)?.trim();
+        var val = m.group(2)?.trim();
+        if (loc == null || val == null) continue;
+
+        // Удаляем окружающие кавычки, если есть
+        if ((val.startsWith('"') && val.endsWith('"')) ||
+            (val.startsWith('\'') && val.endsWith('\''))) {
+          val = val.substring(1, val.length - 1);
+        }
+
+        // Убираем завершающие запятые и скобки
+        val = val.replaceAll(RegExp(r"^[\s,\[]+|[\s,\]]+$"), '').trim();
+
+        if (val.isNotEmpty) {
+          locMap[loc] = val;
+        }
+      }
+
+      if (locMap.isEmpty) return null;
+
+      // Выбираем по приоритетам локали
+      final normalized = _normalizeLocale(context.locale);
+      final raw = context.locale.toString();
+      final variants = <String>[];
+      variants.add(normalized);
+      variants.add(raw);
+      final rawLower = raw.toLowerCase();
+      if (rawLower == 'uz_cyr' || rawLower == 'uz-cyr') {
+        variants.addAll(['uz_CYR', 'uz-CYR', 'uz_cyr', 'uz-cyr']);
+      }
+      if (raw.contains('-') || raw.contains('_')) {
+        final base = raw.split(RegExp(r'[-_]')).first;
+        if (base.isNotEmpty && base != normalized) variants.add(base);
+      }
+
+      for (final v in variants) {
+        if (locMap.containsKey(v)) return locMap[v];
+      }
+
+      // Жесткий fallback среди 4 языков
+      return locMap['uz'] ?? locMap['uz_CYR'] ?? locMap['en'] ?? locMap['ru'] ??
+          locMap.values.first;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Удаляет HTML теги из текста
@@ -2099,7 +2221,7 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
               const Center(child: CircularProgressIndicator())
             else
               ...roomTypes.map((roomType) {
-                final locale = context.locale.toString();
+                final locale = _normalizeLocale(context.locale);
                 final displayName = roomType.getDisplayName(locale);
                 return Container(
                   margin: EdgeInsets.only(bottom: 12.h),
@@ -2136,7 +2258,12 @@ class _HotelDetailsPageState extends State<HotelDetailsPage>
                       if (roomType.description != null) ...[
                         SizedBox(height: 8.h),
                         Text(
-                          _stripHtmlTags(roomType.description!),
+                          _stripHtmlTags(
+                            _getLocalizedDescription(
+                              context,
+                              roomType.description!,
+                            ),
+                          ),
                           style: TextStyle(
                               fontSize: 12.sp,
                               color: Theme.of(context)

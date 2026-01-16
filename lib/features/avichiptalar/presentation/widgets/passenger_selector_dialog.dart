@@ -5,13 +5,15 @@ import '../../../../core/constants/app_colors.dart';
 class PassengerSelectorDialog extends StatefulWidget {
   final int initialAdults;
   final int initialChildren;
-  final int initialBabies;
+  final int initialInfants;
+  final int initialInfantsWithSeat;
 
   const PassengerSelectorDialog({
     super.key,
     this.initialAdults = 1,
     this.initialChildren = 0,
-    this.initialBabies = 0,
+    this.initialInfants = 0,
+    this.initialInfantsWithSeat = 0,
   });
 
   @override
@@ -21,14 +23,18 @@ class PassengerSelectorDialog extends StatefulWidget {
 class _PassengerSelectorDialogState extends State<PassengerSelectorDialog> {
   late int _adults;
   late int _children;
-  late int _babies;
+  late int _infants;
+  late int _infantsWithSeat;
+  String? _selectedPassengerType;
 
   @override
   void initState() {
     super.initState();
     _adults = widget.initialAdults;
     _children = widget.initialChildren;
-    _babies = widget.initialBabies;
+    _infants = widget.initialInfants;
+    _infantsWithSeat = widget.initialInfantsWithSeat;
+    _selectedPassengerType = 'adult'; // Default selected
   }
 
   @override
@@ -47,36 +53,88 @@ class _PassengerSelectorDialogState extends State<PassengerSelectorDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Number of guests.',
+              'Yo\'lovchilar',
               style: TextStyle(
-                fontSize: 20.sp,
+                fontSize: 18.sp,
                 fontWeight: FontWeight.w700,
                 color: theme.textTheme.titleLarge?.color,
               ),
             ),
             SizedBox(height: 24.h),
-            _buildCounter(
+            // Header row
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Yo\'lovchi turi',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 16.w),
+                Expanded(
+                  child: Text(
+                    'Miqdor',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16.h),
+            // Passenger types list
+            _buildPassengerTypeRow(
               context,
-              'Adults',
-              'Over 18 years old',
+              'adult',
+              'Kattalar (ADT)',
+              '12+ yosh',
               _adults,
-              (value) => setState(() => _adults = value),
+              (value) => setState(() {
+                _adults = value;
+                _selectedPassengerType = 'adult';
+              }),
             ),
-            SizedBox(height: 16.h),
-            _buildCounter(
+            SizedBox(height: 12.h),
+            _buildPassengerTypeRow(
               context,
-              'Children',
-              'Under 18 years old',
+              'child',
+              'Bolalar (CHD)',
+              '2-11 yosh',
               _children,
-              (value) => setState(() => _children = value),
+              (value) => setState(() {
+                _children = value;
+                _selectedPassengerType = 'child';
+              }),
             ),
-            SizedBox(height: 16.h),
-            _buildCounter(
+            SizedBox(height: 12.h),
+            _buildPassengerTypeRow(
               context,
-              'Baby',
-              '0-2 years old',
-              _babies,
-              (value) => setState(() => _babies = value),
+              'infant_seat',
+              'Chaqaloqlar (o\'rindiq bilan) (INS)',
+              '2 yoshgacha, alohida o\'rindiq bilan',
+              _infantsWithSeat,
+              (value) => setState(() {
+                _infantsWithSeat = value;
+                _selectedPassengerType = 'infant_seat';
+              }),
+            ),
+            SizedBox(height: 12.h),
+            _buildPassengerTypeRow(
+              context,
+              'infant',
+              'Chaqaloqlar (INF)',
+              '2 yoshgacha',
+              _infants,
+              (value) => setState(() {
+                _infants = value;
+                _selectedPassengerType = 'infant';
+              }),
             ),
             SizedBox(height: 24.h),
             Row(
@@ -85,12 +143,12 @@ class _PassengerSelectorDialogState extends State<PassengerSelectorDialog> {
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: OutlinedButton.styleFrom(
-                      minimumSize: Size(0, 56.h),
+                      minimumSize: Size(0, 48.h),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                     ),
-                    child: Text('Cancel'),
+                    child: Text('Bekor qilish'),
                   ),
                 ),
                 SizedBox(width: 16.w),
@@ -100,22 +158,23 @@ class _PassengerSelectorDialogState extends State<PassengerSelectorDialog> {
                       Navigator.of(context).pop({
                         'adults': _adults,
                         'children': _children,
-                        'babies': _babies,
+                        'infants': _infants,
+                        'infantsWithSeat': _infantsWithSeat,
                       });
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryBlue,
                       foregroundColor: AppColors.white,
-                      minimumSize: Size(0, 56.h),
+                      minimumSize: Size(0, 48.h),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                       elevation: 0,
                     ),
                     child: Text(
-                      'Apply',
+                      'Qo\'llash',
                       style: TextStyle(
-                        fontSize: 16.sp,
+                        fontSize: 14.sp,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -129,10 +188,88 @@ class _PassengerSelectorDialogState extends State<PassengerSelectorDialog> {
     );
   }
 
-  Widget _buildCounter(
+  Widget _buildPassengerTypeRow(
     BuildContext context,
+    String type,
     String title,
     String subtitle,
+    int value,
+    ValueChanged<int> onChanged,
+  ) {
+    final theme = Theme.of(context);
+    final isSelected = _selectedPassengerType == type;
+    
+    return Row(
+      children: [
+        Expanded(
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                _selectedPassengerType = type;
+              });
+            },
+            child: Container(
+              padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 8.w),
+              decoration: BoxDecoration(
+                color: isSelected 
+                    ? AppColors.primaryBlue.withValues(alpha: 0.1)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      if (isSelected)
+                        Container(
+                          width: 8.w,
+                          height: 8.w,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryBlue,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      if (isSelected) SizedBox(width: 8.w),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w600,
+                            color: theme.textTheme.titleLarge?.color,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ?? Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        SizedBox(width: 16.w),
+        Expanded(
+          child: _buildQuantitySelector(
+            context,
+            value,
+            onChanged,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuantitySelector(
+    BuildContext context,
     int value,
     ValueChanged<int> onChanged,
   ) {
@@ -141,65 +278,40 @@ class _PassengerSelectorDialogState extends State<PassengerSelectorDialog> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                  color: theme.textTheme.titleLarge?.color,
-                ),
-              ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ?? Colors.grey,
-                ),
-              ),
-            ],
+        IconButton(
+          onPressed: value > 0 ? () => onChanged(value - 1) : null,
+          icon: Icon(Icons.remove, size: 16.sp),
+          style: IconButton.styleFrom(
+            backgroundColor: theme.dividerColor.withValues(alpha: 0.1),
+            shape: CircleBorder(),
+            padding: EdgeInsets.all(6.w),
+            minimumSize: Size(36.w, 36.w),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ),
-        Row(
-          children: [
-            IconButton(
-              onPressed: value > 0 ? () => onChanged(value - 1) : null,
-              icon: Icon(Icons.remove),
-              style: IconButton.styleFrom(
-                backgroundColor: theme.dividerColor.withValues(alpha: 0.1),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-              ),
-            ),
-            SizedBox(width: 16.w),
-            Text(
-              value.toString(),
-              style: TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w600,
-                color: theme.textTheme.titleLarge?.color,
-              ),
-            ),
-            SizedBox(width: 16.w),
-            IconButton(
-              onPressed: () => onChanged(value + 1),
-              icon: Icon(Icons.add),
-              style: IconButton.styleFrom(
-                backgroundColor: AppColors.primaryBlue,
-                foregroundColor: AppColors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-              ),
-            ),
-          ],
+        Text(
+          value.toString(),
+          style: TextStyle(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w600,
+            color: theme.textTheme.titleLarge?.color,
+          ),
+        ),
+        IconButton(
+          onPressed: () => onChanged(value + 1),
+          icon: Icon(Icons.add, size: 16.sp),
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.primaryBlue,
+            foregroundColor: AppColors.white,
+            shape: CircleBorder(),
+            padding: EdgeInsets.all(6.w),
+            minimumSize: Size(36.w, 36.w),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
         ),
       ],
     );
   }
+
 }
 

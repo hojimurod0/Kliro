@@ -29,5 +29,6 @@ Future<void> _runApp(Stopwatch stopwatch) async {
   } catch (e) {
     // If initialization fails, show error fallback app
     runApp(ErrorFallbackApp(error: e));
-  }
+  } 
 }
+   

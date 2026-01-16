@@ -98,9 +98,8 @@ class _HotelResultsPageState extends State<HotelResultsPage> {
                 child: IconButton(
                   icon: Icon(Icons.arrow_back, size: 20.sp),
                   onPressed: () {
-                    // HotelSearchPage'ga qaytish - barcha oraliq sahifalarni (loading va boshqalar) yopish
-                    // popUntil birinchi sahifaga qaytaradi (HotelSearchPage)
-                    Navigator.of(context).popUntil((route) => route.isFirst);
+                    // HotelSearchPage'ga qaytish - faqat bitta sahifani yopish
+                    Navigator.of(context).pop();
                   },
                   tooltip: 'hotel.common.back'.tr(),
                 ),
